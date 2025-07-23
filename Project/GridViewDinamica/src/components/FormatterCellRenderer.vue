@@ -65,9 +65,7 @@ export default {
     formattedValue() {
       try {
         // DEADLINE: barra proporcional
-        const tagControl = this.params.colDef?.TagControl || this.params.colDef?.tagControl || '';
-        const fieldName = this.params.colDef?.field;
-        if (tagControl.toUpperCase() === 'DEADLINE' || fieldName === 'Deadline') {
+        if (this.params.colDef?.TagControl === 'DEADLINE' || this.params.colDef?.tagControl === 'DEADLINE') {
           const value = this.params.value;
           if (!value) return '';
           // Parse data DEADLINE
