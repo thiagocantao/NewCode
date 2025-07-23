@@ -143,6 +143,15 @@
   defaultValue: [],
   readonly: false,
   });
+
+  // Interval para atualizar células DEADLINE
+  let deadlineTimer = null;
+  onUnmounted(() => {
+    if (deadlineTimer) {
+      clearInterval(deadlineTimer);
+      deadlineTimer = null;
+    }
+  });
   
     const onGridReady = (params) => {
       gridApi.value = params.api;
