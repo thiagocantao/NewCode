@@ -48,13 +48,13 @@ export default {
     },
   },
   setup(props) {
-    // Timer reativo para atualizar a cada minuto
+    // Timer reativo para atualizar a cada segundo
     const now = ref(new Date());
     let timer = null;
     onMounted(() => {
       timer = setInterval(() => {
         now.value = new Date();
-      }, 1000 * 10); // Atualiza a cada 10 segundos para visual mais fluido
+      }, 1000); // Atualiza a cada segundo
     });
     onUnmounted(() => {
       if (timer) clearInterval(timer);
@@ -63,7 +63,6 @@ export default {
   },
   computed: {
     formattedValue() {
-      alert('FormatterCellRenderer chamado para campo: ' + this.params.colDef.field + ' | valor: ' + this.params.value);
       try {
         // DEADLINE: barra proporcional
         if (this.params.colDef?.TagControl === 'DEADLINE' || this.params.colDef?.tagControl === 'DEADLINE') {
