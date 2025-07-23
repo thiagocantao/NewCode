@@ -133,7 +133,6 @@ export default {
             textColor = '#b71c1c';
             debugLabel += ' (vermelho)';
           }
-          console.log('DEADLINE BAR:', { percent, cor, label: debugLabel, value, diffDays });
           // Barra HTML
           return `
             <div class="deadline-bar-bg" style="width:100%;height:22px;position:relative;background:#f5f5f5;border-radius:8px;overflow:hidden;display:block;">
