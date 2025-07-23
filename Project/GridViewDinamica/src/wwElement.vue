@@ -728,7 +728,7 @@
             }
             // Add header alignment style that affects all content in the header
             if (colCopy.headerAlign) {
-              result.headerClass = `ag-header-cell-${colCopy.headerAlign}`;
+              result.headerClass = `ag-header-align-${colCopy.headerAlign}`;
             }
             // Formatação especial para DEADLINE
             const tagControl = colCopy.TagControl || colCopy.tagControl || '';
@@ -1456,22 +1456,32 @@ forceClearSelection() {
     }
   }
 
-  .ag-header-cell-left>div {
-    justify-content: flex-start;
-    display: flex;
-    width: 100%;
+  :deep(.ag-header-align-left .ag-header-cell-label) {
+    justify-content: flex-start !important;
   }
 
-  .ag-header-cell-center>div {
-    justify-content: center;
-    display: flex;
+  :deep(.ag-header-align-center .ag-header-cell-label) {
+    justify-content: center !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px;
     width: 100%;
+    text-align: center !important;
   }
 
-  .ag-header-cell-right>div {
-    justify-content: flex-end;
-    display: flex;
-    width: 100%;
+  :deep(.ag-header-align-center .ag-header-cell-label .ag-header-cell-text) {
+    flex: none !important;
+    text-align: center !important;
+    margin: 0 auto !important;
+  }
+
+  :deep(.ag-header-align-center .ag-header-icon) {
+    position: static !important;
+    margin-left: 2px !important;
+  }
+
+  :deep(.ag-header-align-right .ag-header-cell-label) {
+    justify-content: flex-end !important;
   }
 
   :deep(.ag-header-cell .ag-header-cell-menu-button),
