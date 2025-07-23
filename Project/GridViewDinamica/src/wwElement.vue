@@ -665,7 +665,10 @@
               cellRendererParams: {
                 useCustomFormatter: colCopy.useCustomFormatter,
                 formatter: colCopy.formatter
-              }
+              },
+              editable: true,
+              cellEditor: 'ListCellEditor',
+              options: Array.isArray(colCopy.options) ? colCopy.options : (Array.isArray(colCopy.listOptions) ? colCopy.listOptions : [])
             };
           default: {
             const result = {
