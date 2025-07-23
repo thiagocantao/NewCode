@@ -159,10 +159,8 @@ export default {
       }
     },
     initialSelectedId(newId) {
-      if (!this.selectedUserId) {
-        const user = this.datasource.find(u => String(u.ID) === String(newId));
-        this.selectedUser = user || null;
-      }
+      const user = this.datasource.find(u => String(u.ID) === String(newId));
+      this.selectedUser = user || null;
     },
     datasource: {
       handler() {
