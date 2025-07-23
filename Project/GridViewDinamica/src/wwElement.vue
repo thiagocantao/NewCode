@@ -261,7 +261,10 @@
     let deadlineColumns = [];
     if (props.content && props.content.columns && Array.isArray(props.content.columns)) {
       deadlineColumns = props.content.columns
-        .filter(col => (col.TagControl || col.tagControl || '').toUpperCase() === 'DEADLINE')
+        .filter(col => {
+          const tag = (col.TagControl || col.tagControl || '').toUpperCase();
+          return tag === 'DEADLINE' || col.field === 'Deadline';
+        })
         .map(col => col.id || col.field)
         .filter(Boolean);
     }
@@ -563,7 +566,8 @@
       return this.content.columns.map((col) => {
         const colCopy = { ...col };
         // Forçar configuração correta para colunas DEADLINE
-        if ((colCopy.TagControl || colCopy.tagControl || '').toUpperCase() === 'DEADLINE') {
+        const tag = (colCopy.TagControl || colCopy.tagControl || '').toUpperCase();
+        if (tag === 'DEADLINE' || colCopy.field === 'Deadline') {
           colCopy.cellRenderer = 'FormatterCellRenderer';
           delete colCopy.cellRendererFramework;
           delete colCopy.formatter;
