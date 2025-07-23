@@ -2,7 +2,7 @@
   <div class="formatter-cell" v-if="params.useCustomFormatter" v-html="formattedValue" :style="cellStyle"></div>
   <div class="formatter-cell" v-else :style="cellStyle">{{ formattedValue }}</div>
 </template>
-
+ 
 <script>
 import { ref, onMounted, onUnmounted, computed } from 'vue';
   // Função global original
@@ -133,6 +133,7 @@ export default {
             textColor = '#b71c1c';
             debugLabel += ' (vermelho)';
           }
+          console.log('DEADLINE BAR:', { percent, cor, label: debugLabel, value, diffDays });
           // Barra HTML
           return `
             <div class="deadline-bar-bg" style="width:100%;height:22px;position:relative;background:#f5f5f5;border-radius:8px;overflow:hidden;display:block;">
