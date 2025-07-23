@@ -1,0 +1,23 @@
+[
+  {
+    "ID": "f1",
+    "Name": "Nome",
+    "fieldType": "text",
+    "columns": 2,
+    "is_mandatory": true
+  },
+  {
+    "ID": "f2",
+    "Name": "Email",
+    "fieldType": "email",
+    "columns": 2,
+    "is_mandatory": false
+  },
+  {
+    "ID": "f3",
+    "Name": "Telefone",
+    "fieldType": "phone",
+    "columns": 1,
+    "is_mandatory": false
+  }
+]

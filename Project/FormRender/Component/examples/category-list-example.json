@@ -1,0 +1,50 @@
+{
+  "id": "section1",
+  "title": "Informações do Cliente",
+  "fields": [
+    {
+      "id": "f1",
+      "field_id": "f1",
+      "name": "Nome",
+      "fieldType": "text",
+      "columns": 2,
+      "is_mandatory": true
+    },
+    {
+      "id": "f2",
+      "field_id": "f2",
+      "name": "Email",
+      "fieldType": "email",
+      "columns": 2
+    },
+    {
+      "id": "f3",
+      "field_id": "f3",
+      "name": "Categoria",
+      "fieldType": "SIMPLE_LIST",
+      "columns": 2,
+      "is_mandatory": true,
+      "dataSource": {
+        "url": "https://jsonplaceholder.typicode.com/users",
+        "transform": {
+          "value": "id",
+          "label": "name"
+        }
+      }
+    },
+    {
+      "id": "f4",
+      "field_id": "f4",
+      "name": "Estado",
+      "fieldType": "SIMPLE_LIST",
+      "columns": 1,
+      "dataSource": {
+        "url": "https://servicodados.ibge.gov.br/api/v1/localidades/estados",
+        "transform": {
+          "value": "id",
+          "label": "nome"
+        }
+      }
+    }
+  ]
+} 
