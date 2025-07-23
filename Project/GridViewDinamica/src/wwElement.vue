@@ -1382,7 +1382,7 @@ forceClearSelection() {
     :deep(.ag-row:last-child .ag-cell) {
       border-bottom: none !important;
     }
-    // Inputs de edição compactos e centralizados (ajuste agressivo)
+        // Inputs de edição compactos e centralizados (ajuste agressivo)
     :deep(.ag-cell.ag-cell-editing) {
       padding: 0 !important;
       display: flex !important;
@@ -1393,6 +1393,7 @@ forceClearSelection() {
       max-height: none !important;
       box-sizing: border-box !important;
     }
+
     :deep(.ag-cell.ag-cell-editing input),
     :deep(.ag-cell.ag-cell-editing select),
     :deep(.ag-cell.ag-cell-editing textarea) {
@@ -1411,6 +1412,7 @@ forceClearSelection() {
       vertical-align: middle !important;
       outline: none !important;
     }
+
     // Inputs de edição compactos e centralizados (ajuste ultra-específico para AG-Grid)
     :deep(.ag-cell.ag-cell-inline-editing) {
       padding: 0 !important;
@@ -1422,6 +1424,7 @@ forceClearSelection() {
       max-height: none !important;
       box-sizing: border-box !important;
     }
+
     :deep(.ag-cell.ag-cell-inline-editing .ag-cell-edit-wrapper),
     :deep(.ag-cell.ag-cell-inline-editing .ag-cell-editor),
     :deep(.ag-cell.ag-cell-inline-editing .ag-input-wrapper),
@@ -1436,17 +1439,22 @@ forceClearSelection() {
       margin: 0 !important;
       box-sizing: border-box !important;
     }
+
     :deep(.ag-cell.ag-cell-inline-editing input),
     :deep(.ag-cell.ag-cell-inline-editing select),
     :deep(.ag-cell.ag-cell-inline-editing textarea) {
-      height: 20px !important;
-      min-height: 20px !important;
-      max-height: 20px !important;
-      font-size: 13px !important;
+      height: 26px !important;
+      min-height: 26px !important;
+      max-height: 26px !important;
+      font-size: 12px !important;
+      font-family: 'Roboto', Arial, sans-serif !important;
       padding: 0 8px !important;
-      border-radius: 0 !important;      /* Remove arredondamento */
-      box-shadow: none !important;      /* Remove sombra */
-      border: none !important;          /* Remove borda */
+      border-radius: 8 !important;
+      /* Remove arredondamento */
+      box-shadow: none !important;
+      /* Remove sombra */
+      border: 1px solid #888 !important;
+      /* Remove borda */
       box-sizing: border-box !important;
       line-height: 1.2 !important;
       margin: 0 !important;
@@ -1454,16 +1462,16 @@ forceClearSelection() {
       resize: none !important;
       background: #fff !important;
       vertical-align: middle !important;
-      outline: none !important;         /* Remove borda azul de foco */
-      transition: none !important;      /* Remove animação de foco */
+      outline: none !important;
+      /* Remove borda azul de foco */
+      transition: none !important;
+      /* Remove animação de foco */
     }
     // Remove borda arredondada e sombra da célula de edição AG-Grid
     :deep(.ag-cell-value.ag-cell.ag-cell-normal-height.ag-cell-focus.ag-cell-inline-editing) {
       border-radius: 0 !important;
       box-shadow: none !important;
-      border: none !important;
       outline: none !important;
-      background: #fff !important;
       transition: none !important;
     }
   }
