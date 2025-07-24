@@ -754,14 +754,27 @@
               result.cellDataType = 'dateString';
               result.cellRenderer = params => {
                 // Função utilitária para calcular diff e cor (idêntica ao FieldComponent.vue)
-                function getDeadlineDiff(val) {
+                function normalizeDeadline(val) {
                   if (!val) return '';
                   let dateStr = val;
+                  // ISO sem segundos
                   if (/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(val)) {
-                    dateStr = val;
-                  } else if (/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\+\d{2}/.test(val)) {
-                    dateStr = val.replace(' ', 'T').replace(/([\+\-]\d{2})$/, '$1:00');
+                    return val;
                   }
+                  // ISO com espaço ao invés de T e sem timezone
+                  if (/\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?/.test(val) && !/[\+\-]\d{2}$/.test(val)) {
+                    dateStr = val.replace(' ', 'T');
+                    return dateStr;
+                  }
+                  // ISO com timezone no formato +HH
+                  if (/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}[\+\-]\d{2}$/.test(val)) {
+                    return val.replace(' ', 'T').replace(/([\+\-]\d{2})$/, '$1:00');
+                  }
+                  return dateStr;
+                }
+                function getDeadlineDiff(val) {
+                  if (!val) return '';
+                  const dateStr = normalizeDeadline(val);
                   const deadline = new Date(dateStr);
                   if (isNaN(deadline.getTime())) return '';
                   const now = window.gridDeadlineNow instanceof Date ? window.gridDeadlineNow : new Date();
@@ -793,12 +806,7 @@
                 }
                 function getDeadlineColorClass(val) {
                   if (!val) return '';
-                  let dateStr = val;
-                  if (/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(val)) {
-                    dateStr = val;
-                  } else if (/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\+\d{2}/.test(val)) {
-                    dateStr = val.replace(' ', 'T').replace(/([\+\-]\d{2})$/, '$1:00');
-                  }
+                  const dateStr = normalizeDeadline(val);
                   const deadline = new Date(dateStr);
                   if (isNaN(deadline.getTime())) return '';
                   const now = window.gridDeadlineNow instanceof Date ? window.gridDeadlineNow : new Date();
@@ -811,12 +819,7 @@
                 }
                 function getDeadlineOriginalFormatted(val) {
                   if (!val) return '';
-                  let dateStr = val;
-                  if (/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(val)) {
-                    dateStr = val;
-                  } else if (/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\+\d{2}/.test(val)) {
-                    dateStr = val.replace(' ', 'T').replace(/([\+\-]\d{2})$/, '$1:00');
-                  }
+                  const dateStr = normalizeDeadline(val);
                   const deadline = new Date(dateStr);
                   if (isNaN(deadline.getTime())) return val;
                   // Pega o idioma da variável global
