@@ -266,7 +266,7 @@
     if (props.content && props.content.columns && Array.isArray(props.content.columns)) {
       deadlineColumns = props.content.columns
         .filter(col => {
-          const tc = col.TagControl || col.tagControl;
+          const tc = col.TagControl || col.tagControl || col.tagcontrol;
           return tc && tc.toUpperCase() === 'DEADLINE';
         })
         .map(col => col.id || col.field)
@@ -675,23 +675,30 @@
             };
           }
           case "list":
-            return {
-              ...commonProperties,
-              id: colCopy.id,
-              colId: colCopy.id,
-              headerName: colCopy.headerName,
-              field: colCopy.field,
-              sortable: colCopy.sortable,
-              filter: ListFilterRenderer,
-              cellRenderer: colCopy.useCustomFormatter ? 'FormatterCellRenderer' : undefined,
-              cellRendererParams: {
-                useCustomFormatter: colCopy.useCustomFormatter,
-                formatter: colCopy.formatter
-              },
-              editable: true,
-              cellEditor: 'ListCellEditor',
-              options: Array.isArray(colCopy.options) ? colCopy.options : (Array.isArray(colCopy.listOptions) ? colCopy.listOptions : [])
-            };
+            {
+              const result = {
+                ...commonProperties,
+                id: colCopy.id,
+                colId: colCopy.id,
+                headerName: colCopy.headerName,
+                field: colCopy.field,
+                sortable: colCopy.sortable,
+                filter: ListFilterRenderer,
+                cellRenderer: colCopy.useCustomFormatter ? 'FormatterCellRenderer' : undefined,
+                cellRendererParams: {
+                  useCustomFormatter: colCopy.useCustomFormatter,
+                  formatter: colCopy.formatter
+                },
+                editable: true,
+                cellEditor: 'ListCellEditor',
+                options: Array.isArray(colCopy.options) ? colCopy.options : (Array.isArray(colCopy.listOptions) ? colCopy.listOptions : [])
+              };
+              const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
+              if (tagControl === 'RESPONSIBLEUSERID') {
+                result.cellRenderer = 'UserCellRenderer';
+              }
+              return result;
+            }
           default: {
             const result = {
               ...commonProperties,
@@ -756,11 +763,11 @@
               result.headerClass = `ag-header-align-${colCopy.headerAlign}`;
             }
             // Formatação especial para DEADLINE
-            const tagControl = colCopy.TagControl || colCopy.tagControl || '';
-            if (tagControl.toUpperCase() === 'RESPONSIBLEUSERID') {
+            const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
+            if (tagControl === 'RESPONSIBLEUSERID') {
               result.cellRenderer = 'UserCellRenderer';
             }
-            if (tagControl.toUpperCase() === 'DEADLINE') {
+            if (tagControl === 'DEADLINE') {
               result.filter = 'agDateColumnFilter';
               result.cellDataType = 'dateString';
               result.cellRenderer = params => {
