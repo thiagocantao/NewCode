@@ -607,6 +607,7 @@
           hide: !!colCopy.hide,
           editable: !!colCopy.editable, // <-- garantir editable
           FieldDB: colCopy.FieldDB, // <-- garantir FieldDB no colDef
+          ...(colCopy.pinned === 'left' ? { lockPinned: true, lockPosition: true } : {}),
         };
         // Se o filtro for agListColumnFilter, usar o filtro customizado
         if (colCopy.filter === 'agListColumnFilter') {
