@@ -5,6 +5,7 @@
       :selection-column-def="{ pinned: true }" :theme="theme" :getRowId="getRowId" :pagination="content.pagination"
       :paginationPageSize="content.paginationPageSize || 10" :paginationPageSizeSelector="false"
       :suppressMovableColumns="!content.movableColumns" :columnHoverHighlight="content.columnHoverHighlight"
+      :getMainMenuItems="getMainMenuItems" :isColumnMovable="isColumnMovable"
       :locale-text="localeText" @grid-ready="onGridReady" @row-selected="onRowSelected"
       @selection-changed="onSelectionChanged" @cell-value-changed="onCellValueChanged" @filter-changed="onFilterChanged"
       @sort-changed="onSortChanged" @row-clicked="onRowClicked">
@@ -64,6 +65,7 @@ export default {
     const { resolveMappingFormula } = wwLib.wwFormula.useFormula();
 
     const gridApi = shallowRef(null);
+    const columnApi = shallowRef(null);
     const { value: selectedRows, setValue: setSelectedRows } =
       wwLib.wwVariable.useComponentVariable({
         uid: props.uid,
@@ -91,8 +93,26 @@ export default {
 
     const onGridReady = (params) => {
       gridApi.value = params.api;
+      columnApi.value = params.columnApi;
       trySelectInitialRows();
+      params.api.addEventListener('columnPinned', restorePinnedColumns);
+      params.api.addEventListener('columnMoved', restorePinnedColumns);
+      params.api.addEventListener('columnVisible', restorePinnedColumns);
+      params.api.addEventListener('columnEverythingChanged', restorePinnedColumns);
     };
+
+    function restorePinnedColumns() {
+      if (!columnApi.value) return;
+      const state = columnApi.value.getColumnState();
+      const newState = state.map(col => {
+        const original = props.content.columns.find(c => c.id === col.colId || c.field === col.colId);
+        if (original && original.pinned === 'left') {
+          return { ...col, pinned: 'left' };
+        }
+        return col;
+      });
+      columnApi.value.applyColumnState({ state: newState, applyOrder: true });
+    }
 
     // Seleciona as linhas iniciais com base em initialSelectedRowIds
     function selectInitialRows() {
@@ -275,6 +295,7 @@ export default {
           width,
           flex,
           hide: !!col.hide,
+          ...(col.pinned === 'left' ? { lockPinned: true, lockPosition: true } : {}),
         };
         const cellClass = col.textAlign ? `ag-text-${col.textAlign}` : undefined;
         const headerClass = col.headerAlign ? `ag-header-align-${col.headerAlign}` : undefined;
@@ -613,6 +634,21 @@ export default {
         displayIndex: 0,
       };
     },
+    // Determina se a coluna pode ser movida
+    isColumnMovable(params) {
+      if (params.column.getColId() === 'ag-Grid-SelectionColumn') return false;
+      if (params.column.getPinned() === 'left' || params.column.getPinned() === 'right') return false;
+      const colDef = params.column.getColDef();
+      const field = colDef.field;
+      const columnConfig = this.content.columns.find(col => col.field === field);
+      if (columnConfig && columnConfig.draggable === false) return false;
+      return this.content.movableColumns;
+    },
+    // Remove opções de pin/unpin do menu
+    getMainMenuItems(params) {
+      const defaultItems = params.defaultItems;
+      return defaultItems.filter(item => !item.toLowerCase().includes('pin'));
+    },
     /* wwEditor:end */
   },
   /* wwEditor:start */
@@ -825,5 +861,13 @@ export default {
 
   .list-filter .clear-btn:hover {
     background: #ffe6e6;
+  }
+
+  /* Bloqueia interação com colunas fixas */
+  :deep(.ag-header-cell.ag-pinned-left),
+  :deep(.ag-header-cell.ag-pinned-right) {
+    pointer-events: none !important;
+    user-select: none !important;
+    cursor: default !important;
   }
 </style>
