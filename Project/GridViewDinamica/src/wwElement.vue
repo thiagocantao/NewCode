@@ -10,9 +10,9 @@
         :singleClickEdit="true" @grid-ready="onGridReady" @row-selected="onRowSelected"
         @selection-changed="onSelectionChanged" @cell-value-changed="onCellValueChanged" @filter-changed="onFilterChanged"
         @sort-changed="onSortChanged" @row-clicked="onRowClicked" @first-data-rendered="onFirstDataRendered"
-        @cell-clicked="onCellClicked">
+        @cell-clicked="onCellClicked"> 
       </ag-grid-vue> 
-    </div> 
+    </div>
 </template>
 
 <script>
@@ -754,14 +754,27 @@
               result.cellDataType = 'dateString';
               result.cellRenderer = params => {
                 // Função utilitária para calcular diff e cor (idêntica ao FieldComponent.vue)
-                function getDeadlineDiff(val) {
+                function normalizeDeadline(val) {
                   if (!val) return '';
                   let dateStr = val;
+                  // ISO sem segundos
                   if (/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(val)) {
-                    dateStr = val;
-                  } else if (/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\+\d{2}/.test(val)) {
-                    dateStr = val.replace(' ', 'T').replace(/([\+\-]\d{2})$/, '$1:00');
+                    return val;
                   }
+                  // ISO com espaço ao invés de T e sem timezone
+                  if (/\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?/.test(val) && !/[\+\-]\d{2}$/.test(val)) {
+                    dateStr = val.replace(' ', 'T');
+                    return dateStr;
+                  }
+                  // ISO com timezone no formato +HH
+                  if (/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}[\+\-]\d{2}$/.test(val)) {
+                    return val.replace(' ', 'T').replace(/([\+\-]\d{2})$/, '$1:00');
+                  }
+                  return dateStr;
+                }
+                function getDeadlineDiff(val) {
+                  if (!val) return '';
+                  const dateStr = normalizeDeadline(val);
                   const deadline = new Date(dateStr);
                   if (isNaN(deadline.getTime())) return '';
                   const now = window.gridDeadlineNow instanceof Date ? window.gridDeadlineNow : new Date();
@@ -793,12 +806,7 @@
                 }
                 function getDeadlineColorClass(val) {
                   if (!val) return '';
-                  let dateStr = val;
-                  if (/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(val)) {
-                    dateStr = val;
-                  } else if (/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\+\d{2}/.test(val)) {
-                    dateStr = val.replace(' ', 'T').replace(/([\+\-]\d{2})$/, '$1:00');
-                  }
+                  const dateStr = normalizeDeadline(val);
                   const deadline = new Date(dateStr);
                   if (isNaN(deadline.getTime())) return '';
                   const now = window.gridDeadlineNow instanceof Date ? window.gridDeadlineNow : new Date();
@@ -811,12 +819,7 @@
                 }
                 function getDeadlineOriginalFormatted(val) {
                   if (!val) return '';
-                  let dateStr = val;
-                  if (/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(val)) {
-                    dateStr = val;
-                  } else if (/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\+\d{2}/.test(val)) {
-                    dateStr = val.replace(' ', 'T').replace(/([\+\-]\d{2})$/, '$1:00');
-                  }
+                  const dateStr = normalizeDeadline(val);
                   const deadline = new Date(dateStr);
                   if (isNaN(deadline.getTime())) return val;
                   // Pega o idioma da variável global
@@ -859,16 +862,12 @@
           headerCheckbox: !this.content.disableCheckboxes,
           selectAll: this.content.selectAll || "all",
           enableClickSelection: this.content.enableClickSelection,
-          isRowSelectable: rowNode =>
-            !(rowNode?.data && rowNode.data.isEnabled === false),
         };
       } else if (this.content.rowSelection === "single") {
         return {
           mode: "singleRow",
           checkboxes: !this.content.disableCheckboxes,
           enableClickSelection: this.content.enableClickSelection,
-          isRowSelectable: rowNode =>
-            !(rowNode?.data && rowNode.data.isEnabled === false),
         };
       } else {
         return {
@@ -979,7 +978,6 @@
   onRowClicked(event) {
   // Add null checks to prevent accessing properties of undefined objects
   if (!event || !event.data) return;
-  if (event.data.isEnabled === false) return;
 
   // Identifica a coluna clicada
   const colId = event.column?.getColId?.();
