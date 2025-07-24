@@ -36,29 +36,31 @@
         />
         <span class="material-symbols-outlined user-selector__icon">search</span>
       </div>
-      <div
-        v-for="user in filteredUsers"
-        :key="user.userID"
-        class="user-selector__item"
-        @click.stop="selectUser(user)"
-      >
-        <div class="avatar-outer">
-          <div class="avatar-middle">
-            <div class="user-selector__avatar">
-              <template v-if="user.PhotoURL">
-                <img :src="user.PhotoURL" alt="User Photo" />
-              </template>
-              <template v-else>
-                <span class="user-selector__initial" :style="initialStyle">
-                  {{ getInitial(user.Username) }}
-                </span>
-              </template>
+      <div class="user-selector__list">
+        <div
+          v-for="user in filteredUsers"
+          :key="user.userID"
+          class="user-selector__item"
+          @click.stop="selectUser(user)"
+        >
+          <div class="avatar-outer">
+            <div class="avatar-middle">
+              <div class="user-selector__avatar">
+                <template v-if="user.PhotoURL">
+                  <img :src="user.PhotoURL" alt="User Photo" />
+                </template>
+                <template v-else>
+                  <span class="user-selector__initial" :style="initialStyle">
+                    {{ getInitial(user.Username) }}
+                  </span>
+                </template>
+              </div>
             </div>
           </div>
+          <span class="user-selector__name" :style="nameStyle">{{ user.Username }}</span>
         </div>
-        <span class="user-selector__name" :style="nameStyle">{{ user.Username }}</span>
+        <div v-if="filteredUsers.length === 0" class="user-selector__no-results" :style="nameStyle">No user found</div>
       </div>
-      <div v-if="filteredUsers.length === 0" class="user-selector__no-results" :style="nameStyle">No user found</div>
     </div>
   </div>
 </template>
@@ -317,6 +319,30 @@ export default {
   z-index: 10;
   padding: 8px 0 4px 0;
   border: none;
+  display: flex;
+  flex-direction: column;
+}
+.user-selector__list {
+  max-height: 250px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #bdbdbd transparent;
+}
+.user-selector__list::-webkit-scrollbar {
+  width: 6px;
+  background: transparent;
+  border-radius: 12px;
+}
+.user-selector__list::-webkit-scrollbar-thumb {
+  background: #bdbdbd;
+  border-radius: 12px;
+}
+.user-selector__list::-webkit-scrollbar-corner {
+  background: transparent;
+}
+.user-selector__list::-webkit-scrollbar-button {
+  display: none;
+  height: 0;
 }
 .user-selector__search {
   display: flex;
