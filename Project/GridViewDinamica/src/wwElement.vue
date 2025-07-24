@@ -34,6 +34,7 @@
   import ImageCellRenderer from "./components/ImageCellRenderer.vue";
   import WewebCellRenderer from "./components/WewebCellRenderer.vue";
   import FormatterCellRenderer from "./components/FormatterCellRenderer.vue";
+  import UserCellRenderer from "./components/UserCellRenderer.vue";
   import ListFilterRenderer from "./components/ListFilterRenderer.js";
   // Editor customizado inline para listas
   class ListCellEditor {
@@ -83,6 +84,7 @@
   ImageCellRenderer,
   WewebCellRenderer,
   FormatterCellRenderer, // Add this line
+  UserCellRenderer,
   ListCellEditor, // registrar editor customizado
   },
   props: {
@@ -755,6 +757,9 @@
             }
             // Formatação especial para DEADLINE
             const tagControl = colCopy.TagControl || colCopy.tagControl || '';
+            if (tagControl.toUpperCase() === 'RESPONSIBLEUSERID') {
+              result.cellRenderer = 'UserCellRenderer';
+            }
             if (tagControl.toUpperCase() === 'DEADLINE') {
               result.filter = 'agDateColumnFilter';
               result.cellDataType = 'dateString';
