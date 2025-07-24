@@ -15,14 +15,14 @@
             </template>
             <template v-else>
               <span class="user-selector__initial" :style="initialStyle">
-                {{ getInitial(selectedUser.Name) }}
+                {{ getInitial(selectedUser.Username) }}
               </span>
             </template>
           </div>
         </div>
       </div>
       <span class="user-selector__name" :style="nameStyle">
-        {{ selectedUser ? selectedUser.Name : unassignedLabel }}
+        {{ selectedUser ? selectedUser.Username : unassignedLabel }}
       </span>
     </div>
     <div v-if="isOpen" class="user-selector__dropdown">
@@ -38,7 +38,7 @@
       </div>
       <div
         v-for="user in filteredUsers"
-        :key="user.ID"
+        :key="user.userID"
         class="user-selector__item"
         @click.stop="selectUser(user)"
       >
@@ -50,13 +50,13 @@
               </template>
               <template v-else>
                 <span class="user-selector__initial" :style="initialStyle">
-                  {{ getInitial(user.Name) }}
+                  {{ getInitial(user.Username) }}
                 </span>
               </template>
             </div>
           </div>
         </div>
-        <span class="user-selector__name" :style="nameStyle">{{ user.Name }}</span>
+        <span class="user-selector__name" :style="nameStyle">{{ user.Username }}</span>
       </div>
       <div v-if="filteredUsers.length === 0" class="user-selector__no-results" :style="nameStyle">No user found</div>
     </div>
@@ -106,7 +106,7 @@ export default {
   computed: {
     filteredUsers() {
       if (!this.search) return this.datasource;
-      return this.datasource.filter(user => user.Name.toLowerCase().includes(this.search.toLowerCase()));
+      return this.datasource.filter(user => user.Username.toLowerCase().includes(this.search.toLowerCase()));
     },
     nameStyle() {
       return {
@@ -154,26 +154,26 @@ export default {
     selectedUserId: {
       immediate: true,
       handler(newId) {
-        const user = this.datasource.find(u => String(u.ID) === String(newId));
+        const user = this.datasource.find(u => String(u.userID) === String(newId));
         this.selectedUser = user || null;
       }
     },
     initialSelectedId(newId) {
-      const user = this.datasource.find(u => String(u.ID) === String(newId));
+      const user = this.datasource.find(u => String(u.userID) === String(newId));
       this.selectedUser = user || null;
     },
     datasource: {
       handler() {
         // Prioridade: selectedUserId > initialSelectedId
         const targetId = this.selectedUserId || this.initialSelectedId;
-        const user = this.datasource.find(u => String(u.ID) === String(targetId));
+        const user = this.datasource.find(u => String(u.userID) === String(targetId));
         this.selectedUser = user || null;
       },
       deep: true
     },
     selectedUser(newUser) {
       if (this.selectedUserIdVar?.setValue) {
-        this.selectedUserIdVar.setValue(newUser?.ID || '');
+        this.selectedUserIdVar.setValue(newUser?.userID || '');
       }
     }
   },
@@ -189,10 +189,10 @@ export default {
     async selectUser(user) {
       this.selectedUser = user;
       this.isOpen = false;
-      this.$emit('user-selected', user.ID);
+      this.$emit('user-selected', user.userID);
       this.$emit('trigger-event', {
         name: 'onChange',
-        event: { value: user?.ID || '' }
+        event: { value: user?.userID || '' }
       });
     },
     handleClickOutside(event) {
@@ -203,7 +203,7 @@ export default {
     },
     initializeSelectedUser() {
       const targetId = this.selectedUserId || this.initialSelectedId;
-      const user = this.datasource.find(u => String(u.ID) === String(targetId));
+      const user = this.datasource.find(u => String(u.userID) === String(targetId));
       this.selectedUser = user || null;
     },
   }
