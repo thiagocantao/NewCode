@@ -1214,7 +1214,7 @@ forceClearSelection() {
               this.gridApi.deselectAll();
             }
           }, 100);
-          
+
           // Force clear custom checkboxes via DOM
           setTimeout(() => {
             const gridElement = this.$refs.agGridRef?.$el;
@@ -1224,7 +1224,7 @@ forceClearSelection() {
               checkboxes.forEach(checkbox => {
                 checkbox.checked = false;
               });
-              
+
               // Desmarcar header checkbox se existir
               const headerCheckbox = gridElement.querySelector('.ag-header-checkbox input[type="checkbox"]');
               if (headerCheckbox) {
@@ -1233,6 +1233,29 @@ forceClearSelection() {
               }
             }
           }, 150);
+        }
+      },
+      deep: true
+    },
+    // Reaplica a ordenação atual quando o datasource muda
+    'content.rowData': {
+      handler() {
+        if (this.gridApi) {
+          // Reaplica o sortModel atual se existir
+          try {
+            const currentSort = this.gridApi.getSortModel?.() || [];
+            if (currentSort.length) {
+              this.gridApi.setSortModel(currentSort);
+            } else if (this.content.initialSort) {
+              this.gridApi.applyColumnState({
+                state: this.content.initialSort,
+                defaultState: { sort: null }
+              });
+            }
+          } catch (e) {
+            // Fallback para simplesmente atualizar o modelo de linhas
+            this.gridApi.refreshClientSideRowModel?.('sort');
+          }
         }
       },
       deep: true
