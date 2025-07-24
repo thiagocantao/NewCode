@@ -11,7 +11,7 @@
         @selection-changed="onSelectionChanged" @cell-value-changed="onCellValueChanged" @filter-changed="onFilterChanged"
         @sort-changed="onSortChanged" @row-clicked="onRowClicked" @first-data-rendered="onFirstDataRendered"
         @cell-clicked="onCellClicked">
-      </ag-grid-vue>
+      </ag-grid-vue> 
     </div>
 </template>
 
@@ -752,7 +752,89 @@
             if (tagControl.toUpperCase() === 'DEADLINE') {
               result.filter = 'agDateColumnFilter';
               result.cellDataType = 'dateString';
-              result.cellRenderer = 'FormatterCellRenderer';
+              result.cellRenderer = params => {
+                // Função utilitária para calcular diff e cor (idêntica ao FieldComponent.vue)
+                function getDeadlineDiff(val) {
+                  if (!val) return '';
+                  let dateStr = val;
+                  if (/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(val)) {
+                    dateStr = val;
+                  } else if (/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\+\d{2}/.test(val)) {
+                    dateStr = val.replace(' ', 'T').replace(/([\+\-]\d{2})$/, '$1:00');
+                  }
+                  const deadline = new Date(dateStr);
+                  if (isNaN(deadline.getTime())) return '';
+                  const now = window.gridDeadlineNow instanceof Date ? window.gridDeadlineNow : new Date();
+                  let diffMs = deadline - now;
+                  if (isNaN(diffMs)) return '';
+                  const abs = Math.abs(diffMs);
+                  const isPast = diffMs < 0;
+                  let str = '';
+                  if (abs < 60 * 1000) {
+                    const s = Math.floor(abs / 1000);
+                    str = `${isPast ? '-' : ''}${s}s`;
+                  } else if (abs < 60 * 60 * 1000) {
+                    const m = Math.floor(abs / (60 * 1000));
+                    str = `${isPast ? '-' : ''}${m}m`;
+                  } else if (abs < 24 * 60 * 60 * 1000) {
+                    const h = Math.floor(abs / (60 * 60 * 1000));
+                    const m = Math.floor((abs % (60 * 60 * 1000)) / (60 * 1000));
+                    str = `${isPast ? '-' : ''}${h}h`;
+                    if (m > 0) str += ` ${m}m`;
+                  } else {
+                    const d = Math.floor(abs / (24 * 60 * 60 * 1000));
+                    const h = Math.floor((abs % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+                    const m = Math.floor((abs % (60 * 60 * 1000)) / (60 * 1000));
+                    str = `${isPast ? '-' : ''}${d}d`;
+                    if (h > 0) str += ` ${h}h`;
+                    if (m > 0) str += ` ${m}m`;
+                  }
+                  return str;
+                }
+                function getDeadlineColorClass(val) {
+                  if (!val) return '';
+                  let dateStr = val;
+                  if (/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(val)) {
+                    dateStr = val;
+                  } else if (/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\+\d{2}/.test(val)) {
+                    dateStr = val.replace(' ', 'T').replace(/([\+\-]\d{2})$/, '$1:00');
+                  }
+                  const deadline = new Date(dateStr);
+                  if (isNaN(deadline.getTime())) return '';
+                  const now = window.gridDeadlineNow instanceof Date ? window.gridDeadlineNow : new Date();
+                  let diffMs = deadline - now;
+                  if (isNaN(diffMs)) return '';
+                  const diffDays = diffMs / (24 * 60 * 60 * 1000);
+                  if (diffDays > 5) return 'deadline-green';
+                  if (diffDays > 0) return 'deadline-yellow';
+                  return 'deadline-red';
+                }
+                function getDeadlineOriginalFormatted(val) {
+                  if (!val) return '';
+                  let dateStr = val;
+                  if (/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(val)) {
+                    dateStr = val;
+                  } else if (/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\+\d{2}/.test(val)) {
+                    dateStr = val.replace(' ', 'T').replace(/([\+\-]\d{2})$/, '$1:00');
+                  }
+                  const deadline = new Date(dateStr);
+                  if (isNaN(deadline.getTime())) return val;
+                  // Pega o idioma da variável global
+                  let lang = 'en-US';
+                  try {
+                    if (window.wwLib && window.wwLib.wwVariable && typeof window.wwLib.wwVariable.getValue === 'function') {
+                      const v = window.wwLib.wwVariable.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
+                      if (typeof v === 'string' && v.length > 0) lang = v;
+                    }
+                  } catch (e) {}
+                  return deadline.toLocaleString(lang);
+                }
+                const val = params.value;
+                const diff = getDeadlineDiff(val);
+                const colorClass = getDeadlineColorClass(val);
+                const tooltip = getDeadlineOriginalFormatted(val);
+                return `<span class="deadline-visual ${colorClass}" title="${tooltip}">${diff}</span>`;
+              };
             }
             if (
               colCopy.cellDataType === 'list' ||
