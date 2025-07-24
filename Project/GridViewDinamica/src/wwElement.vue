@@ -146,6 +146,7 @@
 
   // Interval para atualizar células DEADLINE
   let deadlineTimer = null;
+  if (!window.gridDeadlineNow) window.gridDeadlineNow = new Date();
   onUnmounted(() => {
     if (deadlineTimer) {
       clearInterval(deadlineTimer);
@@ -272,6 +273,7 @@
     // Timer para atualizar células DEADLINE
     if (deadlineColumns.length) {
       deadlineTimer = setInterval(() => {
+        window.gridDeadlineNow = new Date();
         if (gridApi.value) {
           gridApi.value.refreshCells({ columns: deadlineColumns, force: true });
         }
@@ -762,7 +764,7 @@
                   }
                   const deadline = new Date(dateStr);
                   if (isNaN(deadline.getTime())) return '';
-                  const now = new Date();
+                  const now = window.gridDeadlineNow instanceof Date ? window.gridDeadlineNow : new Date();
                   let diffMs = deadline - now;
                   if (isNaN(diffMs)) return '';
                   const abs = Math.abs(diffMs);
@@ -799,7 +801,7 @@
                   }
                   const deadline = new Date(dateStr);
                   if (isNaN(deadline.getTime())) return '';
-                  const now = new Date();
+                  const now = window.gridDeadlineNow instanceof Date ? window.gridDeadlineNow : new Date();
                   let diffMs = deadline - now;
                   if (isNaN(diffMs)) return '';
                   const diffDays = diffMs / (24 * 60 * 60 * 1000);
