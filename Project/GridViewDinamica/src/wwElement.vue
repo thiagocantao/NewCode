@@ -1492,17 +1492,18 @@ forceClearSelection() {
     gap: 4px;
     width: 100%;
     text-align: center !important;
+    margin-left: 12px !important;
   }
 
   :deep(.ag-header-align-center .ag-header-cell-label .ag-header-cell-text) {
     flex: none !important;
     text-align: center !important;
-    margin: 0 auto !important;
+    margin-left: 12px !important;
   }
 
   :deep(.ag-header-align-center .ag-header-icon) {
     position: static !important;
-    margin-left: 2px !important;
+    margin-left: 12px !important;
   }
 
   :deep(.ag-header-align-right .ag-header-cell-label) {
