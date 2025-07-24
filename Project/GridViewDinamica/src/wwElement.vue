@@ -566,7 +566,12 @@
       if (!this.content || !this.content.columns || !Array.isArray(this.content.columns)) {
         return [];
       }
-      return this.content.columns.map((col) => {
+      const orderedColumns = [...this.content.columns].sort((a, b) => {
+        const aPos = a.PositionInGrid ?? a.positionInGrid ?? a.PositionField ?? 0;
+        const bPos = b.PositionInGrid ?? b.positionInGrid ?? b.PositionField ?? 0;
+        return aPos - bPos;
+      });
+      return orderedColumns.map((col) => {
         const colCopy = { ...col };
         // Forçar configuração correta para a coluna Deadline
         if (colCopy.field === 'Deadline') {
