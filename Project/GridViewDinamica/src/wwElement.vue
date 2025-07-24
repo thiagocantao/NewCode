@@ -262,7 +262,10 @@
     // Timer para atualizar células DEADLINE
     if (props.content && props.content.columns && Array.isArray(props.content.columns)) {
       deadlineColumns = props.content.columns
-        .filter(col => col.TagControl === 'DEADLINE')
+        .filter(col => {
+          const tc = col.TagControl || col.tagControl;
+          return tc && tc.toUpperCase() === 'DEADLINE';
+        })
         .map(col => col.id || col.field)
         .filter(Boolean);
     }
