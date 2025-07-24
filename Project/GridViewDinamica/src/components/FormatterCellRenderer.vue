@@ -82,7 +82,10 @@ export default {
           const diffMs = deadline - now;
           const diffDays = diffMs / (24 * 60 * 60 * 1000);
           // Faixas
-          const maxGreen = 30; // dias
+          // limites para a barra de cores
+          const yellowThreshold = 5; // dias para trocar de azul para amarelo
+          const blueRange = 30; // intervalo em dias para preencher o azul
+          const blueLimit = yellowThreshold + blueRange; // 35 dias
           let percent = 0;
           let cor = '#e6ffed';
           let border = '#1b5e20';
@@ -111,16 +114,16 @@ export default {
           // Lógica de cor e preenchimento
           const safeDiffDays = Number(diffDays);
           let debugLabel = label;
-          if (safeDiffDays > 5) {
-            const capped = Math.min(maxGreen, Math.max(5, safeDiffDays));
-            percent = ((capped - 5) / (maxGreen - 5)) * 100;
+          if (safeDiffDays > yellowThreshold) {
+            const capped = Math.min(blueLimit, Math.max(yellowThreshold, safeDiffDays));
+            percent = ((capped - yellowThreshold) / blueRange) * 100;
             percent = Math.max(0, Math.min(100, percent));
             cor = '#d0e3ff';
             border = '#1976d2';
             textColor = '#1976d2';
             debugLabel += ' (azul)';
           } else if (safeDiffDays > 0) {
-            percent = (safeDiffDays / 5) * 100;
+            percent = (safeDiffDays / yellowThreshold) * 100;
             percent = Math.max(0, Math.min(100, percent));
             cor = '#ffe066';
             border = '#b59f00';
