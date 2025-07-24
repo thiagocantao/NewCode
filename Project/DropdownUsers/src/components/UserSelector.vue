@@ -10,8 +10,8 @@
       <div v-else class="avatar-outer">
         <div class="avatar-middle">
           <div class="user-selector__avatar">
-            <template v-if="selectedUser.PhotoURL">
-              <img :src="selectedUser.PhotoURL" alt="User Photo" />
+            <template v-if="selectedUser.PhotoURL || selectedUser.PhotoUrl">
+              <img :src="selectedUser.PhotoURL || selectedUser.PhotoUrl" alt="User Photo" />
             </template>
             <template v-else>
               <span class="user-selector__initial" :style="initialStyle">
@@ -47,8 +47,8 @@
           <div class="avatar-outer">
             <div class="avatar-middle">
               <div class="user-selector__avatar">
-                <template v-if="user.PhotoURL">
-                  <img :src="user.PhotoURL" alt="User Photo" />
+                <template v-if="user.PhotoURL || user.PhotoUrl">
+                  <img :src="user.PhotoURL || user.PhotoUrl" alt="User Photo" />
                 </template>
                 <template v-else>
                   <span class="user-selector__initial" :style="initialStyle">
