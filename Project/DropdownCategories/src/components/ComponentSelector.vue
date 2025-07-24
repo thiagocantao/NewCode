@@ -19,8 +19,9 @@
         v-for="(component, idx) in filteredComponents"
         :key="component[valueField] || ('title-' + idx)"
         class="component-selector__item"
-        :class="component.__isTitle ? 'component-selector__item--title' : ''"
-        @click.stop="!component.__isTitle && selectComponent(component)"
+        :class="[component.__isTitle ? 'component-selector__item--title' : '',
+                  component.isEnabled === false ? 'component-selector__item--disabled' : '']"
+        @click.stop="!component.__isTitle && component.isEnabled !== false && selectComponent(component)"
       >
         <span class="component-selector__name" :style="nameStyle">{{ component?.[labelField] || '' }}</span>
       </div>
@@ -416,6 +417,10 @@ export default {
   gap: 10px;
   border: none;
   box-sizing: border-box;
+}
+.component-selector__item--disabled {
+  pointer-events: none;
+  opacity: 0.5;
 }
 .component-selector__item--title {
   font-weight: bold;

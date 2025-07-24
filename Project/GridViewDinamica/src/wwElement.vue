@@ -859,12 +859,16 @@
           headerCheckbox: !this.content.disableCheckboxes,
           selectAll: this.content.selectAll || "all",
           enableClickSelection: this.content.enableClickSelection,
+          isRowSelectable: rowNode =>
+            !(rowNode?.data && rowNode.data.isEnabled === false),
         };
       } else if (this.content.rowSelection === "single") {
         return {
           mode: "singleRow",
           checkboxes: !this.content.disableCheckboxes,
           enableClickSelection: this.content.enableClickSelection,
+          isRowSelectable: rowNode =>
+            !(rowNode?.data && rowNode.data.isEnabled === false),
         };
       } else {
         return {
@@ -975,6 +979,7 @@
   onRowClicked(event) {
   // Add null checks to prevent accessing properties of undefined objects
   if (!event || !event.data) return;
+  if (event.data.isEnabled === false) return;
 
   // Identifica a coluna clicada
   const colId = event.column?.getColId?.();
