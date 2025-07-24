@@ -694,7 +694,8 @@
                 options: Array.isArray(colCopy.options) ? colCopy.options : (Array.isArray(colCopy.listOptions) ? colCopy.listOptions : [])
               };
               const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
-              if (tagControl === 'RESPONSIBLEUSERID') {
+              const identifier = (colCopy.FieldDB || '').toUpperCase();
+              if (tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
                 result.cellRenderer = 'UserCellRenderer';
               }
               return result;
@@ -764,7 +765,8 @@
             }
             // Formatação especial para DEADLINE
             const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
-            if (tagControl === 'RESPONSIBLEUSERID') {
+            const identifier = (colCopy.FieldDB || '').toUpperCase();
+            if (tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
               result.cellRenderer = 'UserCellRenderer';
             }
             if (tagControl === 'DEADLINE') {
