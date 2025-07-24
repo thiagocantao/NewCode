@@ -18,6 +18,7 @@
         v-for="option in options"
         :key="option.value"
         :value="option.value"
+        :disabled="option.isEnabled === false"
       >
         {{ option.label }}
       </option>

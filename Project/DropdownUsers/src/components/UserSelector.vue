@@ -41,7 +41,8 @@
           v-for="user in filteredUsers"
           :key="user.userID"
           class="user-selector__item"
-          @click.stop="selectUser(user)"
+          :class="{ disabled: user.isEnabled === false }"
+          @click.stop="user.isEnabled === false ? null : selectUser(user)"
         >
           <div class="avatar-outer">
             <div class="avatar-middle">
@@ -392,6 +393,10 @@ export default {
   transition: background 0.2s;
   gap: 10px;
   border: none;
+}
+.user-selector__item.disabled {
+  pointer-events: none;
+  opacity: 0.5;
 }
 .user-selector__item:hover {
   background: #f5f5f5;

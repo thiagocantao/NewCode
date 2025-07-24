@@ -413,6 +413,7 @@ export default {
           selectAll: this.content.selectAll || "all",
           enableClickSelection: this.content.enableClickSelection,
           isRowSelectable: (rowNode) => {
+            if (rowNode?.data && rowNode.data.isEnabled === false) return false;
             const cond = this.content.disableRowSelectionCondition;
             if (!cond) return true;
             let expr = cond.replace(/@([a-zA-Z0-9_çÇãÃáÁéÉíÍóÓúÚêÊôÔâÂàÀèÈìÌòÒùÙüÜñÑ]+)/g, (match, p1) => {
@@ -441,6 +442,8 @@ export default {
         return {
           mode: "singleRow",
           checkboxes: !this.content.disableCheckboxes,
+          isRowSelectable: rowNode =>
+            !(rowNode?.data && rowNode.data.isEnabled === false),
           enableClickSelection: this.content.enableClickSelection,
         };
       } else {
@@ -549,6 +552,7 @@ export default {
         )) ||
         (colDef && colDef.checkboxSelection);
       if (isSelectionCol) return;
+      if (event?.data && event.data.isEnabled === false) return;
       this.$emit("trigger-event", {
         name: "rowClicked",
         event: {
