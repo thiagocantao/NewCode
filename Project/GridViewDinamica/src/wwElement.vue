@@ -854,7 +854,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             cellRenderer: ((tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') ? "UserCellRenderer" : (colCopy.useCustomFormatter ? 'FormatterCellRenderer' : undefined)),
             cellRendererParams: {
               useCustomFormatter: colCopy.useCustomFormatter,
-              formatter: colCopy.formatter
+              formatter: colCopy.formatter,
+              // options will be added below when available
             }
           };
           const fieldKey = colCopy.id || colCopy.field;
@@ -873,6 +874,10 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               result.editable = true;
               result.cellEditor = ListCellEditor;
               result.options = optionsArr;
+              result.cellRendererParams = {
+                ...result.cellRendererParams,
+                options: optionsArr,
+              };
             }
           }
           // Editor fixo quando a coluna possui dataSource
@@ -880,6 +885,12 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             result.editable = true;
             result.cellEditor = FixedListCellEditor;
             result.listOptions = dsOptions;
+            if (!result.cellRendererParams.options) {
+              result.cellRendererParams = {
+                ...result.cellRendererParams,
+                options: dsOptions,
+              };
+            }
           }
           return result;
         }
@@ -946,7 +957,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                 cellRenderer: colCopy.useCustomFormatter ? 'FormatterCellRenderer' : undefined,
                 cellRendererParams: {
                   useCustomFormatter: colCopy.useCustomFormatter,
-                  formatter: colCopy.formatter
+                  formatter: colCopy.formatter,
+                  // options will be added below when available
                 },
                 editable: false,
                 cellEditor: ListCellEditor,
@@ -1142,6 +1154,10 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                 result.editable = true;
                 result.cellEditor = ListCellEditor;
                 result.options = optionsArr;
+                result.cellRendererParams = {
+                  ...result.cellRendererParams,
+                  options: optionsArr,
+                };
               }
               // O cellRenderer já aplica a formatação visual
             }
@@ -1150,6 +1166,12 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               result.editable = true;
               result.cellEditor = FixedListCellEditor;
               result.listOptions = dsOptions;
+              if (!result.cellRendererParams.options) {
+                result.cellRendererParams = {
+                  ...result.cellRendererParams,
+                  options: dsOptions,
+                };
+              }
             }
             return result;
           }
