@@ -17,7 +17,7 @@
 </template>
 
 <script>
-  import { shallowRef, watchEffect, computed, ref, onMounted, onUnmounted, h } from "vue";
+  import { shallowRef, watchEffect, computed, ref, onMounted, onUnmounted, watch, h } from "vue";
   import { AgGridVue } from "ag-grid-vue3";
   import {
   AllCommunityModule,
@@ -168,6 +168,101 @@
   defaultValue: [],
   readonly: false,
   });
+
+  const columnOptions = ref({});
+
+  const parseStaticOptions = opts => {
+    if (Array.isArray(opts)) {
+      return opts.map(opt => typeof opt === 'object' ? opt : { value: opt, label: String(opt) });
+    }
+    if (typeof opts === 'string' && opts.trim() !== '') {
+      return opts.split(',').map(o => {
+        const trimmed = o.trim();
+        return { value: trimmed, label: trimmed };
+      });
+    }
+    return [];
+  };
+
+  const loadApiOptions = async (col) => {
+    try {
+      const lang = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
+      const companyId = window.wwLib?.wwVariable?.getValue('5d099f04-cd42-41fd-94ad-22d4de368c3a');
+      const apiUrl = window.wwLib?.wwVariable?.getValue('1195995b-34c3-42a5-b436-693f0f4f8825');
+      const apiKey = window.wwLib?.wwVariable?.getValue('d180be98-8926-47a7-b7f1-6375fbb95fa3');
+      const apiAuth = window.wwLib?.wwVariable?.getValue('dfcde09f-42f3-4b5c-b2e8-4314650655db');
+
+      if (!apiUrl || !col.dataSource?.functionName) return [];
+
+      const fetchOptions = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...(companyId ? { p_idcompany: companyId } : {}),
+          ...(lang ? { p_language: lang } : {})
+        })
+      };
+
+      if (apiKey) fetchOptions.headers['apikey'] = apiKey;
+      if (apiAuth) fetchOptions.headers['Authorization'] = apiAuth;
+
+      const response = await fetch(apiUrl + col.dataSource.functionName, fetchOptions);
+      if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+      const data = await response.json();
+      if (!Array.isArray(data)) return [];
+
+      if (col.dataSource.transform) {
+        return data
+          .map(item => {
+            let value = item[col.dataSource.transform?.value] ?? item.id;
+            let label = item[col.dataSource.transform?.label] ?? item.name;
+            if (value === undefined || label === undefined) return null;
+            return { value, label };
+          })
+          .filter(v => v);
+      }
+
+      return data
+        .map(item => {
+          const value = item[col.dataSource.valueField || 'id'];
+          const label = item[col.dataSource.labelField || 'name'];
+          if (value === undefined || label === undefined) return null;
+          return { value, label };
+        })
+        .filter(v => v);
+    } catch (e) {
+      console.error('Failed to load options', e);
+      return [];
+    }
+  };
+
+  const loadAllColumnOptions = async () => {
+    if (!props.content || !Array.isArray(props.content.columns)) return;
+    const result = {};
+    for (const col of props.content.columns) {
+      const colId = col.id || col.field;
+      let opts = [];
+      if (col.listOptions) {
+        opts = parseStaticOptions(col.listOptions);
+      } else if (col.list_options) {
+        opts = parseStaticOptions(col.list_options);
+      } else if (col.dataSource?.list_options) {
+        opts = parseStaticOptions(col.dataSource.list_options);
+      } else if (col.dataSource?.functionName) {
+        opts = await loadApiOptions(col);
+      }
+      result[colId] = opts;
+    }
+    columnOptions.value = result;
+  };
+
+  onMounted(() => {
+    loadAllColumnOptions();
+  });
+
+  watch(() => props.content?.columns, () => {
+    loadAllColumnOptions();
+  }, { deep: true });
 
   // Interval para atualizar células DEADLINE
   let deadlineTimer = null;
@@ -660,34 +755,28 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               formatter: colCopy.formatter
             }
           };
-          const dsOptions =
-            colCopy.dataSource &&
-            typeof colCopy.dataSource.list_options === 'string' &&
-            colCopy.dataSource.list_options.trim() !== ''
-              ? colCopy.dataSource.list_options
-                  .split(',')
-                  .map(o => o.trim())
-              : [];
+          const fieldKey = colCopy.id || colCopy.field;
+          const dsOptions = columnOptions.value[fieldKey] || [];
           if (
             colCopy.cellDataType === 'list' ||
             (tagControl && tagControl.toUpperCase() === 'LIST')
           ) {
-            result.editable = true;
-            result.cellEditor = ListCellEditor;
             const optionsArr = Array.isArray(colCopy.options)
               ? colCopy.options
               : Array.isArray(colCopy.listOptions)
               ? colCopy.listOptions
               : dsOptions;
-            result.options = optionsArr;
+            if (optionsArr.length) {
+              result.editable = true;
+              result.cellEditor = ListCellEditor;
+              result.options = optionsArr;
+            }
           }
           // Editor fixo quando a coluna possui dataSource
-          if (colCopy.dataSource) {
+          if (colCopy.dataSource && dsOptions.length) {
             result.editable = true;
             result.cellEditor = FixedListCellEditor;
-            if (dsOptions.length) {
-              result.listOptions = dsOptions;
-            }
+            result.listOptions = dsOptions;
           }
           return result;
         }
@@ -740,14 +829,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           }
           case "list":
             {
-              const dsOptions =
-                colCopy.dataSource &&
-                typeof colCopy.dataSource.list_options === 'string' &&
-                colCopy.dataSource.list_options.trim() !== ''
-                  ? colCopy.dataSource.list_options
-                      .split(',')
-                      .map(o => o.trim())
-                  : [];
+              const fieldKey = colCopy.id || colCopy.field;
+              const dsOptions = columnOptions.value[fieldKey] || [];
               const result = {
                 ...commonProperties,
                 id: colCopy.id,
@@ -761,7 +844,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                   useCustomFormatter: colCopy.useCustomFormatter,
                   formatter: colCopy.formatter
                 },
-                editable: true,
+                editable: false,
                 cellEditor: ListCellEditor,
                 options: Array.isArray(colCopy.options)
                   ? colCopy.options
@@ -769,7 +852,9 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                   ? colCopy.listOptions
                   : dsOptions,
               };
-              
+              if (result.options && result.options.length) {
+                result.editable = true;
+              }
               return result;
             }
           default: {
@@ -938,35 +1023,29 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                 return `<span class="deadline-visual ${colorClass}" title="${tooltip}">${diff}</span>`;
               };
             }
-            const dsOptions =
-              colCopy.dataSource &&
-              typeof colCopy.dataSource.list_options === 'string' &&
-              colCopy.dataSource.list_options.trim() !== ''
-                ? colCopy.dataSource.list_options
-                    .split(',')
-                    .map(o => o.trim())
-                : [];
+            const fieldKey = colCopy.id || colCopy.field;
+            const dsOptions = columnOptions.value[fieldKey] || [];
             if (
               colCopy.cellDataType === 'list' ||
               (tagControl && tagControl.toUpperCase() === 'LIST')
             ) {
-              result.editable = true;
-              result.cellEditor = ListCellEditor;
               const optionsArr = Array.isArray(colCopy.options)
                 ? colCopy.options
                 : Array.isArray(colCopy.listOptions)
                 ? colCopy.listOptions
                 : dsOptions;
-              result.options = optionsArr;
+              if (optionsArr.length) {
+                result.editable = true;
+                result.cellEditor = ListCellEditor;
+                result.options = optionsArr;
+              }
               // O cellRenderer já aplica a formatação visual
             }
             // Editor fixo quando a coluna possui dataSource
-            if (colCopy.dataSource) {
+            if (colCopy.dataSource && dsOptions.length) {
               result.editable = true;
               result.cellEditor = FixedListCellEditor;
-              if (dsOptions.length) {
-                result.listOptions = dsOptions;
-              }
+              result.listOptions = dsOptions;
             }
             return result;
           }
