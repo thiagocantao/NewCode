@@ -64,6 +64,14 @@ export default {
   computed: {
     formattedValue() {
       try {
+        const rawValue = this.params.value;
+        let displayValue = rawValue;
+        if (Array.isArray(this.params.options)) {
+          const match = this.params.options.find(
+            opt => String(opt.value) === String(rawValue)
+          );
+          if (match) displayValue = match.label;
+        }
         // DEADLINE: barra proporcional
         if (this.params.colDef?.TagControl === 'DEADLINE' || this.params.colDef?.tagControl === 'DEADLINE') {
           const value = this.params.value;
@@ -157,16 +165,16 @@ export default {
             let borderRadius = '12px';
             if (this.params.colDef?.FieldDB === 'StatusID') borderRadius = '5px';
             // Função inline para aplicar o raio
-            function getRoundedSpanColorWithRadius(value, colorArray) {
-              if (!colorArray || !Array.isArray(colorArray) || !value) return value;
-              const matchingStyle = colorArray.find(item => item.Valor === value);
-              if (!matchingStyle) return value;
-              return `<span style="height:25px; color: ${matchingStyle.CorFonte}; background:${matchingStyle.CorFundo}; border: 1px solid ${matchingStyle.CorFundo}; border-radius: ${borderRadius}; display: inline-flex; align-items: center; padding: 0 12px;">${value}</span>`;
+            function getRoundedSpanColorWithRadius(matchVal, textVal, colorArray) {
+              if (!colorArray || !Array.isArray(colorArray) || !matchVal) return textVal;
+              const matchingStyle = colorArray.find(item => item.Valor === matchVal);
+              if (!matchingStyle) return textVal;
+              return `<span style="height:25px; color: ${matchingStyle.CorFonte}; background:${matchingStyle.CorFundo}; border: 1px solid ${matchingStyle.CorFundo}; border-radius: ${borderRadius}; display: inline-flex; align-items: center; padding: 0 12px;">${textVal}</span>`;
             }
-            const styledValue = getRoundedSpanColorWithRadius(this.params.value, styleArray);
+            const styledValue = getRoundedSpanColorWithRadius(rawValue, displayValue, styleArray);
             if (styledValue) return styledValue;
           }
-          return this.params.value;
+          return displayValue;
         }
 
         // Create a function from the formatter code with getRoundedSpanColor available
@@ -181,11 +189,11 @@ export default {
 
         // Execute the formatter with the cell value, row data, and helper functions
         return formatterFn(
-          this.params.value, 
-          this.params.data, 
+          displayValue,
+          this.params.data,
           this.params.colDef,
-          getRoundedSpanColor, // Pass the function as the fourth parameter
-          dateFormatter // Pass the dateFormatter function as the fifth parameter
+          getRoundedSpanColor,
+          dateFormatter
         );
       } catch (error) {
         console.error('Error in custom formatter:', error);
