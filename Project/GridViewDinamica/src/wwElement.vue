@@ -7,6 +7,7 @@
         :getMainMenuItems="getMainMenuItems" :isColumnMovable="isColumnMovable" :theme="theme" :getRowId="getRowId"
         :pagination="content.pagination" :paginationPageSize="content.paginationPageSize || 10"
         :paginationPageSizeSelector="false" :columnHoverHighlight="content.columnHoverHighlight" :locale-text="localeText"
+        :components="editorComponents"
         :singleClickEdit="true" @grid-ready="onGridReady" @row-selected="onRowSelected"
         @selection-changed="onSelectionChanged" @cell-value-changed="onCellValueChanged" @filter-changed="onFilterChanged"
         @sort-changed="onSortChanged" @row-clicked="onRowClicked" @first-data-rendered="onFirstDataRendered"
@@ -535,6 +536,10 @@
       createElement,
       /* wwEditor:end */
       onFirstDataRendered,
+      editorComponents: {
+        ListCellEditor,
+        DateTimeCellEditor,
+      },
     };
   },
     computed: {
