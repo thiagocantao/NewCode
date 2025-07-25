@@ -1,5 +1,5 @@
 /* Filtro customizado para campos do tipo list */
-.list-filter {
+.list-filter, .list-editor {
   padding: 12px 12px 8px 12px;
   min-width: 260px;
   max-width: 350px;
@@ -46,21 +46,21 @@
   height: 0;
 }
 
-.list-filter .filter-list,
-.list-filter .filter-item,
-.list-filter .filter-label {
+:is(.list-filter, .list-editor) .filter-list,
+:is(.list-filter, .list-editor) .filter-item,
+:is(.list-filter, .list-editor) .filter-label {
   font-family: Roboto, Arial, sans-serif;
   font-size: 13px;
 }
-.list-filter .filter-header {
+:is(.list-filter, .list-editor) .filter-header {
   margin-bottom: 10px;
 }
-.list-filter .field-search {
+:is(.list-filter, .list-editor) .field-search {
   position: relative;
   padding: 0 0 10px 0;
 }
 
-.list-filter .search-input {
+:is(.list-filter, .list-editor) .search-input {
   width: 100%;
   padding: 7px 36px 7px 13px;
   border: 1px solid #ddd;
@@ -73,13 +73,13 @@
   box-sizing: border-box;
 }
 
-.list-filter .search-input::placeholder {
+:is(.list-filter, .list-editor) .search-input::placeholder {
   color: #aaa;
   font-size: 13px;
   font-family: Roboto, Arial, sans-serif;
 }
 
-.list-filter .search-icon {
+:is(.list-filter, .list-editor) .search-icon {
   position: absolute;
   right: 12px;
   top: 16px;
@@ -93,7 +93,7 @@
   justify-content: center;
 }
 
-.list-filter .search-icon i.material-symbols-outlined-search {
+:is(.list-filter, .list-editor) .search-icon i.material-symbols-outlined-search {
   font-family: 'Material Symbols Outlined';
   font-size: 19px;
   font-style: normal;
@@ -104,12 +104,12 @@
   display: inline-block;
   vertical-align: middle;
 }
-.list-filter .filter-list {
+:is(.list-filter, .list-editor) .filter-list {
   max-height: 180px;
   overflow-y: auto;
   margin-bottom: 10px;
 }
-.list-filter .select-all-row {
+:is(.list-filter, .list-editor) .select-all-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -122,7 +122,7 @@
   gap: 8px;
 }
 
-.list-filter .select-all-row label {
+:is(.list-filter, .list-editor) .select-all-row label {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -133,11 +133,11 @@
   width: 100%;
 }
 
-.list-filter .select-all-row label:hover {
+:is(.list-filter, .list-editor) .select-all-row label:hover {
   background: #f6f7fa;
 }
 
-.list-filter .select-all-checkbox {
+:is(.list-filter, .list-editor) .select-all-checkbox {
   width: 16px;
   height: 16px;
   border-radius: 5px;
@@ -149,7 +149,7 @@
   flex-shrink: 0;
 }
 
-.list-filter .filter-item {
+:is(.list-filter, .list-editor) .filter-item {
   display: flex;
   align-items: center;
   padding: 6px 0 6px 0;
@@ -161,15 +161,15 @@
   transition: background 0.15s;
 }
 
-.list-filter .filter-item:hover {
+:is(.list-filter, .list-editor) .filter-item:hover {
   background: #f6f7fa;
 }
 
-.list-filter .filter-item.selected {
+:is(.list-filter, .list-editor) .filter-item.selected {
   background: #f6f7fa;
 }
 
-.list-filter .filter-item input[type="checkbox"] {
+:is(.list-filter, .list-editor) .filter-item input[type="checkbox"] {
   width: 16px;
   height: 16px;
   border-radius: 5px;
@@ -181,16 +181,16 @@
   flex-shrink: 0;
 }
 
-.list-filter .filter-item input[type="checkbox"]:checked {
+:is(.list-filter, .list-editor) .filter-item input[type="checkbox"]:checked {
   background: #5e6a75;
   border-color: #5e6a75;
 }
 
-.list-filter .filter-item input[type="checkbox"]:focus {
+:is(.list-filter, .list-editor) .filter-item input[type="checkbox"]:focus {
   outline: none;
 }
 
-.list-filter .filter-label {
+:is(.list-filter, .list-editor) .filter-label {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -202,12 +202,12 @@
 }
 
 /* Estilos para opções de usuário com avatar */
-.list-filter .user-option {
+:is(.list-filter, .list-editor) .user-option {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-.list-filter .avatar-outer {
+:is(.list-filter, .list-editor) .avatar-outer {
   width: 24px;
   height: 24px;
   border-radius: 50%;
@@ -218,7 +218,7 @@
   background: #fff;
   flex-shrink: 0;
 }
-.list-filter .avatar-middle {
+:is(.list-filter, .list-editor) .avatar-middle {
   width: 22px;
   height: 22px;
   border-radius: 50%;
@@ -228,7 +228,7 @@
   justify-content: center;
   background: #fff;
 }
-.list-filter .user-avatar {
+:is(.list-filter, .list-editor) .user-avatar {
   width: 18px;
   height: 18px;
   border-radius: 50%;
@@ -238,13 +238,13 @@
   justify-content: center;
   overflow: hidden;
 }
-.list-filter .user-avatar img {
+:is(.list-filter, .list-editor) .user-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   border-radius: 50%;
 }
-.list-filter .user-initial {
+:is(.list-filter, .list-editor) .user-initial {
   width: 100%;
   height: 100%;
   display: flex;
