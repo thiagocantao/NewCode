@@ -46,7 +46,25 @@
       this.eGui = document.createElement('div');
       this.eGui.style.width = '100%';
       this.eGui.style.height = '100%';
-      const optionsArr = Array.isArray(params.colDef.options) ? params.colDef.options : (Array.isArray(params.colDef.listOptions) ? params.colDef.listOptions : []);
+      let optionsArr = [];
+      if (Array.isArray(params.colDef.options)) {
+        optionsArr = params.colDef.options;
+      } else if (Array.isArray(params.colDef.listOptions)) {
+        optionsArr = params.colDef.listOptions;
+      } else if (
+        typeof params.colDef.listOptions === 'string' &&
+        params.colDef.listOptions.trim() !== ''
+      ) {
+        optionsArr = params.colDef.listOptions.split(',').map(o => o.trim());
+      } else if (
+        params.colDef.dataSource &&
+        typeof params.colDef.dataSource.list_options === 'string' &&
+        params.colDef.dataSource.list_options.trim() !== ''
+      ) {
+        optionsArr = params.colDef.dataSource.list_options
+          .split(',')
+          .map(o => o.trim());
+      }
       this.options = optionsArr.map(opt => typeof opt === 'object' ? opt : { value: opt, label: String(opt) });
       this.value = params.value;
       const select = document.createElement('select');
@@ -642,19 +660,34 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               formatter: colCopy.formatter
             }
           };
+          const dsOptions =
+            colCopy.dataSource &&
+            typeof colCopy.dataSource.list_options === 'string' &&
+            colCopy.dataSource.list_options.trim() !== ''
+              ? colCopy.dataSource.list_options
+                  .split(',')
+                  .map(o => o.trim())
+              : [];
           if (
             colCopy.cellDataType === 'list' ||
             (tagControl && tagControl.toUpperCase() === 'LIST')
           ) {
             result.editable = true;
             result.cellEditor = ListCellEditor;
-            const optionsArr = Array.isArray(colCopy.options) ? colCopy.options : (Array.isArray(colCopy.listOptions) ? colCopy.listOptions : []);
+            const optionsArr = Array.isArray(colCopy.options)
+              ? colCopy.options
+              : Array.isArray(colCopy.listOptions)
+              ? colCopy.listOptions
+              : dsOptions;
             result.options = optionsArr;
           }
           // Editor fixo quando a coluna possui dataSource
           if (colCopy.dataSource) {
             result.editable = true;
             result.cellEditor = FixedListCellEditor;
+            if (dsOptions.length) {
+              result.listOptions = dsOptions;
+            }
           }
           return result;
         }
@@ -707,6 +740,14 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           }
           case "list":
             {
+              const dsOptions =
+                colCopy.dataSource &&
+                typeof colCopy.dataSource.list_options === 'string' &&
+                colCopy.dataSource.list_options.trim() !== ''
+                  ? colCopy.dataSource.list_options
+                      .split(',')
+                      .map(o => o.trim())
+                  : [];
               const result = {
                 ...commonProperties,
                 id: colCopy.id,
@@ -722,7 +763,11 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                 },
                 editable: true,
                 cellEditor: ListCellEditor,
-                options: Array.isArray(colCopy.options) ? colCopy.options : (Array.isArray(colCopy.listOptions) ? colCopy.listOptions : [])
+                options: Array.isArray(colCopy.options)
+                  ? colCopy.options
+                  : Array.isArray(colCopy.listOptions)
+                  ? colCopy.listOptions
+                  : dsOptions,
               };
               
               return result;
@@ -893,13 +938,25 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                 return `<span class="deadline-visual ${colorClass}" title="${tooltip}">${diff}</span>`;
               };
             }
+            const dsOptions =
+              colCopy.dataSource &&
+              typeof colCopy.dataSource.list_options === 'string' &&
+              colCopy.dataSource.list_options.trim() !== ''
+                ? colCopy.dataSource.list_options
+                    .split(',')
+                    .map(o => o.trim())
+                : [];
             if (
               colCopy.cellDataType === 'list' ||
               (tagControl && tagControl.toUpperCase() === 'LIST')
             ) {
               result.editable = true;
               result.cellEditor = ListCellEditor;
-              const optionsArr = Array.isArray(colCopy.options) ? colCopy.options : (Array.isArray(colCopy.listOptions) ? colCopy.listOptions : []);
+              const optionsArr = Array.isArray(colCopy.options)
+                ? colCopy.options
+                : Array.isArray(colCopy.listOptions)
+                ? colCopy.listOptions
+                : dsOptions;
               result.options = optionsArr;
               // O cellRenderer já aplica a formatação visual
             }
@@ -907,6 +964,9 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             if (colCopy.dataSource) {
               result.editable = true;
               result.cellEditor = FixedListCellEditor;
+              if (dsOptions.length) {
+                result.listOptions = dsOptions;
+              }
             }
             return result;
           }
