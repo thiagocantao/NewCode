@@ -22,6 +22,20 @@ export default class DateTimeCellEditor {
     };
     input.addEventListener('input', syncValue);
     input.addEventListener('change', syncValue);
+
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.stopPropagation();
+        e.preventDefault();
+        this.value = e.target.value;
+
+        if (this.params && this.params.api) {
+          this.params.api.stopEditing();
+        } else if (this.params && typeof this.params.stopEditing === 'function') {
+          this.params.stopEditing();
+        }
+      }
+    });
     
     this.eInput = input;
   }
