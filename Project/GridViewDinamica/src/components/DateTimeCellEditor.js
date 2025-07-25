@@ -25,13 +25,14 @@ export default class DateTimeCellEditor {
 
     input.addEventListener('keydown', e => {
       if (e.key === 'Enter') {
-        // Ensure value is up to date before closing
+        e.stopPropagation();
+        e.preventDefault();
         this.value = e.target.value;
-        if (this.params && typeof this.params.stopEditing === 'function') {
-          this.params.stopEditing();
-        } else if (this.params && this.params.api) {
-          // Fallback for older grid versions
+
+        if (this.params && this.params.api) {
           this.params.api.stopEditing();
+        } else if (this.params && typeof this.params.stopEditing === 'function') {
+          this.params.stopEditing();
         }
       }
     });
