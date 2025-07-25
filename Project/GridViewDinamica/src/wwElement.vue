@@ -1319,6 +1319,13 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           event.data.PhotoUrl = match.photo || match.image || match.img;
         }
       }
+      if (this.gridApi && event.node) {
+        this.gridApi.refreshCells({
+          rowNodes: [event.node],
+          columns: [fieldKey],
+          force: true
+        });
+      }
     }
   }
   this.$emit("trigger-event", {
