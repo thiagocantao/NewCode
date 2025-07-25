@@ -703,7 +703,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                   formatter: colCopy.formatter
                 },
                 editable: true,
-                cellEditor: 'ListCellEditor',
+                cellEditor: ListCellEditor,
                 options: Array.isArray(colCopy.options) ? colCopy.options : (Array.isArray(colCopy.listOptions) ? colCopy.listOptions : [])
               };
               
@@ -785,7 +785,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               result.filter = 'agDateColumnFilter';
               result.cellDataType = 'dateString';
               if (colCopy.editable) {
-                result.cellEditor = 'DateTimeCellEditor';
+                // use the class directly to avoid lookup issues
+                result.cellEditor = DateTimeCellEditor;
               }
               result.cellRenderer = params => {
                 // Função utilitária para calcular diff e cor (idêntica ao FieldComponent.vue)
@@ -879,7 +880,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               (tagControl && tagControl.toUpperCase() === 'LIST')
             ) {
               result.editable = true;
-              result.cellEditor = 'ListCellEditor';
+              result.cellEditor = ListCellEditor;
               const optionsArr = Array.isArray(colCopy.options) ? colCopy.options : (Array.isArray(colCopy.listOptions) ? colCopy.listOptions : []);
               result.options = optionsArr;
               // O cellRenderer já aplica a formatação visual
