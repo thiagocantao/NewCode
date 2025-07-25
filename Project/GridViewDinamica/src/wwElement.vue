@@ -630,6 +630,7 @@
       onSortChanged,
       forceSelectionColumnFirst,
       forceSelectionColumnFirstDOM,
+      columnOptions,
       localeText: computed(() => {
         let lang = 'en-US';
         try {
@@ -765,7 +766,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             }
           };
           const fieldKey = colCopy.id || colCopy.field;
-          const dsOptions = columnOptions.value[fieldKey] || [];
+          const dsOptions = this.columnOptions[fieldKey] || [];
+
           if (
             colCopy.cellDataType === 'list' ||
             (tagControl && tagControl.toUpperCase() === 'LIST')
@@ -839,7 +841,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           case "list":
             {
               const fieldKey = colCopy.id || colCopy.field;
-              const dsOptions = columnOptions.value[fieldKey] || [];
+              const dsOptions = this.columnOptions[fieldKey] || [];
+
               const result = {
                 ...commonProperties,
                 id: colCopy.id,
@@ -1033,7 +1036,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               };
             }
             const fieldKey = colCopy.id || colCopy.field;
-            const dsOptions = columnOptions.value[fieldKey] || [];
+            const dsOptions = this.columnOptions[fieldKey] || [];
             if (
               colCopy.cellDataType === 'list' ||
               (tagControl && tagControl.toUpperCase() === 'LIST')
