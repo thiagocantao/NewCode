@@ -22,7 +22,7 @@ export default class DateTimeCellEditor {
     };
     input.addEventListener('input', syncValue);
     input.addEventListener('change', syncValue);
-    });
+    
     this.eInput = input;
   }
 
