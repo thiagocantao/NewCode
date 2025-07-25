@@ -38,6 +38,7 @@
   import UserCellRenderer from "./components/UserCellRenderer.vue";
   import ListFilterRenderer from "./components/ListFilterRenderer.js";
   import DateTimeCellEditor from "./components/DateTimeCellEditor.js";
+  import FixedListCellEditor from "./components/FixedListCellEditor.js";
   // Editor customizado inline para listas
   class ListCellEditor {
     init(params) {
@@ -88,6 +89,7 @@
   FormatterCellRenderer, // Add this line
   UserCellRenderer,
   ListCellEditor, // registrar editor customizado
+  FixedListCellEditor,
   DateTimeCellEditor,
   },
   props: {
@@ -538,6 +540,7 @@
       onFirstDataRendered,
       editorComponents: {
         ListCellEditor,
+        FixedListCellEditor,
         DateTimeCellEditor,
       },
     };
@@ -884,6 +887,11 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               const optionsArr = Array.isArray(colCopy.options) ? colCopy.options : (Array.isArray(colCopy.listOptions) ? colCopy.listOptions : []);
               result.options = optionsArr;
               // O cellRenderer já aplica a formatação visual
+            }
+            // Editor fixo quando a coluna possui dataSource
+            if (colCopy.dataSource) {
+              result.editable = true;
+              result.cellEditor = FixedListCellEditor;
             }
             return result;
           }
