@@ -168,16 +168,14 @@
           headerName: col.getColDef().headerName,
           cellRenderer: col.getColDef().cellRenderer
         }));
-        console.log('DEBUG colunas AG-Grid (getAllColumns):', allCols);
+        
       } else if (typeof params.api.getColumnDefs === 'function') {
         const colDefs = params.api.getColumnDefs();
-        console.log('DEBUG colunas AG-Grid (getColumnDefs):', colDefs);
+        
       } else if (typeof params.api.getColumnState === 'function') {
         const colState = params.api.getColumnState();
-        console.log('DEBUG colunas AG-Grid (getColumnState):', colState);
-      } else {
-        console.log('DEBUG params.api não possui métodos de coluna conhecidos', params.api);
-      }
+        
+      } 
 
       updateColumnsPosition();
       updateColumnsSort();
@@ -447,7 +445,6 @@
   function updateColumnsPosition() {
   if (!gridApi.value) return;
   const allColumns = gridApi.value.getAllGridColumns();
-  console.log(allColumns)
   const positions = allColumns.map((col, idx) => ({
   FieldID: col.getColDef().id,
   PositionField: idx + 1,
@@ -491,10 +488,8 @@
             headerName: col.getColDef().headerName,
             cellRenderer: col.getColDef().cellRenderer
           }));
-          console.log('DEBUG colunas AG-Grid:', allCols);
-        } else {
-          console.log('DEBUG gridApi.value ou getAllColumns não disponível', gridApi.value);
-        }
+          
+        } 
       }, 2000); // Espera 2 segundos para garantir que a grid montou
     });
   
@@ -568,14 +563,19 @@
       if (!this.content || !this.content.columns || !Array.isArray(this.content.columns)) {
         return [];
       }
+
       const orderedColumns = [...this.content.columns].sort((a, b) => {
         const aPos = a.PositionInGrid ?? a.positionInGrid ?? a.PositionField ?? 0;
         const bPos = b.PositionInGrid ?? b.positionInGrid ?? b.PositionField ?? 0;
         return aPos - bPos;
       });
+
+
+
       return orderedColumns.map((col) => {
         const colCopy = { ...col };
-        // Forçar configuração correta para a coluna Deadline
+        // Forçar configuração correta para a coluna Deadline        
+
         if (colCopy.field === 'Deadline') {
           colCopy.cellRenderer = FormatterCellRenderer;
           delete colCopy.cellRendererFramework;
@@ -595,6 +595,7 @@
           if (!isNaN(Number(val))) return Number(val);
           return undefined;
         }
+        
         const minWidth = toNumber(colCopy.minWidth) || toNumber(colCopy.MinWidth) || 80;
         const isFlex = colCopy.widthAlgo === 'flex';
         const width = isFlex ? undefined : minWidth;
@@ -611,6 +612,10 @@
           FieldDB: colCopy.FieldDB, // <-- garantir FieldDB no colDef
           ...(colCopy.pinned === 'left' ? { lockPinned: true, lockPosition: true } : {}),
         };
+
+const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
+              const identifier = (colCopy.FieldDB || '').toUpperCase();
+
         // Se o filtro for agListColumnFilter, usar o filtro customizado
         if (colCopy.filter === 'agListColumnFilter') {
           return {
@@ -621,13 +626,14 @@
             field: colCopy.field,
             sortable: colCopy.sortable,
             filter: ListFilterRenderer,
-            cellRenderer: colCopy.useCustomFormatter ? 'FormatterCellRenderer' : undefined,
+            cellRenderer: ((tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') ? "UserCellRenderer" : (colCopy.useCustomFormatter ? 'FormatterCellRenderer' : undefined)),
             cellRendererParams: {
               useCustomFormatter: colCopy.useCustomFormatter,
               formatter: colCopy.formatter
             }
           };
         }
+
         switch (colCopy.cellDataType) {
           case "action": {
             return {
@@ -693,11 +699,7 @@
                 cellEditor: 'ListCellEditor',
                 options: Array.isArray(colCopy.options) ? colCopy.options : (Array.isArray(colCopy.listOptions) ? colCopy.listOptions : [])
               };
-              const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
-              const identifier = (colCopy.FieldDB || '').toUpperCase();
-              if (tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
-                result.cellRenderer = 'UserCellRenderer';
-              }
+              
               return result;
             }
           default: {
@@ -766,6 +768,9 @@
             // Formatação especial para DEADLINE
             const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
             const identifier = (colCopy.FieldDB || '').toUpperCase();
+
+
+
             if (tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
               result.cellRenderer = 'UserCellRenderer';
             }
