@@ -199,4 +199,61 @@
   color: #444;
   font-size: 13px;
   font-family: Roboto, Arial, sans-serif;
-} 
+}
+
+/* Estilos para opções de usuário com avatar */
+.list-filter .user-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.list-filter .avatar-outer {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid #3A4663;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  flex-shrink: 0;
+}
+.list-filter .avatar-middle {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+}
+.list-filter .user-avatar {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #4B6CB7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.list-filter .user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+.list-filter .user-initial {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 400;
+  background: transparent;
+  color: #fff;
+  border-radius: 50%;
+  letter-spacing: 0.5px;
+}
