@@ -136,6 +136,7 @@ export default class ListCellEditor {
       .map(opt => {
         const formatted = this.formatOption(opt);
         const selected = opt.value == this.value ? ' selected' : '';
+      
         if (this.isResponsibleUser) {
           const photo = opt.photo || opt.image || opt.img || '';
           const name = this.stripHtml(String(formatted));
@@ -151,6 +152,7 @@ export default class ListCellEditor {
               </span>
             </div>`;
         }
+      
         return `<div class="filter-item${selected}" data-value="${opt.value}"><span class="filter-label">${formatted}</span></div>`;
       })
       .join('');

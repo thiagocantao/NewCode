@@ -13,6 +13,7 @@ export default class FixedListCellEditor {
     this.searchInput = this.eGui.querySelector('.search-input');
     this.listEl = this.eGui.querySelector('.filter-list');
 
+
     const tag =
       (params.colDef.TagControl ||
         params.colDef.tagControl ||
@@ -21,6 +22,7 @@ export default class FixedListCellEditor {
     const identifier = (params.colDef.FieldDB || '').toUpperCase();
     this.isResponsibleUser =
       tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
+
 
     // Fixed list options
     let optionsArr = [];
@@ -151,6 +153,7 @@ export default class FixedListCellEditor {
               </span>
             </div>`;
         }
+
         return `<div class="filter-item${selected}" data-value="${opt.value}"><span class="filter-label">${formatted}</span></div>`;
       })
       .join('');
