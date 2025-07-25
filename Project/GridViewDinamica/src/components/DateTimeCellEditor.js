@@ -22,6 +22,19 @@ export default class DateTimeCellEditor {
     };
     input.addEventListener('input', syncValue);
     input.addEventListener('change', syncValue);
+
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        // Ensure value is up to date before closing
+        this.value = e.target.value;
+        if (this.params && typeof this.params.stopEditing === 'function') {
+          this.params.stopEditing();
+        } else if (this.params && this.params.api) {
+          // Fallback for older grid versions
+          this.params.api.stopEditing();
+        }
+      }
+    });
     
     this.eInput = input;
   }
