@@ -6,11 +6,27 @@ export default class FixedListCellEditor {
     this.eGui.style.height = '100%';
 
     // Fixed list options
-    this.options = [
-      { value: 1, label: 'Carro' },
-      { value: 2, label: 'Navio' },
-      { value: 3, label: 'Avi\u00E3o' }
-    ];
+    let optionsArr = [];
+    if (Array.isArray(params.colDef.listOptions)) {
+      optionsArr = params.colDef.listOptions;
+    } else if (
+      typeof params.colDef.listOptions === 'string' &&
+      params.colDef.listOptions.trim() !== ''
+    ) {
+      optionsArr = params.colDef.listOptions.split(',').map(o => o.trim());
+    } else if (
+      params.colDef.dataSource &&
+      typeof params.colDef.dataSource.list_options === 'string' &&
+      params.colDef.dataSource.list_options.trim() !== ''
+    ) {
+      optionsArr = params.colDef.dataSource.list_options
+        .split(',')
+        .map(o => o.trim());
+    }
+
+    this.options = optionsArr.map(opt =>
+      typeof opt === 'object' ? opt : { value: opt, label: String(opt) }
+    );
 
     // Initial value
     this.value = params.value;

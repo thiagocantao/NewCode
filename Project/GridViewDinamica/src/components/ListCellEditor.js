@@ -6,7 +6,25 @@ export default class ListCellEditor {
     this.eGui.style.height = '100%';
 
     // Opções da lista
-    const optionsArr = Array.isArray(params.colDef.options) ? params.colDef.options : (Array.isArray(params.colDef.listOptions) ? params.colDef.listOptions : []);
+    let optionsArr = [];
+    if (Array.isArray(params.colDef.options)) {
+      optionsArr = params.colDef.options;
+    } else if (Array.isArray(params.colDef.listOptions)) {
+      optionsArr = params.colDef.listOptions;
+    } else if (
+      typeof params.colDef.listOptions === 'string' &&
+      params.colDef.listOptions.trim() !== ''
+    ) {
+      optionsArr = params.colDef.listOptions.split(',').map(o => o.trim());
+    } else if (
+      params.colDef.dataSource &&
+      typeof params.colDef.dataSource.list_options === 'string' &&
+      params.colDef.dataSource.list_options.trim() !== ''
+    ) {
+      optionsArr = params.colDef.dataSource.list_options
+        .split(',')
+        .map(o => o.trim());
+    }
     this.options = optionsArr.map(opt => typeof opt === 'object' ? opt : { value: opt, label: String(opt) });
 
     // Valor inicial
