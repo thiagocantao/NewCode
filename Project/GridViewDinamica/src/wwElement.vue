@@ -1317,7 +1317,18 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
         event.data.ResponsibleUser = match.label || event.data.ResponsibleUser;
         if (match.photo || match.image || match.img) {
           event.data.PhotoUrl = match.photo || match.image || match.img;
+        } else {
+          // When the selected user has no photo, clear any existing one so the
+          // avatar with the initial is displayed
+          event.data.PhotoUrl = '';
         }
+      }
+      if (this.gridApi && event.node) {
+        this.gridApi.refreshCells({
+          rowNodes: [event.node],
+          columns: [fieldKey],
+          force: true
+        });
       }
     }
   }
