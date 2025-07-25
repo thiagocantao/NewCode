@@ -16,10 +16,13 @@ export default class DateTimeCellEditor {
 
     // keep value in sync so getValue works even after element removal
     this.value = input.value;
-    input.addEventListener('input', e => {
-      this.value = e.target.value;
-    });
 
+    const syncValue = e => {
+      this.value = e.target.value;
+    };
+    input.addEventListener('input', syncValue);
+    input.addEventListener('change', syncValue);
+    });
     this.eInput = input;
   }
 
