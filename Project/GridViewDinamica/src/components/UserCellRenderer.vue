@@ -1,5 +1,5 @@
 <template>
-  <div class="user-cell">
+  <div v-if="name" class="user-cell">
     <div class="avatar-outer">
       <div class="avatar-middle">
         <div class="user-cell__avatar">
@@ -96,8 +96,8 @@ export default {
   letter-spacing: 0.5px;
 }
 .user-cell__name {
-  font-size: 15px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 400;
   color: #444;
   white-space: nowrap;
   overflow: hidden;
