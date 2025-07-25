@@ -36,6 +36,7 @@
   import FormatterCellRenderer from "./components/FormatterCellRenderer.vue";
   import UserCellRenderer from "./components/UserCellRenderer.vue";
   import ListFilterRenderer from "./components/ListFilterRenderer.js";
+  import DateTimeCellEditor from "./components/DateTimeCellEditor.js";
   // Editor customizado inline para listas
   class ListCellEditor {
     init(params) {
@@ -86,6 +87,7 @@
   FormatterCellRenderer, // Add this line
   UserCellRenderer,
   ListCellEditor, // registrar editor customizado
+  DateTimeCellEditor,
   },
   props: {
   content: {
@@ -777,6 +779,9 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             if (tagControl === 'DEADLINE') {
               result.filter = 'agDateColumnFilter';
               result.cellDataType = 'dateString';
+              if (colCopy.editable) {
+                result.cellEditor = 'DateTimeCellEditor';
+              }
               result.cellRenderer = params => {
                 // Função utilitária para calcular diff e cor (idêntica ao FieldComponent.vue)
                 function normalizeDeadline(val) {
