@@ -1049,6 +1049,17 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
 
             if (tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
               result.cellRenderer = 'UserCellRenderer';
+              const opts = Array.isArray(colCopy.options)
+                ? colCopy.options
+                : Array.isArray(colCopy.listOptions)
+                ? colCopy.listOptions
+                : dsOptions;
+              if (opts.length) {
+                result.cellRendererParams = {
+                  ...(result.cellRendererParams || {}),
+                  options: opts
+                };
+              }
             }
             if (tagControl === 'DEADLINE') {
               result.filter = 'agDateColumnFilter';
@@ -1294,14 +1305,30 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
   });
   },
   onCellValueChanged(event) {
+  const colDef = event.column.getColDef ? event.column.getColDef() : {};
+  const tag = (colDef.TagControl || colDef.tagControl || colDef.tagcontrol || '').toUpperCase();
+  const identifier = (colDef.FieldDB || '').toUpperCase();
+  if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
+    const fieldKey = colDef.colId || colDef.field;
+    const opts = this.columnOptions[fieldKey] || [];
+    const match = opts.find(o => String(o.value) === String(event.newValue));
+    if (match) {
+      if (event.data) {
+        event.data.ResponsibleUser = match.label || event.data.ResponsibleUser;
+        if (match.photo || match.image || match.img) {
+          event.data.PhotoUrl = match.photo || match.image || match.img;
+        }
+      }
+    }
+  }
   this.$emit("trigger-event", {
-  name: "cellValueChanged",
-  event: {
-  oldValue: event.oldValue,
-  newValue: event.newValue,
-  columnId: event.column.getColId(),
-  row: event.data,
-  },
+    name: "cellValueChanged",
+    event: {
+      oldValue: event.oldValue,
+      newValue: event.newValue,
+      columnId: event.column.getColId(),
+      row: event.data,
+    },
   });
   },
   onRowClicked(event) {

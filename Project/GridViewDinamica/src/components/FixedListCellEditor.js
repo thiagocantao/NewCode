@@ -13,6 +13,17 @@ export default class FixedListCellEditor {
     this.searchInput = this.eGui.querySelector('.search-input');
     this.listEl = this.eGui.querySelector('.filter-list');
 
+
+    const tag =
+      (params.colDef.TagControl ||
+        params.colDef.tagControl ||
+        params.colDef.tagcontrol ||
+        '').toUpperCase();
+    const identifier = (params.colDef.FieldDB || '').toUpperCase();
+    this.isResponsibleUser =
+      tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
+
+
     // Fixed list options
     let optionsArr = [];
     if (Array.isArray(params.colDef.listOptions)) {
@@ -127,6 +138,22 @@ export default class FixedListCellEditor {
       .map(opt => {
         const formatted = this.formatOption(opt);
         const selected = opt.value == this.value ? ' selected' : '';
+        if (this.isResponsibleUser) {
+          const photo = opt.photo || opt.image || opt.img || '';
+          const name = this.stripHtml(String(formatted));
+          const initial = name ? name.trim().charAt(0).toUpperCase() : '';
+          const avatar = photo
+            ? `<img src="${photo}" alt="" />`
+            : `<span class="user-initial">${initial}</span>`;
+          return `
+            <div class="filter-item${selected}" data-value="${opt.value}">
+              <span class="user-option">
+                <span class="avatar-outer"><span class="avatar-middle"><span class="user-avatar">${avatar}</span></span></span>
+                <span class="filter-label">${formatted}</span>
+              </span>
+            </div>`;
+        }
+
         return `<div class="filter-item${selected}" data-value="${opt.value}"><span class="filter-label">${formatted}</span></div>`;
       })
       .join('');
