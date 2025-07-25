@@ -194,7 +194,8 @@
       const apiKey = window.wwLib?.wwVariable?.getValue('d180be98-8926-47a7-b7f1-6375fbb95fa3');
       const apiAuth = window.wwLib?.wwVariable?.getValue('dfcde09f-42f3-4b5c-b2e8-4314650655db');
 
-      if (!apiUrl || !col.dataSource?.functionName) return [];
+      const ds = col.dataSource?.dataSource || col.dataSource;
+      if (!apiUrl || !ds?.functionName) return [];
 
       const fetchOptions = {
         method: 'POST',
@@ -208,16 +209,16 @@
       if (apiKey) fetchOptions.headers['apikey'] = apiKey;
       if (apiAuth) fetchOptions.headers['Authorization'] = apiAuth;
 
-      const response = await fetch(apiUrl + col.dataSource.functionName, fetchOptions);
+      const response = await fetch(apiUrl + ds.functionName, fetchOptions);
       if (!response.ok) throw new Error(`HTTP error ${response.status}`);
       const data = await response.json();
       if (!Array.isArray(data)) return [];
 
-      if (col.dataSource.transform) {
+      if (ds.transform) {
         return data
           .map(item => {
-            let value = item[col.dataSource.transform?.value] ?? item.id;
-            let label = item[col.dataSource.transform?.label] ?? item.name;
+            let value = item[ds.transform?.value] ?? item.id;
+            let label = item[ds.transform?.label] ?? item.name;
             if (value === undefined || label === undefined) return null;
             return { value, label };
           })
@@ -226,8 +227,8 @@
 
       return data
         .map(item => {
-          const value = item[col.dataSource.valueField || 'id'];
-          const label = item[col.dataSource.labelField || 'name'];
+          const value = item[ds.valueField || 'id'];
+          const label = item[ds.labelField || 'name'];
           if (value === undefined || label === undefined) return null;
           return { value, label };
         })
@@ -248,7 +249,8 @@
       opts = parseStaticOptions(col.dataSource.list_options);
     }
 
-    if (!opts.length && col.dataSource?.functionName) {
+    const hasFn = col.dataSource?.functionName || col.dataSource?.dataSource?.functionName;
+    if (!opts.length && hasFn) {
       opts = await loadApiOptions(col);
     }
 
