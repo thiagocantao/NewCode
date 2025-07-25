@@ -14,6 +14,12 @@ export default class DateTimeCellEditor {
       input.value = this.toDateTimeLocal(params.value);
     }
 
+    // keep value in sync so getValue works even after element removal
+    this.value = input.value;
+    input.addEventListener('input', e => {
+      this.value = e.target.value;
+    });
+
     this.eInput = input;
   }
 
@@ -44,7 +50,8 @@ export default class DateTimeCellEditor {
   }
 
   getValue() {
-    return this.eInput.value;
+    // return the cached value to avoid issues if the element was removed
+    return this.value;
   }
 
   destroy() {}
