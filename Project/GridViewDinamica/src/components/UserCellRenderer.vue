@@ -27,10 +27,34 @@ export default {
   },
   computed: {
     name() {
-      return this.params?.data?.ResponsibleUser || '';
+      const direct =
+        this.params?.data?.ResponsibleUser ||
+        this.params?.data?.Username ||
+        this.params?.data?.UserName ||
+        '';
+      if (direct) return direct;
+      const value = this.params?.value;
+      const opts = this.params?.options || [];
+      if (Array.isArray(opts)) {
+        const match = opts.find(o => String(o.value) === String(value));
+        if (match && match.label) return match.label;
+      }
+      return '';
     },
     photo() {
-      return this.params?.data?.PhotoUrl || this.params?.data?.PhotoURL || '';
+      const direct =
+        this.params?.data?.PhotoUrl ||
+        this.params?.data?.PhotoURL ||
+        this.params?.data?.UserPhoto ||
+        '';
+      if (direct) return direct;
+      const value = this.params?.value;
+      const opts = this.params?.options || [];
+      if (Array.isArray(opts)) {
+        const match = opts.find(o => String(o.value) === String(value));
+        if (match) return match.photo || match.image || match.img || '';
+      }
+      return '';
     },
     initial() {
       const n = this.name;

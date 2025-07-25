@@ -44,8 +44,17 @@
     init(params) {
       this.params = params;
       this.eGui = document.createElement('div');
-      this.eGui.style.width = '100%';
-      this.eGui.style.height = '100%';
+      this.eGui.className = 'list-editor';
+      this.eGui.innerHTML = `
+        <div class="field-search">
+          <input type="text" class="search-input" placeholder="Search..." />
+          <span class="search-icon"><i class="material-symbols-outlined-search">search</i></span>
+        </div>
+        <div class="filter-list"></div>
+      `;
+      this.searchInput = this.eGui.querySelector('.search-input');
+      this.listEl = this.eGui.querySelector('.filter-list');
+
       let optionsArr = [];
       if (Array.isArray(params.colDef.options)) {
         optionsArr = params.colDef.options;
@@ -65,32 +74,113 @@
           .split(',')
           .map(o => o.trim());
       }
-      this.options = optionsArr.map(opt => typeof opt === 'object' ? opt : { value: opt, label: String(opt) });
+      this.options = optionsArr.map(opt =>
+        typeof opt === 'object' ? opt : { value: opt, label: String(opt) }
+      );
+      this.filteredOptions = [...this.options];
       this.value = params.value;
-      const select = document.createElement('select');
-      select.style.width = '100%';
-      select.style.height = '100%';
-      select.style.fontSize = '13px';
-      select.style.borderRadius = '6px';
-      select.style.padding = '4px';
-      this.options.forEach(opt => {
-        const option = document.createElement('option');
-        option.value = opt.value;
-        option.innerHTML = opt.label;
-        if (opt.value == this.value) option.selected = true;
-        select.appendChild(option);
+
+      this.searchInput.addEventListener('input', e => {
+        this.filterOptions(e.target.value);
       });
-      select.addEventListener('change', e => {
-        this.value = e.target.value;
+
+      this.renderOptions();
+    }
+    filterOptions(text) {
+      const t = text.toLowerCase();
+      this.filteredOptions = this.options.filter(opt => {
+        const label = this.stripHtml(String(this.formatOption(opt)));
+        return label.toLowerCase().includes(t);
       });
-      this.eGui.appendChild(select);
-      this.select = select;
+      this.renderOptions();
+    }
+    stripHtml(html) {
+      const tmp = document.createElement('div');
+      tmp.innerHTML = html;
+      return tmp.textContent || tmp.innerText || '';
+    }
+    getRoundedSpanColor(value, colorArray, fieldName) {
+      if (!colorArray || !Array.isArray(colorArray) || !value) return value;
+      const matchingStyle = colorArray.find(item => item.Valor === value);
+      if (!matchingStyle) return value;
+      const borderRadius = fieldName === 'StatusID' ? '4px' : '12px';
+      const fontweight = 'font-weight:bold;';
+      return `<span style="height:25px; color: ${matchingStyle.CorFonte}; background:${matchingStyle.CorFundo}; border: 1px solid ${matchingStyle.CorFundo}; border-radius: ${borderRadius}; ${fontweight} display: inline-flex; align-items: center; padding: 0 12px;">${value}</span>`;
+    }
+    dateFormatter(dateValue, lang) {
+      try {
+        if (!dateValue) return '';
+        const dateOptions = { day: '2-digit', month: '2-digit', year: 'numeric' };
+        const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: false };
+        const datePart = new Intl.DateTimeFormat(lang || 'en', dateOptions).format(
+          new Date(dateValue)
+        );
+        const timePart = new Intl.DateTimeFormat(lang || 'en', timeOptions).format(
+          new Date(dateValue)
+        );
+        return `${datePart} ${timePart}`;
+      } catch (error) {
+        return dateValue;
+      }
+    }
+    formatOption(opt) {
+      const value = opt.label != null ? opt.label : opt.value;
+      const colDef = this.params.colDef || {};
+      const params = colDef.cellRendererParams || {};
+      try {
+        if (params.useCustomFormatter && typeof params.formatter === 'string') {
+          const fn = new Function(
+            'value',
+            'row',
+            'colDef',
+            'getRoundedSpanColor',
+            'dateFormatter',
+            params.formatter
+          );
+          return fn(
+            value,
+            {},
+            colDef,
+            this.getRoundedSpanColor.bind(this),
+            this.dateFormatter.bind(this)
+          );
+        } else if (params.useStyleArray && Array.isArray(params.styleArray)) {
+          const styled = this.getRoundedSpanColor(
+            value,
+            params.styleArray,
+            colDef.FieldDB
+          );
+          if (styled) return styled;
+        }
+      } catch (e) {
+        console.error('Format option error', e);
+      }
+      return value;
+    }
+    renderOptions() {
+      this.listEl.innerHTML = this.filteredOptions
+        .map(opt => {
+          const formatted = this.formatOption(opt);
+          const selected = opt.value == this.value ? ' selected' : '';
+          return `<div class="filter-item${selected}" data-value="${opt.value}"><span class="filter-label">${formatted}</span></div>`;
+        })
+        .join('');
+      this.listEl.querySelectorAll('.filter-item').forEach(el => {
+        el.addEventListener('click', () => {
+          this.value = el.getAttribute('data-value');
+          if (this.params.api && this.params.api.stopEditing) {
+            this.params.api.stopEditing();
+          } else if (this.params.stopEditing) {
+            this.params.stopEditing();
+          }
+        });
+      });
     }
     getGui() { return this.eGui; }
-    afterGuiAttached() { if (this.select) this.select.focus(); }
+    afterGuiAttached() { if (this.searchInput) this.searchInput.focus(); }
     getValue() { return this.value; }
     destroy() {}
-    isPopup() { return false; }
+    isPopup() { return true; }
   }
   import './components/list-filter.css';
   
@@ -764,7 +854,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             cellRenderer: ((tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') ? "UserCellRenderer" : (colCopy.useCustomFormatter ? 'FormatterCellRenderer' : undefined)),
             cellRendererParams: {
               useCustomFormatter: colCopy.useCustomFormatter,
-              formatter: colCopy.formatter
+              formatter: colCopy.formatter,
+              // options will be added below when available
             }
           };
           const fieldKey = colCopy.id || colCopy.field;
@@ -779,17 +870,27 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               : Array.isArray(colCopy.listOptions)
               ? colCopy.listOptions
               : dsOptions;
-            if (optionsArr.length) {
+            if (optionsArr.length && colCopy.editable) {
               result.editable = true;
               result.cellEditor = ListCellEditor;
               result.options = optionsArr;
+              result.cellRendererParams = {
+                ...result.cellRendererParams,
+                options: optionsArr,
+              };
             }
           }
           // Editor fixo quando a coluna possui dataSource
-          if (colCopy.dataSource && dsOptions.length) {
+          if (colCopy.dataSource && dsOptions.length && colCopy.editable) {
             result.editable = true;
             result.cellEditor = FixedListCellEditor;
             result.listOptions = dsOptions;
+            if (!result.cellRendererParams.options) {
+              result.cellRendererParams = {
+                ...result.cellRendererParams,
+                options: dsOptions,
+              };
+            }
           }
           return result;
         }
@@ -856,7 +957,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                 cellRenderer: colCopy.useCustomFormatter ? 'FormatterCellRenderer' : undefined,
                 cellRendererParams: {
                   useCustomFormatter: colCopy.useCustomFormatter,
-                  formatter: colCopy.formatter
+                  formatter: colCopy.formatter,
+                  // options will be added below when available
                 },
                 editable: false,
                 cellEditor: ListCellEditor,
@@ -866,7 +968,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                   ? colCopy.listOptions
                   : dsOptions,
               };
-              if (result.options && result.options.length) {
+              if (result.options && result.options.length && colCopy.editable) {
                 result.editable = true;
               }
               return result;
@@ -912,19 +1014,24 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             if (colCopy.textAlign) {
               baseCellStyle = params => ({ textAlign: colCopy.textAlign });
             }
-            // Cursor pointer para TicketNumber
-            if (colCopy.FieldDB === 'TicketNumber') {
+            // Cursor pointer para colunas editáveis
+            if (colCopy.cursor) {
+              const prevCellStyle = baseCellStyle;
+              baseCellStyle = params => ({
+                ...(typeof prevCellStyle === 'function' ? prevCellStyle(params) : {}),
+                cursor: colCopy.cursor
+              });
+            } else if (colCopy.editable) {
               const prevCellStyle = baseCellStyle;
               baseCellStyle = params => ({
                 ...(typeof prevCellStyle === 'function' ? prevCellStyle(params) : {}),
                 cursor: 'pointer'
               });
-            } else if (colCopy.cursor) {
-              // Adicionar cursor customizado se definido
+            } else if (colCopy.FieldDB === 'TicketNumber') {
               const prevCellStyle = baseCellStyle;
               baseCellStyle = params => ({
                 ...(typeof prevCellStyle === 'function' ? prevCellStyle(params) : {}),
-                cursor: colCopy.cursor
+                cursor: 'pointer'
               });
             }
             if (baseCellStyle) {
@@ -942,6 +1049,17 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
 
             if (tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
               result.cellRenderer = 'UserCellRenderer';
+              const opts = Array.isArray(colCopy.options)
+                ? colCopy.options
+                : Array.isArray(colCopy.listOptions)
+                ? colCopy.listOptions
+                : dsOptions;
+              if (opts.length) {
+                result.cellRendererParams = {
+                  ...(result.cellRendererParams || {}),
+                  options: opts
+                };
+              }
             }
             if (tagControl === 'DEADLINE') {
               result.filter = 'agDateColumnFilter';
@@ -1048,18 +1166,28 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                 : Array.isArray(colCopy.listOptions)
                 ? colCopy.listOptions
                 : dsOptions;
-              if (optionsArr.length) {
+              if (optionsArr.length && colCopy.editable) {
                 result.editable = true;
                 result.cellEditor = ListCellEditor;
                 result.options = optionsArr;
+                result.cellRendererParams = {
+                  ...result.cellRendererParams,
+                  options: optionsArr,
+                };
               }
               // O cellRenderer já aplica a formatação visual
             }
             // Editor fixo quando a coluna possui dataSource
-            if (colCopy.dataSource && dsOptions.length) {
+            if (colCopy.dataSource && dsOptions.length && colCopy.editable) {
               result.editable = true;
               result.cellEditor = FixedListCellEditor;
               result.listOptions = dsOptions;
+              if (!result.cellRendererParams.options) {
+                result.cellRendererParams = {
+                  ...result.cellRendererParams,
+                  options: dsOptions,
+                };
+              }
             }
             return result;
           }
@@ -1177,14 +1305,30 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
   });
   },
   onCellValueChanged(event) {
+  const colDef = event.column.getColDef ? event.column.getColDef() : {};
+  const tag = (colDef.TagControl || colDef.tagControl || colDef.tagcontrol || '').toUpperCase();
+  const identifier = (colDef.FieldDB || '').toUpperCase();
+  if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
+    const fieldKey = colDef.colId || colDef.field;
+    const opts = this.columnOptions[fieldKey] || [];
+    const match = opts.find(o => String(o.value) === String(event.newValue));
+    if (match) {
+      if (event.data) {
+        event.data.ResponsibleUser = match.label || event.data.ResponsibleUser;
+        if (match.photo || match.image || match.img) {
+          event.data.PhotoUrl = match.photo || match.image || match.img;
+        }
+      }
+    }
+  }
   this.$emit("trigger-event", {
-  name: "cellValueChanged",
-  event: {
-  oldValue: event.oldValue,
-  newValue: event.newValue,
-  columnId: event.column.getColId(),
-  row: event.data,
-  },
+    name: "cellValueChanged",
+    event: {
+      oldValue: event.oldValue,
+      newValue: event.newValue,
+      columnId: event.column.getColId(),
+      row: event.data,
+    },
   });
   },
   onRowClicked(event) {
