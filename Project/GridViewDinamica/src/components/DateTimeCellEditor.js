@@ -25,12 +25,26 @@ export default class DateTimeCellEditor {
 
     input.addEventListener('keydown', e => {
       if (e.key === 'Enter') {
-        // Ensure value is up to date before closing
+        // Prevent grid from handling Enter before we update the value
+        e.preventDefault();
+        e.stopPropagation();
+
         this.value = e.target.value;
+
+        // Update the underlying row data immediately
+        if (this.params && this.params.node && this.params.column) {
+          const colId =
+            (typeof this.params.column.getColId === 'function')
+              ? this.params.column.getColId()
+              : this.params.column.colId;
+          if (colId) {
+            this.params.node.setDataValue(colId, this.value);
+          }
+        }
+
         if (this.params && typeof this.params.stopEditing === 'function') {
           this.params.stopEditing();
         } else if (this.params && this.params.api) {
-          // Fallback for older grid versions
           this.params.api.stopEditing();
         }
       }
