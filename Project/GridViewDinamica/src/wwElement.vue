@@ -971,6 +971,33 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               if (result.options && result.options.length && colCopy.editable) {
                 result.editable = true;
               }
+              // Add cursor pointer style when column is editable
+              let baseCellStyle = undefined;
+              if (colCopy.textAlign) {
+                baseCellStyle = params => ({ textAlign: colCopy.textAlign });
+              }
+              if (colCopy.cursor) {
+                const prevCellStyle = baseCellStyle;
+                baseCellStyle = params => ({
+                  ...(typeof prevCellStyle === 'function' ? prevCellStyle(params) : {}),
+                  cursor: colCopy.cursor
+                });
+              } else if (result.editable) {
+                const prevCellStyle = baseCellStyle;
+                baseCellStyle = params => ({
+                  ...(typeof prevCellStyle === 'function' ? prevCellStyle(params) : {}),
+                  cursor: 'pointer'
+                });
+              } else if (colCopy.FieldDB === 'TicketNumber') {
+                const prevCellStyle = baseCellStyle;
+                baseCellStyle = params => ({
+                  ...(typeof prevCellStyle === 'function' ? prevCellStyle(params) : {}),
+                  cursor: 'pointer'
+                });
+              }
+              if (baseCellStyle) {
+                result.cellStyle = baseCellStyle;
+              }
               return result;
             }
           default: {
@@ -1021,7 +1048,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                 ...(typeof prevCellStyle === 'function' ? prevCellStyle(params) : {}),
                 cursor: colCopy.cursor
               });
-            } else if (colCopy.editable) {
+            } else if (result.editable) {
               const prevCellStyle = baseCellStyle;
               baseCellStyle = params => ({
                 ...(typeof prevCellStyle === 'function' ? prevCellStyle(params) : {}),
@@ -1317,7 +1344,18 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
         event.data.ResponsibleUser = match.label || event.data.ResponsibleUser;
         if (match.photo || match.image || match.img) {
           event.data.PhotoUrl = match.photo || match.image || match.img;
+        } else {
+          // When the selected user has no photo, clear any existing one so the
+          // avatar with the initial is displayed
+          event.data.PhotoUrl = '';
         }
+      }
+      if (this.gridApi && event.node) {
+        this.gridApi.refreshCells({
+          rowNodes: [event.node],
+          columns: [fieldKey],
+          force: true
+        });
       }
     }
   }
