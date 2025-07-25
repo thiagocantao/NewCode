@@ -870,7 +870,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               : Array.isArray(colCopy.listOptions)
               ? colCopy.listOptions
               : dsOptions;
-            if (optionsArr.length) {
+            if (optionsArr.length && colCopy.editable) {
               result.editable = true;
               result.cellEditor = ListCellEditor;
               result.options = optionsArr;
@@ -881,7 +881,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             }
           }
           // Editor fixo quando a coluna possui dataSource
-          if (colCopy.dataSource && dsOptions.length) {
+          if (colCopy.dataSource && dsOptions.length && colCopy.editable) {
             result.editable = true;
             result.cellEditor = FixedListCellEditor;
             result.listOptions = dsOptions;
@@ -968,7 +968,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                   ? colCopy.listOptions
                   : dsOptions,
               };
-              if (result.options && result.options.length) {
+              if (result.options && result.options.length && colCopy.editable) {
                 result.editable = true;
               }
               return result;
@@ -1014,19 +1014,24 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             if (colCopy.textAlign) {
               baseCellStyle = params => ({ textAlign: colCopy.textAlign });
             }
-            // Cursor pointer para TicketNumber
-            if (colCopy.FieldDB === 'TicketNumber') {
+            // Cursor pointer para colunas editáveis
+            if (colCopy.cursor) {
+              const prevCellStyle = baseCellStyle;
+              baseCellStyle = params => ({
+                ...(typeof prevCellStyle === 'function' ? prevCellStyle(params) : {}),
+                cursor: colCopy.cursor
+              });
+            } else if (colCopy.editable) {
               const prevCellStyle = baseCellStyle;
               baseCellStyle = params => ({
                 ...(typeof prevCellStyle === 'function' ? prevCellStyle(params) : {}),
                 cursor: 'pointer'
               });
-            } else if (colCopy.cursor) {
-              // Adicionar cursor customizado se definido
+            } else if (colCopy.FieldDB === 'TicketNumber') {
               const prevCellStyle = baseCellStyle;
               baseCellStyle = params => ({
                 ...(typeof prevCellStyle === 'function' ? prevCellStyle(params) : {}),
-                cursor: colCopy.cursor
+                cursor: 'pointer'
               });
             }
             if (baseCellStyle) {
@@ -1150,7 +1155,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                 : Array.isArray(colCopy.listOptions)
                 ? colCopy.listOptions
                 : dsOptions;
-              if (optionsArr.length) {
+              if (optionsArr.length && colCopy.editable) {
                 result.editable = true;
                 result.cellEditor = ListCellEditor;
                 result.options = optionsArr;
@@ -1162,7 +1167,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               // O cellRenderer já aplica a formatação visual
             }
             // Editor fixo quando a coluna possui dataSource
-            if (colCopy.dataSource && dsOptions.length) {
+            if (colCopy.dataSource && dsOptions.length && colCopy.editable) {
               result.editable = true;
               result.cellEditor = FixedListCellEditor;
               result.listOptions = dsOptions;
