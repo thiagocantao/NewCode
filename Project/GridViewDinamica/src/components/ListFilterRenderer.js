@@ -5,10 +5,16 @@ export default class ListFilterRenderer {
     this.allValues = [];
     this.filteredValues = [];
     this.selectAll = false;
+    this.userInfo = {};
+    this.isResponsibleUser = false;
   }
 
   init(params) {
     this.params = params;
+    const colDef = this.params.column.getColDef();
+    const tag = (colDef.TagControl || colDef.tagControl || colDef.tagcontrol || '').toUpperCase();
+    const identifier = (colDef.FieldDB || '').toUpperCase();
+    this.isResponsibleUser = tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
     this.loadValues();
     this.createGui();
   }
@@ -102,6 +108,7 @@ export default class ListFilterRenderer {
 
     this.allValues = [];
     this.formattedValues = [];
+    this.userInfo = {};
     api.forEachNode(node => {
       if (node.data) {
         let value = this.getNestedValue(node.data, field);
@@ -130,7 +137,14 @@ export default class ListFilterRenderer {
         }
         if (value !== undefined && value !== null) {
           this.allValues.push(value);
-          this.formattedValues.push(formatted);
+          if (this.isResponsibleUser) {
+            const name = node.data.ResponsibleUser || node.data.Username || node.data.UserName || '';
+            const photo = node.data.PhotoUrl || node.data.PhotoURL || node.data.UserPhoto || '';
+            this.userInfo[value] = { name, photo };
+            this.formattedValues.push(name || formatted);
+          } else {
+            this.formattedValues.push(formatted);
+          }
         }
       }
     });
@@ -160,6 +174,11 @@ export default class ListFilterRenderer {
     });
     this.allValues = zipped.map(z => z.raw);
     this.formattedValues = zipped.map(z => z.formatted);
+    if (this.isResponsibleUser) {
+      const newInfo = {};
+      this.allValues.forEach(v => { if (this.userInfo[v]) newInfo[v] = this.userInfo[v]; });
+      this.userInfo = newInfo;
+    }
     this.filteredValues = [...this.allValues];
   }
 
@@ -184,6 +203,24 @@ export default class ListFilterRenderer {
       const idx = this.allValues.indexOf(rawValue);
       const formattedValue = this.formattedValues[idx] || rawValue;
       const checked = this.selectedValues.includes(rawValue) ? 'checked' : '';
+      if (this.isResponsibleUser) {
+        const info = this.userInfo[rawValue] || { name: formattedValue, photo: '' };
+        const name = info.name || formattedValue;
+        const photo = info.photo;
+        const initial = name ? name.trim().charAt(0).toUpperCase() : '';
+        const avatar = photo
+          ? `<img src="${photo}" alt="" />`
+          : `<span class="user-initial">${initial}</span>`;
+        return `
+          <label class="filter-item${this.selectedValues.includes(rawValue) ? ' selected' : ''}">
+            <input type="checkbox" value="${rawValue}" ${checked} />
+            <span class="user-option">
+              <span class="avatar-outer"><span class="avatar-middle"><span class="user-avatar">${avatar}</span></span></span>
+              <span class="filter-label">${name}</span>
+            </span>
+          </label>
+        `;
+      }
       return `
         <label class="filter-item${this.selectedValues.includes(rawValue) ? ' selected' : ''}">
           <input type="checkbox" value="${rawValue}" ${checked} />
