@@ -1038,6 +1038,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               result.cellEditor = DateTimeCellEditor;
               // Ensure the raw string from the editor is kept as-is
               result.valueParser = params => params.newValue;
+
             }
             // Add text alignment style for cells
             let baseCellStyle = undefined;
@@ -1364,7 +1365,9 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
       }
     }
   }
+  
   if (tag === 'DEADLINE' || colDef.cellDataType === 'dateString') {
+
     const fieldKey = colDef.colId || colDef.field;
     if (this.gridApi && event.node) {
       this.gridApi.refreshCells({
