@@ -1034,7 +1034,10 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             // Handle date columns that are editable
             if (colCopy.cellDataType === 'dateString' && colCopy.editable) {
               result.cellDataType = 'dateString';
-              result.cellEditor = 'agDateStringCellEditor';
+              // Use the custom datetime editor for all date fields
+              result.cellEditor = DateTimeCellEditor;
+              // Ensure the raw string from the editor is kept as-is
+              result.valueParser = params => params.newValue;
             }
             // Add text alignment style for cells
             let baseCellStyle = undefined;
@@ -1094,6 +1097,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               if (colCopy.editable) {
                 // use the class directly to avoid lookup issues
                 result.cellEditor = DateTimeCellEditor;
+                // Keep the returned datetime string without further parsing
+                result.valueParser = params => params.newValue;
               }
               result.cellRenderer = params => {
                 // Função utilitária para calcular diff e cor (idêntica ao FieldComponent.vue)
@@ -1357,6 +1362,16 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           force: true
         });
       }
+    }
+  }
+  if (tag === 'DEADLINE' || colDef.cellDataType === 'dateString') {
+    const fieldKey = colDef.colId || colDef.field;
+    if (this.gridApi && event.node) {
+      this.gridApi.refreshCells({
+        rowNodes: [event.node],
+        columns: [fieldKey],
+        force: true
+      });
     }
   }
   this.$emit("trigger-event", {
