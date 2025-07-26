@@ -1036,6 +1036,9 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               result.cellDataType = 'dateString';
               // Use the custom datetime editor for all date fields
               result.cellEditor = DateTimeCellEditor;
+              // Ensure the raw string from the editor is kept as-is
+              result.valueParser = params => params.newValue;
+
             }
             // Add text alignment style for cells
             let baseCellStyle = undefined;
@@ -1095,6 +1098,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               if (colCopy.editable) {
                 // use the class directly to avoid lookup issues
                 result.cellEditor = DateTimeCellEditor;
+                // Keep the returned datetime string without further parsing
+                result.valueParser = params => params.newValue;
               }
               result.cellRenderer = params => {
                 // Função utilitária para calcular diff e cor (idêntica ao FieldComponent.vue)
