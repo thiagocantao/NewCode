@@ -1,6 +1,13 @@
 <template>
-  <div class="formatter-cell" v-if="params.useCustomFormatter" v-html="formattedValue" :style="cellStyle"></div>
-  <div class="formatter-cell" v-else :style="cellStyle">{{ formattedValue }}</div>
+  <div
+    class="formatter-cell"
+    v-if="params.useCustomFormatter"
+    v-html="formattedValue"
+    :style="[cellStyle, pointerStyle]"
+  ></div>
+  <div class="formatter-cell" v-else :style="[cellStyle, pointerStyle]">
+    {{ formattedValue }}
+  </div>
 </template>
  
 <script>
@@ -200,6 +207,20 @@ export default {
         return `Error: ${error.message}`;
       }
     },
+    isEditable() {
+      const editable = this.params.colDef?.editable;
+      if (typeof editable === 'function') {
+        try {
+          return !!editable(this.params);
+        } catch (e) {
+          return false;
+        }
+      }
+      return !!editable;
+    },
+    pointerStyle() {
+      return this.isEditable ? { cursor: 'pointer' } : {};
+    },
     cellStyle() {
       // Get text alignment from column definition if available
       const textAlign = this.params.colDef?.cellStyle?.({})?.textAlign;
@@ -214,6 +235,5 @@ export default {
     height: 100%;
     display: flex;
     align-items: center;
-    cursor: pointer;
   }
 </style>
