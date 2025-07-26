@@ -1360,7 +1360,9 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
       }
     }
   }
+  
   if (tag === 'DEADLINE' || colDef.cellDataType === 'dateString') {
+
     const fieldKey = colDef.colId || colDef.field;
     if (this.gridApi && event.node) {
       this.gridApi.refreshCells({
