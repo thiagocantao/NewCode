@@ -1036,9 +1036,19 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               result.cellDataType = 'dateString';
               // Use the custom datetime editor for all date fields
               result.cellEditor = DateTimeCellEditor;
-              // Ensure the raw string from the editor is kept as-is
-              result.valueParser = params => params.newValue;
-
+              // Convert value from the editor to keep the original formatting
+              result.valueParser = params => {
+                let v = params.newValue;
+                if (typeof v === 'string' && v.includes('T')) {
+                  v = v.replace('T', ' ');
+                  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(v)) {
+                    v += ':00+00';
+                  } else if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(v)) {
+                    v += '+00';
+                  }
+                }
+                return v;
+              };
             }
             // Add text alignment style for cells
             let baseCellStyle = undefined;
@@ -1098,8 +1108,20 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               if (colCopy.editable) {
                 // use the class directly to avoid lookup issues
                 result.cellEditor = DateTimeCellEditor;
-                // Keep the returned datetime string without further parsing
-                result.valueParser = params => params.newValue;
+                
+                // Convert value from the editor to keep the original formatting
+                result.valueParser = params => {
+                  let v = params.newValue;
+                  if (typeof v === 'string' && v.includes('T')) {
+                    v = v.replace('T', ' ');
+                    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(v)) {
+                      v += ':00+00';
+                    } else if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(v)) {
+                      v += '+00';
+                    }
+                  }
+                  return v;
+                };
               }
               result.cellRenderer = params => {
                 // Função utilitária para calcular diff e cor (idêntica ao FieldComponent.vue)
@@ -1365,13 +1387,22 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
       }
     }
   }
-  
   if (tag === 'DEADLINE' || colDef.cellDataType === 'dateString') {
     const fieldKey = colDef.colId || colDef.field;
     if (event.node && fieldKey) {
       // Explicitly update the underlying data in case the grid does not
       // automatically set the value from the editor
-      event.node.setDataValue(fieldKey, event.newValue);
+      let v = event.newValue;
+      if (typeof v === 'string' && v.includes('T')) {
+        v = v.replace('T', ' ');
+        if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(v)) {
+          v += ':00+00';
+        } else if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(v)) {
+          v += '+00';
+        }
+      }
+      event.node.setDataValue(fieldKey, v);
+      
       if (this.gridApi) {
         this.gridApi.refreshCells({
           rowNodes: [event.node],
