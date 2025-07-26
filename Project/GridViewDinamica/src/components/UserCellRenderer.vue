@@ -1,5 +1,5 @@
 <template>
-  <div v-if="name" class="user-cell">
+<div v-if="name" class="user-cell" :style="pointerStyle">
     <div class="avatar-outer">
       <div class="avatar-middle">
         <div class="user-cell__avatar">
@@ -59,6 +59,20 @@ export default {
     initial() {
       const n = this.name;
       return n ? n.trim().charAt(0).toUpperCase() : '';
+    },
+    isEditable() {
+      const editable = this.params.colDef?.editable;
+      if (typeof editable === 'function') {
+        try {
+          return !!editable(this.params);
+        } catch (e) {
+          return false;
+        }
+      }
+      return !!editable;
+    },
+    pointerStyle() {
+      return this.isEditable ? { cursor: 'pointer' } : {};
     }
   }
 };
