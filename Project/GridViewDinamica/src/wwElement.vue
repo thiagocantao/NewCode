@@ -1034,7 +1034,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             // Handle date columns that are editable
             if (colCopy.cellDataType === 'dateString' && colCopy.editable) {
               result.cellDataType = 'dateString';
-              result.cellEditor = 'agDateStringCellEditor';
+              // Use the custom datetime editor for all date fields
+              result.cellEditor = DateTimeCellEditor;
             }
             // Add text alignment style for cells
             let baseCellStyle = undefined;
@@ -1359,7 +1360,9 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
       }
     }
   }
-  if (tag === 'DEADLINE') {
+  
+  if (tag === 'DEADLINE' || colDef.cellDataType === 'dateString') {
+
     const fieldKey = colDef.colId || colDef.field;
     if (this.gridApi && event.node) {
       this.gridApi.refreshCells({
