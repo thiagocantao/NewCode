@@ -1367,14 +1367,18 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
   }
   
   if (tag === 'DEADLINE' || colDef.cellDataType === 'dateString') {
-
     const fieldKey = colDef.colId || colDef.field;
-    if (this.gridApi && event.node) {
-      this.gridApi.refreshCells({
-        rowNodes: [event.node],
-        columns: [fieldKey],
-        force: true
-      });
+    if (event.node && fieldKey) {
+      // Explicitly update the underlying data in case the grid does not
+      // automatically set the value from the editor
+      event.node.setDataValue(fieldKey, event.newValue);
+      if (this.gridApi) {
+        this.gridApi.refreshCells({
+          rowNodes: [event.node],
+          columns: [fieldKey],
+          force: true
+        });
+      }
     }
   }
   this.$emit("trigger-event", {
