@@ -1108,6 +1108,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               if (colCopy.editable) {
                 // use the class directly to avoid lookup issues
                 result.cellEditor = DateTimeCellEditor;
+                
                 // Convert value from the editor to keep the original formatting
                 result.valueParser = params => {
                   let v = params.newValue;
@@ -1401,6 +1402,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
         }
       }
       event.node.setDataValue(fieldKey, v);
+      
       if (this.gridApi) {
         this.gridApi.refreshCells({
           rowNodes: [event.node],
