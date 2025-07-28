@@ -5,7 +5,6 @@
       :selection-column-def="{ pinned: true }" :theme="theme" :getRowId="getRowId" :pagination="content.pagination"
       :paginationPageSize="content.paginationPageSize || 10" :paginationPageSizeSelector="false"
       :suppressMovableColumns="!content.movableColumns" :columnHoverHighlight="content.columnHoverHighlight"
-      :getMainMenuItems="getMainMenuItems" :isColumnMovable="isColumnMovable" :components="editorComponents"
       :locale-text="localeText" @grid-ready="onGridReady" @row-selected="onRowSelected"
       @selection-changed="onSelectionChanged" @cell-value-changed="onCellValueChanged" @filter-changed="onFilterChanged"
       @sort-changed="onSortChanged" @row-clicked="onRowClicked">
@@ -32,7 +31,6 @@ import ActionCellRenderer from "./components/ActionCellRenderer.vue";
 import ImageCellRenderer from "./components/ImageCellRenderer.vue";
 import WewebCellRenderer from "./components/WewebCellRenderer.vue";
 import ListFilterRenderer from "./components/ListFilterRenderer.js";
-import DateTimeCellEditor from "./components/DateTimeCellEditor.js";
 import './components/list-filter.css';
 
 console.log("AG Grid version:", AG_GRID_LOCALE_FR);
@@ -47,7 +45,6 @@ export default {
     ActionCellRenderer,
     ImageCellRenderer,
     WewebCellRenderer,
-    DateTimeCellEditor,
   },
   props: {
     content: {
@@ -67,7 +64,6 @@ export default {
     const { resolveMappingFormula } = wwLib.wwFormula.useFormula();
 
     const gridApi = shallowRef(null);
-    const columnApi = shallowRef(null);
     const { value: selectedRows, setValue: setSelectedRows } =
       wwLib.wwVariable.useComponentVariable({
         uid: props.uid,
@@ -95,26 +91,8 @@ export default {
 
     const onGridReady = (params) => {
       gridApi.value = params.api;
-      columnApi.value = params.columnApi;
       trySelectInitialRows();
-      params.api.addEventListener('columnPinned', restorePinnedColumns);
-      params.api.addEventListener('columnMoved', restorePinnedColumns);
-      params.api.addEventListener('columnVisible', restorePinnedColumns);
-      params.api.addEventListener('columnEverythingChanged', restorePinnedColumns);
     };
-
-    function restorePinnedColumns() {
-      if (!columnApi.value) return;
-      const state = columnApi.value.getColumnState();
-      const newState = state.map(col => {
-        const original = props.content.columns.find(c => c.id === col.colId || c.field === col.colId);
-        if (original && original.pinned === 'left') {
-          return { ...col, pinned: 'left' };
-        }
-        return col;
-      });
-      columnApi.value.applyColumnState({ state: newState, applyOrder: true });
-    }
 
     // Seleciona as linhas iniciais com base em initialSelectedRowIds
     function selectInitialRows() {
@@ -259,9 +237,6 @@ export default {
       createElement,
       /* wwEditor:end */
       gridKey,
-      editorComponents: {
-        DateTimeCellEditor,
-      },
     };
   },
   computed: {
@@ -300,7 +275,6 @@ export default {
           width,
           flex,
           hide: !!col.hide,
-          ...(col.pinned === 'left' ? { lockPinned: true, lockPosition: true } : {}),
         };
         const cellClass = col.textAlign ? `ag-text-${col.textAlign}` : undefined;
         const headerClass = col.headerAlign ? `ag-header-align-${col.headerAlign}` : undefined;
@@ -409,19 +383,7 @@ export default {
               result.filter = 'agDateColumnFilter';
               result.cellDataType = 'dateString';
               if (col.editable) {
-                result.cellEditor = DateTimeCellEditor;
-                result.valueParser = params => {
-                  let v = params.newValue;
-                  if (typeof v === 'string' && v.includes('T')) {
-                    v = v.replace('T', ' ');
-                    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(v)) {
-                      v += ':00+00';
-                    } else if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(v)) {
-                      v += '+00';
-                    }
-                  }
-                  return v;
-                };
+                result.cellEditor = 'agDateStringCellEditor';
               }
             }
             // Garante filtro customizado de lista para campos do tipo List
@@ -451,7 +413,6 @@ export default {
           selectAll: this.content.selectAll || "all",
           enableClickSelection: this.content.enableClickSelection,
           isRowSelectable: (rowNode) => {
-            if (rowNode?.data && rowNode.data.isEnabled === false) return false;
             const cond = this.content.disableRowSelectionCondition;
             if (!cond) return true;
             let expr = cond.replace(/@([a-zA-Z0-9_çÇãÃáÁéÉíÍóÓúÚêÊôÔâÂàÀèÈìÌòÒùÙüÜñÑ]+)/g, (match, p1) => {
@@ -480,8 +441,6 @@ export default {
         return {
           mode: "singleRow",
           checkboxes: !this.content.disableCheckboxes,
-          isRowSelectable: rowNode =>
-            !(rowNode?.data && rowNode.data.isEnabled === false),
           enableClickSelection: this.content.enableClickSelection,
         };
       } else {
@@ -567,30 +526,6 @@ export default {
       });
     },
     onCellValueChanged(event) {
-      const colDef = event.column.getColDef ? event.column.getColDef() : {};
-      const tag = (colDef.TagControl || colDef.tagControl || colDef.tagcontrol || '').toUpperCase();
-      if (tag === 'DEADLINE' || colDef.cellDataType === 'dateString') {
-        const fieldKey = colDef.colId || colDef.field;
-        if (event.node && fieldKey) {
-          let v = event.newValue;
-          if (typeof v === 'string' && v.includes('T')) {
-            v = v.replace('T', ' ');
-            if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(v)) {
-              v += ':00+00';
-            } else if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(v)) {
-              v += '+00';
-            }
-          }
-          event.node.setDataValue(fieldKey, v);
-          if (this.gridApi) {
-            this.gridApi.refreshCells({
-              rowNodes: [event.node],
-              columns: [fieldKey],
-              force: true
-            });
-          }
-        }
-      }
       this.$emit("trigger-event", {
         name: "cellValueChanged",
         event: {
@@ -614,7 +549,6 @@ export default {
         )) ||
         (colDef && colDef.checkboxSelection);
       if (isSelectionCol) return;
-      if (event?.data && event.data.isEnabled === false) return;
       this.$emit("trigger-event", {
         name: "rowClicked",
         event: {
@@ -674,21 +608,6 @@ export default {
         index: 0,
         displayIndex: 0,
       };
-    },
-    // Determina se a coluna pode ser movida
-    isColumnMovable(params) {
-      if (params.column.getColId() === 'ag-Grid-SelectionColumn') return false;
-      if (params.column.getPinned() === 'left' || params.column.getPinned() === 'right') return false;
-      const colDef = params.column.getColDef();
-      const field = colDef.field;
-      const columnConfig = this.content.columns.find(col => col.field === field);
-      if (columnConfig && columnConfig.draggable === false) return false;
-      return this.content.movableColumns;
-    },
-    // Remove opções de pin/unpin do menu
-    getMainMenuItems(params) {
-      const defaultItems = params.defaultItems;
-      return defaultItems.filter(item => !item.toLowerCase().includes('pin'));
     },
     /* wwEditor:end */
   },
@@ -902,13 +821,5 @@ export default {
 
   .list-filter .clear-btn:hover {
     background: #ffe6e6;
-  }
-
-  /* Bloqueia interação com colunas fixas */
-  :deep(.ag-header-cell.ag-pinned-left),
-  :deep(.ag-header-cell.ag-pinned-right) {
-    pointer-events: none !important;
-    user-select: none !important;
-    cursor: default !important;
   }
 </style>
