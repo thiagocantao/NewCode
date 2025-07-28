@@ -13,7 +13,7 @@
         @sort-changed="onSortChanged" @row-clicked="onRowClicked" @first-data-rendered="onFirstDataRendered"
         @cell-clicked="onCellClicked"> 
       </ag-grid-vue> 
-    </div>
+    </div> 
 </template>
 
 <script>
@@ -1033,29 +1033,22 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             }
             // Handle date columns that are editable
             if (colCopy.cellDataType === 'dateString' && colCopy.editable) {
-              // Treat as plain string to preserve exact value
-              delete result.cellDataType;
-              result.cellEditor = DateTimeCellEditor;
-              // Format value for display when editing ends
-              result.valueFormatter = params => {
-                if (typeof params.value === 'string' && params.value) {
-                  try {
-                    const date = new Date(params.value);
-                    if (!isNaN(date.getTime())) {
-                      const pad = n => n.toString().padStart(2, '0');
-                      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
-                    }
-                  } catch (e) {
-                    return params.value;
+              result.cellDataType = 'dateString';
+              // Use the custom datetime editor for all date fields
+              result.cellEditor = 'agDateStringCellEditor';
+              // Convert value from the editor to keep the original formatting
+              result.valueParser = params => {
+                let v = params.newValue;
+                if (typeof v === 'string' && v.includes('T')) {
+                  v = v.replace('T', ' ');
+                  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(v)) {
+                    v += ':00+00';
+                  } else if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(v)) {
+                    v += '+00';
                   }
                 }
-                if (params.value instanceof Date && !isNaN(params.value.getTime())) {
-                  const pad = n => n.toString().padStart(2, '0');
-                  return `${params.value.getFullYear()}-${pad(params.value.getMonth() + 1)}-${pad(params.value.getDate())} ${pad(params.value.getHours())}:${pad(params.value.getMinutes())}:${pad(params.value.getSeconds())}`;
-                }
-                return params.value || '';
+                return v;
               };
-              delete result.valueParser;
             }
             // Add text alignment style for cells
             let baseCellStyle = undefined;
