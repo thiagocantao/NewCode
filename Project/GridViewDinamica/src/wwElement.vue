@@ -1412,6 +1412,9 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
         }
       }
       event.node.setDataValue(fieldKey, v);
+      if (event.data) {
+        event.data[fieldKey] = v;
+      }
       
       if (this.gridApi) {
         this.gridApi.refreshCells({
