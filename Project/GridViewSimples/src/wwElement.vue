@@ -5,7 +5,7 @@
       :selection-column-def="{ pinned: true }" :theme="theme" :getRowId="getRowId" :pagination="content.pagination"
       :paginationPageSize="content.paginationPageSize || 10" :paginationPageSizeSelector="false"
       :suppressMovableColumns="!content.movableColumns" :columnHoverHighlight="content.columnHoverHighlight"
-      :getMainMenuItems="getMainMenuItems" :isColumnMovable="isColumnMovable"
+      :getMainMenuItems="getMainMenuItems" :isColumnMovable="isColumnMovable" :components="editorComponents"
       :locale-text="localeText" @grid-ready="onGridReady" @row-selected="onRowSelected"
       @selection-changed="onSelectionChanged" @cell-value-changed="onCellValueChanged" @filter-changed="onFilterChanged"
       @sort-changed="onSortChanged" @row-clicked="onRowClicked">
@@ -32,6 +32,7 @@ import ActionCellRenderer from "./components/ActionCellRenderer.vue";
 import ImageCellRenderer from "./components/ImageCellRenderer.vue";
 import WewebCellRenderer from "./components/WewebCellRenderer.vue";
 import ListFilterRenderer from "./components/ListFilterRenderer.js";
+import DateTimeCellEditor from "./components/DateTimeCellEditor.js";
 import './components/list-filter.css';
 
 console.log("AG Grid version:", AG_GRID_LOCALE_FR);
@@ -46,6 +47,7 @@ export default {
     ActionCellRenderer,
     ImageCellRenderer,
     WewebCellRenderer,
+    DateTimeCellEditor,
   },
   props: {
     content: {
@@ -257,6 +259,9 @@ export default {
       createElement,
       /* wwEditor:end */
       gridKey,
+      editorComponents: {
+        DateTimeCellEditor,
+      },
     };
   },
   computed: {
@@ -404,7 +409,19 @@ export default {
               result.filter = 'agDateColumnFilter';
               result.cellDataType = 'dateString';
               if (col.editable) {
-                result.cellEditor = 'agDateStringCellEditor';
+                result.cellEditor = DateTimeCellEditor;
+                result.valueParser = params => {
+                  let v = params.newValue;
+                  if (typeof v === 'string' && v.includes('T')) {
+                    v = v.replace('T', ' ');
+                    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(v)) {
+                      v += ':00+00';
+                    } else if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(v)) {
+                      v += '+00';
+                    }
+                  }
+                  return v;
+                };
               }
             }
             // Garante filtro customizado de lista para campos do tipo List
@@ -550,6 +567,30 @@ export default {
       });
     },
     onCellValueChanged(event) {
+      const colDef = event.column.getColDef ? event.column.getColDef() : {};
+      const tag = (colDef.TagControl || colDef.tagControl || colDef.tagcontrol || '').toUpperCase();
+      if (tag === 'DEADLINE' || colDef.cellDataType === 'dateString') {
+        const fieldKey = colDef.colId || colDef.field;
+        if (event.node && fieldKey) {
+          let v = event.newValue;
+          if (typeof v === 'string' && v.includes('T')) {
+            v = v.replace('T', ' ');
+            if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(v)) {
+              v += ':00+00';
+            } else if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(v)) {
+              v += '+00';
+            }
+          }
+          event.node.setDataValue(fieldKey, v);
+          if (this.gridApi) {
+            this.gridApi.refreshCells({
+              rowNodes: [event.node],
+              columns: [fieldKey],
+              force: true
+            });
+          }
+        }
+      }
       this.$emit("trigger-event", {
         name: "cellValueChanged",
         event: {
