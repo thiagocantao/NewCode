@@ -1049,6 +1049,56 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                 }
                 return v;
               };
+              if (!result.filter) {
+                result.filter = 'agDateColumnFilter';
+              }
+              if (!result.valueFormatter) {
+                result.valueFormatter = params => {
+                  const val = params.value;
+                  if (!val) return '';
+                  if (typeof val === 'string') {
+                    const m = val.match(/^(\d{4}-\d{2}-\d{2})/);
+                    if (m) return m[1];
+                    const d = new Date(val);
+                    if (!isNaN(d.getTime())) {
+                      const pad = n => n.toString().padStart(2, '0');
+                      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+                    }
+                    return val;
+                  }
+                  if (val instanceof Date && !isNaN(val.getTime())) {
+                    const pad = n => n.toString().padStart(2, '0');
+                    return `${val.getFullYear()}-${pad(val.getMonth() + 1)}-${pad(val.getDate())}`;
+                  }
+                  return val;
+                };
+              }
+            } else if (colCopy.cellDataType === 'dateString') {
+              result.cellDataType = 'dateString';
+              if (!result.filter) {
+                result.filter = 'agDateColumnFilter';
+              }
+              if (!result.valueFormatter) {
+                result.valueFormatter = params => {
+                  const val = params.value;
+                  if (!val) return '';
+                  if (typeof val === 'string') {
+                    const m = val.match(/^(\d{4}-\d{2}-\d{2})/);
+                    if (m) return m[1];
+                    const d = new Date(val);
+                    if (!isNaN(d.getTime())) {
+                      const pad = n => n.toString().padStart(2, '0');
+                      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+                    }
+                    return val;
+                  }
+                  if (val instanceof Date && !isNaN(val.getTime())) {
+                    const pad = n => n.toString().padStart(2, '0');
+                    return `${val.getFullYear()}-${pad(val.getMonth() + 1)}-${pad(val.getDate())}`;
+                  }
+                  return val;
+                };
+              }
             }
             // Add text alignment style for cells
             let baseCellStyle = undefined;
