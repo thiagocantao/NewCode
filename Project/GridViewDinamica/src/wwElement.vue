@@ -1036,6 +1036,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               // treat the value purely as a string to avoid timezone shifts
               delete result.cellDataType;
               result.cellEditor = 'agDateStringCellEditor';
+              
               result.valueParser = params => params.newValue;
               if (!result.filter) {
                 result.filter = 'agDateColumnFilter';
