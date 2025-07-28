@@ -1342,6 +1342,11 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
       this.gridApi.deselectAll();
     }
   },
+  resetFilters() {
+    if (this.gridApi) {
+      this.gridApi.setFilterModel(null);
+    }
+  },
   getRowId(params) {
   return this.resolveMappingFormula(this.content.idFormula, params.data);
   },

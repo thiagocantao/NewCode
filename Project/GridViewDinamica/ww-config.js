@@ -147,6 +147,11 @@ export default {
     label: { en: 'Deselect All Rows' },
     args: []
   },
+  {
+    action: 'resetFilters',
+    label: { en: 'Reset Filters' },
+    args: []
+  },
   ],
   properties: {
   headerTitle: {
