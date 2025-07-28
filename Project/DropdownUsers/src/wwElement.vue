@@ -67,6 +67,20 @@ export default {
             );
         }
     },
+    mounted() {
+        if (!this.selectedUserId && this.content.initialSelectedId) {
+            if (this._setSelectedUserId) this._setSelectedUserId(this.content.initialSelectedId);
+            this.selectedUserId = this.content.initialSelectedId;
+        }
+    },
+    watch: {
+        'content.initialSelectedId'(newVal) {
+            if (!this.selectedUserId) {
+                if (this._setSelectedUserId) this._setSelectedUserId(newVal);
+                this.selectedUserId = newVal;
+            }
+        }
+    },
     methods: {
         onUserSelected(userId) {
             if (this._setSelectedUserId) this._setSelectedUserId(userId);
