@@ -152,6 +152,17 @@ export default {
     label: { en: 'Reset Filters' },
     args: []
   },
+  {
+    action: 'setFilters',
+    label: { en: 'Set Filters' },
+    args: [
+      {
+        name: 'filters',
+        type: 'object',
+        label: { en: 'Filters JSON' }
+      }
+    ]
+  },
   ],
   properties: {
   headerTitle: {
