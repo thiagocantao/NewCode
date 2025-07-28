@@ -1033,22 +1033,62 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             }
             // Handle date columns that are editable
             if (colCopy.cellDataType === 'dateString' && colCopy.editable) {
-              result.cellDataType = 'dateString';
-              // Use the custom datetime editor for all date fields
+              // treat the value purely as a string to avoid timezone shifts
+              delete result.cellDataType;
               result.cellEditor = 'agDateStringCellEditor';
-              // Convert value from the editor to keep the original formatting
-              result.valueParser = params => {
-                let v = params.newValue;
-                if (typeof v === 'string' && v.includes('T')) {
-                  v = v.replace('T', ' ');
-                  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(v)) {
-                    v += ':00+00';
-                  } else if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(v)) {
-                    v += '+00';
-                  }
-                }
-                return v;
-              };
+              result.valueParser = params => params.newValue;
+              if (!result.filter) {
+                result.filter = 'agDateColumnFilter';
+              }
+              if (!result.filterParams) {
+                result.filterParams = {};
+              }
+              if (!result.filterParams.comparator) {
+                result.filterParams.comparator = (filterLocalDateAtMidnight, cellValue) => {
+                  if (!cellValue) return 0;
+                  const m = String(cellValue).match(/^(\d{4})-(\d{2})-(\d{2})/);
+                  if (!m) return 0;
+                  const cellDate = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+                  if (cellDate < filterLocalDateAtMidnight) return -1;
+                  if (cellDate > filterLocalDateAtMidnight) return 1;
+                  return 0;
+                };
+              }
+              if (!result.valueFormatter) {
+                result.valueFormatter = params => {
+                  const v = params.value;
+                  if (!v) return '';
+                  const m = String(v).match(/^(\d{4}-\d{2}-\d{2})/);
+                  return m ? m[1] : v;
+                };
+              }
+            } else if (colCopy.cellDataType === 'dateString') {
+              delete result.cellDataType;
+              if (!result.filter) {
+                result.filter = 'agDateColumnFilter';
+              }
+              if (!result.filterParams) {
+                result.filterParams = {};
+              }
+              if (!result.filterParams.comparator) {
+                result.filterParams.comparator = (filterLocalDateAtMidnight, cellValue) => {
+                  if (!cellValue) return 0;
+                  const m = String(cellValue).match(/^(\d{4})-(\d{2})-(\d{2})/);
+                  if (!m) return 0;
+                  const cellDate = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+                  if (cellDate < filterLocalDateAtMidnight) return -1;
+                  if (cellDate > filterLocalDateAtMidnight) return 1;
+                  return 0;
+                };
+              }
+              if (!result.valueFormatter) {
+                result.valueFormatter = params => {
+                  const v = params.value;
+                  if (!v) return '';
+                  const m = String(v).match(/^(\d{4}-\d{2}-\d{2})/);
+                  return m ? m[1] : v;
+                };
+              }
             }
             // Add text alignment style for cells
             let baseCellStyle = undefined;
