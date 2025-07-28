@@ -1033,22 +1033,29 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             }
             // Handle date columns that are editable
             if (colCopy.cellDataType === 'dateString' && colCopy.editable) {
-              result.cellDataType = 'dateString';
-              // Use the custom datetime editor for all date fields
+              // Treat as plain string to preserve exact value
+              delete result.cellDataType;
               result.cellEditor = DateTimeCellEditor;
-              // Convert value from the editor to keep the original formatting
-              result.valueParser = params => {
-                let v = params.newValue;
-                if (typeof v === 'string' && v.includes('T')) {
-                  v = v.replace('T', ' ');
-                  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(v)) {
-                    v += ':00+00';
-                  } else if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(v)) {
-                    v += '+00';
+              // Format value for display when editing ends
+              result.valueFormatter = params => {
+                if (typeof params.value === 'string' && params.value) {
+                  try {
+                    const date = new Date(params.value);
+                    if (!isNaN(date.getTime())) {
+                      const pad = n => n.toString().padStart(2, '0');
+                      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+                    }
+                  } catch (e) {
+                    return params.value;
                   }
                 }
-                return v;
+                if (params.value instanceof Date && !isNaN(params.value.getTime())) {
+                  const pad = n => n.toString().padStart(2, '0');
+                  return `${params.value.getFullYear()}-${pad(params.value.getMonth() + 1)}-${pad(params.value.getDate())} ${pad(params.value.getHours())}:${pad(params.value.getMinutes())}:${pad(params.value.getSeconds())}`;
+                }
+                return params.value || '';
               };
+              delete result.valueParser;
             }
             // Add text alignment style for cells
             let baseCellStyle = undefined;
@@ -1104,24 +1111,32 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             }
             if (tagControl === 'DEADLINE') {
               result.filter = 'agDateColumnFilter';
-              result.cellDataType = 'dateString';
+              // Remove default date configuration applied above
+              delete result.cellDataType;
               if (colCopy.editable) {
                 // use the class directly to avoid lookup issues
                 result.cellEditor = DateTimeCellEditor;
-                
-                // Convert value from the editor to keep the original formatting
-                result.valueParser = params => {
-                  let v = params.newValue;
-                  if (typeof v === 'string' && v.includes('T')) {
-                    v = v.replace('T', ' ');
-                    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(v)) {
-                      v += ':00+00';
-                    } else if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(v)) {
-                      v += '+00';
+
+                // Format value for display when editing ends
+                result.valueFormatter = params => {
+                  if (typeof params.value === 'string' && params.value) {
+                    try {
+                      const date = new Date(params.value);
+                      if (!isNaN(date.getTime())) {
+                        const pad = n => n.toString().padStart(2, '0');
+                        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+                      }
+                    } catch (e) {
+                      return params.value;
                     }
                   }
-                  return v;
+                  if (params.value instanceof Date && !isNaN(params.value.getTime())) {
+                    const pad = n => n.toString().padStart(2, '0');
+                    return `${params.value.getFullYear()}-${pad(params.value.getMonth() + 1)}-${pad(params.value.getDate())} ${pad(params.value.getHours())}:${pad(params.value.getMinutes())}:${pad(params.value.getSeconds())}`;
+                  }
+                  return params.value || '';
                 };
+                delete result.valueParser;
               }
               result.cellRenderer = params => {
                 // Função utilitária para calcular diff e cor (idêntica ao FieldComponent.vue)
@@ -1400,22 +1415,10 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
   if (tag === 'DEADLINE' || colDef.cellDataType === 'dateString') {
     const fieldKey = colDef.colId || colDef.field;
     if (event.node && fieldKey) {
-      // Explicitly update the underlying data in case the grid does not
-      // automatically set the value from the editor
-      let v = event.newValue;
-      if (typeof v === 'string' && v.includes('T')) {
-        v = v.replace('T', ' ');
-        if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(v)) {
-          v += ':00+00';
-        } else if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(v)) {
-          v += '+00';
-        }
-      }
+      // Accept the value returned by the editor without conversion
+      const v = event.newValue;
       event.node.setDataValue(fieldKey, v);
-      if (event.data) {
-        event.data[fieldKey] = v;
-      }
-      
+
       if (this.gridApi) {
         this.gridApi.refreshCells({
           rowNodes: [event.node],
