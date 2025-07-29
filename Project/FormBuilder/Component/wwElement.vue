@@ -54,7 +54,7 @@ v-for="field in filteredAvailableFields"
 <!-- Form Builder Section -->
 <div class="form-builder">
 <div class="cabecalhoFormBuilder">
-<div class="inputCabecalhoDiv">
+<div class="inputCabecalhoDiv" v-show="useSections">
 <input type="text" :value="translateText('Insert text')" class="inputCabecalho"/>
 </div>
 <div class="status-header-display">
@@ -75,8 +75,8 @@ v-for="field in filteredAvailableFields"
   </div>
 </div>
 <div style="display: flex; width:100%; justify-content:end; align-items:end; height:50px; padding:12px">
-<button 
-v-if="!isEditing" 
+<button
+v-if="!isEditing && useSections"
 class="add-button"
 @click="showAddSectionModal"
 >
@@ -86,13 +86,14 @@ class="add-button"
 
 <div class="form-sections-container scrollable" ref="formSectionsContainer">
 <FormSection
-v-for="section in orderedSections"
-:key="section.id"
-:section="section"
-:all-fields="allAvailableFields"
-:is-editing="isEditing"
-@update-section="updateFormState"
-@edit-section="editSection"
+    v-for="section in orderedSections"
+    :key="section.id"
+    :section="section"
+    :all-fields="allAvailableFields"
+    :is-editing="isEditing"
+    :use-sections="useSections"
+    @update-section="updateFormState"
+    @edit-section="editSection"
 @edit-field="editFormField"
 @remove-field="removeFormField"
 @select-field="selectFieldForProperties"
@@ -138,11 +139,15 @@ uid: {
 type: String,
 required: true
 },
-content: {
-type: Object,
-required: true
-},
-/* wwEditor:start */
+    content: {
+        type: Object,
+        required: true
+    },
+    useSections: {
+        type: Boolean,
+        default: true
+    },
+    /* wwEditor:start */
 wwEditorState: { type: Object, required: true },
 /* wwEditor:end */
 },
@@ -378,6 +383,7 @@ console.error('Error initializing Sortable in field definition container:', erro
 }
 // Initialize sortable for form sections
 const initSectionsSortable = () => {
+if (!props.useSections) return;
 if (!formSectionsContainer.value) {
 console.warn('Form sections container not found');
 return;
@@ -631,9 +637,24 @@ if (typeof window !== 'undefined') {
 window.FormFieldsJsonSave = data;
 }
 
-// Convert sections array to the format expected by the component
-formSections.value = data.sections || [];
-setFormData(data);
+    // Convert sections array based on useSections prop
+    if (props.useSections) {
+        formSections.value = data.sections || [];
+    } else {
+        const combinedFields = [];
+        (data.sections || []).forEach(sec => {
+            if (Array.isArray(sec.fields)) combinedFields.push(...sec.fields);
+        });
+        formSections.value = [{
+            id: (data.sections && data.sections[0] && data.sections[0].id) || 'single-section',
+            title: '',
+            position: 0,
+            deleted: false,
+            fields: combinedFields
+        }];
+        data.sections = formSections.value;
+    }
+    setFormData(data);
 } catch (error) {
 console.error('Error loading form data:', error);
 }
@@ -693,6 +714,7 @@ event: { value: availableFields.value }
 
 // Section operations
 const showAddSectionModal = () => {
+  if (!props.useSections) return;
   // Create a new section with default title "New Section"
   const newSection = {
     id: Date.now() + "-NOVASECAOINCLUIDA",
@@ -1130,17 +1152,19 @@ formSectionsContainer.value.isConnected;
 if (availableFieldsReady && formSectionsReady) {
 // Initialize sortable instances with proper error handling
 setTimeout(() => {
-try {
-initSortable();
-} catch (error) {
-console.error('Error initializing field sortable:', error);
-}
+        try {
+            initSortable();
+        } catch (error) {
+            console.error('Error initializing field sortable:', error);
+        }
 
-try {
-initSectionsSortable();
-} catch (error) {
-console.error('Error initializing sections sortable:', error);
-}
+        if (props.useSections) {
+            try {
+                initSectionsSortable();
+            } catch (error) {
+                console.error('Error initializing sections sortable:', error);
+            }
+        }
 }, 100);
 } else {
 // Try again with exponential backoff
@@ -1168,6 +1192,10 @@ if (newValue) {
 loadFormData();
 }
 }, { immediate: true, deep: true });
+
+watch(() => props.useSections, () => {
+  loadFormData();
+});
 
 const onRemoveField = ({ sectionId, field }) => {
   removeFormField({ sectionId, field });
@@ -1219,10 +1247,11 @@ selectFieldForProperties,
 updateFieldProperties,
 onRemoveField,
 handleRemoveSection,
-updateFieldInUse,
-orderedSections,
-translateText,
-showTranslatedMessage
+  updateFieldInUse,
+  orderedSections,
+  useSections,
+  translateText,
+  showTranslatedMessage
 };
 }
 };
