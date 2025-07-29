@@ -39,6 +39,7 @@ This component provides a complete form building system that combines available 
 ***Properties:***
 - availableFieldsTitle: string - Custom heading for the available fields container
 - formBuilderTitle: string - Custom heading for the form builder container
+- cabecalhoHtml: string - HTML content displayed inside the form header
 - fieldsJson: string - JSON string containing field definitions
 - defaultFields: array - Default fields to show when no JSON is provided
 - formJson: string - JSON string containing form definition with sections

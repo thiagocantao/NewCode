@@ -53,8 +53,7 @@ v-for="field in filteredAvailableFields"
 
 <!-- Form Builder Section -->
 <div class="form-builder">
-<div v-if="content.showCabecalhoFormBuilder" class="cabecalhoFormBuilder">
-
+<div v-if="content.showCabecalhoFormBuilder" class="cabecalhoFormBuilder" v-html="content.cabecalhoHtml">
 
 </div>
 <div style="display: flex; width:100%; justify-content:end; align-items:end; height:50px; padding:12px">
