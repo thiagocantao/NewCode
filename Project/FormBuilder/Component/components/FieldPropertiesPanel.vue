@@ -277,7 +277,7 @@ export default {
     background-color: #fff;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     font-family: Roboto-Regular, "Open Sans", Arial, sans-serif !important;
-    height: calc(100vh - 150px);
+    height: calc(100vh - 155px);
   }
 
   .panel-header {
