@@ -54,25 +54,8 @@ v-for="field in filteredAvailableFields"
 <!-- Form Builder Section -->
 <div class="form-builder">
 <div v-if="content.showCabecalhoFormBuilder" class="cabecalhoFormBuilder">
-<div class="inputCabecalhoDiv">
-<input type="text" :value="translateText('Insert text')" class="inputCabecalho"/>
-</div>
-<div class="status-header-display">
-    <div class="status-tags">
-      <span class="tag">{{ translateText('Select priority') }}</span>
-      <span class="tag">{{ translateText('Category') }}</span>
-      <span class="tag">{{ translateText('Subcategory') }}</span>
-      <span class="tag">{{ translateText('Third-level category') }}</span>
-    </div>
 
-    <div class="status-user">
-      <span class="user-info">
-        <span class="user-icon"><i class="material-symbols-outlined">person</i></span>
-        <span class="user-name">{{ translateText('Unassigned') }}</span>
-      </span>
-      <span class="status-label">{{ translateText('New') }}</span>
-    </div>
-  </div>
+
 </div>
 <div style="display: flex; width:100%; justify-content:end; align-items:end; height:50px; padding:12px">
 <button 
