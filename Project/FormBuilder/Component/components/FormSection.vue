@@ -6,7 +6,7 @@ class="form-section"
 :data-section-id="section.id"
 ref="sectionRef"
 >
-<div class="section-header" v-if="useSections">
+<div class="section-header">
 <span class="drag-handle" ref="dragHandle">
 <i class="material-symbols-outlined">drag_indicator</i>
 </span>
@@ -26,18 +26,18 @@ contenteditable="true"
 {{ sectionTitle }}
 </h4>
 
-<div class="section-actions" v-if="useSections">
+<div class="section-actions">
 <button class="action-button" @click="removeSection">
 <i class="material-symbols-outlined">delete</i>
 </button>
 </div>
 </div>
-<div
-class="sortable-container grid-layout"
+<div 
+class="sortable-container grid-layout" 
 :data-section-id="section.id"
 :id="`sortable-${section.id}`"
 ref="sortableContainer"
-v-show="isExpanded || !useSections"
+v-show="isExpanded"
 >
 <DraggableField
 v-for="field in sectionFields"
@@ -68,22 +68,18 @@ components: {
 DraggableField
 },
 props: {
-    section: {
-        type: Object,
-        required: true
-    },
+section: {
+type: Object,
+required: true
+},
 allFields: {
 type: Array,
 default: () => []
 },
-    isEditing: {
-        type: Boolean,
-        default: false
-    },
-    useSections: {
-        type: Boolean,
-        default: true
-    }
+isEditing: {
+type: Boolean,
+default: false
+}
 },
 emits: ['update-section', 'edit-section', 'edit-field', 'remove-field', 'select-field', 'remove-section', 'update-field-in-use'],
 setup(props, { emit }) {
@@ -220,9 +216,7 @@ setup(props, { emit }) {
     };
 
     const removeSection = () => {
-      if (props.useSections) {
-        emit('remove-section', props.section);
-      }
+      emit('remove-section', props.section);
     };
 
     const selectField = (field) => {
@@ -412,48 +406,46 @@ setup(props, { emit }) {
         initSortable();
       });
 
-      if (props.useSections) {
-        // Add drag and drop event listeners
-        const sectionElement = document.querySelector(`[data-section-id="${props.section.id}"]`);
-        if (sectionElement) {
-          sectionElement.addEventListener('dragstart', (event) => {
-            event.dataTransfer.effectAllowed = 'move';
-            event.dataTransfer.setData('application/json', JSON.stringify({
-              sectionId: props.section.id,
-              section: props.section
-            }));
-          });
+      // Add drag and drop event listeners
+      const sectionElement = document.querySelector(`[data-section-id="${props.section.id}"]`);
+      if (sectionElement) {
+        sectionElement.addEventListener('dragstart', (event) => {
+          event.dataTransfer.effectAllowed = 'move';
+          event.dataTransfer.setData('application/json', JSON.stringify({
+            sectionId: props.section.id,
+            section: props.section
+          }));
+        });
 
-          sectionElement.addEventListener('dragend', () => {
-            sectionElement.draggable = false;
-          });
-        }
+        sectionElement.addEventListener('dragend', () => {
+          sectionElement.draggable = false;
+        });
+      }
 
-        if (sectionRef.value && dragHandle.value) {
-          const sortable = new Sortable(sectionRef.value, {
-            handle: dragHandle.value,
-            animation: 150,
-            ghostClass: 'sortable-ghost',
-            dragClass: 'sortable-drag',
-            draggable: '.section-header',
-            filter: '*',
-            onStart: (evt) => {
-              // Só permite o arrasto se o clique foi no dragHandle
-              if (!evt.target.closest('.drag-handle')) {
-                evt.preventDefault();
-                return false;
-              }
-            },
-            onEnd: (evt) => {
-              if (evt.oldIndex !== evt.newIndex) {
-                emit('reorder', {
-                  oldIndex: evt.oldIndex,
-                  newIndex: evt.newIndex
-                })
-              }
+      if (sectionRef.value && dragHandle.value) {
+        const sortable = new Sortable(sectionRef.value, {
+          handle: dragHandle.value,
+          animation: 150,
+          ghostClass: 'sortable-ghost',
+          dragClass: 'sortable-drag',
+          draggable: '.section-header',
+          filter: '*',
+          onStart: (evt) => {
+            // Só permite o arrasto se o clique foi no dragHandle
+            if (!evt.target.closest('.drag-handle')) {
+              evt.preventDefault();
+              return false;
             }
-          })
-        }
+          },
+          onEnd: (evt) => {
+            if (evt.oldIndex !== evt.newIndex) {
+              emit('reorder', {
+                oldIndex: evt.oldIndex,
+                newIndex: evt.newIndex
+              })
+            }
+          }
+        })
       }
     });
 
