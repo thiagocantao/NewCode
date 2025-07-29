@@ -610,7 +610,21 @@ window.FormFieldsJsonSave = data;
 }
 
 // Convert sections array to the format expected by the component
-formSections.value = data.sections || [];
+formSections.value = Array.isArray(data.sections) ? [...data.sections] : [];
+
+// Ensure at least one empty section exists
+if (formSections.value.length === 0) {
+  formSections.value.push({
+    id: `section-${Date.now()}`,
+    title: { [currentLang.value]: translateText('New section') },
+    position: 1,
+    deleted: false,
+    fields: []
+  });
+}
+
+// Keep data.sections in sync
+data.sections = [...formSections.value];
 setFormData(data);
 } catch (error) {
 console.error('Error loading form data:', error);
