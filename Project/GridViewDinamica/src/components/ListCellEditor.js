@@ -4,6 +4,7 @@ export default class ListCellEditor {
     this.eGui = document.createElement('div');
     this.eGui.className = 'list-editor';
     this.eGui.innerHTML = `
+      <span class="editor-close">&times;</span>
       <div class="field-search">
         <input type="text" class="search-input" placeholder="Search..." />
         <span class="search-icon"><i class="material-symbols-outlined-search">search</i></span>
@@ -12,6 +13,7 @@ export default class ListCellEditor {
     `;
     this.searchInput = this.eGui.querySelector('.search-input');
     this.listEl = this.eGui.querySelector('.filter-list');
+    this.closeBtn = this.eGui.querySelector('.editor-close');
 
     const tag =
       (params.colDef.TagControl ||
@@ -51,6 +53,16 @@ export default class ListCellEditor {
     this.searchInput.addEventListener('input', e => {
       this.filterOptions(e.target.value);
     });
+
+    if (this.closeBtn) {
+      this.closeBtn.addEventListener('click', () => {
+        if (this.params.api && this.params.api.stopEditing) {
+          this.params.api.stopEditing(true);
+        } else if (this.params.stopEditing) {
+          this.params.stopEditing(true);
+        }
+      });
+    }
 
     this.renderOptions();
   }
