@@ -27,24 +27,32 @@ function getRoundedSpanColor(value, colorArray, fieldName) {
 function dateFormatter(dateValue, lang) {
   try {
     if (!dateValue) return '';
+
+    let dateStr = dateValue;
+
+    // Verifica se há hora na string (padrão ISO ou outro)
+    const hasTime = /[T\s]\d{2}:\d{2}/.test(dateValue);
+
+    // Se não tem hora, assume meia-noite UTC para evitar erro de fuso
+    if (!hasTime) {
+      dateStr += 'T00:00:00Z';
+    }
+
+    const date = new Date(dateStr);
     const dateOptions = {
       day: '2-digit',
       month: '2-digit',
-      year: 'numeric'
+      year: 'numeric',
+      timeZone: 'UTC'
     };
-    const timeOptions = {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    };
-    const datePart = new Intl.DateTimeFormat(lang || 'en', dateOptions).format(new Date(dateValue));
-    const timePart = new Intl.DateTimeFormat(lang || 'en', timeOptions).format(new Date(dateValue));
-    return `${datePart} ${timePart}`;
+
+    return new Intl.DateTimeFormat(lang || 'en', dateOptions).format(date);
   } catch (error) {
     console.error('Error formatting date:', error);
     return dateValue;
   }
 }
+
 
 export default {
   name: "FormatterCellRenderer",
