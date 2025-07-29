@@ -1447,9 +1447,10 @@ vertical-align: middle;
 width: 375px;
 }
 
-.inputCabecalhoDiv {
-width: 100%;
-height: 32px;
+
+:deep(.inputCabecalhoDiv) {
+    width: 100%;
+    height: 32px;
 }
 
 .cabecalhoFormBuilder
@@ -1462,9 +1463,8 @@ height: 32px;
     border-bottom: 1px solid rgb(218, 220, 222);  
 }
 
-.inputCabecalho
-{
-        font-size: 1.25rem;
+:deep(.inputCabecalho) {
+    font-size: 1.25rem;
     font-family: Roboto-Light, "Open Sans", Arial, sans-serif;
     border-radius: 4px;
     height: 30px;
@@ -1474,24 +1474,25 @@ height: 32px;
     border: 1px solid transparent;
     padding: 4px 8px;
     background: transparent;
-    width:100%;
+    width: 100%;
     color: rgb(79, 79, 79);
     padding-block: 3px;
     padding-inline: 4px;
 }
-.inputCabecalho:hover{
-    background-color:#dedede;
+
+:deep(.inputCabecalho:hover) {
+    background-color: #dedede;
 }
 
-.inputCabecalho:focus{
-    background-color:transparent;
+:deep(.inputCabecalho:focus) {
+    background-color: transparent;
     border: 1px solid rgb(79, 79, 79);
     outline: none;
 }
 
-.elementsformBuilderTop
-{
-        width: 100%;
+
+:deep(.elementsformBuilderTop) {
+    width: 100%;
     display: flex;
     -webkit-box-align: center;
     align-items: center;
@@ -1501,8 +1502,9 @@ height: 32px;
     column-gap: 24px;
 }
 
-.css-fvhee8 .header-footer-div{
-        width: 50%;
+
+:deep(.css-fvhee8 .header-footer-div) {
+    width: 50%;
     gap: 8px;
     display: flex;
     -webkit-box-align: center;
@@ -1512,12 +1514,11 @@ height: 32px;
     overflow: hidden;
 }
 
-.css-fvhee8 .header-footer-div > div.template-header
-{
-    max-width:23%;
+:deep(.css-fvhee8 .header-footer-div > div.template-header) {
+    max-width: 23%;
 }
 
-.status-header-display {
+:deep(.status-header-display) {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1527,12 +1528,12 @@ height: 32px;
   font-size: 14px;
 }
 
-.status-tags {
+:deep(.status-tags) {
   display: flex;
   gap: 8px;
 }
 
-.tag {
+:deep(.tag) {
   border: 1px solid #c0c0c0;
   border-radius: 999px;
   padding: 4px 12px;
@@ -1542,13 +1543,13 @@ height: 32px;
   font-size: 13px;
 }
 
-.status-user {
+:deep(.status-user) {
   display: flex;
   align-items: center;
   gap: 16px;
 }
 
-.user-info {
+:deep(.user-info) {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1556,7 +1557,7 @@ height: 32px;
   font-size: 14px;
 }
 
-.user-icon {
+:deep(.user-icon) {
   width: 24px;
   height: 24px;
   display: inline-flex;
@@ -1568,7 +1569,7 @@ height: 32px;
   font-size: 14px;
 }
 
-.status-label {
+:deep(.status-label) {
   background-color: #5c74a4;
   color: #fff;
   padding: 4px 12px;
