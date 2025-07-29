@@ -54,25 +54,7 @@ v-for="field in filteredAvailableFields"
 <!-- Form Builder Section -->
 <div class="form-builder">
 <div class="cabecalhoFormBuilder">
-<div class="inputCabecalhoDiv">
-<input type="text" :value="translateText('Insert text')" class="inputCabecalho"/>
-</div>
-<div class="status-header-display">
-    <div class="status-tags">
-      <span class="tag">{{ translateText('Select priority') }}</span>
-      <span class="tag">{{ translateText('Category') }}</span>
-      <span class="tag">{{ translateText('Subcategory') }}</span>
-      <span class="tag">{{ translateText('Third-level category') }}</span>
-    </div>
-
-    <div class="status-user">
-      <span class="user-info">
-        <span class="user-icon"><i class="material-symbols-outlined">person</i></span>
-        <span class="user-name">{{ translateText('Unassigned') }}</span>
-      </span>
-      <span class="status-label">{{ translateText('New') }}</span>
-    </div>
-  </div>
+  <wwElement v-if="content.headerContainerId" v-bind="content.headerContainerId"></wwElement>
 </div>
 <div style="display: flex; width:100%; justify-content:end; align-items:end; height:50px; padding:12px">
 <button 
@@ -215,6 +197,10 @@ const isNewSection = ref(false);
 const searchQuery = ref('');
 const selectedFieldForProperties = ref(null);
 const forceUpdate = ref(0);
+
+/* wwEditor:start */
+const { createElement } = wwLib.useCreateElement();
+/* wwEditor:end */
 
 // Track used field IDs to disable them in the available fields list
 const usedFieldIds = computed(() => {
@@ -1110,6 +1096,14 @@ const showTranslatedMessage = () => {
 // Lifecycle hooks
 onMounted(() => {
 loadData();
+
+/* wwEditor:start */
+if (!props.content.headerContainerId) {
+  createElement('ww-flexbox', { _state: { name: 'Form Header' } })
+    .then(id => emit('update:content:effect', { headerContainerId: id }))
+    .catch(err => console.error('Failed to create header container', err));
+}
+/* wwEditor:end */
 
 // Use a more reliable approach with multiple attempts and better error handling
 const attemptInitialization = (attempts = 0, maxAttempts = 5) => {
