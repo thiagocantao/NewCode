@@ -38,6 +38,22 @@ export default {
     }
     /* wwEditor:end */
     },
+    showCabecalhoFormBuilder: {
+    label: { en: 'Show Form Header' },
+    type: 'OnOff',
+    section: 'settings',
+    bindable: true,
+    defaultValue: true,
+    /* wwEditor:start */
+    bindingValidation: {
+    type: 'boolean',
+    tooltip: 'Show or hide the form builder header section'
+    },
+    propertyHelp: {
+    tooltip: 'Toggle visibility of the header area above the form builder'
+    }
+    /* wwEditor:end */
+    },
     fieldsJson: {
     label: { en: 'Fields JSON' },
     type: 'Text',

@@ -53,7 +53,7 @@ v-for="field in filteredAvailableFields"
 
 <!-- Form Builder Section -->
 <div class="form-builder">
-<div class="cabecalhoFormBuilder">
+<div v-if="content.showCabecalhoFormBuilder" class="cabecalhoFormBuilder">
 <div class="inputCabecalhoDiv">
 <input type="text" :value="translateText('Insert text')" class="inputCabecalho"/>
 </div>
