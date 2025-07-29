@@ -608,13 +608,40 @@ sections: []
 };
 }
 
+// Ensure there is at least one usable section
+let sections = Array.isArray(data.sections) ? data.sections.filter(s => s) : [];
+const isEmptySection = section => {
+  if (!section) return true;
+  const hasFields = Array.isArray(section.fields) && section.fields.length > 0;
+  const hasId = section.id || section.ID;
+  let hasTitle = false;
+  if (section.title) {
+    if (typeof section.title === 'object') {
+      hasTitle = Object.values(section.title).some(t => t);
+    } else {
+      hasTitle = Boolean(section.title);
+    }
+  }
+  return !(hasFields || hasId || hasTitle);
+};
+if (sections.length === 0 || sections.every(isEmptySection)) {
+  sections = [{
+    id: Date.now() + '-initial-section',
+    title: { 'pt-BR': '' },
+    position: 1,
+    deleted: false,
+    fields: []
+  }];
+}
+data.sections = sections;
+
 // Initialize the global FormFieldsJsonSave variable
 if (typeof window !== 'undefined') {
-window.FormFieldsJsonSave = data;
+  window.FormFieldsJsonSave = data;
 }
 
 // Convert sections array to the format expected by the component
-formSections.value = data.sections || [];
+formSections.value = data.sections;
 setFormData(data);
 } catch (error) {
 console.error('Error loading form data:', error);
