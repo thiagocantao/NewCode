@@ -6,32 +6,7 @@ class="form-section"
 :data-section-id="section.id"
 ref="sectionRef"
 >
-<div class="section-header">
-<span class="drag-handle" ref="dragHandle">
-<i class="material-symbols-outlined">drag_indicator</i>
-</span>
-<span 
-class="action-icon-section" 
-@click="toggleFields"
->
-<i class="material-symbols-outlined">{{ isExpanded ? 'keyboard_arrow_up' : 'keyboard_arrow_down' }}</i>
-</span>
-<h4 
-class="section-title" 
-:data-section-id="section.id"
-contenteditable="true"
-@blur="updateSectionTitle"
-@keydown.enter.prevent="$event.target.blur()"
->
-{{ sectionTitle }}
-</h4>
 
-<div class="section-actions">
-<button class="action-button" disabled v-if="false">
-<i class="material-symbols-outlined">delete</i>
-</button>
-</div>
-</div>
 <div 
 class="sortable-container grid-layout" 
 :data-section-id="section.id"

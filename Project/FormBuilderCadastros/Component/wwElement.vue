@@ -56,11 +56,7 @@ v-for="field in filteredAvailableFields"
 <div v-if="content.showCabecalhoFormBuilder" class="cabecalhoFormBuilder" v-html="content.cabecalhoHtml">
 
 </div>
-<div style="display: flex; width:100%; justify-content:end; align-items:end; height:50px; padding:12px">
-<button v-if="false" class="add-button" disabled>
-{{ translateText('New section') }}
-</button>
-</div>
+
 
 <div class="form-sections-container scrollable" ref="formSectionsContainer">
 <FormSection
@@ -609,6 +605,7 @@ if (typeof window !== 'undefined') {
 window.FormFieldsJsonSave = data;
 }
 
+
   // Convert sections array to the format expected by the component
   const rawSections = Array.isArray(data.sections) ? [...data.sections] : [];
   formSections.value = rawSections.filter(
@@ -616,6 +613,12 @@ window.FormFieldsJsonSave = data;
   );
 
   const createEmptySection = () => ({
+// Convert sections array to the format expected by the component
+formSections.value = Array.isArray(data.sections) ? [...data.sections] : [];
+
+// Ensure at least one empty section exists
+if (formSections.value.length === 0) {
+  formSections.value.push({
     id: `section-${Date.now()}`,
     title: { [currentLang.value]: translateText('New section') },
     position: 1,
@@ -627,6 +630,7 @@ window.FormFieldsJsonSave = data;
   if (formSections.value.length === 0) {
     formSections.value.push(createEmptySection());
   }
+}
 
 // Keep data.sections in sync
 data.sections = [...formSections.value];
