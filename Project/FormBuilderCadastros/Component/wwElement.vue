@@ -56,11 +56,7 @@ v-for="field in filteredAvailableFields"
 <div v-if="content.showCabecalhoFormBuilder" class="cabecalhoFormBuilder" v-html="content.cabecalhoHtml">
 
 </div>
-<div style="display: flex; width:100%; justify-content:end; align-items:end; height:50px; padding:12px">
-<button v-if="false" class="add-button" disabled>
-{{ translateText('New section') }}
-</button>
-</div>
+
 
 <div class="form-sections-container scrollable" ref="formSectionsContainer">
 <FormSection
