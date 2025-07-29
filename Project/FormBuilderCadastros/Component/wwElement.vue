@@ -609,8 +609,27 @@ if (typeof window !== 'undefined') {
 window.FormFieldsJsonSave = data;
 }
 
-// Convert sections array to the format expected by the component
-formSections.value = data.sections || [];
+  // Convert sections array to the format expected by the component
+  const rawSections = Array.isArray(data.sections) ? [...data.sections] : [];
+  formSections.value = rawSections.filter(
+    (section) => section && typeof section === 'object'
+  );
+
+  const createEmptySection = () => ({
+    id: `section-${Date.now()}`,
+    title: { [currentLang.value]: translateText('New section') },
+    position: 1,
+    deleted: false,
+    fields: []
+  });
+
+  // Ensure at least one valid section exists
+  if (formSections.value.length === 0) {
+    formSections.value.push(createEmptySection());
+  }
+
+// Keep data.sections in sync
+data.sections = [...formSections.value];
 setFormData(data);
 } catch (error) {
 console.error('Error loading form data:', error);
