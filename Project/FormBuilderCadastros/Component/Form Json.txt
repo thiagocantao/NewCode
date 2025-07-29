@@ -1,0 +1,30 @@
+{
+  "form": {
+    "id": null, // ou ID existente se for edição
+    "name": { "pt_br": "Formulário Criado" },
+    "workspace_id": "00000000-0000-0000-0000-000000000000",
+    "company_id": null,
+    "is_current": true
+  },
+  "sections": [
+    {
+      "id": "s1",
+      "title": { "pt_br": "Seção 1" },
+      "position": 1,
+      "deleted": false,
+      "fields": [
+        {
+          "id": "f1",
+          "field_id": "f1",
+          "position": 1,
+          "columns": 2,
+          "is_mandatory": true,
+          "is_readonly": false,
+          "is_hide_legend": false,
+          "tip_translations": { "pt_br": "" },
+          "deleted": false
+        }
+      ]
+    }
+  ]
+}
