@@ -257,6 +257,22 @@ export default {
                 tooltip: 'Set the user ID for the form'
             }
             /* wwEditor:end */
+        },
+        formHeight: {
+            label: { en: 'Form Height' },
+            type: 'Text',
+            section: 'settings',
+            bindable: true,
+            defaultValue: '',
+            /* wwEditor:start */
+            bindingValidation: {
+                type: 'string',
+                tooltip: 'Height of the form container (e.g., 400px, 60vh)'
+            },
+            propertyHelp: {
+                tooltip: 'Content above this height will scroll vertically'
+            }
+            /* wwEditor:end */
         }
     },
     triggerEvents: [

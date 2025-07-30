@@ -1,8 +1,8 @@
 <template>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
   <div class="form-builder-container">
-    <div class="form-builder">
-      <div class="form-sections-container scrollable" ref="formSectionsContainer">
+      <div class="form-builder">
+      <div class="form-sections-container scrollable" ref="formSectionsContainer" :style="formHeightStyle">
                 <!-- Estado de carregamento -->
         <div v-if="isLoading" class="loading-container">
           <div class="loading-spinner"></div>
@@ -95,6 +95,13 @@ export default {
     const ticketId = computed(() => props.ticketId || props.content.ticketId);
     const companyId = computed(() => props.content.companyId);
     const language = computed(() => props.content.language);
+
+    const formHeightStyle = computed(() => {
+      if (props.content.formHeight) {
+        return { maxHeight: props.content.formHeight };
+      }
+      return {};
+    });
 
     const loadFormData = () => {
       let formData = null;
@@ -338,7 +345,8 @@ export default {
       companyId,
       language,
       isLoading,
-      renderKey
+      renderKey,
+      formHeightStyle
     };
   }
 };
