@@ -663,7 +663,6 @@ export default {
           this.$nextTick(() => {
             this.updateDropdownDirection();
           });
-          
           document.addEventListener('click', this.handleClickOutsideDropdown);
         });
       } else {
@@ -674,18 +673,13 @@ export default {
       const trigger = this.$el.querySelector('.custom-dropdown-selected');
       const dropdown = this.$refs.dropdownList;
       if (trigger && dropdown) {
-        const scrollParent = this.getScrollParent(trigger);
+      
         const triggerRect = trigger.getBoundingClientRect();
         const dropdownHeight = Math.min(dropdown.scrollHeight, 220);
-        let spaceBelow, spaceAbove;
-        if (scrollParent === document.body) {
-          spaceBelow = window.innerHeight - triggerRect.bottom;
-          spaceAbove = triggerRect.top;
-        } else {
-          const parentRect = scrollParent.getBoundingClientRect();
-          spaceBelow = parentRect.bottom - triggerRect.bottom;
-          spaceAbove = triggerRect.top - parentRect.top;
-        }
+        const spaceBelow = window.innerHeight - triggerRect.bottom;
+        const spaceAbove = triggerRect.top;
+
+
         if (spaceBelow >= dropdownHeight) {
           this.dropdownOpenUp = false;
         } else if (spaceAbove >= dropdownHeight) {
