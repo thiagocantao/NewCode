@@ -484,7 +484,6 @@ export default {
         if (isChanged) {
           this.localValue = value;
           this.$emit('update:value', value);
-          await this.saveFieldValueToApi(value);
           this.originalValue = value;
         }
       }
