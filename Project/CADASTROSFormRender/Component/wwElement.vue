@@ -193,7 +193,7 @@ export default {
         const formState = {
           sections: formSections.value.map(section => ({
             ...section,
-            fields: section.fields.map(field => ({
+          fields: section.fields.map(field => ({
               ...field,
               id: field.id || field.ID || field.field_id,
               field_id: field.field_id || field.ID || field.id,
@@ -202,7 +202,8 @@ export default {
               columns: parseInt(field.columns) || 1,
               is_mandatory: Boolean(field.is_mandatory),
               is_readonly: Boolean(field.is_readonly),
-              is_hide_legend: Boolean(field.is_hide_legend)
+              is_hide_legend: Boolean(field.is_hide_legend),
+              value: field.value
             }))
           }))
         };
