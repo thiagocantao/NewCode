@@ -1,15 +1,6 @@
 <template>
   <div class="form-section">
-    <div class="section-header">
-    <span 
-class="action-icon-section" 
-@click="toggleFields"
->
-<i class="material-symbols-outlined">{{ isExpanded ? 'keyboard_arrow_up' : 'keyboard_arrow_down' }}</i>
-</span>
-      <h3 class="section-title">{{ sectionTitle }}</h3> 
-    </div>
-    <div v-if="isExpanded" class="section-fields">
+    <div class="section-fields">
       <div v-for="(row, rowIndex) in fieldRows" :key="'row-' + rowIndex" class="form-row">
         <div v-for="field in row" :key="field.id" class="field-wrapper" :style="{ gridColumn: 'span ' + Math.min(Math.max(parseInt(field.columns) || 1, 1), 4) }">
           <FieldComponent
@@ -309,7 +300,7 @@ export default {
 
 <style scoped>
 .form-section {
-  margin-bottom: 24px;
+  margin-bottom: 0px;
   border: 0px;
   background-color: #fff;
 }
@@ -318,7 +309,7 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px;
+  padding: 0px;
   cursor: pointer;
 }
 
@@ -331,7 +322,7 @@ export default {
 }
 
 .section-fields {
-  padding: 16px;
+  padding: 12px;
 }
 
 .form-row {
