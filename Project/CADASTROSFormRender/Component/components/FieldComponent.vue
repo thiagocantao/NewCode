@@ -668,22 +668,8 @@ export default {
       }
     },
     updateDropdownDirection() {
-      const trigger = this.$el.querySelector('.custom-dropdown-selected');
-      const dropdown = this.$refs.dropdownList;
-      if (trigger && dropdown) {
-        const triggerRect = trigger.getBoundingClientRect();
-        const dropdownHeight = Math.min(dropdown.scrollHeight, 220);
-        const spaceBelow = window.innerHeight - triggerRect.bottom;
-        const spaceAbove = triggerRect.top;
-
-        if (spaceBelow >= dropdownHeight) {
-          this.dropdownOpenUp = false;
-        } else if (spaceAbove >= dropdownHeight) {
-          this.dropdownOpenUp = true;
-        } else {
-          this.dropdownOpenUp = spaceAbove > spaceBelow;
-        }
-      }
+      // Sempre abrir a lista de opções para cima conforme solicitado
+      this.dropdownOpenUp = true;
     },
     selectDropdownOption(option) {
       this.localValue = option.value;
