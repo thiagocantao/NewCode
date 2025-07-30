@@ -413,29 +413,11 @@ console.error('Error updating sections order:', error);
 }
 },
 fallbackOnBody: false,
-forceFallback: false,
-onMove: (evt) => {
-// Verifica se o elemento relacionado existe e está conectado ao DOM
-if (!evt.related || !evt.related.parentNode) {
-return false;
-}
-
-// Verifica se o elemento está sendo movido para um container válido
-const targetContainer = evt.to;
-if (!targetContainer || !targetContainer.isConnected) {
-return false;
-}
-
-// Verifica se o elemento tem filhos antes de tentar acessar lastElementChild
-if (targetContainer.children && targetContainer.children.length > 0) {
-const lastChild = targetContainer.lastElementChild;
-if (!lastChild || !lastChild.isConnected) {
-return false;
-}
-}
-
-return true;
-}
+forceFallback: false
+            // The FormBuilderCadastros component doesn't use an onMove handler
+            // and drag operations work reliably without additional checks.
+            // Removing this handler avoids errors triggered when Sortable
+            // tries to access DOM nodes that may not yet exist.
 });
 
 // Inicializa o Sortable para cada container de campos
