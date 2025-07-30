@@ -413,32 +413,8 @@ console.error('Error updating sections order:', error);
 }
 },
 fallbackOnBody: false,
-forceFallback: false,
-            onMove: (evt) => {
-              // Defensive checks to prevent errors when dragging
-              if (!evt || !evt.to) return false;
-
-              // Verifica se o elemento relacionado existe e está conectado ao DOM
-              if (!evt.related || !evt.related.parentNode) {
-                return false;
-              }
-
-              // Verifica se o container de destino é válido
-              const targetContainer = evt.to;
-              if (!targetContainer || !targetContainer.isConnected) {
-                return false;
-              }
-
-              // Só verifica o último filho se existir
-              if (targetContainer.children && targetContainer.children.length > 0) {
-                const lastChild = targetContainer.lastElementChild;
-                if (!lastChild || !lastChild.isConnected) {
-                  return false;
-                }
-              }
-
-              return true;
-            }
+fallbackOnBody: false,
+forceFallback: false
 });
 
 // Inicializa o Sortable para cada container de campos
