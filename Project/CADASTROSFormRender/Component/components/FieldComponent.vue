@@ -420,6 +420,23 @@ export default {
         this.$refs.rte.innerHTML = newVal || '';
       }
     },
+    searchTerm() {
+      if (this.dropdownOpen) {
+        this.$nextTick(() => {
+          this.updateDropdownDirection();
+        });
+      }
+    },
+    'field.options': {
+      handler() {
+        if (this.dropdownOpen) {
+          this.$nextTick(() => {
+            this.updateDropdownDirection();
+          });
+        }
+      },
+      deep: true
+    }
   },
   methods: {
     async updateValue(event) {
@@ -641,28 +658,38 @@ export default {
             const input = this.$refs.dropdownList.querySelector('input');
             if (input) input.focus();
           }
-          setTimeout(() => {
-            const trigger = this.$el.querySelector('.custom-dropdown-selected');
-            const dropdown = this.$refs.dropdownList;
-            if (trigger && dropdown) {
-              const scrollParent = this.getScrollParent(trigger);
-              const triggerRect = trigger.getBoundingClientRect();
-              const dropdownHeight = 220; // max-height do dropdown
-              let spaceBelow;
-              if (scrollParent === document.body) {
-                spaceBelow = window.innerHeight - triggerRect.bottom;
-              } else {
-                const parentRect = scrollParent.getBoundingClientRect();
-                spaceBelow = parentRect.bottom - triggerRect.bottom;
-              }
-              // Se não cabe abaixo, abre para cima
-              this.dropdownOpenUp = spaceBelow < dropdownHeight;
-            }
-          }, 0);
+          this.$nextTick(() => {
+            this.updateDropdownDirection();
+          });
           document.addEventListener('click', this.handleClickOutsideDropdown);
         });
       } else {
         document.removeEventListener('click', this.handleClickOutsideDropdown);
+      }
+    },
+    updateDropdownDirection() {
+      const trigger = this.$el.querySelector('.custom-dropdown-selected');
+      const dropdown = this.$refs.dropdownList;
+      if (trigger && dropdown) {
+        const scrollParent = this.getScrollParent(trigger);
+        const triggerRect = trigger.getBoundingClientRect();
+        const dropdownHeight = Math.min(dropdown.scrollHeight, 220);
+        let spaceBelow, spaceAbove;
+        if (scrollParent === document.body) {
+          spaceBelow = window.innerHeight - triggerRect.bottom;
+          spaceAbove = triggerRect.top;
+        } else {
+          const parentRect = scrollParent.getBoundingClientRect();
+          spaceBelow = parentRect.bottom - triggerRect.bottom;
+          spaceAbove = triggerRect.top - parentRect.top;
+        }
+        if (spaceBelow >= dropdownHeight) {
+          this.dropdownOpenUp = false;
+        } else if (spaceAbove >= dropdownHeight) {
+          this.dropdownOpenUp = true;
+        } else {
+          this.dropdownOpenUp = spaceAbove > spaceBelow;
+        }
       }
     },
     selectDropdownOption(option) {
