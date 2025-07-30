@@ -5,7 +5,7 @@ class="draggable-field single-draggable"
 'is-required': field?.is_mandatory, 
 'is-readonly': field?.is_readonly,
 'is-disabled': isDisabled,
-[`col-span-${Math.min(Math.max(parseInt(field?.columns) || 1, 1), 4)}`]: true
+[`col-span-${Math.min(Math.max(parseInt(field?.columns) || 1, 1), 4)}`]: isInFormSection
 }" 
 :data-field-id="field?.ID || field?.field_id"
 :data-section-field-id="field?.id || null"
