@@ -659,9 +659,11 @@ export default {
             const input = this.$refs.dropdownList.querySelector('input');
             if (input) input.focus();
           }
+          
           this.$nextTick(() => {
             this.updateDropdownDirection();
           });
+          
           document.addEventListener('click', this.handleClickOutsideDropdown);
         });
       } else {

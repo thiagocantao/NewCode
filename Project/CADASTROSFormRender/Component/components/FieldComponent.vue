@@ -661,6 +661,7 @@ export default {
           this.$nextTick(() => {
             this.updateDropdownDirection();
           });
+
           document.addEventListener('click', this.handleClickOutsideDropdown);
         });
       } else {
