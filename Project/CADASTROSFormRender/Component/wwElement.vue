@@ -1,9 +1,9 @@
 <template>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
-  <div class="form-builder-container">
-      <div class="form-builder">
-      <div class="form-sections-container scrollable" ref="formSectionsContainer" :style="formHeightStyle">
-                <!-- Estado de carregamento -->
+  <div class="form-builder-container"  :style="formHeightStyle">
+    <div class="form-builder">
+      <div class="form-sections-container scrollable" ref="formSectionsContainer">
+        <!-- Estado de carregamento -->
         <div v-if="isLoading" class="loading-container">
           <div class="loading-spinner"></div>
           <p>loading form...</p>
@@ -98,7 +98,7 @@ export default {
 
     const formHeightStyle = computed(() => {
       if (props.content.formHeight) {
-        return { maxHeight: props.content.formHeight };
+        return { height: props.content.formHeight };
       }
       return {};
     });
@@ -355,9 +355,9 @@ export default {
 <style scoped>
   .form-builder-container {
     display: flex;
-    height: 100%;
+    overflow-y: auto;
     background-color: #f5f5f5;
-    width:100%;
+    width: 100%;
   }
 
   .form-builder {
