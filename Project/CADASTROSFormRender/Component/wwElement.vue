@@ -6,14 +6,14 @@
                 <!-- Estado de carregamento -->
         <div v-if="isLoading" class="loading-container">
           <div class="loading-spinner"></div>
-          <p>Carregando formulário...</p>
+          <p>loading form...</p>
         </div>
 
 
         <!-- Conteúdo quando carregado -->
         <template v-else>
           <div v-if="!formSections.length" class="no-sections">
-            <p>Nenhuma seção encontrada</p>
+            <p>No data to display</p>
           </div>
           <div v-else>
             <FormSection v-for="section in formSections" :key="`section-${section.id}-${renderKey}`" :section="section"
@@ -336,6 +336,7 @@ export default {
     display: flex;
     height: 100%;
     background-color: #f5f5f5;
+    width:100%;
   }
 
   .form-builder {
