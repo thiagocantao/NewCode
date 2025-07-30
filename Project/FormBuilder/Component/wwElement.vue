@@ -413,11 +413,8 @@ console.error('Error updating sections order:', error);
 }
 },
 fallbackOnBody: false,
+fallbackOnBody: false,
 forceFallback: false
-            // The FormBuilderCadastros component doesn't use an onMove handler
-            // and drag operations work reliably without additional checks.
-            // Removing this handler avoids errors triggered when Sortable
-            // tries to access DOM nodes that may not yet exist.
 });
 
 // Inicializa o Sortable para cada container de campos
