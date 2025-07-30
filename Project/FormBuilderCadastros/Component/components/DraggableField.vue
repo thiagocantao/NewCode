@@ -5,7 +5,7 @@ class="draggable-field single-draggable"
 'is-required': field?.is_mandatory, 
 'is-readonly': field?.is_readonly,
 'is-disabled': isDisabled,
-[`col-span-${Math.min(Math.max(parseInt(field?.columns) || 1, 1), 4)}`]: true
+[`col-span-${Math.min(Math.max(parseInt(field?.columns) || 1, 1), 4)}`]: isInFormSection
 }" 
 :data-field-id="field?.ID || field?.field_id"
 :data-section-field-id="field?.id || null"
@@ -304,15 +304,15 @@ grid-column: span 1;
 }
 
 .col-span-2 {
-grid-column: span 1;
+  grid-column: span 2;
 }
 
 .col-span-3 {
-grid-column: span 1;
+  grid-column: span 3;
 }
 
 .col-span-4 {
-grid-column: span 1;
+  grid-column: span 4;
 }
 
 .material-symbols-outlined {
