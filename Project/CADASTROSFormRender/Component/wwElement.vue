@@ -21,7 +21,7 @@
               :api-authorization="apiAuthorization" :ticket-id="ticketId" :company-id="companyId" :language="language"
               @update-section="updateFormState" @edit-section="editSection" @edit-field="editFormField"
               @remove-field="removeFormField" @select-field="selectFieldForProperties"
-              @remove-section="handleRemoveSection" />
+              @remove-section="handleRemoveSection" @update:value="updateFieldValue" />
           </div>
         </template>
       </div>
@@ -264,6 +264,17 @@ export default {
       }
     };
 
+    const updateFieldValue = ({ fieldId, value }) => {
+      const section = formSections.value.find(s => s.fields.some(f => f.id === fieldId));
+      if (section) {
+        const field = section.fields.find(f => f.id === fieldId);
+        if (field) {
+          field.value = value;
+          updateFormState();
+        }
+      }
+    };
+
     const selectFieldForProperties = (field) => {
     };
 
@@ -314,6 +325,7 @@ export default {
       allAvailableFields,
       editFormField,
       removeFormField,
+      updateFieldValue,
       selectFieldForProperties,
       editSection,
       handleRemoveSection,
