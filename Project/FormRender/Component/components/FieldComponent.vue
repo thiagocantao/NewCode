@@ -659,6 +659,7 @@ export default {
             const input = this.$refs.dropdownList.querySelector('input');
             if (input) input.focus();
           }
+          
           this.$nextTick(() => {
             this.updateDropdownDirection();
           });
@@ -672,10 +673,12 @@ export default {
       const trigger = this.$el.querySelector('.custom-dropdown-selected');
       const dropdown = this.$refs.dropdownList;
       if (trigger && dropdown) {
+      
         const triggerRect = trigger.getBoundingClientRect();
         const dropdownHeight = Math.min(dropdown.scrollHeight, 220);
         const spaceBelow = window.innerHeight - triggerRect.bottom;
         const spaceAbove = triggerRect.top;
+
 
         if (spaceBelow >= dropdownHeight) {
           this.dropdownOpenUp = false;
