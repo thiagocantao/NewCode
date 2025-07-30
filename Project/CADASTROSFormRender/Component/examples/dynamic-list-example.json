@@ -1,0 +1,52 @@
+{
+  "form": {
+    "id": "form1",
+    "name": { "pt-BR": "Formulário de Exemplo" },
+    "workspace_id": "00000000-0000-0000-0000-000000000000",
+    "company_id": null,
+    "is_current": true
+  },
+  "sections": [
+    {
+      "id": "section1",
+      "title": { "pt-BR": "Informações Pessoais" },
+      "fields": [
+        {
+          "ID": "f1",
+          "Name": "Estado",
+          "fieldType": "SIMPLE_LIST",
+          "columns": 2,
+          "is_mandatory": true,
+          "dataSource": {
+            "url": "https://servicodados.ibge.gov.br/api/v1/localidades/estados",
+            "method": "GET",
+            "valueField": "id",
+            "labelField": "nome",
+            "transform": {
+              "value": "sigla",
+              "label": "nome"
+            }
+          }
+        },
+        {
+          "ID": "f2",
+          "Name": "Cidade",
+          "fieldType": "SIMPLE_LIST",
+          "columns": 2,
+          "is_mandatory": true,
+          "dataSource": {
+            "url": "https://servicodados.ibge.gov.br/api/v1/localidades/estados/{estado}/municipios",
+            "method": "GET",
+            "valueField": "id",
+            "labelField": "nome",
+            "dependsOn": "f1",
+            "transform": {
+              "value": "id",
+              "label": "nome"
+            }
+          }
+        }
+      ]
+    }
+  ]
+} 
