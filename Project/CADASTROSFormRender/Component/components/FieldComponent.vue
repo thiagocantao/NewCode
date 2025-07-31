@@ -78,7 +78,7 @@
               type="radio"
               :name="field.id"
               :value="true"
-              :checked="localValue === true"
+              v-model="localValue"
               :disabled="field.is_readonly"
               @change="updateValue"
             />
@@ -89,7 +89,7 @@
               type="radio"
               :name="field.id"
               :value="false"
-              :checked="localValue === false"
+              v-model="localValue"
               :disabled="field.is_readonly"
               @change="updateValue"
             />
@@ -439,16 +439,20 @@ export default {
       deep: true
     }
   },
-  methods: {
+    methods: {
+    parseBoolean(val) {
+      if (typeof val === 'string') {
+        const low = val.toLowerCase();
+        if (['true', '1', 'yes', 'sim'].includes(low)) return true;
+        if (['false', '0', 'no', 'nao', 'não'].includes(low)) return false;
+      }
+      return Boolean(val);
+    },
     parseInitialValue(field) {
       if (!field) return '';
       let val = field.value;
       if (field.fieldType === 'YES_NO') {
-        if (typeof val === 'string') {
-          val = val === 'true' || val === '1';
-        } else {
-          val = Boolean(val);
-        }
+        val = this.parseBoolean(val);
       }
       return val ?? '';
     },
@@ -482,8 +486,8 @@ export default {
           this.validateInteger(value);
           break;
         case 'YES_NO':
-          value = event.target.value === 'true';
-          break;
+            value = this.parseBoolean(event.target.value);
+            break;
         case 'SIMPLE_LIST':
           value = value + '';
           this.validateList(value);
