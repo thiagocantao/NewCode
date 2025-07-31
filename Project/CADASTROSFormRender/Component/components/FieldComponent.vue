@@ -79,8 +79,9 @@
             <input
               type="radio"
               :name="field.id"
-              :checked="localValue === true"
-              @change="localValue = true; updateValue({ target: { value: true } })"
+              :value="true"
+              v-model="localValue"
+              @change="updateValue"
               :disabled="field.is_readonly"
             />
             Sim
@@ -89,8 +90,9 @@
             <input
               type="radio"
               :name="field.id"
-              :checked="localValue === false"
-              @change="localValue = false; updateValue({ target: { value: false } })"
+              :value="false"
+              v-model="localValue"
+              @change="updateValue"
               :disabled="field.is_readonly"
             />
             Não
