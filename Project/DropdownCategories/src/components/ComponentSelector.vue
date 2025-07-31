@@ -26,7 +26,7 @@
         <span class="component-selector__name" :style="nameStyle">{{ component?.[labelField] || '' }}</span>
       </div>
       <div
-        v-if="filteredComponents.length === 0 && search.trim()"
+        v-if="filteredItems.length === 0 && search.trim()"
         class="component-selector__item"
         @click.stop="createNewOption"
         style="font-style: italic; color: #888;"
@@ -107,14 +107,15 @@ export default {
         ? this.localDatasource
         : (Array.isArray(this.datasource) ? this.datasource : []);
     },
-    filteredComponents() {
-      // Filtra normalmente, sem título
-      let filtered = this.normalizedDatasource.filter(component =>
+    filteredItems() {
+      return this.normalizedDatasource.filter(component =>
         String(component[this.labelField] || '').toLowerCase().includes(this.search.toLowerCase())
       );
-      // Só adiciona o título se houver resultados
-      if (this.listTitle && filtered.length > 0) {
-        filtered = [{ __isTitle: true, [this.labelField]: this.listTitle }].concat(filtered);
+    },
+    filteredComponents() {
+      let filtered = [...this.filteredItems];
+      if (this.listTitle) {
+        filtered.unshift({ __isTitle: true, [this.labelField]: this.listTitle });
       }
       return filtered;
     },
@@ -232,10 +233,10 @@ export default {
       this.isTyping = true;
     },
     handleEnter() {
-      if (this.filteredComponents.length === 0 && this.search.trim()) {
+      if (this.filteredItems.length === 0 && this.search.trim()) {
         this.createNewOption();
-      } else if (this.filteredComponents.length === 1) {
-        this.selectComponent(this.filteredComponents[0]);
+      } else if (this.filteredItems.length === 1) {
+        this.selectComponent(this.filteredItems[0]);
       }
     },
     replaceNewItemText(obj, value) {
