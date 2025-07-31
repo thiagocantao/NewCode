@@ -79,8 +79,9 @@
             <input
               type="radio"
               :name="field.id"
-              :checked="localValue === true"
-              @change="localValue = true; updateValue({ target: { value: true } })"
+              :value="true"
+              v-model="localValue"
+              @change="updateValue"
               :disabled="field.is_readonly"
             />
             Sim
@@ -89,8 +90,9 @@
             <input
               type="radio"
               :name="field.id"
-              :checked="localValue === false"
-              @change="localValue = false; updateValue({ target: { value: false } })"
+              :value="false"
+              v-model="localValue"
+              @change="updateValue"
               :disabled="field.is_readonly"
             />
             Não
@@ -271,10 +273,46 @@ export default {
       }
       return val ?? '';
     },
-    /* Demais métodos sem alteração */
+    updateValue(event) {
+      let value = event.target.value;
+      switch (this.field.fieldType) {
+        case 'DECIMAL':
+          value = value === '' ? null : parseFloat(value);
+          break;
+        case 'INTEGER':
+          value = value === '' ? null : parseInt(value, 10);
+          break;
+        case 'YES_NO':
+          value = this.parseBoolean(value);
+          break;
+        default:
+          break;
+      }
+      this.localValue = value;
+      this.$emit('update:value', value);
+    }
   },
-  mounted() { /* Sem alteração */ },
-  beforeDestroy() { /* Sem alteração */ }
+  mounted() {
+    if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
+      this.$refs.rte.innerHTML = this.localValue || '';
+    }
+    if (this.field.fieldType === 'YES_NO') {
+      const parsed = this.parseBoolean(this.field.value);
+      this.localValue = parsed;
+      this.originalValue = parsed;
+    }
+    if (this.field.fieldType === 'DEADLINE') {
+      this.deadlineTimer = setInterval(() => {
+        this.dataNow = new Date();
+      }, 1000);
+    }
+  },
+  beforeDestroy() {
+    if (this.deadlineTimer) {
+      clearInterval(this.deadlineTimer);
+      this.deadlineTimer = null;
+    }
+  }
 };
 </script>
 
