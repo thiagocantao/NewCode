@@ -82,7 +82,7 @@
               :disabled="field.is_readonly"
               @change="updateValue"
             />
-            Sim
+            Yes
           </label>
           <label class="radio-label">
             <input
@@ -93,7 +93,7 @@
               :disabled="field.is_readonly"
               @change="updateValue"
             />
-            Não
+            No
           </label>
         </div>
       </template>
