@@ -233,8 +233,8 @@ export default {
       error: null,
       feedback: null,
       feedbackType: null, // 'success' ou 'error'
-      localValue: this.field.value ?? '', // será sobrescrito pelo computed se DEADLINE
-      originalValue: this.field.value ?? '',
+      localValue: this.parseInitialValue(this.field), // será sobrescrito pelo computed se DEADLINE
+      originalValue: this.parseInitialValue(this.field),
       showAlert: false,
       deadlineTimer: null,
       dataNow: new Date(),
@@ -406,8 +406,9 @@ export default {
   watch: {
     field: {
       handler(newField) {
-        this.localValue = newField.value ?? '';
-        this.originalValue = newField.value ?? '';
+        const parsed = this.parseInitialValue(newField);
+        this.localValue = parsed;
+        this.originalValue = parsed;
       },
       deep: true,
       immediate: true
@@ -439,6 +440,18 @@ export default {
     }
   },
   methods: {
+    parseInitialValue(field) {
+      if (!field) return '';
+      let val = field.value;
+      if (field.fieldType === 'YES_NO') {
+        if (typeof val === 'string') {
+          val = val === 'true' || val === '1';
+        } else {
+          val = Boolean(val);
+        }
+      }
+      return val ?? '';
+    },
     async updateValue(event) {
       let value;
       if (this.field.fieldType === 'FORMATED_TEXT') {
