@@ -453,6 +453,11 @@ export default {
       let val = field.value;
       if (field.fieldType === 'YES_NO') {
         val = this.parseBoolean(val);
+        if (typeof val === 'string') {
+          val = val === 'true' || val === '1';
+        } else {
+          val = Boolean(val);
+        }
       }
       return val ?? '';
     },
