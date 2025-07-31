@@ -191,11 +191,8 @@ export default {
     initialSelectedId: {
       immediate: true,
       handler(newId) {
-        // Só atualiza se não houver selectedComponentId definido
-        if (!this.selectedComponentId) {
-          const component = this.normalizedDatasource.find(u => String(u?.[this.valueField] || '') === String(newId));
-          this.selectedComponent = component || null;
-        }
+        const component = this.normalizedDatasource.find(u => String(u?.[this.valueField] || '') === String(newId));
+        this.selectedComponent = component || null;
       }
     },
     selectedComponent(newComponent) {

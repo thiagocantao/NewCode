@@ -70,6 +70,18 @@ export default {
             );
         }
     },
+    mounted() {
+        if (this.content.initialSelectedId) {
+            if (this._setSelectedComponentId) this._setSelectedComponentId(this.content.initialSelectedId);
+            this.selectedComponentId = this.content.initialSelectedId;
+        }
+    },
+    watch: {
+        'content.initialSelectedId'(newVal) {
+            if (this._setSelectedComponentId) this._setSelectedComponentId(newVal);
+            this.selectedComponentId = newVal;
+        }
+    },
     methods: {
         onComponentSelected(componentId) {
             if (this._setSelectedComponentId) this._setSelectedComponentId(componentId);
