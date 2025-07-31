@@ -277,3 +277,463 @@ export default {
   beforeDestroy() { /* Sem alteração */ }
 };
 </script>
+
+<style scoped>
+.field-component {
+display: flex;
+flex-direction: column;
+width: 100%;
+margin-bottom: 5px;
+}
+
+.field-label {
+font-size: 13px;
+font-weight: 400;
+margin-bottom: 4px;
+color: #333;
+}
+
+.required-indicator {
+color: #e53935;
+margin-left: 2px;
+font-weight: bold;
+}
+
+.field-row {
+display: flex;
+align-items: center;
+width: 100%;
+}
+
+.field-input {
+flex: 1;
+min-width: 0; /* This prevents the input from overflowing its container */
+padding: 8px 12px;
+border: 1px solid #ddd;
+border-radius: 4px;
+font-size: 13px;
+background-color: #fff;
+width: 100%;
+}
+
+.field-input:focus {
+  outline: none;
+  border-color: #bdbdbd;
+  box-shadow: none;
+}
+
+.field-input[readonly] {
+background-color: #f5f5f5;
+cursor: not-allowed;
+}
+
+.field-tip {
+font-size: 12px;
+color: #666;
+margin-top: 4px;
+font-style: italic;
+}
+
+.is-required .field-label::after {
+content: "*";
+color: #e53935;
+margin-left: 2px;
+}
+
+.tooltip-text {  
+  color: rgb(120, 120, 120);
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 1;
+}
+
+.field-tooltip:hover .tooltip-text {
+  
+}
+
+/* Estilos específicos por tipo de campo */
+.date-input {
+  min-width: 150px;  
+  padding: 7px 12px; 
+}
+
+.decimal-input,
+.integer-input {
+  text-align: right; 
+}
+
+.yes-no-container {
+  display: flex;
+  gap: 16px;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.list-input {
+  min-width: 200px;
+}
+
+.multiline-input {
+  resize: vertical;
+  min-height: 100px;
+}
+
+/* Estilos para campos obrigatórios */
+.is-mandatory .field-label {
+  font-weight: 400;
+}
+
+/* Estilos para campos com erro */
+.field-input.error {
+  border-color: #ff0000;
+  box-shadow: 0 0 0 1px #ff0000;
+}
+
+.field-feedback {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 400;
+  border-radius: 4px;
+  padding: 4px 8px;
+  display: inline-block;
+}
+.field-feedback.success {
+  color: #155724;
+  background: #d4edda;
+  border: 1px solid #c3e6cb;
+}
+.field-feedback.error {
+  color: #721c24;
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+}
+
+.deadline-diff {
+  font-size: 12px;
+  color: #007bff;
+  margin-top: 4px;
+}
+
+.deadline-visual {
+  border-radius: 20px !important;
+  text-align: center;
+  font-size: 12px;
+  transition: background 0.3s, color 0.3s;
+}
+.deadline-green {
+  background: #e6ffed !important;
+  color: #1b5e20 !important;
+  border: 1.5px solid #1b5e20 !important;
+}
+.deadline-yellow {
+  background: #fffbe6 !important;
+  color: #b59f00 !important;
+  border: 1.5px solid #b59f00 !important;
+}
+.deadline-red {
+  background: #ffdddd !important;
+  color: #b71c1c !important;
+  border: 1.5px solid #b71c1c !important;
+}
+
+.deadline-picker-popup {
+  position: absolute;
+  left: 0;
+  top: 100%;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  padding: 4px 8px;
+  margin-top: 4px;
+  z-index: 1000;
+}
+
+.readonly-field {
+  background-color: #f0f0f0 !important;
+  color: #888 !important;
+  cursor: not-allowed !important;
+  border-style: dashed !important;
+  opacity: 1 !important;
+}
+
+.formatted-text-wrapper {
+  width: 100%;
+}
+
+.toolbar {
+  margin-bottom: 0;
+  display: flex;
+  gap: 6px;
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px 6px 0 0;
+  padding: 6px 8px 4px 8px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+
+.toolbar button {
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  padding: 3px 10px;
+  cursor: pointer;
+  font-size: 15px;
+  color: #333;
+  transition: background 0.2s, border 0.2s;
+  outline: none;
+  box-shadow: 0 1px 1px rgba(0,0,0,0.01);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.toolbar button:hover, .toolbar button:focus {
+  background: #e3eafc;
+  border-color: #90b4f8;
+  color: #1a237e;
+}
+
+.toolbar button:active {
+  background: #dbeafe;
+  border-color: #60a5fa;
+}
+
+.rich-text-input {
+  max-width: 100%;
+  overflow-x: auto;
+  word-break: break-word;
+  box-sizing: border-box;
+}
+
+.rich-text-input img,
+.rich-text-input table,
+.rich-text-input iframe {
+  max-width: 100%;
+  height: auto;
+  box-sizing: border-box;
+  display: block;
+}
+
+.rich-text-input table {
+  width: 100% !important;
+  table-layout: auto;
+  overflow-x: auto;
+  display: block;
+}
+
+.toolbar {
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+.toolbar .material-symbols-outlined {
+  font-size: 18px !important;
+  color: rgb(105, 157, 140) !important;
+  vertical-align: middle;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined');
+
+.color-btn {
+  position: relative;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  padding: 3px 10px;
+  cursor: pointer;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, border 0.2s;
+  outline: none;
+  box-shadow: 0 1px 1px rgba(0,0,0,0.01);
+  margin-left: 2px;
+}
+
+.color-btn:hover, .color-btn:focus {
+  background: #e3eafc;
+  border-color: #90b4f8;
+}
+
+.color-btn:active {
+  background: #dbeafe;
+  border-color: #60a5fa;
+}
+
+.color-btn .color-input {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.dropdown-search-wrapper {
+  position: relative;
+  width: 96%;
+  margin: 10px auto 10px auto;
+  display: flex;
+  align-items: center;
+  background-color: #FFFFFF !important;
+}
+
+.dropdown-search-wrapper .search-icon {
+  position: absolute;
+  right: 12px;
+  font-size: 20px;
+  color: #bdbdbd;
+  pointer-events: none;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.list-search-input {
+  border: 1.5px solid #bdbdbd !important;
+  border-radius: 20px;
+  padding: 7px 38px 7px 12px;
+  font-size: 14px;
+  width: 100%;
+  box-sizing: border-box;
+  background: #f8f9fa;
+  transition: border 0.2s;
+  outline: none !important;
+}
+
+.list-search-input:focus,
+.list-search-input:active,
+.list-search-input:hover {
+  border-color: #bdbdbd !important;
+  background: #fff;
+  outline: none !important;
+}
+
+.custom-dropdown-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.custom-dropdown-selected {
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  padding: 6px 12px;
+  background: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  
+height:34px;
+  font-size: 13px;
+  transition: border 0.2s;
+}
+
+.custom-dropdown-selected.open {
+  border-color: #699d8c;
+  box-shadow: 0 2px 8px rgba(105,157,140,0.08);
+}
+
+.custom-dropdown-selected.readonly-field {
+  background: #f0f0f0;
+  color: #888;
+  cursor: not-allowed;
+  border-style: dashed;
+}
+
+.custom-dropdown-list {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 4px 16px rgba(105,157,140,0.10);
+  z-index: 100;
+  max-height: 220px;
+  overflow-y: auto;
+  margin-top: 2px;
+  padding-bottom: 4px;
+}
+
+.custom-dropdown-option {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.15s;
+}
+
+.custom-dropdown-option.selected {
+  background: #e3eafc;
+  color: #699d8c;
+  font-weight: bold;
+}
+
+.custom-dropdown-option:hover {
+  background: #f5f5f5;
+}
+
+.custom-dropdown-no-options {
+  padding: 8px 12px;
+  color: #888;
+  font-size: 13px;
+  text-align: center;
+}
+
+.custom-dropdown-selected .dropdown-arrow {
+  font-size: 20px;
+  color: #bdbdbd;
+  margin-left: 8px;
+}
+
+.custom-dropdown-selected .placeholder {
+  color: #aaa;
+}
+
+.custom-dropdown-list.open-up {
+  top: auto !important;
+  bottom: 100%;
+  border-radius: 6px 6px 0 0;
+  box-shadow: 0 -4px 16px rgba(105,157,140,0.10);
+  margin-top: 0;
+  margin-bottom: 2px;
+}
+
+/* Estilos para o placeholder de carregamento */
+.field-component-loading {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-bottom: 5px;
+}
+
+.loading-placeholder {
+  height: 34px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  border-radius: 4px;
+  margin-top: 4px;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+</style> 
