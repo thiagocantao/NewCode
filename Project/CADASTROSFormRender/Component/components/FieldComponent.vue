@@ -78,7 +78,7 @@
               type="radio"
               :name="field.id"
               :value="true"
-              :checked="localValue === true"
+              v-model="localValue"
               :disabled="field.is_readonly"
               @change="updateValue"
             />
@@ -89,7 +89,7 @@
               type="radio"
               :name="field.id"
               :value="false"
-              :checked="localValue === false"
+              v-model="localValue"
               :disabled="field.is_readonly"
               @change="updateValue"
             />
@@ -233,8 +233,8 @@ export default {
       error: null,
       feedback: null,
       feedbackType: null, // 'success' ou 'error'
-      localValue: this.field.value ?? '', // será sobrescrito pelo computed se DEADLINE
-      originalValue: this.field.value ?? '',
+      localValue: this.parseInitialValue(this.field), // será sobrescrito pelo computed se DEADLINE
+      originalValue: this.parseInitialValue(this.field),
       showAlert: false,
       deadlineTimer: null,
       dataNow: new Date(),
@@ -406,8 +406,9 @@ export default {
   watch: {
     field: {
       handler(newField) {
-        this.localValue = newField.value ?? '';
-        this.originalValue = newField.value ?? '';
+        const parsed = this.parseInitialValue(newField);
+        this.localValue = parsed;
+        this.originalValue = parsed;
       },
       deep: true,
       immediate: true
@@ -438,7 +439,23 @@ export default {
       deep: true
     }
   },
-  methods: {
+    methods: {
+    parseBoolean(val) {
+      if (typeof val === 'string') {
+        const low = val.toLowerCase();
+        if (['true', '1', 'yes', 'sim'].includes(low)) return true;
+        if (['false', '0', 'no', 'nao', 'não'].includes(low)) return false;
+      }
+      return Boolean(val);
+    },
+    parseInitialValue(field) {
+      if (!field) return '';
+      let val = field.value;
+      if (field.fieldType === 'YES_NO') {
+        val = this.parseBoolean(val);
+      }
+      return val ?? '';
+    },
     async updateValue(event) {
       let value;
       if (this.field.fieldType === 'FORMATED_TEXT') {
@@ -469,8 +486,8 @@ export default {
           this.validateInteger(value);
           break;
         case 'YES_NO':
-          value = event.target.value === 'true';
-          break;
+            value = this.parseBoolean(event.target.value);
+            break;
         case 'SIMPLE_LIST':
           value = value + '';
           this.validateList(value);
@@ -707,6 +724,11 @@ export default {
   mounted() {
     if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
       this.$refs.rte.innerHTML = this.localValue || '';
+    }
+    if (this.field.fieldType === 'YES_NO') {
+      const parsed = this.parseBoolean(this.field.value);
+      this.localValue = parsed;
+      this.originalValue = parsed;
     }
     if (this.field.fieldType === 'DEADLINE') {
       this.deadlineTimer = setInterval(() => {
