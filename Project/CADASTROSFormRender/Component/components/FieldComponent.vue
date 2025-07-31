@@ -258,8 +258,8 @@ export default {
     parseBoolean(val) {
       if (typeof val === 'string') {
         const low = val.toLowerCase();
-        if (['true', '1', 'yes', 'sim'].includes(low)) return true;
-        if (['false', '0', 'no', 'nao', 'não'].includes(low)) return false;
+        if (['true', '1', 'yes', 'sim', 's', 'y'].includes(low)) return true;
+        if (['false', '0', 'no', 'nao', 'não', 'n'].includes(low)) return false;
       }
       return Boolean(val);
     },
