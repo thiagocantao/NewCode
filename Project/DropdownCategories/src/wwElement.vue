@@ -24,6 +24,7 @@
         :ApiURL="content.ApiURL"
         :ApiBody="content.ApiBody"
         :read-only="content.readOnly"
+        :input-mode="content.inputMode"
         :list-title="content.listTitle"
         @component-selected="onComponentSelected"
         @trigger-event="onTriggerEvent"
