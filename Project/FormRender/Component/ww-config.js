@@ -257,6 +257,22 @@ export default {
                 tooltip: 'Set the user ID for the form'
             }
             /* wwEditor:end */
+        },
+        readOnly: {
+            label: { en: 'Read only' },
+            type: 'boolean',
+            section: 'settings',
+            bindable: true,
+            defaultValue: false,
+            /* wwEditor:start */
+            bindingValidation: {
+                type: 'boolean',
+                tooltip: 'When true, all form fields become read-only'
+            },
+            propertyHelp: {
+                tooltip: 'Enable to disable editing of all form fields'
+            }
+            /* wwEditor:end */
         }
     },
     triggerEvents: [
