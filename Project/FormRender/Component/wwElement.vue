@@ -155,6 +155,7 @@ export default {
               fieldType: field.fieldType || 'text',
               columns: parseInt(field.columns) || 1,
               is_mandatory: Boolean(field.is_mandatory),
+              original_readonly: Boolean(field.is_readonly),
               is_readonly: Boolean(field.is_readonly || formReadOnly.value),
               is_hide_legend: Boolean(field.is_hide_legend),
               dataSource: field.dataSource || field.data_source,
@@ -209,7 +210,8 @@ export default {
               fieldType: field.fieldType || 'text',
               columns: parseInt(field.columns) || 1,
               is_mandatory: Boolean(field.is_mandatory),
-              is_readonly: Boolean(field.is_readonly || formReadOnly.value),
+              original_readonly: Boolean(field.original_readonly),
+              is_readonly: Boolean(field.original_readonly || formReadOnly.value),
               is_hide_legend: Boolean(field.is_hide_legend)
             }))
           }))
@@ -254,6 +256,7 @@ export default {
         if (fieldIndex !== -1) {
           section.fields[fieldIndex] = {
             ...section.fields[fieldIndex],
+            original_readonly: section.fields[fieldIndex].original_readonly,
             ...field
           };
           updateFormState();
@@ -309,6 +312,18 @@ export default {
         loadFieldsData();
       }
     }, { deep: true });
+
+    // Watch para mudanças no modo readOnly do formulário
+    watch(formReadOnly, newVal => {
+      formSections.value.forEach(section => {
+        section.fields.forEach(field => {
+          if (field.original_readonly === undefined) {
+            field.original_readonly = Boolean(field.is_readonly);
+          }
+          field.is_readonly = field.original_readonly || newVal;
+        });
+      });
+    });
 
     // Watch para formSections para debug
     watch(formSections, (newSections, oldSections) => {
