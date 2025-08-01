@@ -2,6 +2,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
     <ComponentSelector
         :datasource="content.userDatasource"
+        :uid="uid"
         :value-field="content.valueField"
         :label-field="content.labelField"
         :name-font-family="content.nameFontFamily"
@@ -50,6 +51,7 @@ export default {
     data() {
         return {
             selectedComponentId: '',
+            inputValue: '',
         };
     },
     created() {
@@ -67,6 +69,22 @@ export default {
                 () => value.value,
                 (val) => {
                     this.selectedComponentId = val;
+                }
+            );
+
+            const { value: inputVal, setValue: setInputVal } = wwLib.wwVariable.useComponentVariable({
+                uid: this.uid,
+                name: 'inputValue',
+                type: 'text',
+                defaultValue: ''
+            });
+            this._inputValueRef = inputVal;
+            this._setInputValue = setInputVal;
+            this.inputValue = inputVal.value;
+            this.$watch(
+                () => inputVal.value,
+                (val) => {
+                    this.inputValue = val;
                 }
             );
         }
