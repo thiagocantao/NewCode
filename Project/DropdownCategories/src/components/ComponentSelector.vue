@@ -14,7 +14,7 @@
       />
       <span class="dropdown-arrow">&#9662;</span>
     </div>
-    <div v-if="isOpen" class="component-selector__dropdown">
+    <div v-if="isOpen && (!inputMode || filteredComponents.length > 0)" class="component-selector__dropdown">
       <div
         v-for="(component, idx) in filteredComponents"
         :key="component[valueField] || ('title-' + idx)"
