@@ -104,7 +104,8 @@ export default {
       isOpen: false,
       selectedComponent: null,
       localDatasource: [],
-      isTyping: false
+      isTyping: false,
+      userInput: ''
     };
   },
   computed: {
@@ -121,12 +122,15 @@ export default {
     },
     filteredComponents() {
       let filtered = [...this.filteredItems];
-      if (this.listTitle) {
+      if (this.listTitle && !this.inputMode) {
         filtered.unshift({ __isTitle: true, [this.labelField]: this.listTitle });
       }
       return filtered;
     },
     inputDisplayValue() {
+      if (this.inputMode) {
+        return this.userInput;
+      }
       // Mostra o valor selecionado se não estiver digitando
       if (!this.isOpen || (!this.isTyping && !this.search)) {
         return this.selectedComponent?.[this.labelField] || '';
@@ -166,6 +170,23 @@ export default {
         type: 'text',
         defaultValue: ''
       });
+      this.inputValueVar = wwLib.wwVariable.useComponentVariable({
+        uid: this.uid,
+        name: 'inputValue',
+        type: 'text',
+        defaultValue: ''
+      });
+      if (this.inputValueVar?.value) {
+        this.userInput = this.inputValueVar.value.value || '';
+        this.search = this.userInput;
+        this.$watch(
+          () => this.inputValueVar.value.value,
+          val => {
+            this.userInput = val;
+            this.search = val;
+          }
+        );
+      }
     }
   },
   mounted() {
@@ -206,6 +227,12 @@ export default {
     selectedComponent(newComponent) {
       if (this.selectedComponentIdVar?.setValue) {
         this.selectedComponentIdVar.setValue(newComponent?.[this.valueField] || '');
+      }
+    },
+    search(newVal) {
+      this.userInput = newVal;
+      if (this.inputValueVar?.setValue) {
+        this.inputValueVar.setValue(newVal);
       }
     }
   },
