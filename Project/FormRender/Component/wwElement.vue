@@ -100,9 +100,15 @@ export default {
     const ticketId = computed(() => props.ticketId || props.content.ticketId);
     const companyId = computed(() => props.content.companyId);
     const language = computed(() => props.content.language);
-    const formReadOnly = computed(() =>
-      props.readOnly !== undefined ? props.readOnly : props.content.readOnly
-    );
+    const formReadOnly = computed(() => {
+      const propVal = props.readOnly;
+      const contentVal = props.content.readOnly;
+      // handle cases where readOnly might be provided as a string
+      const normalize = val =>
+        val === 'true' || val === true ? true : false;
+      if (propVal !== undefined) return normalize(propVal);
+      return normalize(contentVal);
+    });
 
     const loadFormData = () => {
       let formData = null;
@@ -314,7 +320,6 @@ export default {
     }, { deep: true });
 
     // Watch para mudanças no modo readOnly do formulário
-    
     watch(
       formReadOnly,
       newVal => {
@@ -329,6 +334,21 @@ export default {
         updateFormState();
       },
       { immediate: true }
+    );
+    // Garantir reatividade caso o valor seja atualizado via props
+    watch(
+      () => props.readOnly,
+      val => {
+        const normalized = val === 'true' || val === true;
+        if (normalized !== formReadOnly.value) {
+          formSections.value.forEach(section => {
+            section.fields.forEach(field => {
+              field.is_readonly = field.original_readonly || normalized;
+            });
+          });
+          updateFormState();
+        }
+      }
     );
 
     // Watch para formSections para debug
