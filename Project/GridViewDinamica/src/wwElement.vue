@@ -863,7 +863,9 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             field: colCopy.field,
             sortable: colCopy.sortable,
             filter: ListFilterRenderer,
-            cellRenderer: ((tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') ? "UserCellRenderer" : (colCopy.useCustomFormatter ? 'FormatterCellRenderer' : undefined)),
+            cellRenderer: (tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID')
+              ? 'UserCellRenderer'
+              : 'FormatterCellRenderer',
             cellRendererParams: {
               useCustomFormatter: colCopy.useCustomFormatter,
               formatter: colCopy.formatter,
@@ -966,7 +968,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                 field: colCopy.field,
                 sortable: colCopy.sortable,
                 filter: ListFilterRenderer,
-                cellRenderer: colCopy.useCustomFormatter ? 'FormatterCellRenderer' : undefined,
+                cellRenderer: 'FormatterCellRenderer',
                 cellRendererParams: {
                   useCustomFormatter: colCopy.useCustomFormatter,
                   formatter: colCopy.formatter,
