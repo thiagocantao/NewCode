@@ -427,9 +427,9 @@ export default {
 /* Dropdown de opções: largura igual ao input/container, sem overflow */
 .component-selector__dropdown {
   position: absolute;
-  top: 100%;
-  left: 0;
-  width: 100%;
+  margin-top:2px;
+  left: 3%;
+  width: 94%;
   min-width: 0;
   background: #fff;
   border-radius: 0 0 8px 8px;
