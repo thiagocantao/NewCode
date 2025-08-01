@@ -13,14 +13,14 @@
 <script>
 import { ref, onMounted, onUnmounted, computed } from 'vue';
   // Função global original
-function getRoundedSpanColor(value, colorArray, fieldName) {
+function getRoundedSpanColor(value, colorArray, fieldName, isBold) {
 
   if (!colorArray || !Array.isArray(colorArray) || !value) return value;
   const matchingStyle = colorArray.find(item => item.Valor === value);
   if (!matchingStyle) return value;
   // O border-radius será definido dinamicamente no formatter
   const borderRadius = fieldName === 'StatusID' ? '4px' : '12px';
-  const fontweight = "font-weight:bold;";
+  const fontweight = isBold == false ? "" : "font-weight:bold;";
   return `<span style="height:25px; color: ${matchingStyle.CorFonte}; background:${matchingStyle.CorFundo}; border: 1px solid ${matchingStyle.CorFundo}; border-radius: ${borderRadius}; ${fontweight} display: inline-flex; align-items: center; padding: 0 12px;">${value}</span>`;
 }
 
