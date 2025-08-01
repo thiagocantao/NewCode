@@ -19,14 +19,17 @@
         v-for="(component, idx) in filteredComponents"
         :key="component[valueField] || ('title-' + idx)"
         class="component-selector__item"
-        :class="[component.__isTitle ? 'component-selector__item--title' : '',
-                  component.isEnabled === false ? 'component-selector__item--disabled' : '']"
-        @click.stop="!component.__isTitle && component.isEnabled !== false && selectComponent(component)"
+        :class="[
+          component.__isTitle ? 'component-selector__item--title' : '',
+          component.isEnabled === false ? 'component-selector__item--disabled' : '',
+          inputMode ? 'component-selector__item--not-clickable' : ''
+        ]"
+        @click.stop="!component.__isTitle && component.isEnabled !== false && !inputMode && selectComponent(component)"
       >
         <span class="component-selector__name" :style="nameStyle">{{ component?.[labelField] || '' }}</span>
       </div>
       <div
-        v-if="filteredItems.length === 0 && search.trim()"
+        v-if="filteredItems.length === 0 && search.trim() && !inputMode"
         class="component-selector__item"
         @click.stop="createNewOption"
         style="font-style: italic; color: #888;"
@@ -83,6 +86,10 @@ export default {
     ApiURL: String,
     ApiBody: Object,
     readOnly: {
+      type: Boolean,
+      default: false
+    },
+    inputMode: {
       type: Boolean,
       default: false
     },
@@ -233,6 +240,7 @@ export default {
       this.isTyping = true;
     },
     handleEnter() {
+      if (this.inputMode) return;
       if (this.filteredItems.length === 0 && this.search.trim()) {
         this.createNewOption();
       } else if (this.filteredItems.length === 1) {
@@ -419,6 +427,10 @@ export default {
 .component-selector__item--disabled {
   pointer-events: none;
   opacity: 0.5;
+}
+.component-selector__item--not-clickable {
+  pointer-events: none;
+  cursor: default;
 }
 .component-selector__item--title {
   font-weight: bold;

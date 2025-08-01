@@ -195,6 +195,13 @@ export default {
             bindable: true,
             description: 'Se verdadeiro, o dropdown ficará somente leitura.'
         },
+        inputMode: {
+            label: { en: 'Input mode' },
+            type: 'boolean',
+            defaultValue: false,
+            bindable: true,
+            description: 'Quando verdadeiro, desativa a seleção e a criação de novos itens.'
+        },
         listTitle: {
             label: { en: 'Dropdown list title' },
             type: 'text',
