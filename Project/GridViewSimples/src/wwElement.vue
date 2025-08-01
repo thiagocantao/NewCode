@@ -278,6 +278,7 @@ export default {
         };
         const cellClass = col.textAlign ? `ag-text-${col.textAlign}` : undefined;
         const headerClass = col.headerAlign ? `ag-header-align-${col.headerAlign}` : undefined;
+        const baseCellStyle = col.textAlign ? { textAlign: col.textAlign } : undefined;
         switch (col.cellDataType) {
           case "action": {
             return {
@@ -294,6 +295,7 @@ export default {
               filter: false,
               cellClass,
               headerClass,
+              ...(baseCellStyle ? { cellStyle: baseCellStyle } : {}),
             };
           }
           case "custom":
@@ -309,6 +311,7 @@ export default {
               filter: col.filter,
               cellClass,
               headerClass,
+              ...(baseCellStyle ? { cellStyle: baseCellStyle } : {}),
             };
           case "image": {
             return {
@@ -322,6 +325,7 @@ export default {
               },
               cellClass,
               headerClass,
+              ...(baseCellStyle ? { cellStyle: baseCellStyle } : {}),
             };
           }
           case "boolean": {
@@ -356,6 +360,7 @@ export default {
               },
               cellClass,
               headerClass,
+              ...(baseCellStyle ? { cellStyle: baseCellStyle } : {}),
             };
           }
           case "list":
@@ -369,6 +374,7 @@ export default {
               editable: col.editable,
               cellClass,
               headerClass,
+              ...(baseCellStyle ? { cellStyle: baseCellStyle } : {}),
             };
             if (col.useCustomLabel) {
               result.valueFormatter = (params) => {
