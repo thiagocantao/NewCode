@@ -276,9 +276,13 @@ export default {
           flex,
           hide: !!col.hide,
         };
-        const cellClass = col.textAlign ? `ag-text-${col.textAlign}` : undefined;
-        const headerClass = col.headerAlign ? `ag-header-align-${col.headerAlign}` : undefined;
-        const baseCellStyle = col.textAlign ? { textAlign: col.textAlign } : undefined;
+        
+        const cellAlign = col.textAlign ?? this.content.textAlign;
+        const headerAlign = col.headerAlign ?? this.content.headerAlign;
+        const cellClass = cellAlign ? `ag-text-${cellAlign}` : undefined;
+        const headerClass = headerAlign ? `ag-header-align-${headerAlign}` : undefined;
+        const baseCellStyle = cellAlign ? { textAlign: cellAlign } : undefined;
+
         switch (col.cellDataType) {
           case "action": {
             return {
