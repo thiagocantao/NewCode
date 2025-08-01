@@ -276,8 +276,11 @@ export default {
           flex,
           hide: !!col.hide,
         };
-        const cellClass = col.textAlign ? `ag-text-${col.textAlign}` : undefined;
-        const headerClass = col.headerAlign ? `ag-header-align-${col.headerAlign}` : undefined;
+        const cellAlign = col.textAlign ?? this.content.textAlign;
+        const headerAlign = col.headerAlign ?? this.content.headerAlign;
+        const cellClass = cellAlign ? `ag-text-${cellAlign}` : undefined;
+        const headerClass = headerAlign ? `ag-header-align-${headerAlign}` : undefined;
+        const baseCellStyle = cellAlign ? { textAlign: cellAlign } : undefined;
         switch (col.cellDataType) {
           case "action": {
             return {
@@ -294,6 +297,7 @@ export default {
               filter: false,
               cellClass,
               headerClass,
+              ...(baseCellStyle ? { cellStyle: baseCellStyle } : {}),
             };
           }
           case "custom":
@@ -309,6 +313,7 @@ export default {
               filter: col.filter,
               cellClass,
               headerClass,
+              ...(baseCellStyle ? { cellStyle: baseCellStyle } : {}),
             };
           case "image": {
             return {
@@ -322,6 +327,7 @@ export default {
               },
               cellClass,
               headerClass,
+              ...(baseCellStyle ? { cellStyle: baseCellStyle } : {}),
             };
           }
           case "boolean": {
@@ -356,6 +362,7 @@ export default {
               },
               cellClass,
               headerClass,
+              ...(baseCellStyle ? { cellStyle: baseCellStyle } : {}),
             };
           }
           case "list":
@@ -369,6 +376,7 @@ export default {
               editable: col.editable,
               cellClass,
               headerClass,
+              ...(baseCellStyle ? { cellStyle: baseCellStyle } : {}),
             };
             if (col.useCustomLabel) {
               result.valueFormatter = (params) => {
@@ -743,7 +751,12 @@ export default {
       justify-content: flex-end !important;
     }
 
-    :deep(.ag-cell.ag-text-left),
+    :deep(.ag-cell.ag-text-left) {
+      justify-content: flex-start !important;
+      display: flex !important;
+      padding-right: 24px !important;
+    }
+
     :deep(.ag-cell.ag-text-center) {
       justify-content: center !important;
       display: flex !important;
