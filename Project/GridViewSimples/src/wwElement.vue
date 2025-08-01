@@ -276,11 +276,13 @@ export default {
           flex,
           hide: !!col.hide,
         };
+        
         const cellAlign = col.textAlign ?? this.content.textAlign;
         const headerAlign = col.headerAlign ?? this.content.headerAlign;
         const cellClass = cellAlign ? `ag-text-${cellAlign}` : undefined;
         const headerClass = headerAlign ? `ag-header-align-${headerAlign}` : undefined;
         const baseCellStyle = cellAlign ? { textAlign: cellAlign } : undefined;
+
         switch (col.cellDataType) {
           case "action": {
             return {
