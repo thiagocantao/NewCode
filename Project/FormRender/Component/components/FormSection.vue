@@ -73,6 +73,10 @@ export default {
     userId: {
       type: String,
       required: false
+    },
+    readOnly: {
+      type: Boolean,
+      default: false
     }
   },
   emits: ['update:value'],
@@ -108,7 +112,8 @@ export default {
           tip_translations: field.tip_translations || completeField?.tip_translations,
           list_options: field.list_options || field.listOptions || completeField?.list_options || completeField?.listOptions,
           dataSource: field.dataSource || field.data_source || completeField?.dataSource || completeField?.data_source,
-          value: field.value // força o valor do JSON
+          value: field.value, // força o valor do JSON
+          is_readonly: field.is_readonly || props.readOnly
         };
       });
     });

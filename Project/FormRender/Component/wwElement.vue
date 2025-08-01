@@ -1,7 +1,7 @@
 <template>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
   <div class="form-builder-container">
-    <div class="form-builder">
+    <div class="form-builder" :class="{ 'readonly-form': formReadOnly }">
       <div class="form-sections-container scrollable" ref="formSectionsContainer">
                 <!-- Estado de carregamento -->
         <div v-if="isLoading" class="loading-container">
@@ -19,6 +19,7 @@
             <FormSection v-for="section in formSections" :key="`section-${section.id}-${renderKey}`" :section="section"
               :all-fields="allAvailableFields" :is-editing="isEditing" :api-url="apiUrl" :api-key="apiKey"
               :api-authorization="apiAuthorization" :ticket-id="ticketId" :company-id="companyId" :language="language"
+              :read-only="formReadOnly"
               @update-section="updateFormState" @edit-section="editSection" @edit-field="editFormField"
               @remove-field="removeFormField" @select-field="selectFieldForProperties"
               @remove-section="handleRemoveSection" />
@@ -66,6 +67,10 @@ export default {
     ticketId: {
       type: String,
       required: false
+    },
+    readOnly: {
+      type: Boolean,
+      required: false
     }
   },
   setup(props) {
@@ -95,6 +100,9 @@ export default {
     const ticketId = computed(() => props.ticketId || props.content.ticketId);
     const companyId = computed(() => props.content.companyId);
     const language = computed(() => props.content.language);
+    const formReadOnly = computed(() =>
+      props.readOnly !== undefined ? props.readOnly : props.content.readOnly
+    );
 
     const loadFormData = () => {
       let formData = null;
@@ -147,7 +155,7 @@ export default {
               fieldType: field.fieldType || 'text',
               columns: parseInt(field.columns) || 1,
               is_mandatory: Boolean(field.is_mandatory),
-              is_readonly: Boolean(field.is_readonly),
+              is_readonly: Boolean(field.is_readonly || formReadOnly.value),
               is_hide_legend: Boolean(field.is_hide_legend),
               dataSource: field.dataSource || field.data_source,
               list_options: field.list_options || field.listOptions,
@@ -201,7 +209,7 @@ export default {
               fieldType: field.fieldType || 'text',
               columns: parseInt(field.columns) || 1,
               is_mandatory: Boolean(field.is_mandatory),
-              is_readonly: Boolean(field.is_readonly),
+              is_readonly: Boolean(field.is_readonly || formReadOnly.value),
               is_hide_legend: Boolean(field.is_hide_legend)
             }))
           }))
@@ -324,6 +332,7 @@ export default {
       ticketId,
       companyId,
       language,
+      formReadOnly,
       isLoading,
       renderKey
     };
@@ -440,5 +449,9 @@ export default {
     color: #666;
     font-size: 14px;
     margin: 0;
+  }
+
+  .readonly-form {
+    opacity: 0.8;
   }
 </style>
