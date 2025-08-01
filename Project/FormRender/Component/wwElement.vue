@@ -314,16 +314,22 @@ export default {
     }, { deep: true });
 
     // Watch para mudanças no modo readOnly do formulário
-    watch(formReadOnly, newVal => {
-      formSections.value.forEach(section => {
-        section.fields.forEach(field => {
-          if (field.original_readonly === undefined) {
-            field.original_readonly = Boolean(field.is_readonly);
-          }
-          field.is_readonly = field.original_readonly || newVal;
+    
+    watch(
+      formReadOnly,
+      newVal => {
+        formSections.value.forEach(section => {
+          section.fields.forEach(field => {
+            if (field.original_readonly === undefined) {
+              field.original_readonly = Boolean(field.is_readonly);
+            }
+            field.is_readonly = field.original_readonly || newVal;
+          });
         });
-      });
-    });
+        updateFormState();
+      },
+      { immediate: true }
+    );
 
     // Watch para formSections para debug
     watch(formSections, (newSections, oldSections) => {
