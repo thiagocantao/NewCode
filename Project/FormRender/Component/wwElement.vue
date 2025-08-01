@@ -3,7 +3,7 @@
   <div class="form-builder-container">
     <div class="form-builder" :class="{ 'readonly-form': formReadOnly }">
       <div class="form-sections-container scrollable" ref="formSectionsContainer">
-                <!-- Estado de carregamento -->
+        <!-- Estado de carregamento -->
         <div v-if="isLoading" class="loading-container">
           <div class="loading-spinner"></div>
           <p>Carregando formulário...</p>
@@ -19,9 +19,8 @@
             <FormSection v-for="section in formSections" :key="`section-${section.id}-${renderKey}`" :section="section"
               :all-fields="allAvailableFields" :is-editing="isEditing" :api-url="apiUrl" :api-key="apiKey"
               :api-authorization="apiAuthorization" :ticket-id="ticketId" :company-id="companyId" :language="language"
-              :read-only="formReadOnly"
-              @update-section="updateFormState" @edit-section="editSection" @edit-field="editFormField"
-              @remove-field="removeFormField" @select-field="selectFieldForProperties"
+              :read-only="formReadOnly" @update-section="updateFormState" @edit-section="editSection"
+              @edit-field="editFormField" @remove-field="removeFormField" @select-field="selectFieldForProperties"
               @remove-section="handleRemoveSection" />
           </div>
         </template>
@@ -100,15 +99,7 @@ export default {
     const ticketId = computed(() => props.ticketId || props.content.ticketId);
     const companyId = computed(() => props.content.companyId);
     const language = computed(() => props.content.language);
-    const formReadOnly = computed(() => {
-      const propVal = props.readOnly;
-      const contentVal = props.content.readOnly;
-      // handle cases where readOnly might be provided as a string
-      const normalize = val =>
-        val === 'true' || val === true ? true : false;
-      if (propVal !== undefined) return normalize(propVal);
-      return normalize(contentVal);
-    });
+    const formReadOnly = computed(() => props.content.readOnly);
 
     const loadFormData = () => {
       let formData = null;
