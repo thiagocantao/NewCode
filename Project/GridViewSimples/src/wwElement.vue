@@ -277,6 +277,7 @@ export default {
           hide: !!col.hide,
         };
         
+        
         const cellAlign = col.textAlign ?? this.content.textAlign;
         const headerAlign = col.headerAlign ?? this.content.headerAlign;
         const cellClass = cellAlign ? `ag-text-${cellAlign}` : undefined;
@@ -296,11 +297,13 @@ export default {
                 withFont: !!this.content.actionFont,
               },
               sortable: false,
+
               filter: false,
               cellClass,
               headerClass,
               ...(baseCellStyle ? { cellStyle: baseCellStyle } : {}),
             };
+
           }
           case "custom":
             return {
@@ -311,12 +314,15 @@ export default {
               cellRendererParams: {
                 containerId: col.containerId,
               },
+
+
               sortable: col.sortable,
               filter: col.filter,
               cellClass,
               headerClass,
               ...(baseCellStyle ? { cellStyle: baseCellStyle } : {}),
             };
+
           case "image": {
             return {
               ...commonProperties,
@@ -327,10 +333,12 @@ export default {
                 width: col.imageWidth,
                 height: col.imageHeight,
               },
+
               cellClass,
               headerClass,
               ...(baseCellStyle ? { cellStyle: baseCellStyle } : {}),
             };
+            
           }
           case "boolean": {
             return {
@@ -361,7 +369,7 @@ export default {
                     </span>
                   </span>
                 `;
-              },
+              },              
               cellClass,
               headerClass,
               ...(baseCellStyle ? { cellStyle: baseCellStyle } : {}),
@@ -380,6 +388,7 @@ export default {
               headerClass,
               ...(baseCellStyle ? { cellStyle: baseCellStyle } : {}),
             };
+            
             if (col.useCustomLabel) {
               result.valueFormatter = (params) => {
                 return this.resolveMappingFormula(
@@ -753,7 +762,12 @@ export default {
       justify-content: flex-end !important;
     }
 
-    :deep(.ag-cell.ag-text-left),
+    :deep(.ag-cell.ag-text-left) {
+      justify-content: flex-start !important;
+      display: flex !important;
+      padding-right: 24px !important;
+    }
+
     :deep(.ag-cell.ag-text-center) {
       justify-content: center !important;
       display: flex !important;
