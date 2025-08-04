@@ -260,6 +260,7 @@ export default {
       if (!this.searchTerm) return this.listOptions;
       const term = this.searchTerm.toLowerCase();
       return this.listOptions.filter(opt =>
+
         opt.label.toLowerCase().includes(term)
       );
     }
