@@ -224,12 +224,43 @@ export default {
     };
   },
   computed: {
+    listOptions() {
+      if (this.options && this.options.length > 0) {
+        return this.options;
+      }
+      if (
+        (this.field.fieldType === 'SIMPLE_LIST' ||
+          this.field.fieldType === 'LIST' ||
+          this.field.fieldType === 'CONTROLLED_LIST') &&
+        typeof this.field.list_options === 'string' &&
+        this.field.list_options.trim() !== ''
+      ) {
+        return this.field.list_options
+          .split(',')
+          .map(opt => {
+            const trimmed = opt.trim();
+            return { value: trimmed, label: trimmed };
+          })
+          .sort((a, b) => a.label.localeCompare(b.label));
+      }
+      if (Array.isArray(this.field.options)) {
+        return [...this.field.options].sort((a, b) => {
+          if (typeof a.label === 'string' && typeof b.label === 'string') {
+            return a.label.localeCompare(b.label);
+          }
+          return 0;
+        });
+      }
+      return [];
+    },
     selectedOption() {
-      return this.field.options?.find(opt => opt.value === this.localValue);
+      return this.listOptions.find(opt => opt.value == this.localValue) || null;
     },
     filteredListOptions() {
+      if (!this.searchTerm) return this.listOptions;
       const term = this.searchTerm.toLowerCase();
-      return (this.field.options || []).filter(opt =>
+      return this.listOptions.filter(opt =>
+
         opt.label.toLowerCase().includes(term)
       );
     }
@@ -262,6 +293,10 @@ export default {
     },
     searchTerm() { if (this.dropdownOpen) this.$nextTick(this.updateDropdownDirection); },
     'field.options': {
+      handler() { if (this.dropdownOpen) this.$nextTick(this.updateDropdownDirection); },
+      deep: true
+    },
+    options: {
       handler() { if (this.dropdownOpen) this.$nextTick(this.updateDropdownDirection); },
       deep: true
     }
