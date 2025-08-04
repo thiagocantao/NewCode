@@ -101,7 +101,7 @@
       </template>
 
       <template v-else-if="field.fieldType === 'SIMPLE_LIST' || field.fieldType === 'CONTROLLED_LIST' || field.fieldType === 'LIST'">
-        <div class="custom-dropdown-wrapper" :class="{ 'readonly-field': field.is_readonly }">
+        <div class="custom-dropdown-wrapper" :class="{ 'readonly-field': field.is_readonly, 'dropdown-open': dropdownOpen }">
           <div
             class="custom-dropdown-selected"
             :class="{ 'open': dropdownOpen, 'readonly-field': field.is_readonly }"
@@ -691,6 +691,10 @@ height:34px;
   border-style: dashed;
 }
 
+.custom-dropdown-wrapper.dropdown-open {
+  z-index: 10000;
+}
+
 .custom-dropdown-list {
   position: absolute;
   left: 0;
@@ -699,7 +703,7 @@ height:34px;
   border: 1px solid #d1d5db;
   border-radius: 0 0 6px 6px;
   box-shadow: 0 4px 16px rgba(105,157,140,0.10);
-  z-index: 100;
+  z-index: 10000;
   max-height: 220px;
   overflow-y: auto;
   margin-top: 2px;
