@@ -101,7 +101,7 @@
       </template>
 
       <template v-else-if="field.fieldType === 'SIMPLE_LIST' || field.fieldType === 'CONTROLLED_LIST' || field.fieldType === 'LIST'">
-        <div class="custom-dropdown-wrapper" :class="{ 'readonly-field': field.is_readonly }">
+        <div class="custom-dropdown-wrapper" :class="{ 'readonly-field': field.is_readonly, 'dropdown-open': dropdownOpen }">
           <div
             class="custom-dropdown-selected"
             :class="{ 'open': dropdownOpen, 'readonly-field': field.is_readonly }"
@@ -223,7 +223,47 @@ export default {
       isUserInput: false,
     };
   },
-  computed: { /* (sem alterações) */ },
+  computed: {
+    listOptions() {
+      if (this.options && this.options.length > 0) {
+        return this.options;
+      }
+      if (
+        (this.field.fieldType === 'SIMPLE_LIST' ||
+          this.field.fieldType === 'LIST' ||
+          this.field.fieldType === 'CONTROLLED_LIST') &&
+        typeof this.field.list_options === 'string' &&
+        this.field.list_options.trim() !== ''
+      ) {
+        return this.field.list_options
+          .split(',')
+          .map(opt => {
+            const trimmed = opt.trim();
+            return { value: trimmed, label: trimmed };
+          })
+          .sort((a, b) => a.label.localeCompare(b.label));
+      }
+      if (Array.isArray(this.field.options)) {
+        return [...this.field.options].sort((a, b) => {
+          if (typeof a.label === 'string' && typeof b.label === 'string') {
+            return a.label.localeCompare(b.label);
+          }
+          return 0;
+        });
+      }
+      return [];
+    },
+    selectedOption() {
+      return this.listOptions.find(opt => opt.value == this.localValue) || null;
+    },
+    filteredListOptions() {
+      if (!this.searchTerm) return this.listOptions;
+      const term = this.searchTerm.toLowerCase();
+      return this.listOptions.filter(opt =>
+        opt.label.toLowerCase().includes(term)
+      );
+    }
+  },
   watch: {
     field: {
       handler(newField) {
@@ -252,6 +292,10 @@ export default {
     },
     searchTerm() { if (this.dropdownOpen) this.$nextTick(this.updateDropdownDirection); },
     'field.options': {
+      handler() { if (this.dropdownOpen) this.$nextTick(this.updateDropdownDirection); },
+      deep: true
+    },
+    options: {
       handler() { if (this.dropdownOpen) this.$nextTick(this.updateDropdownDirection); },
       deep: true
     }
@@ -290,6 +334,29 @@ export default {
       }
       this.localValue = value;
       this.$emit('update:value', value);
+    },
+    toggleDropdown() {
+      if (this.field.is_readonly) return;
+      this.dropdownOpen = !this.dropdownOpen;
+      if (this.dropdownOpen) {
+        this.$nextTick(this.updateDropdownDirection);
+      }
+    },
+    onDropdownClick() {
+      this.toggleDropdown();
+    },
+    selectDropdownOption(option) {
+      this.localValue = option.value;
+      this.$emit('update:value', option.value);
+      this.dropdownOpen = false;
+    },
+    updateDropdownDirection() {
+      const list = this.$refs.dropdownList;
+      if (!list) return;
+      const rect = list.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      this.dropdownOpenUp = spaceBelow < 0 && spaceAbove > spaceBelow;
     }
   },
   mounted() {
@@ -691,6 +758,10 @@ height:34px;
   border-style: dashed;
 }
 
+.custom-dropdown-wrapper.dropdown-open {
+  z-index: 10000;
+}
+
 .custom-dropdown-list {
   position: absolute;
   left: 0;
@@ -699,7 +770,7 @@ height:34px;
   border: 1px solid #d1d5db;
   border-radius: 0 0 6px 6px;
   box-shadow: 0 4px 16px rgba(105,157,140,0.10);
-  z-index: 100;
+  z-index: 10000;
   max-height: 220px;
   overflow-y: auto;
   margin-top: 2px;
