@@ -223,7 +223,17 @@ export default {
       isUserInput: false,
     };
   },
-  computed: { /* (sem alterações) */ },
+  computed: {
+    selectedOption() {
+      return this.field.options?.find(opt => opt.value === this.localValue);
+    },
+    filteredListOptions() {
+      const term = this.searchTerm.toLowerCase();
+      return (this.field.options || []).filter(opt =>
+        opt.label.toLowerCase().includes(term)
+      );
+    }
+  },
   watch: {
     field: {
       handler(newField) {
@@ -290,6 +300,29 @@ export default {
       }
       this.localValue = value;
       this.$emit('update:value', value);
+    },
+    toggleDropdown() {
+      if (this.field.is_readonly) return;
+      this.dropdownOpen = !this.dropdownOpen;
+      if (this.dropdownOpen) {
+        this.$nextTick(this.updateDropdownDirection);
+      }
+    },
+    onDropdownClick() {
+      this.toggleDropdown();
+    },
+    selectDropdownOption(option) {
+      this.localValue = option.value;
+      this.$emit('update:value', option.value);
+      this.dropdownOpen = false;
+    },
+    updateDropdownDirection() {
+      const list = this.$refs.dropdownList;
+      if (!list) return;
+      const rect = list.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      this.dropdownOpenUp = spaceBelow < 0 && spaceAbove > spaceBelow;
     }
   },
   mounted() {
