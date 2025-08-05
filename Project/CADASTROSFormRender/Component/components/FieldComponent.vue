@@ -353,8 +353,12 @@ export default {
       this.localValue = event.target.innerHTML;
     },
     format(cmd) {
-      this.$refs.rte && this.$refs.rte.focus();
-      document.execCommand(cmd, false, null);
+      if (this.$refs.rte) {
+        this.$refs.rte.focus();
+        document.execCommand(cmd, false, null);
+        this.localValue = this.$refs.rte.innerHTML;
+        this.$emit('update:value', this.localValue);
+      }
     },
     saveSelection() {
       const sel = window.getSelection();
@@ -373,19 +377,31 @@ export default {
       }
       document.execCommand('foreColor', false, event.target.value);
       this.currentColor = event.target.value;
+      if (this.$refs.rte) {
+        this.localValue = this.$refs.rte.innerHTML;
+        this.$emit('update:value', this.localValue);
+      }
     },
     insertLink() {
-      this.$refs.rte && this.$refs.rte.focus();
-      const url = prompt('Digite a URL do link:');
-      if (url) {
-        document.execCommand('createLink', false, url);
+      if (this.$refs.rte) {
+        this.$refs.rte.focus();
+        const url = prompt('Digite a URL do link:');
+        if (url) {
+          document.execCommand('createLink', false, url);
+          this.localValue = this.$refs.rte.innerHTML;
+          this.$emit('update:value', this.localValue);
+        }
       }
     },
     insertImage() {
-      this.$refs.rte && this.$refs.rte.focus();
-      const url = prompt('Digite a URL da imagem:');
-      if (url) {
-        document.execCommand('insertImage', false, url);
+      if (this.$refs.rte) {
+        this.$refs.rte.focus();
+        const url = prompt('Digite a URL da imagem:');
+        if (url) {
+          document.execCommand('insertImage', false, url);
+          this.localValue = this.$refs.rte.innerHTML;
+          this.$emit('update:value', this.localValue);
+        }
       }
     },
     toggleDropdown() {
