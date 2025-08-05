@@ -146,7 +146,14 @@
             <button type="button" @click="insertImage" title="Inserir imagem"><span class="material-symbols-outlined">image</span></button>
             <button type="button" class="color-btn" :style="{ color: currentColor }" title="Cor do texto">
               <span style="font-weight:bold; font-size:16px;">A</span>
-              <input type="color" @input="setColor($event)" :value="currentColor" class="color-input" title="Cor do texto" />
+              <input
+                type="color"
+                @mousedown="saveSelection"
+                @input="setColor($event)"
+                :value="currentColor"
+                class="color-input"
+                title="Cor do texto"
+              />
             </button>
           </div>
           <div
@@ -240,6 +247,7 @@ export default {
       dataNow: new Date(),
       showDeadlinePicker: false,
       currentColor: '#699d8c',
+      savedSelection: null,
       isUserInput: false,
     }
   },
@@ -632,8 +640,21 @@ export default {
       this.$refs.rte && this.$refs.rte.focus();
       document.execCommand(cmd, false, null);
     },
+    saveSelection() {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        this.savedSelection = sel.getRangeAt(0);
+      }
+    },
     setColor(event) {
-      this.$refs.rte && this.$refs.rte.focus();
+      if (this.$refs.rte) {
+        this.$refs.rte.focus();
+      }
+      const sel = window.getSelection();
+      if (this.savedSelection && sel) {
+        sel.removeAllRanges();
+        sel.addRange(this.savedSelection);
+      }
       document.execCommand('foreColor', false, event.target.value);
       this.currentColor = event.target.value;
     },
