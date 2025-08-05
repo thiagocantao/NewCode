@@ -319,7 +319,12 @@ export default {
       return val ?? '';
     },
     updateValue(event) {
-      let value = event.target.value;
+      let value;
+      if (this.field.fieldType === 'FORMATED_TEXT') {
+        value = this.localValue;
+      } else {
+        value = event.target.value;
+      }
       switch (this.field.fieldType) {
         case 'DECIMAL':
           value = value === '' ? null : parseFloat(value);
@@ -335,6 +340,9 @@ export default {
       }
       this.localValue = value;
       this.$emit('update:value', value);
+    },
+    onContentEditableInput(event) {
+      this.localValue = event.target.innerHTML;
     },
     toggleDropdown() {
       if (this.field.is_readonly) return;
