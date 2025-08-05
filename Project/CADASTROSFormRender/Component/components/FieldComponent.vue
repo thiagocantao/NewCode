@@ -344,6 +344,29 @@ export default {
     onContentEditableInput(event) {
       this.localValue = event.target.innerHTML;
     },
+    format(cmd) {
+      this.$refs.rte && this.$refs.rte.focus();
+      document.execCommand(cmd, false, null);
+    },
+    setColor(event) {
+      this.$refs.rte && this.$refs.rte.focus();
+      document.execCommand('foreColor', false, event.target.value);
+      this.currentColor = event.target.value;
+    },
+    insertLink() {
+      this.$refs.rte && this.$refs.rte.focus();
+      const url = prompt('Digite a URL do link:');
+      if (url) {
+        document.execCommand('createLink', false, url);
+      }
+    },
+    insertImage() {
+      this.$refs.rte && this.$refs.rte.focus();
+      const url = prompt('Digite a URL da imagem:');
+      if (url) {
+        document.execCommand('insertImage', false, url);
+      }
+    },
     toggleDropdown() {
       if (this.field.is_readonly) return;
       this.dropdownOpen = !this.dropdownOpen;
