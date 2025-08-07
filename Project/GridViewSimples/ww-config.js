@@ -28,6 +28,7 @@ export default {
         "cellFontFamily",
         "cellFontSize",
         "cellSelectionBorderColor",
+        "cellCursor",
       ],
       ["menuTitle", "menuTextColor", "menuBackgroundColor"],
       [
@@ -377,6 +378,42 @@ export default {
         type: "string",
         cssSupports: "color",
       },
+    },
+    cellCursor: {
+      type: "TextSelect",
+      label: "Cursor",
+      options: {
+        options: [
+          { value: null, label: "Default", default: true },
+          { value: "default", label: "Default Cursor" },
+          { value: "pointer", label: "Pointer (mãozinha)" },
+          { value: "text", label: "Text (texto)" },
+          { value: "move", label: "Move (mover)" },
+          { value: "crosshair", label: "Crosshair (mira)" },
+          { value: "not-allowed", label: "Not Allowed (proibido)" },
+          { value: "help", label: "Help (ajuda)" },
+          { value: "wait", label: "Wait (aguarde)" },
+          { value: "progress", label: "Progress (progresso)" },
+          { value: "copy", label: "Copy (copiar)" },
+          { value: "grab", label: "Grab (pegar)" },
+          { value: "zoom-in", label: "Zoom In" },
+          { value: "zoom-out", label: "Zoom Out" }
+        ],
+      },
+      responsive: true,
+      bindable: true,
+      states: true,
+      classes: true,
+      /* wwEditor:start */
+      bindingValidation: {
+        type: "string",
+        tooltip: "Tipo de cursor ao passar o mouse sobre as células",
+      },
+      propertyHelp: {
+        tooltip:
+          "Defina o cursor do mouse para todas as células da grid. Se vazio, será usado o cursor de cada coluna.",
+      },
+      /* wwEditor:end */
     },
     columnHoverHighlight: {
       type: "OnOff",

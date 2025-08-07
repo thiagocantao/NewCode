@@ -284,9 +284,23 @@ export default {
         const headerClass = headerAlign ? `ag-header-align-${headerAlign}` : undefined;
         const baseCellStyle = cellAlign ? { textAlign: cellAlign } : undefined;
 
+        const applyCursor = (result) => {
+          const cursor = this.content.cellCursor ?? col.cursor;
+          if (cursor) {
+            const userCellStyle = result.cellStyle;
+            result.cellStyle = (params) => ({
+              ...(typeof userCellStyle === 'function'
+                ? userCellStyle(params)
+                : userCellStyle || {}),
+              cursor,
+            });
+          }
+          return result;
+        };
+
         switch (col.cellDataType) {
           case "action": {
-            return {
+            const result = {
               ...commonProperties,
               headerName: col.headerName,
               cellRenderer: "ActionCellRenderer",
@@ -303,10 +317,11 @@ export default {
               headerClass,
               ...(baseCellStyle ? { cellStyle: baseCellStyle } : {}),
             };
+            return applyCursor(result);
 
           }
-          case "custom":
-            return {
+          case "custom": {
+            const result = {
               ...commonProperties,
               headerName: col.headerName,
               field: col.field,
@@ -322,9 +337,11 @@ export default {
               headerClass,
               ...(baseCellStyle ? { cellStyle: baseCellStyle } : {}),
             };
+            return applyCursor(result);
+          }
 
           case "image": {
-            return {
+            const result = {
               ...commonProperties,
               headerName: col.headerName,
               field: col.field,
@@ -338,10 +355,11 @@ export default {
               headerClass,
               ...(baseCellStyle ? { cellStyle: baseCellStyle } : {}),
             };
-            
+            return applyCursor(result);
+
           }
           case "boolean": {
-            return {
+            const result = {
               ...commonProperties,
               headerName: col.headerName,
               field: col.field,
@@ -374,6 +392,7 @@ export default {
               headerClass,
               ...(baseCellStyle ? { cellStyle: baseCellStyle } : {}),
             };
+            return applyCursor(result);
           }
           case "list":
           default: {
@@ -410,15 +429,8 @@ export default {
               console.log('Configurando filtro customizado para coluna:', col.headerName);
               result.filter = ListFilterRenderer;
             }
-            // Adicionar cursor customizado se definido
-            if (col.cursor) {
-              const userCellStyle = result.cellStyle;
-              result.cellStyle = params => ({
-                ...(typeof userCellStyle === 'function' ? userCellStyle(params) : userCellStyle || {}),
-                cursor: col.cursor
-              });
-            }
-            return result;
+
+            return applyCursor(result);
           }
         }
       });
