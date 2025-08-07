@@ -570,6 +570,13 @@ export default {
     onRowClicked(event) {
       const colId = event.column && event.column.getColId && event.column.getColId();
       const colDef = event.column && event.column.colDef;
+      const clickedTarget = event.event && event.event.target;
+      const clickedOnSelection =
+        clickedTarget &&
+        clickedTarget.closest &&
+        clickedTarget.closest(
+          '.ag-selection-checkbox, .ag-checkbox-input-wrapper, .ag-cell-checkbox'
+        );
       const isSelectionCol =
         (colId && (
           colId === 'ag-Grid-SelectionColumn' ||
@@ -578,7 +585,8 @@ export default {
           colId === 'selection' ||
           colId.toLowerCase().includes('selection')
         )) ||
-        (colDef && colDef.checkboxSelection);
+        (colDef && colDef.checkboxSelection) ||
+        clickedOnSelection;
       if (isSelectionCol) return;
       this.$emit("trigger-event", {
         name: "rowClicked",
