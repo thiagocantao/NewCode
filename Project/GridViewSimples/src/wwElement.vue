@@ -570,6 +570,7 @@ export default {
     onRowClicked(event) {
       const colId = event.column && event.column.getColId && event.column.getColId();
       const colDef = event.column && event.column.colDef;
+      const field = colDef && colDef.field;
       const clickedTarget = event.event && event.event.target;
       const clickedOnSelection =
         clickedTarget &&
@@ -595,6 +596,7 @@ export default {
           id: event.node.id,
           index: event.node.sourceRowIndex,
           displayIndex: event.rowIndex,
+          field,
         },
       });
     },
@@ -646,6 +648,7 @@ export default {
         id: 0,
         index: 0,
         displayIndex: 0,
+        field: Object.keys(data[0])[0],
       };
     },
     /* wwEditor:end */
