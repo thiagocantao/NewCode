@@ -126,6 +126,7 @@ export default {
         id: 0,
         index: 0,
         displayIndex: 0,
+        field: "field",
       },
       getTestEvent: "getRowClickedTestEvent",
     },
