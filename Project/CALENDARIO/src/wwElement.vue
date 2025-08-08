@@ -1,516 +1,225 @@
 <template>
-    <div class="ww-datagrid" :class="{ editing: isEditing }" :style="cssVars">
-      <ag-grid-vue
-        :rowData="rowData"
-        :columnDefs="columnDefs"
-        :defaultColDef="defaultColDef"
-        :domLayout="content.layout === 'auto' ? 'autoHeight' : 'normal'"
-        :style="style"
-        :rowSelection="rowSelection"
-        :selection-column-def="{ pinned: true }"
-        :theme="theme"
-        :getRowId="getRowId"
-        :pagination="content.pagination"
-        :paginationPageSize="content.paginationPageSize || 10"
-        :paginationPageSizeSelector="false"
-        :suppressMovableColumns="!content.movableColumns"
-        :columnHoverHighlight="content.columnHoverHighlight"
-        :locale-text="localeText"
-        @grid-ready="onGridReady"
-        @row-selected="onRowSelected"
-        @selection-changed="onSelectionChanged"
-        @cell-value-changed="onCellValueChanged"
-        @filter-changed="onFilterChanged"
-        @sort-changed="onSortChanged"
-        @row-clicked="onRowClicked"
-      >
-      </ag-grid-vue>
+  <div class="corporate-calendar">
+    <div class="shift-config">
+      <table class="shift-table">
+        <thead>
+          <tr>
+            <th>Dia</th>
+            <th>Ativo</th>
+            <th>Início</th>
+            <th>Fim</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="day in weekDays" :key="day.name">
+            <td>{{ day.label }}</td>
+            <td><input type="checkbox" v-model="day.active" /></td>
+            <td><input type="time" v-model="day.start" :disabled="!day.active" /></td>
+            <td><input type="time" v-model="day.end" :disabled="!day.active" /></td>
+          </tr>
+        </tbody>
+      </table>
     </div>
-  </template>
-  
-  <script>
-  import { shallowRef, watchEffect, computed } from "vue";
-  import { AgGridVue } from "ag-grid-vue3";
-  import {
-    AllCommunityModule,
-    ModuleRegistry,
-    themeQuartz,
-  } from "ag-grid-community";
-  import {
-    AG_GRID_LOCALE_EN,
-    AG_GRID_LOCALE_FR,
-    AG_GRID_LOCALE_DE,
-    AG_GRID_LOCALE_ES,
-    AG_GRID_LOCALE_PT,
-  } from "@ag-grid-community/locale";
-  import ActionCellRenderer from "./components/ActionCellRenderer.vue";
-  import ImageCellRenderer from "./components/ImageCellRenderer.vue";
-  import WewebCellRenderer from "./components/WewebCellRenderer.vue";
-  
-  console.log("AG Grid version:", AG_GRID_LOCALE_FR);
-  
-  // TODO: maybe register less modules
-  // TODO: maybe register modules per grid instead of globally
-  ModuleRegistry.registerModules([AllCommunityModule]);
-  
-  export default {
-    components: {
-      AgGridVue,
-      ActionCellRenderer,
-      ImageCellRenderer,
-      WewebCellRenderer,
-    },
-    props: {
-      content: {
-        type: Object,
-        required: true,
-      },
-      uid: {
-        type: String,
-        required: true,
-      },
-      /* wwEditor:start */
-      wwEditorState: { type: Object, required: true },
-      /* wwEditor:end */
-    },
-    emits: ["trigger-event", "update:content:effect"],
-    setup(props, ctx) {
-      const { resolveMappingFormula } = wwLib.wwFormula.useFormula();
-  
-      const gridApi = shallowRef(null);
-      const { value: selectedRows, setValue: setSelectedRows } =
-        wwLib.wwVariable.useComponentVariable({
-          uid: props.uid,
-          name: "selectedRows",
-          type: "array",
-          defaultValue: [],
-          readonly: true,
-        });
-      const { value: filterValue, setValue: setFilters } =
-        wwLib.wwVariable.useComponentVariable({
-          uid: props.uid,
-          name: "filters",
-          type: "object",
-          defaultValue: {},
-          readonly: true,
-        });
-      const { value: sortValue, setValue: setSort } =
-        wwLib.wwVariable.useComponentVariable({
-          uid: props.uid,
-          name: "sort",
-          type: "object",
-          defaultValue: {},
-          readonly: true,
-        });
-  
-      const onGridReady = (params) => {
-        gridApi.value = params.api;
-      };
-  
-      watchEffect(() => {
-        if (!gridApi.value) return;
-        if (props.content.initialFilters) {
-          gridApi.value.setFilterModel(props.content.initialFilters);
-        }
-        if (props.content.initialSort) {
-          gridApi.value.applyColumnState({
-            state: props.content.initialSort || [],
-            defaultState: { sort: null },
-          });
-        }
-      });
-  
-      const onRowSelected = (event) => {
-        const name = event.node.isSelected() ? "rowSelected" : "rowDeselected";
-        ctx.emit("trigger-event", {
-          name,
-          event: { row: event.data },
-        });
-      };
-  
-      const onSelectionChanged = (event) => {
-        if (!gridApi.value) return;
-        const selected = gridApi.value.getSelectedRows() || [];
-        setSelectedRows(selected);
-      };
-  
-      const onFilterChanged = (event) => {
-        if (!gridApi.value) return;
-        const filterModel = gridApi.value.getFilterModel();
-        if (
-          JSON.stringify(filterModel || {}) !==
-          JSON.stringify(filterValue.value || {})
-        ) {
-          setFilters(filterModel);
-          ctx.emit("trigger-event", {
-            name: "filterChanged",
-            event: filterModel,
-          });
-        }
-      };
-  
-      const onSortChanged = (event) => {
-        if (!gridApi.value) return;
-        const state = gridApi.value.getState();
-        if (
-          JSON.stringify(state.sort?.sortModel || []) !==
-          JSON.stringify(sortValue.value || [])
-        ) {
-          setSort(state.sort?.sortModel || []);
-          ctx.emit("trigger-event", {
-            name: "sortChanged",
-            event: state.sort?.sortModel || [],
-          });
-        }
-      };
-  
-      /* wwEditor:start */
-      const { createElement } = wwLib.useCreateElement();
-      /* wwEditor:end */
-  
-      return {
-        resolveMappingFormula,
-        onGridReady,
-        onRowSelected,
-        onSelectionChanged,
-        gridApi,
-        onFilterChanged,
-        onSortChanged,
-        localeText: computed(() => {
-          switch (props.content.lang) {
-            case "fr":
-              return AG_GRID_LOCALE_FR;
-            case "de":
-              return AG_GRID_LOCALE_DE;
-            case "es":
-              return AG_GRID_LOCALE_ES;
-            case "pt":
-              return AG_GRID_LOCALE_PT;
-            case "custom":
-              return {
-                ...AG_GRID_LOCALE_EN,
-                ...(props.content.localeText || {}),
-              };
-            default:
-              AG_GRID_LOCALE_EN;
-          }
-        }),
-        /* wwEditor:start */
-        createElement,
-        /* wwEditor:end */
-      };
-    },
-    computed: {
-      rowData() {
-        const data = wwLib.wwUtils.getDataFromCollection(this.content.rowData);
-        return Array.isArray(data) ? data ?? [] : [];
-      },
-      defaultColDef() {
-        return {
-          editable: false,
-          resizable: this.content.resizableColumns,
-        };
-      },
-      columnDefs() {
-        return this.content.columns.map((col) => {
-          const minWidth =
-            !col.minWidth || col.minWidth === "auto"
-              ? null
-              : wwLib.wwUtils.getLengthUnit(col.minWidth)?.[0];
-          const maxWidth =
-            !col.maxWidth || col.maxWidth === "auto"
-              ? null
-              : wwLib.wwUtils.getLengthUnit(col.maxWidth)?.[0];
-          const width =
-            !col.width || col.width === "auto" || col.widthAlgo === "flex"
-              ? null
-              : wwLib.wwUtils.getLengthUnit(col.width)?.[0];
-          const flex = col.widthAlgo === "flex" ? col.flex ?? 1 : null;
-          const commonProperties = {
-            minWidth,
-            maxWidth,
-            pinned: col.pinned === "none" ? false : col.pinned,
-            width,
-            flex,
-            hide: !!col.hide,
-          };
-          switch (col.cellDataType) {
-            case "action": {
-              return {
-                ...commonProperties,
-                headerName: col.headerName,
-                cellRenderer: "ActionCellRenderer",
-                cellRendererParams: {
-                  name: col.actionName,
-                  label: col.actionLabel,
-                  trigger: this.onActionTrigger,
-                  withFont: !!this.content.actionFont,
-                },
-                sortable: false,
-                filter: false,
-              };
-            }
-            case "custom":
-              return {
-                ...commonProperties,
-                headerName: col.headerName,
-                field: col.field,
-                cellRenderer: "WewebCellRenderer",
-                cellRendererParams: {
-                  containerId: col.containerId,
-                },
-                sortable: col.sortable,
-                filter: col.filter,
-              };
-            case "image": {
-              return {
-                ...commonProperties,
-                headerName: col.headerName,
-                field: col.field,
-                cellRenderer: "ImageCellRenderer",
-                cellRendererParams: {
-                  width: col.imageWidth,
-                  height: col.imageHeight,
-                },
-              };
-            }
-            default: {
-              const result = {
-                ...commonProperties,
-                headerName: col.headerName,
-                field: col.field,
-                sortable: col.sortable,
-                filter: col.filter,
-                editable: col.editable,
-              };
-              if (col.useCustomLabel) {
-                result.valueFormatter = (params) => {
-                  return this.resolveMappingFormula(
-                    col.displayLabelFormula,
-                    params.value
-                  );
-                };
-              }
-              return result;
-            }
-          }
-        });
-      },
-      rowSelection() {
-        if (this.content.rowSelection === "multiple") {
-          return {
-            mode: "multiRow",
-            checkboxes: !this.content.disableCheckboxes,
-            headerCheckbox: !this.content.disableCheckboxes,
-            selectAll: this.content.selectAll || "all",
-            enableClickSelection: this.content.enableClickSelection,
-          };
-        } else if (this.content.rowSelection === "single") {
-          return {
-            mode: "singleRow",
-            checkboxes: !this.content.disableCheckboxes,
-            enableClickSelection: this.content.enableClickSelection,
-          };
-        } else {
-          return {
-            mode: "singleRow",
-            checkboxes: false,
-            isRowSelectable: () => false,
-            enableClickSelection: this.content.enableClickSelection,
-          };
-        }
-      },
-      style() {
-        if (this.content.layout === "auto") return {};
-        return {
-          height: this.content.height || "400px",
-        };
-      },
-      cssVars() {
-        return {
-          "--ww-data-grid_action-backgroundColor":
-            this.content.actionBackgroundColor,
-          "--ww-data-grid_action-color": this.content.actionColor,
-          "--ww-data-grid_action-padding": this.content.actionPadding,
-          "--ww-data-grid_action-border": this.content.actionBorder,
-          "--ww-data-grid_action-borderRadius": this.content.actionBorderRadius,
-          ...(this.content.actionFont
-            ? { "--ww-data-grid_action-font": this.content.actionFont }
-            : {
-                "--ww-data-grid_action-fontSize": this.content.actionFontSize,
-                "--ww-data-grid_action-fontFamily": this.content.actionFontFamily,
-                "--ww-data-grid_action-fontWeight": this.content.actionFontWeight,
-                "--ww-data-grid_action-fontStyle": this.content.actionFontStyle,
-                "--ww-data-grid_action-lineHeight": this.content.actionLineHeight,
-              }),
-        };
-      },
-      theme() {
-        return themeQuartz.withParams({
-          headerBackgroundColor: this.content.headerBackgroundColor,
-          headerTextColor: this.content.headerTextColor,
-          headerFontSize: this.content.headerFontSize,
-          headerFontFamily: this.content.headerFontFamily,
-          headerFontWeight: this.content.headerFontWeight,
-          borderColor: this.content.borderColor,
-          cellTextColor: this.content.cellColor,
-          cellFontFamily: this.content.cellFontFamily,
-          dataFontSize: this.content.cellFontSize,
-          oddRowBackgroundColor: this.content.rowAlternateColor,
-          backgroundColor: this.content.rowBackgroundColor,
-          rowHoverColor: this.content.rowHoverColor,
-          selectedRowBackgroundColor: this.content.selectedRowBackgroundColor,
-          rowVerticalPaddingScale: this.content.rowVerticalPaddingScale || 1,
-          menuBackgroundColor: this.content.menuBackgroundColor,
-          menuTextColor: this.content.menuTextColor,
-          columnHoverColor: this.content.columnHoverColor,
-          foregroundColor: this.content.textColor,
-          checkboxCheckedBackgroundColor: this.content.selectionCheckboxColor,
-          rangeSelectionBorderColor: this.content.cellSelectionBorderColor,
-          checkboxUncheckedBorderColor: this.content.checkboxUncheckedBorderColor,
-          focusShadow: this.content.focusShadow?.length
-            ? this.content.focusShadow
-            : undefined,
-        });
-      },
-      isEditing() {
-        /* wwEditor:start */
-        return (
-          this.wwEditorState.editMode === wwLib.wwEditorHelper.EDIT_MODES.EDITION
-        );
-        /* wwEditor:end */
-        // eslint-disable-next-line no-unreachable
-        return false;
-      },
-    },
-    methods: {
-      getRowId(params) {
-        return this.resolveMappingFormula(this.content.idFormula, params.data);
-      },
-      onActionTrigger(event) {
-        this.$emit("trigger-event", {
-          name: "action",
-          event,
-        });
-      },
-      onCellValueChanged(event) {
-        this.$emit("trigger-event", {
-          name: "cellValueChanged",
-          event: {
-            oldValue: event.oldValue,
-            newValue: event.newValue,
-            columnId: event.column.getColId(),
-            row: event.data,
-          },
-        });
-      },
-      onRowClicked(event) {
-        this.$emit("trigger-event", {
-          name: "rowClicked",
-          event: {
-            row: event.data,
-            id: event.node.id,
-            index: event.node.sourceRowIndex,
-            displayIndex: event.rowIndex,
-          },
-        });
-      },
-      /* wwEditor:start */
-      generateColumns() {
-        this.$emit("update:content", {
-          columns: this.rowData?.[0]
-            ? Object.keys(this.rowData[0]).map((key) => ({
-                field: key,
-                sortable: true,
-                filter: true,
-              }))
-            : [],
-        });
-      },
-      getOnActionTestEvent() {
-        const data = this.rowData;
-        if (!data || !data[0]) throw new Error("No data found");
-        return {
-          actionName: "actionName",
-          row: data[0],
-          id: 0,
-          index: 0,
-          displayIndex: 0,
-        };
-      },
-      getOnCellValueChangedTestEvent() {
-        const data = this.rowData;
-        if (!data || !data[0]) throw new Error("No data found");
-        return {
-          oldValue: "oldValue",
-          newValue: "newValue",
-          columnId: "columnId",
-          row: data[0],
-        };
-      },
-      getSelectionTestEvent() {
-        const data = this.rowData;
-        if (!data || !data[0]) throw new Error("No data found");
-        return {
-          row: data[0],
-        };
-      },
-      getRowClickedTestEvent() {
-        const data = this.rowData;
-        if (!data || !data[0]) throw new Error("No data found");
-        return {
-          row: data[0],
-          id: 0,
-          index: 0,
-          displayIndex: 0,
-        };
-      },
-      /* wwEditor:end */
-    },
+
+    <div class="calendar">
+      <div class="calendar-header">
+        <button @click="prevMonth">&lt;</button>
+        <span>{{ monthYear }}</span>
+        <button @click="nextMonth">&gt;</button>
+      </div>
+      <table class="calendar-grid">
+        <thead>
+          <tr>
+            <th v-for="d in shortWeekDays" :key="d">{{ d }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(week, i) in calendar" :key="i">
+            <td
+              v-for="day in week"
+              :key="day.date"
+              :class="{ 'other-month': day.otherMonth, excluded: isExcluded(day.date) }"
+              @click="toggleExcluded(day.date)"
+            >
+              {{ day.date.getDate() }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="excluded-dates">
+      <h3>Datas excluídas</h3>
+      <table v-if="excludedDates.length">
+        <tbody>
+          <tr v-for="date in excludedDates" :key="date.toISOString()">
+            <td>{{ formatDate(date) }}</td>
+            <td><button @click="removeExcluded(date)">Remover</button></td>
+          </tr>
+        </tbody>
+      </table>
+      <p v-else>Nenhuma data excluída</p>
+    </div>
+  </div>
+</template>
+
+<script>
+import { ref, computed } from "vue";
+
+export default {
+  props: {
+    content: { type: Object, required: true },
+    uid: { type: String, required: true },
     /* wwEditor:start */
-    watch: {
-      columnDefs: {
-        async handler() {
-          if (this.wwEditorState?.boundProps?.columns) return;
-          this.gridApi.resetColumnState();
-  
-          if (this.wwEditorState.isACopy) return;
-  
-          // We assume there will only be one custom column each time
-          const columnIndex = (this.content.columns || []).findIndex(
-            (col) => col.cellDataType === "custom" && !col.containerId
-          );
-          if (columnIndex === -1) return;
-          const newColumns = [...this.content.columns];
-          let column = { ...newColumns[columnIndex] };
-          column.containerId = await this.createElement("ww-flexbox", {
-            _state: { name: `Cell ${column.headerName || column.field}` },
-          });
-          newColumns[columnIndex] = column;
-          this.$emit("update:content:effect", { columns: newColumns });
-        },
-        deep: true,
-      },
-    },
+    wwEditorState: { type: Object, required: true },
     /* wwEditor:end */
-  };
-  </script>
-  
-  <style scoped lang="scss">
-  .ww-datagrid {
-    position: relative;
-    /* wwEditor:start */
-    &.editing {
-      &::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        display: block;
-        pointer-events: initial;
-        z-index: 10;
+  },
+  setup() {
+    const weekDays = ref([
+      { name: "mon", label: "Segunda", active: false, start: "", end: "" },
+      { name: "tue", label: "Terça", active: false, start: "", end: "" },
+      { name: "wed", label: "Quarta", active: false, start: "", end: "" },
+      { name: "thu", label: "Quinta", active: false, start: "", end: "" },
+      { name: "fri", label: "Sexta", active: false, start: "", end: "" },
+      { name: "sat", label: "Sábado", active: false, start: "", end: "" },
+      { name: "sun", label: "Domingo", active: false, start: "", end: "" },
+    ]);
+
+    const currentDate = ref(new Date());
+    const excludedDates = ref([]);
+
+    const shortWeekDays = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+
+    const monthYear = computed(() =>
+      currentDate.value.toLocaleString("default", {
+        month: "long",
+        year: "numeric",
+      })
+    );
+
+    const startOfMonth = computed(() => {
+      const d = new Date(currentDate.value);
+      d.setDate(1);
+      return d;
+    });
+
+    const calendar = computed(() => {
+      const start = new Date(startOfMonth.value);
+      const startWeekDay = (start.getDay() + 6) % 7; // Monday = 0
+      start.setDate(start.getDate() - startWeekDay);
+      const weeks = [];
+      for (let w = 0; w < 6; w++) {
+        const week = [];
+        for (let d = 0; d < 7; d++) {
+          const date = new Date(start);
+          const otherMonth = date.getMonth() !== currentDate.value.getMonth();
+          week.push({ date, otherMonth });
+          start.setDate(start.getDate() + 1);
+        }
+        weeks.push(week);
+      }
+      return weeks;
+    });
+
+    function prevMonth() {
+      const d = new Date(currentDate.value);
+      d.setMonth(d.getMonth() - 1);
+      currentDate.value = d;
+    }
+
+    function nextMonth() {
+      const d = new Date(currentDate.value);
+      d.setMonth(d.getMonth() + 1);
+      currentDate.value = d;
+    }
+
+    function isExcluded(date) {
+      return excludedDates.value.some(
+        (d) => d.toDateString() === date.toDateString()
+      );
+    }
+
+    function toggleExcluded(date) {
+      if (isExcluded(date)) {
+        excludedDates.value = excludedDates.value.filter(
+          (d) => d.toDateString() !== date.toDateString()
+        );
+      } else {
+        excludedDates.value.push(new Date(date));
       }
     }
-    /* wwEditor:end */
-  }
-  </style>
-  
+
+    function removeExcluded(date) {
+      excludedDates.value = excludedDates.value.filter(
+        (d) => d.toDateString() !== date.toDateString()
+      );
+    }
+
+    function formatDate(date) {
+      return date.toLocaleDateString();
+    }
+
+    return {
+      weekDays,
+      shortWeekDays,
+      calendar,
+      monthYear,
+      prevMonth,
+      nextMonth,
+      excludedDates,
+      toggleExcluded,
+      removeExcluded,
+      isExcluded,
+      formatDate,
+    };
+  },
+};
+</script>
+
+<style scoped>
+.corporate-calendar {
+  font-family: sans-serif;
+  max-width: 600px;
+}
+
+.shift-table,
+.calendar-grid,
+.excluded-dates table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.shift-table th,
+.shift-table td,
+.calendar-grid th,
+.calendar-grid td,
+.excluded-dates td {
+  border: 1px solid #ccc;
+  padding: 4px;
+  text-align: center;
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 8px 0;
+}
+
+.calendar-grid td {
+  cursor: pointer;
+}
+
+.calendar-grid td.other-month {
+  color: #aaa;
+}
+
+.calendar-grid td.excluded {
+  background-color: #ffcccc;
+}
+
+.excluded-dates {
+  margin-top: 16px;
+}
+</style>
+
