@@ -53,6 +53,7 @@ export default {
         ],
       ],
       customSettingsPropertiesOrder: [
+        "dataSource",
         "rowData",
         "idFormula",
         "generateColumns",
@@ -762,6 +763,22 @@ export default {
           type: "string",
           cssSupports: "line-height",
         },
+      },
+      dataSource: {
+        label: { en: "Data Source" },
+        type: "Text",
+        section: "settings",
+        bindable: true,
+        defaultValue: "",
+        /* wwEditor:start */
+        bindingValidation: {
+          validations: [
+            { type: "object" },
+            { type: "string" },
+          ],
+          tooltip: "JSON object or string to initialize calendar values",
+        },
+        /* wwEditor:end */
       },
       rowData: {
         label: { en: "Data" },
