@@ -115,7 +115,7 @@
 </template>
 
 <script>
-import { ref } from "vue";
+import { ref, watch } from "vue";
 
 export default {
   props: {
@@ -125,7 +125,7 @@ export default {
     wwEditorState: { type: Object, required: true },
     /* wwEditor:end */
   },
-  setup() {
+  setup(props) {
     const translateText = (text) => {
       return text;
     };
@@ -209,6 +209,40 @@ export default {
     const newExcludedDate = ref("");
     const showConfirm = ref(false);
 
+    const calendarValues = ref({
+      weekDays: weekDays.value,
+      excludedDates: excludedDates.value,
+    });
+
+    watch(
+      [weekDays, excludedDates],
+      () => {
+        calendarValues.value = {
+          weekDays: weekDays.value,
+          excludedDates: excludedDates.value,
+        };
+      },
+      { deep: true }
+    );
+
+    if (
+      typeof wwLib !== "undefined" &&
+      wwLib.wwVariable &&
+      wwLib.wwVariable.useComponentVariable
+    ) {
+      const { setValue } = wwLib.wwVariable.useComponentVariable({
+        uid: props.uid,
+        name: "calendarValues",
+        type: "object",
+        defaultValue: calendarValues.value,
+      });
+      watch(
+        calendarValues,
+        (val) => setValue(val),
+        { deep: true, immediate: true }
+      );
+    }
+
     function addExcludedDate() {
       if (!newExcludedDate.value) return;
       const date = new Date(newExcludedDate.value);
@@ -264,6 +298,7 @@ export default {
       copyFirstRow,
       cancelCopy,
       showConfirm,
+      calendarValues,
       translateText,
     };
   },
