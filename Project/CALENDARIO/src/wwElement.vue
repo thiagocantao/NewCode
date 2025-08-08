@@ -425,6 +425,7 @@ font-family: "Roboto", sans-serif;
   overflow-x: hidden;
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
+  scrollbar-gutter: stable;
 }
 
 .excluded-body::-webkit-scrollbar {
