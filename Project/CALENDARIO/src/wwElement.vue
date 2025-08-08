@@ -210,8 +210,8 @@ export default {
     const showConfirm = ref(false);
 
     function loadDataSource(ds) {
-      if (!ds) return;
       let parsed = ds;
+      if (!parsed) return;
       if (typeof parsed === "string") {
         try {
           parsed = JSON.parse(parsed);
@@ -219,24 +219,25 @@ export default {
           return;
         }
       }
+
       if (Array.isArray(parsed.weekDays)) {
-        parsed.weekDays.forEach((dayData) => {
-          const day = weekDays.value.find((d) => d.name === dayData.name);
-          if (day) {
-            day.active = !!dayData.active;
-            day.shift1Start = dayData.shift1Start || "";
-            day.shift1End = dayData.shift1End || "";
-            day.shift2Start = dayData.shift2Start || "";
-            day.shift2End = dayData.shift2End || "";
-          }
+        const updatedDays = weekDays.value.map((day) => {
+          const dayData = parsed.weekDays.find((d) => d.name === day.name) || {};
+          return {
+            ...day,
+            active: !!dayData.active,
+            shift1Start: dayData.shift1Start || "",
+            shift1End: dayData.shift1End || "",
+            shift2Start: dayData.shift2Start || "",
+            shift2End: dayData.shift2End || "",
+          };
         });
+        weekDays.value = updatedDays;
       }
       if (Array.isArray(parsed.excludedDates)) {
         excludedDates.value = [...parsed.excludedDates];
       }
     }
-
-    loadDataSource(props.content.dataSource);
 
     const calendarValues = ref({
       weekDays: weekDays.value.map((day) => ({ ...day })),
@@ -255,9 +256,9 @@ export default {
     );
 
     watch(
-      () => props.content.dataSource,
-      (val) => loadDataSource(val),
-      { deep: true }
+      () => props.content,
+      (val) => loadDataSource(val?.dataSource),
+      { deep: true, immediate: true }
     );
 
     if (
