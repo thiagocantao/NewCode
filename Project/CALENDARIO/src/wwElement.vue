@@ -89,7 +89,7 @@
             <th class="headerHoras">{{ translateText('Action') }}</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody class="excluded-body" :style="{ maxHeight: excludedDatesHeight }">
           <tr>
             <td><input class="inputDate" type="date" v-model="newExcludedDate" /></td>
             <td><button class="buttonFormat" @click="addExcludedDate">{{ translateText('Add') }}</button></td>
@@ -122,6 +122,7 @@ export default {
     content: { type: Object, required: true },
     uid: { type: String, required: true },
     dataSource: { type: [Object, String], default: null },
+    excludedDatesHeight: { type: String, default: "150px" },
     /* wwEditor:start */
     wwEditorState: { type: Object, required: true },
     /* wwEditor:end */
@@ -211,6 +212,20 @@ export default {
     const excludedDates = ref([]);
     const newExcludedDate = ref("");
     const showConfirm = ref(false);
+
+    const excludedDatesHeight = ref(
+      props.content.excludedDatesHeight || props.excludedDatesHeight
+    );
+
+    watch(
+      () => props.content.excludedDatesHeight,
+      (val) => (excludedDatesHeight.value = val)
+    );
+
+    watch(
+      () => props.excludedDatesHeight,
+      (val) => (excludedDatesHeight.value = val)
+    );
 
     function loadDataSource(ds) {
       let parsed = ds;
@@ -342,6 +357,7 @@ export default {
       cancelCopy,
       showConfirm,
       calendarValues,
+      excludedDatesHeight,
       translateText,
     };
   },
@@ -394,6 +410,42 @@ font-family: "Roboto", sans-serif;
   padding: 4px;
   text-align: center;
   height:38px;
+}
+
+.excluded-dates thead,
+.excluded-dates .excluded-body tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.excluded-body {
+  display: block;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.excluded-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.excluded-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.excluded-body::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 3px;
+}
+
+.excluded-body:hover::-webkit-scrollbar-thumb {
+  background-color: #888;
+}
+
+.excluded-body:hover {
+  scrollbar-color: #888 transparent;
 }
 
 .shift-table td {
