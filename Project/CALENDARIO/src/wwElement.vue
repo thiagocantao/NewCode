@@ -2,14 +2,55 @@
   <div class="corporate-calendar">
     <div class="shift-config">
       <table class="shift-table">
+        <thead>
+          <tr>
+            <th>Dias Operacionais</th>
+            <th>Turno 1</th>
+            <th>Turno 2</th>
+            <th>Turno 3</th>
+            <th>Turno 4</th>
+            <th></th>
+          </tr>
+        </thead>
         <tbody>
           <tr v-for="day in weekDays" :key="day.name">
             <td>
               <input type="checkbox" v-model="day.active" />
               {{ day.label }}
             </td>
-            <td><input type="time" v-model="day.start" :disabled="!day.active" /></td>
-            <td><input type="time" v-model="day.end" :disabled="!day.active" /></td>
+            <td>
+              <input
+                type="time"
+                v-model="day.shift1"
+                :disabled="!day.active"
+                step="3600"
+              />
+            </td>
+            <td>
+              <input
+                type="time"
+                v-model="day.shift2"
+                :disabled="!day.active"
+                step="3600"
+              />
+            </td>
+            <td>
+              <input
+                type="time"
+                v-model="day.shift3"
+                :disabled="!day.active"
+                step="3600"
+              />
+            </td>
+            <td>
+              <input
+                type="time"
+                v-model="day.shift4"
+                :disabled="!day.active"
+                step="3600"
+              />
+            </td>
+            <td></td>
           </tr>
         </tbody>
       </table>
@@ -70,13 +111,69 @@ export default {
   },
   setup() {
     const weekDays = ref([
-      { name: "mon", label: "Segunda", active: false, start: "", end: "" },
-      { name: "tue", label: "Terça", active: false, start: "", end: "" },
-      { name: "wed", label: "Quarta", active: false, start: "", end: "" },
-      { name: "thu", label: "Quinta", active: false, start: "", end: "" },
-      { name: "fri", label: "Sexta", active: false, start: "", end: "" },
-      { name: "sat", label: "Sábado", active: false, start: "", end: "" },
-      { name: "sun", label: "Domingo", active: false, start: "", end: "" },
+      {
+        name: "mon",
+        label: "Segunda",
+        active: false,
+        shift1: "",
+        shift2: "",
+        shift3: "",
+        shift4: "",
+      },
+      {
+        name: "tue",
+        label: "Terça",
+        active: false,
+        shift1: "",
+        shift2: "",
+        shift3: "",
+        shift4: "",
+      },
+      {
+        name: "wed",
+        label: "Quarta",
+        active: false,
+        shift1: "",
+        shift2: "",
+        shift3: "",
+        shift4: "",
+      },
+      {
+        name: "thu",
+        label: "Quinta",
+        active: false,
+        shift1: "",
+        shift2: "",
+        shift3: "",
+        shift4: "",
+      },
+      {
+        name: "fri",
+        label: "Sexta",
+        active: false,
+        shift1: "",
+        shift2: "",
+        shift3: "",
+        shift4: "",
+      },
+      {
+        name: "sat",
+        label: "Sábado",
+        active: false,
+        shift1: "",
+        shift2: "",
+        shift3: "",
+        shift4: "",
+      },
+      {
+        name: "sun",
+        label: "Domingo",
+        active: false,
+        shift1: "",
+        shift2: "",
+        shift3: "",
+        shift4: "",
+      },
     ]);
 
     const currentDate = ref(new Date());
@@ -171,8 +268,12 @@ export default {
 </script>
 
 <style scoped>
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap");
+
 .corporate-calendar {
-  font-family: sans-serif;
+  font-family: "Roboto", sans-serif;
+  font-size: 13px;
+  font-weight: 400;
   max-width: 600px;
 }
 
@@ -190,6 +291,16 @@ export default {
   border: 1px solid #ccc;
   padding: 4px;
   text-align: center;
+}
+
+.shift-table th:first-child,
+.shift-table td:first-child {
+  text-align: left;
+}
+
+.corporate-calendar th,
+.corporate-calendar h3 {
+  font-weight: 400;
 }
 
 .calendar-header {
