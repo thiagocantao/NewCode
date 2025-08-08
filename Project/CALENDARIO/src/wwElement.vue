@@ -4,8 +4,8 @@
       <table class="shift-table">
         <thead>
           <tr>
-            <th class="headerDias">{{ translateText('Dias Operacionais') }}</th>
-            <th class="headerHoras" colspan="7">{{ translateText('Horas Operacionais') }}</th>
+            <th class="headerDias">{{ translateText('Operating Days') }}</th>
+            <th class="headerHoras" colspan="7">{{ translateText('Operating Hours') }}</th>
             <th class="headerHoras"></th>
           </tr>
         </thead>
@@ -72,7 +72,7 @@
                 class="buttonFormat"
                 @click="confirmCopy"
               >
-                {{ translateText('Copiar') }}
+                {{ translateText('Copy') }}
               </button>
             </td>
           </tr>
@@ -81,22 +81,22 @@
     </div>
 
     <div class="excluded-dates">
-      <h3>{{ translateText('Excluir datas') }}</h3>
+      <h3>{{ translateText('Exclude dates') }}</h3>
       <table>
       <thead>
           <tr>
-            <th class="headerDias">{{ translateText('Data') }}</th>
-            <th class="headerHoras">{{ translateText('Ação') }}</th>
+            <th class="headerDias">{{ translateText('Date') }}</th>
+            <th class="headerHoras">{{ translateText('Action') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td><input class="inputDate" type="date" v-model="newExcludedDate" /></td>
-            <td><button class="buttonFormat" @click="addExcludedDate">{{ translateText('Adicionar') }}</button></td>
+            <td><button class="buttonFormat" @click="addExcludedDate">{{ translateText('Add') }}</button></td>
           </tr>
           <tr v-for="date in excludedDates" :key="date.toISOString()">
             <td>{{ formatDate(date) }}</td>
-            <td><button class="buttonFormat" @click="removeExcluded(date)">{{ translateText('Excluir') }}</button></td>
+            <td><button class="buttonFormat" @click="removeExcluded(date)">{{ translateText('Delete') }}</button></td>
           </tr>
         </tbody>
       </table>
@@ -104,10 +104,10 @@
 
     <div v-if="showConfirm" class="popup-overlay">
       <div class="popup-content">
-        <p>{{ translateText('Copiar configuração de horas para todos os dias?') }}</p>
+        <p>{{ translateText('Copy hours configuration to all days?') }}</p>
         <div style="display:flex; gap:10px; justify-content:center;margin-top:15px">
-          <button class="buttonFormat" @click="copyFirstRow">{{ translateText('Confirmar') }}</button>
-          <button class="buttonFormat" @click="cancelCopy">{{ translateText('Cancelar') }}</button>
+          <button class="buttonFormat" @click="copyFirstRow">{{ translateText('Confirm') }}</button>
+          <button class="buttonFormat" @click="cancelCopy">{{ translateText('Cancel') }}</button>
         </div>
       </div>
     </div>
@@ -126,10 +126,14 @@ export default {
     /* wwEditor:end */
   },
   setup() {
+    const translateText = (text) => {
+      return text;
+    };
+
     const weekDays = ref([
       {
         name: "mon",
-        label: translateText("Segunda-feira"),
+        label: translateText("Monday"),
         active: false,
         shift1Start: "",
         shift1End: "",
@@ -138,7 +142,7 @@ export default {
       },
       {
         name: "tue",
-        label: translateText("Terça-feira"),
+        label: translateText("Tuesday"),
         active: false,
         shift1Start: "",
         shift1End: "",
@@ -147,7 +151,7 @@ export default {
       },
       {
         name: "wed",
-        label: translateText("Quarta-feira"),
+        label: translateText("Wednesday"),
         active: false,
         shift1Start: "",
         shift1End: "",
@@ -156,7 +160,7 @@ export default {
       },
       {
         name: "thu",
-        label: translateText("Quinta-feira"),
+        label: translateText("Thursday"),
         active: false,
         shift1Start: "",
         shift1End: "",
@@ -165,7 +169,7 @@ export default {
       },
       {
         name: "fri",
-        label: translateText("Sexta-feira"),
+        label: translateText("Friday"),
         active: false,
         shift1Start: "",
         shift1End: "",
@@ -174,7 +178,7 @@ export default {
       },
       {
         name: "sat",
-        label: translateText("Sábado"),
+        label: translateText("Saturday"),
         active: false,
         shift1Start: "",
         shift1End: "",
@@ -183,7 +187,7 @@ export default {
       },
       {
         name: "sun",
-        label: translateText("Domingo"),
+        label: translateText("Sunday"),
         active: false,
         shift1Start: "",
         shift1End: "",
@@ -260,6 +264,7 @@ export default {
       copyFirstRow,
       cancelCopy,
       showConfirm,
+      translateText,
     };
   },
 };
