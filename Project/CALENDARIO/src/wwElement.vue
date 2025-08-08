@@ -4,21 +4,8 @@
       <table class="shift-table">
         <thead>
           <tr>
-            <th rowspan="2">Dias Operacionais</th>
-            <th colspan="2">Turno 1</th>
-            <th colspan="2">Turno 2</th>
-            <th colspan="2">Turno 3</th>
-            <th colspan="2">Turno 4</th>
-          </tr>
-          <tr>
-            <th>Entrada</th>
-            <th>Saída</th>
-            <th>Entrada</th>
-            <th>Saída</th>
-            <th>Entrada</th>
-            <th>Saída</th>
-            <th>Entrada</th>
-            <th>Saída</th>
+            <th class="headerDias">Dias Operacionais</th>
+            <th class="headerHoras" colspan="7">Horas Operacionais</th>
           </tr>
         </thead>
         <tbody>
@@ -26,7 +13,7 @@
             <td>
               <input type="checkbox" v-model="day.active" />
               {{ day.label }}
-            </td>
+            </td>            
             <td>
               <select v-model="day.shift1Start" :disabled="!day.active">
                 <option value=""></option>
@@ -39,6 +26,7 @@
                 </option>
               </select>
             </td>
+            <td>-</td>
             <td>
               <select v-model="day.shift1End" :disabled="!day.active">
                 <option value=""></option>
@@ -51,6 +39,7 @@
                 </option>
               </select>
             </td>
+            <td>,</td>
             <td>
               <select v-model="day.shift2Start" :disabled="!day.active">
                 <option value=""></option>
@@ -63,56 +52,9 @@
                 </option>
               </select>
             </td>
+            <td>-</td>
             <td>
               <select v-model="day.shift2End" :disabled="!day.active">
-                <option value=""></option>
-                <option
-                  v-for="hour in hours"
-                  :key="hour.value"
-                  :value="hour.value"
-                >
-                  {{ hour.label }}
-                </option>
-              </select>
-            </td>
-            <td>
-              <select v-model="day.shift3Start" :disabled="!day.active">
-                <option value=""></option>
-                <option
-                  v-for="hour in hours"
-                  :key="hour.value"
-                  :value="hour.value"
-                >
-                  {{ hour.label }}
-                </option>
-              </select>
-            </td>
-            <td>
-              <select v-model="day.shift3End" :disabled="!day.active">
-                <option value=""></option>
-                <option
-                  v-for="hour in hours"
-                  :key="hour.value"
-                  :value="hour.value"
-                >
-                  {{ hour.label }}
-                </option>
-              </select>
-            </td>
-            <td>
-              <select v-model="day.shift4Start" :disabled="!day.active">
-                <option value=""></option>
-                <option
-                  v-for="hour in hours"
-                  :key="hour.value"
-                  :value="hour.value"
-                >
-                  {{ hour.label }}
-                </option>
-              </select>
-            </td>
-            <td>
-              <select v-model="day.shift4End" :disabled="!day.active">
                 <option value=""></option>
                 <option
                   v-for="hour in hours"
@@ -191,10 +133,6 @@ export default {
         shift1End: "",
         shift2Start: "",
         shift2End: "",
-        shift3Start: "",
-        shift3End: "",
-        shift4Start: "",
-        shift4End: "",
       },
       {
         name: "tue",
@@ -204,10 +142,6 @@ export default {
         shift1End: "",
         shift2Start: "",
         shift2End: "",
-        shift3Start: "",
-        shift3End: "",
-        shift4Start: "",
-        shift4End: "",
       },
       {
         name: "wed",
@@ -217,10 +151,6 @@ export default {
         shift1End: "",
         shift2Start: "",
         shift2End: "",
-        shift3Start: "",
-        shift3End: "",
-        shift4Start: "",
-        shift4End: "",
       },
       {
         name: "thu",
@@ -230,10 +160,6 @@ export default {
         shift1End: "",
         shift2Start: "",
         shift2End: "",
-        shift3Start: "",
-        shift3End: "",
-        shift4Start: "",
-        shift4End: "",
       },
       {
         name: "fri",
@@ -243,10 +169,6 @@ export default {
         shift1End: "",
         shift2Start: "",
         shift2End: "",
-        shift3Start: "",
-        shift3End: "",
-        shift4Start: "",
-        shift4End: "",
       },
       {
         name: "sat",
@@ -256,10 +178,6 @@ export default {
         shift1End: "",
         shift2Start: "",
         shift2End: "",
-        shift3Start: "",
-        shift3End: "",
-        shift4Start: "",
-        shift4End: "",
       },
       {
         name: "sun",
@@ -269,10 +187,6 @@ export default {
         shift1End: "",
         shift2Start: "",
         shift2End: "",
-        shift3Start: "",
-        shift3End: "",
-        shift4Start: "",
-        shift4End: "",
       },
     ]);
 
@@ -382,34 +296,61 @@ export default {
 
 .corporate-calendar {
   font-family: "Roboto", sans-serif;
-  font-size: 13px;
+  font-size: 12px;
+  color: #333;
   font-weight: 400;
-  max-width: 600px;
+  max-width: 450px;
+  
 }
 
 .shift-table,
 .calendar-grid,
 .excluded-dates table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: collapse;  
+  border: 1px solid #acacad;
 }
 
-.shift-table td,
 .calendar-grid th,
 .calendar-grid td,
 .excluded-dates td {
-  border: 1px solid #ccc;
+  border: 1px solid #acacad;
   padding: 4px;
   text-align: center;
 }
 
+.shift-table td {
+border: 0px;
+border-top: 1px solid #acacad !important;
+padding: 4px;
+text-align: center;
+}
+
 .shift-table select {
-  width: 100%;
+  width: 90px;
+  font-family: "Roboto", sans-serif;
+  font-size: 12px;
+  color: #333;
+  padding:2px;
+  border: 1px solid #acacad !important;
+  border-radius: 4px;
+}
+
+.shift-table select:focus {
+  border: 1px solid #acacad !important;
+  outline: none;
 }
 
 .shift-table th:first-child,
 .shift-table td:first-child {
-  text-align: left;
+  text-align: left;  
+  border-right: 1px solid #acacad;
+  border-left: 0px;  
+  border-top: 0px;
+  display: flex;
+  align-items: center;    /* alinha verticalmente */
+  height: 40px;
+  column-gap: 8px;
 }
 
 .corporate-calendar th,
@@ -439,5 +380,19 @@ export default {
 .excluded-dates {
   margin-top: 16px;
 }
-</style>
 
+.headerDias {
+  padding:10px;
+  background-color: #f5f6fa;
+  border-right: 1px solid #acacad;
+  border-top: 1px solid #acacad;
+  border-left: 1px solid #acacad;
+}
+
+.headerHoras {
+padding:10px;
+background-color: #f5f6fa;
+  border-right: 1px solid #acacad;
+  border-top: 1px solid #acacad;
+}
+</style>
