@@ -94,7 +94,7 @@
             <td><input class="inputDate" type="date" v-model="newExcludedDate" /></td>
             <td><button class="buttonFormat" @click="addExcludedDate">{{ translateText('Add') }}</button></td>
           </tr>
-          <tr v-for="date in excludedDates" :key="date.toISOString()">
+          <tr v-for="date in excludedDates" :key="date">
             <td>{{ formatDate(date) }}</td>
             <td><button class="buttonFormat" @click="removeExcluded(date)">{{ translateText('Delete') }}</button></td>
           </tr>
@@ -115,7 +115,7 @@
 </template>
 
 <script>
-import { ref } from "vue";
+import { ref, watch } from "vue";
 
 export default {
   props: {
@@ -125,7 +125,7 @@ export default {
     wwEditorState: { type: Object, required: true },
     /* wwEditor:end */
   },
-  setup() {
+  setup(props) {
     const translateText = (text) => {
       return text;
     };
@@ -209,27 +209,58 @@ export default {
     const newExcludedDate = ref("");
     const showConfirm = ref(false);
 
+    const calendarValues = ref({
+      weekDays: weekDays.value.map((day) => ({ ...day })),
+      excludedDates: [...excludedDates.value],
+    });
+
+    watch(
+      [weekDays, excludedDates],
+      () => {
+        calendarValues.value = {
+          weekDays: weekDays.value.map((day) => ({ ...day })),
+          excludedDates: [...excludedDates.value],
+        };
+      },
+      { deep: true }
+    );
+
+    if (
+      typeof wwLib !== "undefined" &&
+      wwLib.wwVariable &&
+      wwLib.wwVariable.useComponentVariable
+    ) {
+      const { setValue } = wwLib.wwVariable.useComponentVariable({
+        uid: props.uid,
+        name: "calendarValues",
+        type: "object",
+        defaultValue: calendarValues.value,
+      });
+      watch(
+        calendarValues,
+        (val) => setValue(val),
+        { deep: true, immediate: true }
+      );
+    }
+
     function addExcludedDate() {
       if (!newExcludedDate.value) return;
-      const date = new Date(newExcludedDate.value);
-      if (
-        !excludedDates.value.some(
-          (d) => d.toDateString() === date.toDateString()
-        )
-      ) {
-        excludedDates.value.push(date);
+      const dateString = newExcludedDate.value;
+      if (!excludedDates.value.includes(dateString)) {
+        excludedDates.value.push(dateString);
       }
       newExcludedDate.value = "";
     }
 
-    function removeExcluded(date) {
+    function removeExcluded(dateString) {
       excludedDates.value = excludedDates.value.filter(
-        (d) => d.toDateString() !== date.toDateString()
+        (d) => d !== dateString
       );
     }
 
-    function formatDate(date) {
-      return date.toLocaleDateString();
+    function formatDate(dateString) {
+      const date = new Date(dateString);
+      return isNaN(date) ? "" : date.toLocaleDateString();
     }
 
     function confirmCopy() {
@@ -264,6 +295,7 @@ export default {
       copyFirstRow,
       cancelCopy,
       showConfirm,
+      calendarValues,
       translateText,
     };
   },
