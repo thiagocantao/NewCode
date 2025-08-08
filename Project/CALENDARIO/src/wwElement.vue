@@ -146,72 +146,75 @@ export default {
     const translateText = (text) => {
       return text;
     };
+    function createDefaultWeekDays() {
+      return [
+        {
+          name: "mon",
+          label: translateText("Monday"),
+          active: false,
+          shift1Start: "",
+          shift1End: "",
+          shift2Start: "",
+          shift2End: "",
+        },
+        {
+          name: "tue",
+          label: translateText("Tuesday"),
+          active: false,
+          shift1Start: "",
+          shift1End: "",
+          shift2Start: "",
+          shift2End: "",
+        },
+        {
+          name: "wed",
+          label: translateText("Wednesday"),
+          active: false,
+          shift1Start: "",
+          shift1End: "",
+          shift2Start: "",
+          shift2End: "",
+        },
+        {
+          name: "thu",
+          label: translateText("Thursday"),
+          active: false,
+          shift1Start: "",
+          shift1End: "",
+          shift2Start: "",
+          shift2End: "",
+        },
+        {
+          name: "fri",
+          label: translateText("Friday"),
+          active: false,
+          shift1Start: "",
+          shift1End: "",
+          shift2Start: "",
+          shift2End: "",
+        },
+        {
+          name: "sat",
+          label: translateText("Saturday"),
+          active: false,
+          shift1Start: "",
+          shift1End: "",
+          shift2Start: "",
+          shift2End: "",
+        },
+        {
+          name: "sun",
+          label: translateText("Sunday"),
+          active: false,
+          shift1Start: "",
+          shift1End: "",
+          shift2Start: "",
+          shift2End: "",
+        },
+      ];
+    }
 
-    const weekDays = ref([
-      {
-        name: "mon",
-        label: translateText("Monday"),
-        active: false,
-        shift1Start: "",
-        shift1End: "",
-        shift2Start: "",
-        shift2End: "",
-      },
-      {
-        name: "tue",
-        label: translateText("Tuesday"),
-        active: false,
-        shift1Start: "",
-        shift1End: "",
-        shift2Start: "",
-        shift2End: "",
-      },
-      {
-        name: "wed",
-        label: translateText("Wednesday"),
-        active: false,
-        shift1Start: "",
-        shift1End: "",
-        shift2Start: "",
-        shift2End: "",
-      },
-      {
-        name: "thu",
-        label: translateText("Thursday"),
-        active: false,
-        shift1Start: "",
-        shift1End: "",
-        shift2Start: "",
-        shift2End: "",
-      },
-      {
-        name: "fri",
-        label: translateText("Friday"),
-        active: false,
-        shift1Start: "",
-        shift1End: "",
-        shift2Start: "",
-        shift2End: "",
-      },
-      {
-        name: "sat",
-        label: translateText("Saturday"),
-        active: false,
-        shift1Start: "",
-        shift1End: "",
-        shift2Start: "",
-        shift2End: "",
-      },
-      {
-        name: "sun",
-        label: translateText("Sunday"),
-        active: false,
-        shift1Start: "",
-        shift1End: "",
-        shift2Start: "",
-        shift2End: "",
-      },
-    ]);
+    const weekDays = ref(createDefaultWeekDays());
 
     const hours = Array.from({ length: 96 }, (_, i) => {
       const hour24 = Math.floor(i / 4);
@@ -267,7 +270,12 @@ export default {
 
     function loadDataSource(ds) {
       let parsed = ds;
-      if (!parsed) return;
+      if (!parsed) {
+        weekDays.value = createDefaultWeekDays();
+        excludedDates.value = [];
+        newExcludedDate.value = "";
+        return;
+      }
       if (typeof parsed === "string") {
         try {
           parsed = JSON.parse(parsed);
