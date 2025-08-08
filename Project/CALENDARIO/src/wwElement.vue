@@ -19,36 +19,36 @@
               {{ day.label }}
             </td>
             <td>
-              <input
-                type="time"
-                v-model="day.shift1"
-                :disabled="!day.active"
-                step="3600"
-              />
+              <select v-model="day.shift1" :disabled="!day.active">
+                <option value=""></option>
+                <option v-for="hour in hours" :key="hour" :value="hour">
+                  {{ hour }}
+                </option>
+              </select>
             </td>
             <td>
-              <input
-                type="time"
-                v-model="day.shift2"
-                :disabled="!day.active"
-                step="3600"
-              />
+              <select v-model="day.shift2" :disabled="!day.active">
+                <option value=""></option>
+                <option v-for="hour in hours" :key="hour" :value="hour">
+                  {{ hour }}
+                </option>
+              </select>
             </td>
             <td>
-              <input
-                type="time"
-                v-model="day.shift3"
-                :disabled="!day.active"
-                step="3600"
-              />
+              <select v-model="day.shift3" :disabled="!day.active">
+                <option value=""></option>
+                <option v-for="hour in hours" :key="hour" :value="hour">
+                  {{ hour }}
+                </option>
+              </select>
             </td>
             <td>
-              <input
-                type="time"
-                v-model="day.shift4"
-                :disabled="!day.active"
-                step="3600"
-              />
+              <select v-model="day.shift4" :disabled="!day.active">
+                <option value=""></option>
+                <option v-for="hour in hours" :key="hour" :value="hour">
+                  {{ hour }}
+                </option>
+              </select>
             </td>
             <td></td>
           </tr>
@@ -176,6 +176,10 @@ export default {
       },
     ]);
 
+    const hours = Array.from({ length: 24 }, (_, i) =>
+      `${String(i).padStart(2, "0")}:00`
+    );
+
     const currentDate = ref(new Date());
     const excludedDates = ref([]);
 
@@ -252,6 +256,7 @@ export default {
 
     return {
       weekDays,
+      hours,
       shortWeekDays,
       calendar,
       monthYear,
