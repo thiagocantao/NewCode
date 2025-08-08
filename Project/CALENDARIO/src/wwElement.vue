@@ -2,18 +2,12 @@
   <div class="corporate-calendar">
     <div class="shift-config">
       <table class="shift-table">
-        <thead>
-          <tr>
-            <th>Dia</th>
-            <th>Ativo</th>
-            <th>Início</th>
-            <th>Fim</th>
-          </tr>
-        </thead>
         <tbody>
           <tr v-for="day in weekDays" :key="day.name">
-            <td>{{ day.label }}</td>
-            <td><input type="checkbox" v-model="day.active" /></td>
+            <td>
+              <input type="checkbox" v-model="day.active" />
+              {{ day.label }}
+            </td>
             <td><input type="time" v-model="day.start" :disabled="!day.active" /></td>
             <td><input type="time" v-model="day.end" :disabled="!day.active" /></td>
           </tr>
@@ -189,7 +183,6 @@ export default {
   border-collapse: collapse;
 }
 
-.shift-table th,
 .shift-table td,
 .calendar-grid th,
 .calendar-grid td,
