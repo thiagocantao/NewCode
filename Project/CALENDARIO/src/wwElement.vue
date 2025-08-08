@@ -209,6 +209,35 @@ export default {
     const newExcludedDate = ref("");
     const showConfirm = ref(false);
 
+    function loadDataSource(ds) {
+      if (!ds) return;
+      let parsed = ds;
+      if (typeof parsed === "string") {
+        try {
+          parsed = JSON.parse(parsed);
+        } catch (e) {
+          return;
+        }
+      }
+      if (Array.isArray(parsed.weekDays)) {
+        parsed.weekDays.forEach((dayData) => {
+          const day = weekDays.value.find((d) => d.name === dayData.name);
+          if (day) {
+            day.active = !!dayData.active;
+            day.shift1Start = dayData.shift1Start || "";
+            day.shift1End = dayData.shift1End || "";
+            day.shift2Start = dayData.shift2Start || "";
+            day.shift2End = dayData.shift2End || "";
+          }
+        });
+      }
+      if (Array.isArray(parsed.excludedDates)) {
+        excludedDates.value = [...parsed.excludedDates];
+      }
+    }
+
+    loadDataSource(props.content.dataSource);
+
     const calendarValues = ref({
       weekDays: weekDays.value.map((day) => ({ ...day })),
       excludedDates: [...excludedDates.value],
@@ -222,6 +251,12 @@ export default {
           excludedDates: [...excludedDates.value],
         };
       },
+      { deep: true }
+    );
+
+    watch(
+      () => props.content.dataSource,
+      (val) => loadDataSource(val),
       { deep: true }
     );
 
