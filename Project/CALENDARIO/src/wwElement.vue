@@ -147,7 +147,7 @@ export default {
       return text;
     };
 
-    const weekDays = ref([
+    const defaultWeekDays = [
       {
         name: "Mon",
         label: translateText("Monday"),
@@ -211,7 +211,9 @@ export default {
         shift2Start: "",
         shift2End: "",
       },
-    ]);
+    ];
+
+    const weekDays = ref(defaultWeekDays.map((day) => ({ ...day })));
 
     const hours = Array.from({ length: 96 }, (_, i) => {
       const hour24 = Math.floor(i / 4);
@@ -265,19 +267,30 @@ export default {
       (val) => (excludedDatesHeight.value = val)
     );
 
+    function resetDataSource() {
+      weekDays.value = defaultWeekDays.map((day) => ({ ...day }));
+      excludedDates.value = [];
+    }
+
     function loadDataSource(ds) {
       let parsed = ds;
-      if (!parsed) return;
+      if (!parsed || (typeof parsed === "string" && !parsed.trim())) {
+        resetDataSource();
+        return;
+      }
       if (typeof parsed === "string") {
         try {
           parsed = JSON.parse(parsed);
         } catch (e) {
+          resetDataSource();
           return;
         }
       }
 
-      if (Array.isArray(parsed.weekDays)) {
-        const updatedDays = weekDays.value.map((day) => {
+      if (!Array.isArray(parsed.weekDays) || parsed.weekDays.length === 0) {
+        resetDataSource();
+      } else {
+        const updatedDays = defaultWeekDays.map((day) => {
           const dayData = parsed.weekDays.find((d) => d.name === day.name) || {};
           return {
             ...day,
@@ -290,9 +303,9 @@ export default {
         });
         weekDays.value = updatedDays;
       }
-      if (Array.isArray(parsed.excludedDates)) {
-        excludedDates.value = [...parsed.excludedDates];
-      }
+      excludedDates.value = Array.isArray(parsed.excludedDates)
+        ? [...parsed.excludedDates]
+        : [];
     }
 
     const calendarValues = ref({
