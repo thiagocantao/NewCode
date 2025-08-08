@@ -234,7 +234,6 @@ export default {
         });
         weekDays.value = updatedDays;
       }
-
       if (Array.isArray(parsed.excludedDates)) {
         excludedDates.value = [...parsed.excludedDates];
       }
