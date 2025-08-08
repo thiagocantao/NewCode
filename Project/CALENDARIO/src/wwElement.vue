@@ -94,7 +94,7 @@
             <td><input class="inputDate" type="date" v-model="newExcludedDate" /></td>
             <td><button class="buttonFormat" @click="addExcludedDate">{{ translateText('Add') }}</button></td>
           </tr>
-          <tr v-for="date in excludedDates" :key="date.toISOString()">
+          <tr v-for="date in excludedDates" :key="date">
             <td>{{ formatDate(date) }}</td>
             <td><button class="buttonFormat" @click="removeExcluded(date)">{{ translateText('Delete') }}</button></td>
           </tr>
@@ -210,16 +210,16 @@ export default {
     const showConfirm = ref(false);
 
     const calendarValues = ref({
-      weekDays: weekDays.value,
-      excludedDates: excludedDates.value,
+      weekDays: weekDays.value.map((day) => ({ ...day })),
+      excludedDates: [...excludedDates.value],
     });
 
     watch(
       [weekDays, excludedDates],
       () => {
         calendarValues.value = {
-          weekDays: weekDays.value,
-          excludedDates: excludedDates.value,
+          weekDays: weekDays.value.map((day) => ({ ...day })),
+          excludedDates: [...excludedDates.value],
         };
       },
       { deep: true }
@@ -245,25 +245,22 @@ export default {
 
     function addExcludedDate() {
       if (!newExcludedDate.value) return;
-      const date = new Date(newExcludedDate.value);
-      if (
-        !excludedDates.value.some(
-          (d) => d.toDateString() === date.toDateString()
-        )
-      ) {
-        excludedDates.value.push(date);
+      const dateString = newExcludedDate.value;
+      if (!excludedDates.value.includes(dateString)) {
+        excludedDates.value.push(dateString);
       }
       newExcludedDate.value = "";
     }
 
-    function removeExcluded(date) {
+    function removeExcluded(dateString) {
       excludedDates.value = excludedDates.value.filter(
-        (d) => d.toDateString() !== date.toDateString()
+        (d) => d !== dateString
       );
     }
 
-    function formatDate(date) {
-      return date.toLocaleDateString();
+    function formatDate(dateString) {
+      const date = new Date(dateString);
+      return isNaN(date) ? "" : date.toLocaleDateString();
     }
 
     function confirmCopy() {
