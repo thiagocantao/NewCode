@@ -213,9 +213,9 @@ export default {
       },
     ]);
 
-    const hours = Array.from({ length: 48 }, (_, i) => {
-      const hour24 = Math.floor(i / 2);
-      const minutes = i % 2 === 0 ? "00" : "30";
+    const hours = Array.from({ length: 96 }, (_, i) => {
+      const hour24 = Math.floor(i / 4);
+      const minutes = ["00", "15", "30", "45"][i % 4];
       const hour = hour24 % 12 || 12;
       const period = hour24 < 12 ? "AM" : "PM";
       return {
