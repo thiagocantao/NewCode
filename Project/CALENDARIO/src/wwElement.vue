@@ -196,12 +196,14 @@ export default {
       },
     ]);
 
-    const hours = Array.from({ length: 24 }, (_, i) => {
-      const hour = i % 12 || 12;
-      const period = i < 12 ? "AM" : "PM";
+    const hours = Array.from({ length: 48 }, (_, i) => {
+      const hour24 = Math.floor(i / 2);
+      const minutes = i % 2 === 0 ? "00" : "30";
+      const hour = hour24 % 12 || 12;
+      const period = hour24 < 12 ? "AM" : "PM";
       return {
-        value: `${String(i).padStart(2, "0")}:00`,
-        label: `${hour}:00 ${period}`,
+        value: `${String(hour24).padStart(2, "0")}:${minutes}`,
+        label: `${hour}:${minutes} ${period}`,
       };
     });
 
