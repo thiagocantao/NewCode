@@ -149,7 +149,7 @@ export default {
     function createDefaultWeekDays() {
       return [
         {
-          name: "mon",
+          name: "Mon",
           label: translateText("Monday"),
           active: false,
           shift1Start: "",
@@ -158,7 +158,7 @@ export default {
           shift2End: "",
         },
         {
-          name: "tue",
+          name: "Tue",
           label: translateText("Tuesday"),
           active: false,
           shift1Start: "",
@@ -167,7 +167,7 @@ export default {
           shift2End: "",
         },
         {
-          name: "wed",
+          name: "Wed",
           label: translateText("Wednesday"),
           active: false,
           shift1Start: "",
@@ -176,7 +176,7 @@ export default {
           shift2End: "",
         },
         {
-          name: "thu",
+          name: "Thu",
           label: translateText("Thursday"),
           active: false,
           shift1Start: "",
@@ -185,7 +185,7 @@ export default {
           shift2End: "",
         },
         {
-          name: "fri",
+          name: "Fri",
           label: translateText("Friday"),
           active: false,
           shift1Start: "",
@@ -194,7 +194,7 @@ export default {
           shift2End: "",
         },
         {
-          name: "sat",
+          name: "Sat",
           label: translateText("Saturday"),
           active: false,
           shift1Start: "",
@@ -203,7 +203,7 @@ export default {
           shift2End: "",
         },
         {
-          name: "sun",
+          name: "Sun",
           label: translateText("Sunday"),
           active: false,
           shift1Start: "",
