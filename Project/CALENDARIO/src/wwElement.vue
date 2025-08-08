@@ -420,6 +420,10 @@ font-family: "Roboto", sans-serif;
   table-layout: fixed;
 }
 
+.excluded-dates thead {
+  width: calc(100% - 6px);
+}
+
 .excluded-body {
   display: block;
   overflow-y: auto;
