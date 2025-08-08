@@ -425,9 +425,12 @@ export default {
 }
 
 .warning-icon {
-  margin-left: 4px;
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
   color: #d9534f;
-  font-size: 12px;
+  font-size: 10px;
   cursor: help;
 }
 
@@ -504,7 +507,9 @@ font-family: "Roboto", sans-serif;
 border: 0px;
 border-top: 1px solid #acacad !important;
 padding: 4px;
+padding-right: 16px;
 text-align: center;
+position: relative;
 }
 
 .shift-table select {
