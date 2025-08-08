@@ -4,12 +4,21 @@
       <table class="shift-table">
         <thead>
           <tr>
-            <th>Dias Operacionais</th>
-            <th>Turno 1</th>
-            <th>Turno 2</th>
-            <th>Turno 3</th>
-            <th>Turno 4</th>
-            <th></th>
+            <th rowspan="2">Dias Operacionais</th>
+            <th colspan="2">Turno 1</th>
+            <th colspan="2">Turno 2</th>
+            <th colspan="2">Turno 3</th>
+            <th colspan="2">Turno 4</th>
+          </tr>
+          <tr>
+            <th>Entrada</th>
+            <th>Saída</th>
+            <th>Entrada</th>
+            <th>Saída</th>
+            <th>Entrada</th>
+            <th>Saída</th>
+            <th>Entrada</th>
+            <th>Saída</th>
           </tr>
         </thead>
         <tbody>
@@ -19,38 +28,101 @@
               {{ day.label }}
             </td>
             <td>
-              <select v-model="day.shift1" :disabled="!day.active">
+              <select v-model="day.shift1Start" :disabled="!day.active">
                 <option value=""></option>
-                <option v-for="hour in hours" :key="hour.value" :value="hour.value">
+                <option
+                  v-for="hour in hours"
+                  :key="hour.value"
+                  :value="hour.value"
+                >
                   {{ hour.label }}
                 </option>
               </select>
             </td>
             <td>
-              <select v-model="day.shift2" :disabled="!day.active">
+              <select v-model="day.shift1End" :disabled="!day.active">
                 <option value=""></option>
-                <option v-for="hour in hours" :key="hour.value" :value="hour.value">
+                <option
+                  v-for="hour in hours"
+                  :key="hour.value"
+                  :value="hour.value"
+                >
                   {{ hour.label }}
                 </option>
               </select>
             </td>
             <td>
-              <select v-model="day.shift3" :disabled="!day.active">
+              <select v-model="day.shift2Start" :disabled="!day.active">
                 <option value=""></option>
-                <option v-for="hour in hours" :key="hour.value" :value="hour.value">
+                <option
+                  v-for="hour in hours"
+                  :key="hour.value"
+                  :value="hour.value"
+                >
                   {{ hour.label }}
                 </option>
               </select>
             </td>
             <td>
-              <select v-model="day.shift4" :disabled="!day.active">
+              <select v-model="day.shift2End" :disabled="!day.active">
                 <option value=""></option>
-                <option v-for="hour in hours" :key="hour.value" :value="hour.value">
+                <option
+                  v-for="hour in hours"
+                  :key="hour.value"
+                  :value="hour.value"
+                >
                   {{ hour.label }}
                 </option>
               </select>
             </td>
-            <td></td>
+            <td>
+              <select v-model="day.shift3Start" :disabled="!day.active">
+                <option value=""></option>
+                <option
+                  v-for="hour in hours"
+                  :key="hour.value"
+                  :value="hour.value"
+                >
+                  {{ hour.label }}
+                </option>
+              </select>
+            </td>
+            <td>
+              <select v-model="day.shift3End" :disabled="!day.active">
+                <option value=""></option>
+                <option
+                  v-for="hour in hours"
+                  :key="hour.value"
+                  :value="hour.value"
+                >
+                  {{ hour.label }}
+                </option>
+              </select>
+            </td>
+            <td>
+              <select v-model="day.shift4Start" :disabled="!day.active">
+                <option value=""></option>
+                <option
+                  v-for="hour in hours"
+                  :key="hour.value"
+                  :value="hour.value"
+                >
+                  {{ hour.label }}
+                </option>
+              </select>
+            </td>
+            <td>
+              <select v-model="day.shift4End" :disabled="!day.active">
+                <option value=""></option>
+                <option
+                  v-for="hour in hours"
+                  :key="hour.value"
+                  :value="hour.value"
+                >
+                  {{ hour.label }}
+                </option>
+              </select>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -115,64 +187,92 @@ export default {
         name: "mon",
         label: "Segunda",
         active: false,
-        shift1: "",
-        shift2: "",
-        shift3: "",
-        shift4: "",
+        shift1Start: "",
+        shift1End: "",
+        shift2Start: "",
+        shift2End: "",
+        shift3Start: "",
+        shift3End: "",
+        shift4Start: "",
+        shift4End: "",
       },
       {
         name: "tue",
         label: "Terça",
         active: false,
-        shift1: "",
-        shift2: "",
-        shift3: "",
-        shift4: "",
+        shift1Start: "",
+        shift1End: "",
+        shift2Start: "",
+        shift2End: "",
+        shift3Start: "",
+        shift3End: "",
+        shift4Start: "",
+        shift4End: "",
       },
       {
         name: "wed",
         label: "Quarta",
         active: false,
-        shift1: "",
-        shift2: "",
-        shift3: "",
-        shift4: "",
+        shift1Start: "",
+        shift1End: "",
+        shift2Start: "",
+        shift2End: "",
+        shift3Start: "",
+        shift3End: "",
+        shift4Start: "",
+        shift4End: "",
       },
       {
         name: "thu",
         label: "Quinta",
         active: false,
-        shift1: "",
-        shift2: "",
-        shift3: "",
-        shift4: "",
+        shift1Start: "",
+        shift1End: "",
+        shift2Start: "",
+        shift2End: "",
+        shift3Start: "",
+        shift3End: "",
+        shift4Start: "",
+        shift4End: "",
       },
       {
         name: "fri",
         label: "Sexta",
         active: false,
-        shift1: "",
-        shift2: "",
-        shift3: "",
-        shift4: "",
+        shift1Start: "",
+        shift1End: "",
+        shift2Start: "",
+        shift2End: "",
+        shift3Start: "",
+        shift3End: "",
+        shift4Start: "",
+        shift4End: "",
       },
       {
         name: "sat",
         label: "Sábado",
         active: false,
-        shift1: "",
-        shift2: "",
-        shift3: "",
-        shift4: "",
+        shift1Start: "",
+        shift1End: "",
+        shift2Start: "",
+        shift2End: "",
+        shift3Start: "",
+        shift3End: "",
+        shift4Start: "",
+        shift4End: "",
       },
       {
         name: "sun",
         label: "Domingo",
         active: false,
-        shift1: "",
-        shift2: "",
-        shift3: "",
-        shift4: "",
+        shift1Start: "",
+        shift1End: "",
+        shift2Start: "",
+        shift2End: "",
+        shift3Start: "",
+        shift3End: "",
+        shift4Start: "",
+        shift4End: "",
       },
     ]);
 
@@ -301,6 +401,10 @@ export default {
   border: 1px solid #ccc;
   padding: 4px;
   text-align: center;
+}
+
+.shift-table select {
+  width: 100%;
 }
 
 .shift-table th:first-child,
