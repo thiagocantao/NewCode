@@ -121,6 +121,7 @@ export default {
   props: {
     content: { type: Object, required: true },
     uid: { type: String, required: true },
+    dataSource: { type: [Object, String], default: null },
     /* wwEditor:start */
     wwEditorState: { type: Object, required: true },
     /* wwEditor:end */
@@ -258,8 +259,14 @@ export default {
     );
 
     watch(
-      () => props.content,
-      (val) => loadDataSource(val?.dataSource),
+      () => props.content.dataSource,
+      (val) => loadDataSource(val),
+      { deep: true, immediate: true }
+    );
+
+    watch(
+      () => props.dataSource,
+      (val) => loadDataSource(val),
       { deep: true, immediate: true }
     );
 
