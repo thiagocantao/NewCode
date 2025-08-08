@@ -39,6 +39,11 @@
                   {{ hour.label }}
                 </option>
               </select>
+              <span
+                v-if="isInconsistent(day, 'shift1End')"
+                class="warning-icon"
+                :title="translateText('There are incompatible times of the day')"
+              >⚠️</span>
             </td>
             <td>,</td>
             <td>
@@ -52,6 +57,11 @@
                   {{ hour.label }}
                 </option>
               </select>
+              <span
+                v-if="isInconsistent(day, 'shift2Start')"
+                class="warning-icon"
+                :title="translateText('There are incompatible times of the day')"
+              >⚠️</span>
             </td>
             <td>-</td>
             <td>
@@ -65,6 +75,11 @@
                   {{ hour.label }}
                 </option>
               </select>
+              <span
+                v-if="isInconsistent(day, 'shift2End')"
+                class="warning-icon"
+                :title="translateText('There are incompatible times of the day')"
+              >⚠️</span>
             </td>
             <td style="border-left: 1px solid #acacad">
               <button
@@ -208,6 +223,29 @@ export default {
         label: `${hour}:${minutes} ${period}`,
       };
     });
+
+    function timeToMinutes(time) {
+      if (!time) return null;
+      const [h, m] = time.split(":").map(Number);
+      return h * 60 + m;
+    }
+
+    function isInconsistent(day, field) {
+      const order = ["shift1Start", "shift1End", "shift2Start", "shift2End"];
+      let last = null;
+      for (const key of order) {
+        const val = day[key];
+        if (val) {
+          const minutes = timeToMinutes(val);
+          if (last !== null && minutes < last) {
+            if (key === field) return true;
+          } else {
+            last = minutes;
+          }
+        }
+      }
+      return false;
+    }
 
     const excludedDates = ref([]);
     const newExcludedDate = ref("");
@@ -359,6 +397,7 @@ export default {
       calendarValues,
       excludedDatesHeight,
       translateText,
+      isInconsistent,
     };
   },
 };
@@ -383,6 +422,13 @@ export default {
   background-color: #689d8c;
   border-radius: 15px;
   cursor:pointer;
+}
+
+.warning-icon {
+  margin-left: 4px;
+  color: #d9534f;
+  font-size: 12px;
+  cursor: help;
 }
 
 .shift-table {
