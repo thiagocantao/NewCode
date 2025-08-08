@@ -70,50 +70,26 @@
       </table>
     </div>
 
-    <div class="calendar">
-      <div class="calendar-header">
-        <button @click="prevMonth">&lt;</button>
-        <span>{{ monthYear }}</span>
-        <button @click="nextMonth">&gt;</button>
-      </div>
-      <table class="calendar-grid">
-        <thead>
-          <tr>
-            <th v-for="d in shortWeekDays" :key="d">{{ d }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(week, i) in calendar" :key="i">
-            <td
-              v-for="day in week"
-              :key="day.date"
-              :class="{ 'other-month': day.otherMonth, excluded: isExcluded(day.date) }"
-              @click="toggleExcluded(day.date)"
-            >
-              {{ day.date.getDate() }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
     <div class="excluded-dates">
       <h3>Datas excluídas</h3>
-      <table v-if="excludedDates.length">
+      <table>
         <tbody>
+          <tr>
+            <td><input type="date" v-model="newExcludedDate" /></td>
+            <td><button @click="addExcludedDate">Inserir</button></td>
+          </tr>
           <tr v-for="date in excludedDates" :key="date.toISOString()">
             <td>{{ formatDate(date) }}</td>
-            <td><button @click="removeExcluded(date)">Remover</button></td>
+            <td><button @click="removeExcluded(date)">Excluir</button></td>
           </tr>
         </tbody>
       </table>
-      <p v-else>Nenhuma data excluída</p>
     </div>
   </div>
 </template>
 
 <script>
-import { ref, computed } from "vue";
+import { ref } from "vue";
 
 export default {
   props: {
@@ -199,68 +175,20 @@ export default {
       };
     });
 
-    const currentDate = ref(new Date());
     const excludedDates = ref([]);
+    const newExcludedDate = ref("");
 
-    const shortWeekDays = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
-
-    const monthYear = computed(() =>
-      currentDate.value.toLocaleString("default", {
-        month: "long",
-        year: "numeric",
-      })
-    );
-
-    const startOfMonth = computed(() => {
-      const d = new Date(currentDate.value);
-      d.setDate(1);
-      return d;
-    });
-
-    const calendar = computed(() => {
-      const start = new Date(startOfMonth.value);
-      const startWeekDay = (start.getDay() + 6) % 7; // Monday = 0
-      start.setDate(start.getDate() - startWeekDay);
-      const weeks = [];
-      for (let w = 0; w < 6; w++) {
-        const week = [];
-        for (let d = 0; d < 7; d++) {
-          const date = new Date(start);
-          const otherMonth = date.getMonth() !== currentDate.value.getMonth();
-          week.push({ date, otherMonth });
-          start.setDate(start.getDate() + 1);
-        }
-        weeks.push(week);
+    function addExcludedDate() {
+      if (!newExcludedDate.value) return;
+      const date = new Date(newExcludedDate.value);
+      if (
+        !excludedDates.value.some(
+          (d) => d.toDateString() === date.toDateString()
+        )
+      ) {
+        excludedDates.value.push(date);
       }
-      return weeks;
-    });
-
-    function prevMonth() {
-      const d = new Date(currentDate.value);
-      d.setMonth(d.getMonth() - 1);
-      currentDate.value = d;
-    }
-
-    function nextMonth() {
-      const d = new Date(currentDate.value);
-      d.setMonth(d.getMonth() + 1);
-      currentDate.value = d;
-    }
-
-    function isExcluded(date) {
-      return excludedDates.value.some(
-        (d) => d.toDateString() === date.toDateString()
-      );
-    }
-
-    function toggleExcluded(date) {
-      if (isExcluded(date)) {
-        excludedDates.value = excludedDates.value.filter(
-          (d) => d.toDateString() !== date.toDateString()
-        );
-      } else {
-        excludedDates.value.push(new Date(date));
-      }
+      newExcludedDate.value = "";
     }
 
     function removeExcluded(date) {
@@ -276,15 +204,10 @@ export default {
     return {
       weekDays,
       hours,
-      shortWeekDays,
-      calendar,
-      monthYear,
-      prevMonth,
-      nextMonth,
       excludedDates,
-      toggleExcluded,
+      newExcludedDate,
+      addExcludedDate,
       removeExcluded,
-      isExcluded,
       formatDate,
     };
   },
@@ -304,15 +227,12 @@ export default {
 }
 
 .shift-table,
-.calendar-grid,
 .excluded-dates table {
   width: 100%;
-  border-collapse: collapse;  
+  border-collapse: collapse;
   border: 1px solid #acacad;
 }
 
-.calendar-grid th,
-.calendar-grid td,
 .excluded-dates td {
   border: 1px solid #acacad;
   padding: 4px;
@@ -356,25 +276,6 @@ text-align: center;
 .corporate-calendar th,
 .corporate-calendar h3 {
   font-weight: 400;
-}
-
-.calendar-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: 8px 0;
-}
-
-.calendar-grid td {
-  cursor: pointer;
-}
-
-.calendar-grid td.other-month {
-  color: #aaa;
-}
-
-.calendar-grid td.excluded {
-  background-color: #ffcccc;
 }
 
 .excluded-dates {
