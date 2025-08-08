@@ -21,32 +21,32 @@
             <td>
               <select v-model="day.shift1" :disabled="!day.active">
                 <option value=""></option>
-                <option v-for="hour in hours" :key="hour" :value="hour">
-                  {{ hour }}
+                <option v-for="hour in hours" :key="hour.value" :value="hour.value">
+                  {{ hour.label }}
                 </option>
               </select>
             </td>
             <td>
               <select v-model="day.shift2" :disabled="!day.active">
                 <option value=""></option>
-                <option v-for="hour in hours" :key="hour" :value="hour">
-                  {{ hour }}
+                <option v-for="hour in hours" :key="hour.value" :value="hour.value">
+                  {{ hour.label }}
                 </option>
               </select>
             </td>
             <td>
               <select v-model="day.shift3" :disabled="!day.active">
                 <option value=""></option>
-                <option v-for="hour in hours" :key="hour" :value="hour">
-                  {{ hour }}
+                <option v-for="hour in hours" :key="hour.value" :value="hour.value">
+                  {{ hour.label }}
                 </option>
               </select>
             </td>
             <td>
               <select v-model="day.shift4" :disabled="!day.active">
                 <option value=""></option>
-                <option v-for="hour in hours" :key="hour" :value="hour">
-                  {{ hour }}
+                <option v-for="hour in hours" :key="hour.value" :value="hour.value">
+                  {{ hour.label }}
                 </option>
               </select>
             </td>
@@ -176,9 +176,14 @@ export default {
       },
     ]);
 
-    const hours = Array.from({ length: 24 }, (_, i) =>
-      `${String(i).padStart(2, "0")}:00`
-    );
+    const hours = Array.from({ length: 24 }, (_, i) => {
+      const hour = i % 12 || 12;
+      const period = i < 12 ? "AM" : "PM";
+      return {
+        value: `${String(i).padStart(2, "0")}:00`,
+        label: `${hour}:00 ${period}`,
+      };
+    });
 
     const currentDate = ref(new Date());
     const excludedDates = ref([]);
