@@ -54,6 +54,7 @@ export default {
       ],
       customSettingsPropertiesOrder: [
         "dataSource",
+        "excludedDatesHeight",
         "rowData",
         "idFormula",
         "generateColumns",
@@ -779,6 +780,14 @@ export default {
           tooltip: "JSON object or string to initialize calendar values",
         },
         /* wwEditor:end */
+      },
+      excludedDatesHeight: {
+        label: { en: "Excluded dates table height" },
+        type: "Length",
+        section: "settings",
+        options: { noRange: true },
+        bindable: true,
+        defaultValue: "150px",
       },
       rowData: {
         label: { en: "Data" },

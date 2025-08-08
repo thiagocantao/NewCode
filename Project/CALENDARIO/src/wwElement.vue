@@ -213,6 +213,20 @@ export default {
     const newExcludedDate = ref("");
     const showConfirm = ref(false);
 
+    const excludedDatesHeight = ref(
+      props.content.excludedDatesHeight || props.excludedDatesHeight
+    );
+
+    watch(
+      () => props.content.excludedDatesHeight,
+      (val) => (excludedDatesHeight.value = val)
+    );
+
+    watch(
+      () => props.excludedDatesHeight,
+      (val) => (excludedDatesHeight.value = val)
+    );
+
     function loadDataSource(ds) {
       let parsed = ds;
       if (!parsed) return;
@@ -343,7 +357,7 @@ export default {
       cancelCopy,
       showConfirm,
       calendarValues,
-      excludedDatesHeight: props.excludedDatesHeight,
+      excludedDatesHeight,
       translateText,
     };
   },
