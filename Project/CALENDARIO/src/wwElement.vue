@@ -393,8 +393,8 @@ export default {
 
 .excluded-dates table {
   width: 300px;
-  border-collapse: collapse;
-  border: 1px solid #acacad;
+  border-collapse: collapse;  
+  border-bottom: 1px solid #acacad;
 }
 
 .inputDate{
@@ -406,6 +406,7 @@ font-family: "Roboto", sans-serif;
 }
 
 .excluded-dates td {
+  border-bottom: 0px !important;
   border: 1px solid #acacad;
   padding: 4px;
   text-align: center;
