@@ -6,10 +6,11 @@
           <tr>
             <th class="headerDias">Dias Operacionais</th>
             <th class="headerHoras" colspan="7">Horas Operacionais</th>
+            <th class="headerHoras"></th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="day in weekDays" :key="day.name">
+          <tr v-for="(day, index) in weekDays" :key="day.name">
             <td>
               <input type="checkbox" style="cursor:pointer" v-model="day.active" />
               {{ day.label }}
@@ -65,6 +66,15 @@
                 </option>
               </select>
             </td>
+            <td>
+              <button
+                v-if="index === 0"
+                class="buttonFormat"
+                @click="confirmCopy"
+              >
+                Copiar
+              </button>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -90,6 +100,16 @@
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <div v-if="showConfirm" class="popup-overlay">
+      <div class="popup-content">
+        <p>Copiar configuração de horas para todos os dias?</p>
+        <div style="display:flex; gap:10px; justify-content:center;">
+          <button class="buttonFormat" @click="copyFirstRow">Confirmar</button>
+          <button class="buttonFormat" @click="cancelCopy">Cancelar</button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -183,6 +203,7 @@ export default {
 
     const excludedDates = ref([]);
     const newExcludedDate = ref("");
+    const showConfirm = ref(false);
 
     function addExcludedDate() {
       if (!newExcludedDate.value) return;
@@ -207,6 +228,26 @@ export default {
       return date.toLocaleDateString();
     }
 
+    function confirmCopy() {
+      showConfirm.value = true;
+    }
+
+    function copyFirstRow() {
+      const first = weekDays.value[0];
+      for (let i = 1; i < weekDays.value.length; i++) {
+        weekDays.value[i].active = first.active;
+        weekDays.value[i].shift1Start = first.shift1Start;
+        weekDays.value[i].shift1End = first.shift1End;
+        weekDays.value[i].shift2Start = first.shift2Start;
+        weekDays.value[i].shift2End = first.shift2End;
+      }
+      showConfirm.value = false;
+    }
+
+    function cancelCopy() {
+      showConfirm.value = false;
+    }
+
     return {
       weekDays,
       hours,
@@ -215,6 +256,10 @@ export default {
       addExcludedDate,
       removeExcluded,
       formatDate,
+      confirmCopy,
+      copyFirstRow,
+      cancelCopy,
+      showConfirm,
     };
   },
 };
@@ -333,5 +378,24 @@ padding:10px;
 background-color: #f5f6fa;
   border-right: 1px solid #acacad;
   border-top: 1px solid #acacad;
+}
+
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.popup-content {
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
 }
 </style>
