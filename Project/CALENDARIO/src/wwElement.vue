@@ -355,16 +355,30 @@ export default {
       wwLib.wwVariable &&
       wwLib.wwVariable.useComponentVariable
     ) {
-      const { setValue } = wwLib.wwVariable.useComponentVariable({
-        uid: props.uid,
-        name: "calendarValues",
-        type: "object",
-        defaultValue: calendarValues.value,
-      });
+      const { setValue: setCalendarValues } =
+        wwLib.wwVariable.useComponentVariable({
+          uid: props.uid,
+          name: "calendarValues",
+          type: "object",
+          defaultValue: calendarValues.value,
+        });
       watch(
         calendarValues,
-        (val) => setValue(val),
+        (val) => setCalendarValues(val),
         { deep: true, immediate: true }
+      );
+
+      const { setValue: setHasHourInconsistency } =
+        wwLib.wwVariable.useComponentVariable({
+          uid: props.uid,
+          name: "hasHourInconsistency",
+          type: "boolean",
+          defaultValue: hasHourInconsistency.value,
+        });
+      watch(
+        hasHourInconsistency,
+        (val) => setHasHourInconsistency(val),
+        { immediate: true }
       );
     }
 
