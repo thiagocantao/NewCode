@@ -14,15 +14,11 @@
             <td>
               <input type="checkbox" style="cursor:pointer" v-model="day.active" />
               {{ day.label }}
-            </td>            
+            </td>
             <td>
               <select v-model="day.shift1Start" :disabled="!day.active">
                 <option value=""></option>
-                <option
-                  v-for="hour in hours"
-                  :key="hour.value"
-                  :value="hour.value"
-                >
+                <option v-for="hour in hours" :key="hour.value" :value="hour.value">
                   {{ hour.label }}
                 </option>
               </select>
@@ -31,11 +27,7 @@
             <td>
               <select v-model="day.shift1End" :disabled="!day.active">
                 <option value=""></option>
-                <option
-                  v-for="hour in hours"
-                  :key="hour.value"
-                  :value="hour.value"
-                >
+                <option v-for="hour in hours" :key="hour.value" :value="hour.value">
                   {{ hour.label }}
                 </option>
               </select>
@@ -43,17 +35,14 @@
                 v-if="isInconsistent(day, 'shift1End')"
                 class="warning-icon"
                 :title="translateText('There are incompatible times of the day')"
-              >⚠️</span>
+                >⚠️</span
+              >
             </td>
             <td>,</td>
             <td>
               <select v-model="day.shift2Start" :disabled="!day.active">
                 <option value=""></option>
-                <option
-                  v-for="hour in hours"
-                  :key="hour.value"
-                  :value="hour.value"
-                >
+                <option v-for="hour in hours" :key="hour.value" :value="hour.value">
                   {{ hour.label }}
                 </option>
               </select>
@@ -61,17 +50,14 @@
                 v-if="isInconsistent(day, 'shift2Start')"
                 class="warning-icon"
                 :title="translateText('There are incompatible times of the day')"
-              >⚠️</span>
+                >⚠️</span
+              >
             </td>
             <td>-</td>
             <td>
               <select v-model="day.shift2End" :disabled="!day.active">
                 <option value=""></option>
-                <option
-                  v-for="hour in hours"
-                  :key="hour.value"
-                  :value="hour.value"
-                >
+                <option v-for="hour in hours" :key="hour.value" :value="hour.value">
                   {{ hour.label }}
                 </option>
               </select>
@@ -79,14 +65,11 @@
                 v-if="isInconsistent(day, 'shift2End')"
                 class="warning-icon"
                 :title="translateText('There are incompatible times of the day')"
-              >⚠️</span>
+                >⚠️</span
+              >
             </td>
             <td style="border-left: 1px solid #acacad">
-              <button
-                v-if="index === 0"
-                class="buttonFormat"
-                @click="confirmCopy"
-              >
+              <button v-if="index === 0" class="buttonFormat" @click="confirmCopy">
                 {{ translateText('Copy') }}
               </button>
             </td>
@@ -95,26 +78,43 @@
       </table>
     </div>
 
-    <div class="excluded-dates">
-      <h3>{{ translateText('Exclude dates') }}</h3>
+    <!-- Tabela de datas excluídas com correção de borda e alinhamento -->
+    <div>
+      <h3 class="h3">{{ translateText('Exclude dates') }}</h3>
+      <div class="excluded-dates"
+      ref="excludedRoot"
+      :class="{ 'has-scroll': excludedHasScroll }"> 
       <table>
-      <thead>
+        <thead>
           <tr>
-            <th class="headerDias">{{ translateText('Date') }}</th>
+            <th style="width:155px" class="headerDias">{{ translateText('Date') }}</th>
             <th class="headerHoras">{{ translateText('Action') }}</th>
           </tr>
         </thead>
-        <tbody class="excluded-body" :style="{ maxHeight: excludedDatesHeight }">
+        <tbody
+          class="excluded-body"
+          ref="excludedBodyEl"
+          :style="{ maxHeight: excludedDatesHeight }"
+        >
           <tr>
-            <td><input class="inputDate" type="date" v-model="newExcludedDate" /></td>
-            <td><button class="buttonFormat" @click="addExcludedDate">{{ translateText('Add') }}</button></td>
+            <td style="width:155px"><input class="inputDate" type="date" v-model="newExcludedDate" /></td>
+            <td>
+              <button class="buttonFormat" @click="addExcludedDate">
+                {{ translateText('Add') }}
+              </button>
+            </td>
           </tr>
           <tr v-for="date in excludedDates" :key="date">
-            <td>{{ formatDate(date) }}</td>
-            <td><button class="buttonFormat" @click="removeExcluded(date)">{{ translateText('Delete') }}</button></td>
+            <td style="width:155px">{{ formatDate(date) }}</td>
+            <td>
+              <button class="buttonFormat" @click="removeExcluded(date)">
+                {{ translateText('Delete') }}
+              </button>
+            </td>
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
 
     <div v-if="showConfirm" class="popup-overlay">
@@ -130,7 +130,7 @@
 </template>
 
 <script>
-import { ref, watch } from "vue";
+import { ref, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 
 export default {
   props: {
@@ -143,87 +143,26 @@ export default {
     /* wwEditor:end */
   },
   setup(props) {
-    const translateText = (text) => {
-      return text;
-    };
+    const translateText = (text) => text;
 
     const defaultWeekDays = [
-      {
-        name: "Mon",
-        label: translateText("Monday"),
-        active: false,
-        shift1Start: "",
-        shift1End: "",
-        shift2Start: "",
-        shift2End: "",
-      },
-      {
-        name: "Tue",
-        label: translateText("Tuesday"),
-        active: false,
-        shift1Start: "",
-        shift1End: "",
-        shift2Start: "",
-        shift2End: "",
-      },
-      {
-        name: "Wed",
-        label: translateText("Wednesday"),
-        active: false,
-        shift1Start: "",
-        shift1End: "",
-        shift2Start: "",
-        shift2End: "",
-      },
-      {
-        name: "Thu",
-        label: translateText("Thursday"),
-        active: false,
-        shift1Start: "",
-        shift1End: "",
-        shift2Start: "",
-        shift2End: "",
-      },
-      {
-        name: "Fri",
-        label: translateText("Friday"),
-        active: false,
-        shift1Start: "",
-        shift1End: "",
-        shift2Start: "",
-        shift2End: "",
-      },
-      {
-        name: "Sat",
-        label: translateText("Saturday"),
-        active: false,
-        shift1Start: "",
-        shift1End: "",
-        shift2Start: "",
-        shift2End: "",
-      },
-      {
-        name: "Sun",
-        label: translateText("Sunday"),
-        active: false,
-        shift1Start: "",
-        shift1End: "",
-        shift2Start: "",
-        shift2End: "",
-      },
+      { name: "Mon", label: translateText("Monday"), active: false, shift1Start: "", shift1End: "", shift2Start: "", shift2End: "" },
+      { name: "Tue", label: translateText("Tuesday"), active: false, shift1Start: "", shift1End: "", shift2Start: "", shift2End: "" },
+      { name: "Wed", label: translateText("Wednesday"), active: false, shift1Start: "", shift1End: "", shift2Start: "", shift2End: "" },
+      { name: "Thu", label: translateText("Thursday"), active: false, shift1Start: "", shift1End: "", shift2Start: "", shift2End: "" },
+      { name: "Fri", label: translateText("Friday"), active: false, shift1Start: "", shift1End: "", shift2Start: "", shift2End: "" },
+      { name: "Sat", label: translateText("Saturday"), active: false, shift1Start: "", shift1End: "", shift2Start: "", shift2End: "" },
+      { name: "Sun", label: translateText("Sunday"), active: false, shift1Start: "", shift1End: "", shift2Start: "", shift2End: "" },
     ];
 
-    const weekDays = ref(defaultWeekDays.map((day) => ({ ...day })));
+    const weekDays = ref(defaultWeekDays.map((d) => ({ ...d })));
 
     const hours = Array.from({ length: 96 }, (_, i) => {
       const hour24 = Math.floor(i / 4);
       const minutes = ["00", "15", "30", "45"][i % 4];
       const hour = hour24 % 12 || 12;
       const period = hour24 < 12 ? "AM" : "PM";
-      return {
-        value: `${String(hour24).padStart(2, "0")}:${minutes}`,
-        label: `${hour}:${minutes} ${period}`,
-      };
+      return { value: `${String(hour24).padStart(2, "0")}:${minutes}`, label: `${hour}:${minutes} ${period}` };
     });
 
     function timeToMinutes(time) {
@@ -254,9 +193,7 @@ export default {
       weekDays,
       (days) => {
         hasHourInconsistency.value = days.some((day) =>
-          ["shift1Start", "shift1End", "shift2Start", "shift2End"].some((field) =>
-            isInconsistent(day, field)
-          )
+          ["shift1Start", "shift1End", "shift2Start", "shift2End"].some((field) => isInconsistent(day, field))
         );
       },
       { deep: true, immediate: true }
@@ -266,19 +203,9 @@ export default {
     const newExcludedDate = ref("");
     const showConfirm = ref(false);
 
-    const excludedDatesHeight = ref(
-      props.content.excludedDatesHeight || props.excludedDatesHeight
-    );
-
-    watch(
-      () => props.content.excludedDatesHeight,
-      (val) => (excludedDatesHeight.value = val)
-    );
-
-    watch(
-      () => props.excludedDatesHeight,
-      (val) => (excludedDatesHeight.value = val)
-    );
+    const excludedDatesHeight = ref(props.content.excludedDatesHeight || props.excludedDatesHeight);
+    watch(() => props.content.excludedDatesHeight, (v) => (excludedDatesHeight.value = v));
+    watch(() => props.excludedDatesHeight, (v) => (excludedDatesHeight.value = v));
 
     function resetDataSource() {
       weekDays.value = defaultWeekDays.map((day) => ({ ...day }));
@@ -294,12 +221,11 @@ export default {
       if (typeof parsed === "string") {
         try {
           parsed = JSON.parse(parsed);
-        } catch (e) {
+        } catch {
           resetDataSource();
           return;
         }
       }
-
       if (!Array.isArray(parsed.weekDays) || parsed.weekDays.length === 0) {
         resetDataSource();
       } else {
@@ -316,13 +242,11 @@ export default {
         });
         weekDays.value = updatedDays;
       }
-      excludedDates.value = Array.isArray(parsed.excludedDates)
-        ? [...parsed.excludedDates]
-        : [];
+      excludedDates.value = Array.isArray(parsed.excludedDates) ? [...parsed.excludedDates] : [];
     }
 
     const calendarValues = ref({
-      weekDays: weekDays.value.map((day) => ({ ...day })),
+      weekDays: weekDays.value.map((d) => ({ ...d })),
       excludedDates: [...excludedDates.value],
     });
 
@@ -330,7 +254,7 @@ export default {
       [weekDays, excludedDates],
       () => {
         calendarValues.value = {
-          weekDays: weekDays.value.map((day) => ({ ...day })),
+          weekDays: weekDays.value.map((d) => ({ ...d })),
           excludedDates: [...excludedDates.value],
         };
       },
@@ -350,51 +274,33 @@ export default {
       { deep: true, immediate: true }
     );
 
-    if (
-      typeof wwLib !== "undefined" &&
-      wwLib.wwVariable &&
-      wwLib.wwVariable.useComponentVariable
-    ) {
-      const { setValue: setCalendarValues } =
-        wwLib.wwVariable.useComponentVariable({
-          uid: props.uid,
-          name: "calendarValues",
-          type: "object",
-          defaultValue: calendarValues.value,
-        });
-      watch(
-        calendarValues,
-        (val) => setCalendarValues(val),
-        { deep: true, immediate: true }
-      );
+    if (typeof wwLib !== "undefined" && wwLib.wwVariable && wwLib.wwVariable.useComponentVariable) {
+      const { setValue: setCalendarValues } = wwLib.wwVariable.useComponentVariable({
+        uid: props.uid,
+        name: "calendarValues",
+        type: "object",
+        defaultValue: calendarValues.value,
+      });
+      watch(calendarValues, (val) => setCalendarValues(val), { deep: true, immediate: true });
 
-      const { setValue: setHasHourInconsistency } =
-        wwLib.wwVariable.useComponentVariable({
-          uid: props.uid,
-          name: "hasHourInconsistency",
-          type: "boolean",
-          defaultValue: hasHourInconsistency.value,
-        });
-      watch(
-        hasHourInconsistency,
-        (val) => setHasHourInconsistency(val),
-        { immediate: true }
-      );
+      const { setValue: setHasHourInconsistency } = wwLib.wwVariable.useComponentVariable({
+        uid: props.uid,
+        name: "hasHourInconsistency",
+        type: "boolean",
+        defaultValue: hasHourInconsistency.value,
+      });
+      watch(hasHourInconsistency, (val) => setHasHourInconsistency(val), { immediate: true });
     }
 
     function addExcludedDate() {
       if (!newExcludedDate.value) return;
       const dateString = newExcludedDate.value;
-      if (!excludedDates.value.includes(dateString)) {
-        excludedDates.value.push(dateString);
-      }
+      if (!excludedDates.value.includes(dateString)) excludedDates.value.push(dateString);
       newExcludedDate.value = "";
     }
 
     function removeExcluded(dateString) {
-      excludedDates.value = excludedDates.value.filter(
-        (d) => d !== dateString
-      );
+      excludedDates.value = excludedDates.value.filter((d) => d !== dateString);
     }
 
     function formatDate(dateString) {
@@ -406,7 +312,6 @@ export default {
     function confirmCopy() {
       showConfirm.value = true;
     }
-
     function copyFirstRow() {
       const first = weekDays.value[0];
       for (let i = 1; i < weekDays.value.length; i++) {
@@ -418,10 +323,54 @@ export default {
       }
       showConfirm.value = false;
     }
-
     function cancelCopy() {
       showConfirm.value = false;
     }
+
+    /* ---------- Correção de alinhamento/scrollbar ---------- */
+    const excludedRoot = ref(null);
+    const excludedBodyEl = ref(null);
+    const excludedHasScroll = ref(false);
+    let ro, mo;
+
+    function measureScrollbarWidth() {
+      const probe = document.createElement("div");
+      probe.style.cssText = "width:100px;height:100px;overflow:scroll;position:absolute;top:-9999px";
+      document.body.appendChild(probe);
+      const sbw = probe.offsetWidth - probe.clientWidth;
+      probe.remove();
+      if (excludedRoot.value) {
+        excludedRoot.value.style.setProperty("--sbw", (sbw || 6) + "px");
+      }
+    }
+
+    function syncHeaderPadding() {
+      if (!excludedBodyEl.value) return;
+      const has = excludedBodyEl.value.scrollHeight > excludedBodyEl.value.clientHeight + 1;
+      excludedHasScroll.value = has;
+    }
+
+    onMounted(async () => {
+      await nextTick();
+      measureScrollbarWidth();
+      syncHeaderPadding();
+
+      if (window.ResizeObserver && excludedBodyEl.value) {
+        ro = new ResizeObserver(syncHeaderPadding);
+        ro.observe(excludedBodyEl.value);
+      }
+      if (window.MutationObserver && excludedBodyEl.value) {
+        mo = new MutationObserver(syncHeaderPadding);
+        mo.observe(excludedBodyEl.value, { childList: true, subtree: false });
+      }
+    });
+
+    onBeforeUnmount(() => {
+      if (ro && excludedBodyEl.value) ro.unobserve(excludedBodyEl.value);
+      if (mo) mo.disconnect();
+    });
+
+    watch([excludedDates, excludedDatesHeight], () => nextTick().then(syncHeaderPadding), { deep: true });
 
     return {
       weekDays,
@@ -440,6 +389,11 @@ export default {
       translateText,
       isInconsistent,
       hasHourInconsistency,
+
+      // refs/estado da tabela de excluídos
+      excludedRoot,
+      excludedBodyEl,
+      excludedHasScroll,
     };
   },
 };
@@ -454,16 +408,15 @@ export default {
   color: #333;
   font-weight: 400;
   max-width: 450px;
-  
 }
 
-.buttonFormat{
-  padding:5px;
-  width:80px;
+.buttonFormat {
+  padding: 5px;
+  width: 80px;
   color: #ffffff;
   background-color: #689d8c;
   border-radius: 15px;
-  cursor:pointer;
+  cursor: pointer;
 }
 
 .warning-icon {
@@ -476,82 +429,20 @@ export default {
   cursor: help;
 }
 
+/* --------- Tabela de horários (sem mudanças visuais) --------- */
 .shift-table {
   width: 100%;
   border-collapse: collapse;
   border: 1px solid #acacad;
 }
 
-.excluded-dates table {
-  width: 300px;
-  border-collapse: collapse;  
-  border-bottom: 1px solid #acacad;
-}
-
-.inputDate{
-padding:3px;
-font-family: "Roboto", sans-serif;
-  font-size: 13px;
-  color: #333;
-  cursor: pointer;
-}
-
-.excluded-dates td {
-  border-bottom: 0px !important;
-  border: 1px solid #acacad;
-  padding: 4px;
-  text-align: center;
-  height:38px;
-}
-
-.excluded-dates thead,
-.excluded-dates .excluded-body tr {
-  display: table;
-  width: 100%;
-  table-layout: fixed;
-}
-
-.excluded-dates thead {
-  width: calc(100% - 6px);
-}
-
-.excluded-body {
-  display: block;
-  overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-  scrollbar-gutter: stable;
-}
-
-.excluded-body::-webkit-scrollbar {
-  width: 6px;
-}
-
-.excluded-body::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.excluded-body::-webkit-scrollbar-thumb {
-  background-color: transparent;
-  border-radius: 3px;
-}
-
-.excluded-body:hover::-webkit-scrollbar-thumb {
-  background-color: #888;
-}
-
-.excluded-body:hover {
-  scrollbar-color: #888 transparent;
-}
-
 .shift-table td {
-border: 0px;
-border-top: 1px solid #acacad !important;
-padding: 4px;
-padding-right: 16px;
-text-align: center;
-position: relative;
+  border: 0px;
+  border-top: 1px solid #acacad !important;
+  padding: 4px;
+  padding-right: 16px;
+  text-align: center;
+  position: relative;
 }
 
 .shift-table select {
@@ -559,7 +450,7 @@ position: relative;
   font-family: "Roboto", sans-serif;
   font-size: 13px;
   color: #333;
-  padding:2px;
+  padding: 2px;
   border: 1px solid #acacad !important;
   border-radius: 4px;
   cursor: pointer;
@@ -572,12 +463,12 @@ position: relative;
 
 .shift-table th:first-child,
 .shift-table td:first-child {
-  text-align: left;  
+  text-align: left;
   border-right: 1px solid #acacad;
-  border-left: 0px;  
+  border-left: 0px;
   border-top: 0px;
   display: flex;
-  align-items: center;    /* alinha verticalmente */
+  align-items: center;
   height: 40px;
   column-gap: 8px;
 }
@@ -586,8 +477,18 @@ position: relative;
   font-weight: 400;
 }
 
-.corporate-calendar h3 {
-  font-weight: 400;  
+/* --------- Tabela de datas excluídas (correção de borda/scroll) --------- */
+
+/* A borda da "tabela" fica no contêiner externo */
+.excluded-dates {
+  border: 1px solid #acacad;
+  overflow: hidden;
+  display: inline-block; /* casa com a largura da tabela interna */
+  margin-top: 0px;
+}
+
+.h3 {
+  font-weight: 400;
   margin-bottom: 1px;
   margin-top: 25px;
   font-family: "Roboto", sans-serif;
@@ -595,23 +496,79 @@ position: relative;
   color: #333;
 }
 
-.excluded-dates {
-  margin-top: 0px;
+.excluded-dates table {
+  width: 300px; /* ajuste conforme seu layout */
+  border: 0;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
-.headerDias {
-  padding:10px;
-  background-color: #f5f6fa;
-  border-right: 1px solid #acacad;
-  border-top: 1px solid #acacad;
-  border-left: 1px solid #acacad;
+/* Mantém colunas alinhadas */
+.excluded-dates thead,
+.excluded-dates .excluded-body tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
 }
+
+/* Compensação do header: só quando há scroll */
+.excluded-dates thead {
+  box-sizing: border-box;
+  padding-right: 0;
+  border-right: 0px;
+}
+
+.inputDate {
+  padding: 3px;
+  font-family: "Roboto", sans-serif;
+  font-size: 13px;
+  color: #333;
+  cursor: pointer;
+}
+
+/* Bordas internas das células (sem duplicar a borda externa) */
+.excluded-dates th.headerDias,
+.excluded-dates th.headerHoras {
+  padding: 10px;
+  background-color: #f5f6fa;
+  border-right: 1px solid #acacad; /* separa as colunas do header */
+  /* sem border-top/left: quem faz isso é o contêiner */
+}
+
+.excluded-dates td {
+  border-top: 1px solid #acacad;     /* linhas internas */
+  border-right: 1px solid #acacad;   /* separação entre as colunas */
+  padding: 4px;
+  text-align: center;
+  height: 38px;
+}
+
+/* Corpo rolável */
+/* barra SEMPRE visível */
+.excluded-body {
+  display: block;
+  overflow-y: scroll;        /* força a barra mesmo sem rolagem */
+  overflow-x: hidden;
+  scrollbar-width: thin;     /* Firefox */
+  scrollbar-color: #bdbdbd transparent;   /* cor padrão SEM hover */
+}
+
+/* WebKit/Chromium */
+.excluded-body::-webkit-scrollbar { width: 6px; }
+.excluded-body::-webkit-scrollbar-track { background: transparent; }
+.excluded-body::-webkit-scrollbar-thumb {
+  background-color: #bdbdbd;   /* visível sempre */
+  border-radius: 3px;
+  border-right: 1px solid #acacad;
+}
+
+/* opcional: escurecer só no hover */
+.excluded-body:hover { scrollbar-color: #888 transparent; }
+.excluded-body:hover::-webkit-scrollbar-thumb { background-color: #888; }
 
 .headerHoras {
-padding:10px;
-background-color: #f5f6fa;
-  border-right: 1px solid #acacad;
-  border-top: 1px solid #acacad;
+  padding: 10px;
+  background-color: #f5f6fa;
 }
 
 .popup-overlay {
