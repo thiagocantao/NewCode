@@ -249,6 +249,19 @@ export default {
       return false;
     }
 
+    const hasHourInconsistency = ref(false);
+    watch(
+      weekDays,
+      (days) => {
+        hasHourInconsistency.value = days.some((day) =>
+          ["shift1Start", "shift1End", "shift2Start", "shift2End"].some((field) =>
+            isInconsistent(day, field)
+          )
+        );
+      },
+      { deep: true, immediate: true }
+    );
+
     const excludedDates = ref([]);
     const newExcludedDate = ref("");
     const showConfirm = ref(false);
@@ -342,16 +355,30 @@ export default {
       wwLib.wwVariable &&
       wwLib.wwVariable.useComponentVariable
     ) {
-      const { setValue } = wwLib.wwVariable.useComponentVariable({
-        uid: props.uid,
-        name: "calendarValues",
-        type: "object",
-        defaultValue: calendarValues.value,
-      });
+      const { setValue: setCalendarValues } =
+        wwLib.wwVariable.useComponentVariable({
+          uid: props.uid,
+          name: "calendarValues",
+          type: "object",
+          defaultValue: calendarValues.value,
+        });
       watch(
         calendarValues,
-        (val) => setValue(val),
+        (val) => setCalendarValues(val),
         { deep: true, immediate: true }
+      );
+
+      const { setValue: setHasHourInconsistency } =
+        wwLib.wwVariable.useComponentVariable({
+          uid: props.uid,
+          name: "hasHourInconsistency",
+          type: "boolean",
+          defaultValue: hasHourInconsistency.value,
+        });
+      watch(
+        hasHourInconsistency,
+        (val) => setHasHourInconsistency(val),
+        { immediate: true }
       );
     }
 
@@ -412,6 +439,7 @@ export default {
       excludedDatesHeight,
       translateText,
       isInconsistent,
+      hasHourInconsistency,
     };
   },
 };
