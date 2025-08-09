@@ -325,14 +325,15 @@ export default {
     );
 
     watch(
-      () => props.content.dataSource,
-      (val) => loadDataSource(val),
-      { deep: true, immediate: true }
-    );
-
-    watch(
-      () => props.dataSource,
-      (val) => loadDataSource(val),
+      [() => props.content.dataSource, () => props.dataSource],
+      ([contentDS, propDS]) => {
+        const ds = propDS ?? contentDS;
+        if (ds && (typeof ds !== "string" || ds.trim())) {
+          loadDataSource(ds);
+        } else {
+          resetDataSource();
+        }
+      },
       { deep: true, immediate: true }
     );
 
