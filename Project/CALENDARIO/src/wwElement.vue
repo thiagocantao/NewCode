@@ -4,7 +4,7 @@
       <table class="shift-table">
         <thead>
           <tr>
-            <th class="headerDias">{{ translateText('Operating Days') }}</th>
+            <th class="headerHoras">{{ translateText('Operating Days') }}</th>
             <th class="headerHoras" colspan="7">{{ translateText('Operating Hours') }}</th>
             <th class="headerHoras"></th>
           </tr>
