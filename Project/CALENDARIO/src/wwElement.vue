@@ -145,6 +145,11 @@ export default {
   setup(props) {
     const translateText = (text) => text;
 
+    const lang =
+      window.wwLib?.wwVariable?.getValue(
+        "aa44dc4c-476b-45e9-a094-16687e063342"
+      ) || navigator.language;
+
     const defaultWeekDays = [
       { name: "Mon", label: translateText("Monday"), active: false, shift1Start: "", shift1End: "", shift2Start: "", shift2End: "" },
       { name: "Tue", label: translateText("Tuesday"), active: false, shift1Start: "", shift1End: "", shift2Start: "", shift2End: "" },
@@ -306,7 +311,7 @@ export default {
     function formatDate(dateString) {
       const [year, month, day] = dateString.split("-");
       const date = new Date(year, month - 1, day);
-      return isNaN(date) ? "" : date.toLocaleDateString();
+      return isNaN(date) ? "" : date.toLocaleDateString(lang);
     }
 
     function confirmCopy() {
