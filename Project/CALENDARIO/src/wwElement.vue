@@ -97,7 +97,14 @@
           :style="{ maxHeight: excludedDatesHeight }"
         >
           <tr>
-            <td style="width:155px"><input class="inputDate" type="date" v-model="newExcludedDate" /></td>
+            <td style="width:155px">
+              <input
+                class="inputDate"
+                type="date"
+                v-model="newExcludedDate"
+                :lang="lang"
+              />
+            </td>
             <td>
               <button class="buttonFormat" @click="addExcludedDate">
                 {{ translateText('Add') }}
@@ -394,6 +401,8 @@ export default {
       translateText,
       isInconsistent,
       hasHourInconsistency,
+
+      lang,
 
       // refs/estado da tabela de excluídos
       excludedRoot,
