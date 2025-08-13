@@ -55,6 +55,7 @@ export default {
       customSettingsPropertiesOrder: [
         "dataSource",
         "excludedDatesHeight",
+        "showDefaultCalendarMessage",
         "rowData",
         "idFormula",
         "generateColumns",
@@ -788,6 +789,19 @@ export default {
         options: { noRange: true },
         bindable: true,
         defaultValue: "150px",
+      },
+      showDefaultCalendarMessage: {
+        label: { en: "Show default calendar message" },
+        type: "OnOff",
+        section: "settings",
+        bindable: true,
+        defaultValue: false,
+        /* wwEditor:start */
+        bindingValidation: {
+          type: "boolean",
+          tooltip: "Display message about default operating calendar",
+        },
+        /* wwEditor:end */
       },
       rowData: {
         label: { en: "Data" },
