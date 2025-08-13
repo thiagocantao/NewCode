@@ -263,11 +263,16 @@ export default {
           !col.maxWidth || col.maxWidth === "auto"
             ? null
             : wwLib.wwUtils.getLengthUnit(col.maxWidth)?.[0];
+        const isFlex = col.flex === true || col.widthAlgo === "flex";
         const width =
-          !col.width || col.width === "auto" || col.widthAlgo === "flex"
+          !col.width || col.width === "auto" || isFlex
             ? null
             : wwLib.wwUtils.getLengthUnit(col.width)?.[0];
-        const flex = col.widthAlgo === "flex" ? col.flex ?? 1 : null;
+        const flex = isFlex
+          ? typeof col.flex === "number"
+            ? col.flex
+            : 1
+          : null;
         const commonProperties = {
           minWidth,
           maxWidth,
