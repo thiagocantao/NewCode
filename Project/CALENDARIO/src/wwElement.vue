@@ -129,11 +129,7 @@
           v-if="showDefaultCalendarMessage"
           class="default-calendar-message"
         >
-          {{
-            translateText(
-              'No specific operating calendar is defined for this contract. The standard operating calendar is in use.'
-            )
-          }}
+          {{ translateText(defaultCalendarMessage) }}
         </p>
       </div>
     </div>
@@ -160,6 +156,11 @@ export default {
     dataSource: { type: [Object, String], default: null },
     excludedDatesHeight: { type: String, default: "150px" },
     showDefaultCalendarMessage: { type: Boolean, default: false },
+    defaultCalendarMessage: {
+      type: String,
+      default:
+        "No specific operating calendar is defined for this contract. The standard operating calendar is in use.",
+    },
     /* wwEditor:start */
     wwEditorState: { type: Object, required: true },
     /* wwEditor:end */
@@ -244,6 +245,20 @@ export default {
     watch(
       () => props.showDefaultCalendarMessage,
       (v) => (showDefaultCalendarMessage.value = v)
+    );
+
+    const defaultCalendarMessage = ref(
+      props.content.defaultCalendarMessage ||
+        props.defaultCalendarMessage ||
+        "No specific operating calendar is defined for this contract. The standard operating calendar is in use."
+    );
+    watch(
+      () => props.content.defaultCalendarMessage,
+      (v) => (defaultCalendarMessage.value = v)
+    );
+    watch(
+      () => props.defaultCalendarMessage,
+      (v) => (defaultCalendarMessage.value = v)
     );
 
     function resetDataSource() {
@@ -426,6 +441,7 @@ export default {
       calendarValues,
       excludedDatesHeight,
       showDefaultCalendarMessage,
+      defaultCalendarMessage,
       translateText,
       isInconsistent,
       hasHourInconsistency,
