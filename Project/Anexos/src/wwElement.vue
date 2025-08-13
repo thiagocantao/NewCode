@@ -1,44 +1,30 @@
 <template>
-    <wwSimpleLayout
-        :tag="tag"
-        v-if="noDropzone"
-        class="ww-flexbox"
-        ww-responsive="wwLayoutSlot"
-        v-bind="properties"
-        :class="{ '-link': hasLink && !isEditing }"
-    >
-        <slot></slot>
-    </wwSimpleLayout>
-    <wwLayout
-        v-else
-        class="ww-flexbox"
-        path="children"
-        :direction="content.direction"
-        :disable-edit="isFixed"
-        ww-responsive="wwLayout"
-        :tag="tag"
-        v-bind="properties"
-        :class="{ '-link': hasLink && !isEditing }"
-    >
-        <template #header>
-            <wwBackgroundVideo v-if="backgroundVideo" :video="backgroundVideo"></wwBackgroundVideo>
-            <slot v-if="!noDropzone"></slot>
-        </template>
-        <template #default="{ item, index, itemStyle }">
-            <wwElement
-                v-bind="item"
-                :extra-style="itemStyle"
-                class="ww-flexbox__object"
-                :ww-responsive="`wwobject-${index}`"
-                :data-ww-flexbox-index="index"
-                @click="onElementClick"
-            ></wwElement>
-        </template>
-    </wwLayout>
+    <div class="attachments">
+        <input
+            ref="fileInput"
+            type="file"
+            multiple
+            class="hidden-input"
+            @change="onFilesSelected"
+        />
+
+        <div class="file-list">
+            <div class="add-item" @click="triggerFileInput">
+                <div class="add-icon">+</div>
+            </div>
+            <div v-for="(file, index) in files" :key="index" class="file-item">
+                <div class="file-icon">📄</div>
+                <div class="file-name">{{ file.name }}</div>
+            </div>
+        </div>
+    </div>
 </template>
 
 <script>
+import { ref } from 'vue';
+
 export default {
+    name: 'Anexos',
     props: {
         content: { type: Object, required: true },
         wwElementState: { type: Object, required: true },
@@ -46,56 +32,72 @@ export default {
         wwEditorState: { type: Object, required: true },
         /* wwEditor:end */
     },
-    emits: ['update:content:effect', 'update:content', 'element-event'],
     setup() {
-        const { hasLink, tag, properties } = wwLib.wwElement.useLink();
-        const backgroundVideo = wwLib.wwElement.useBackgroundVideo();
+        const files = ref([]);
+        const fileInput = ref(null);
 
-        return {
-            hasLink,
-            properties,
-            backgroundVideo,
-            tag,
-        };
-    },
-    computed: {
-        children() {
-            if (!this.content.children || !Array.isArray(this.content.children)) {
-                return [];
-            }
-            return this.content.children;
-        },
-        isFixed() {
-            return this.wwElementState.props.isFixed;
-        },
-        noDropzone() {
-            return this.wwElementState.props.noDropzone;
-        },
-        isEditing() {
-            /* wwEditor:start */
-            return this.wwEditorState.editMode === wwLib.wwEditorHelper.EDIT_MODES.EDITION;
-            /* wwEditor:end */
-            // eslint-disable-next-line no-unreachable
-            return false;
-        },
-    },
-    methods: {
-        onElementClick(event) {
-            // We would prefer having the index inside the callback in the template, but due to a strange way Vue is handling anynmous functions with scope slot, we need to pass the index as a data attribute or each time the parent rerender, all the children will also rerender
-            let rawIndex = event.currentTarget.dataset.wwFlexboxIndex;
+        function triggerFileInput() {
+            if (fileInput.value) fileInput.value.click();
+        }
 
-            let index = parseInt(rawIndex);
-            if (isNaN(index)) {
-                index = 0;
-            }
-            this.$emit('element-event', { type: 'click', index });
-        },
+        function onFilesSelected(event) {
+            const selected = Array.from(event.target.files || []);
+            files.value.push(...selected);
+            event.target.value = '';
+        }
+
+        return { files, fileInput, triggerFileInput, onFilesSelected };
     },
 };
 </script>
 
 <style lang="scss" scoped>
-.-link {
+.attachments {
+    display: flex;
+    flex-direction: column;
+}
+
+.hidden-input {
+    display: none;
+}
+
+.file-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.add-item {
+    width: 120px;
+    height: 120px;
+    border: 2px dashed #bbb;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
+    color: #999;
+}
+
+.add-icon {
+    font-size: 32px;
+}
+
+.file-item {
+    width: 120px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+}
+
+.file-icon {
+    font-size: 32px;
 }
 </style>
+
