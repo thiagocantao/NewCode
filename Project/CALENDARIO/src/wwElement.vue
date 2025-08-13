@@ -81,46 +81,60 @@
     <!-- Tabela de datas excluídas com correção de borda e alinhamento -->
     <div>
       <h3 class="h3">{{ translateText('Exclude dates') }}</h3>
-      <div class="excluded-dates"
-      ref="excludedRoot"
-      :class="{ 'has-scroll': excludedHasScroll }"> 
-      <table>
-        <thead>
-          <tr>
-            <th style="width:155px" class="headerDias">{{ translateText('Date') }}</th>
-            <th class="headerHoras">{{ translateText('Action') }}</th>
-          </tr>
-        </thead>
-        <tbody
-          class="excluded-body"
-          ref="excludedBodyEl"
-          :style="{ maxHeight: excludedDatesHeight }"
+      <div class="excluded-dates-wrapper">
+        <div
+          class="excluded-dates"
+          ref="excludedRoot"
+          :class="{ 'has-scroll': excludedHasScroll }"
         >
-          <tr>
-            <td style="width:155px">
-              <input
-                class="inputDate"
-                type="date"
-                v-model="newExcludedDate"
-                :lang="lang"
-              />
-            </td>
-            <td>
-              <button class="buttonFormat" @click="addExcludedDate">
-                {{ translateText('Add') }}
-              </button>
-            </td>
-          </tr>
-          <tr v-for="date in excludedDates" :key="date">
-            <td style="width:155px">{{ formatDate(date) }}</td>
-            <td>
-              <button class="buttonFormat" @click="removeExcluded(date)">
-                {{ translateText('Delete') }}
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+          <table>
+            <thead>
+              <tr>
+                <th style="width:155px" class="headerDias">{{ translateText('Date') }}</th>
+                <th class="headerHoras">{{ translateText('Action') }}</th>
+              </tr>
+            </thead>
+            <tbody
+              class="excluded-body"
+              ref="excludedBodyEl"
+              :style="{ maxHeight: excludedDatesHeight }"
+            >
+              <tr>
+                <td style="width:155px">
+                  <input
+                    class="inputDate"
+                    type="date"
+                    v-model="newExcludedDate"
+                    :lang="lang"
+                  />
+                </td>
+                <td>
+                  <button class="buttonFormat" @click="addExcludedDate">
+                    {{ translateText('Add') }}
+                  </button>
+                </td>
+              </tr>
+              <tr v-for="date in excludedDates" :key="date">
+                <td style="width:155px">{{ formatDate(date) }}</td>
+                <td>
+                  <button class="buttonFormat" @click="removeExcluded(date)">
+                    {{ translateText('Delete') }}
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p
+          v-if="showDefaultCalendarMessage"
+          class="default-calendar-message"
+        >
+          {{
+            translateText(
+              'No specific operating calendar is defined for this contract. The standard operating calendar is in use.'
+            )
+          }}
+        </p>
       </div>
     </div>
 
@@ -145,6 +159,7 @@ export default {
     uid: { type: String, required: true },
     dataSource: { type: [Object, String], default: null },
     excludedDatesHeight: { type: String, default: "150px" },
+    showDefaultCalendarMessage: { type: Boolean, default: false },
     /* wwEditor:start */
     wwEditorState: { type: Object, required: true },
     /* wwEditor:end */
@@ -218,6 +233,18 @@ export default {
     const excludedDatesHeight = ref(props.content.excludedDatesHeight || props.excludedDatesHeight);
     watch(() => props.content.excludedDatesHeight, (v) => (excludedDatesHeight.value = v));
     watch(() => props.excludedDatesHeight, (v) => (excludedDatesHeight.value = v));
+
+    const showDefaultCalendarMessage = ref(
+      props.content.showDefaultCalendarMessage || props.showDefaultCalendarMessage
+    );
+    watch(
+      () => props.content.showDefaultCalendarMessage,
+      (v) => (showDefaultCalendarMessage.value = v)
+    );
+    watch(
+      () => props.showDefaultCalendarMessage,
+      (v) => (showDefaultCalendarMessage.value = v)
+    );
 
     function resetDataSource() {
       weekDays.value = defaultWeekDays.map((day) => ({ ...day }));
@@ -398,6 +425,7 @@ export default {
       showConfirm,
       calendarValues,
       excludedDatesHeight,
+      showDefaultCalendarMessage,
       translateText,
       isInconsistent,
       hasHourInconsistency,
@@ -499,6 +527,19 @@ export default {
   overflow: hidden;
   display: inline-block; /* casa com a largura da tabela interna */
   margin-top: 0px;
+}
+
+.excluded-dates-wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.default-calendar-message {
+  font-family: "Roboto", sans-serif;
+  font-size: 12px;
+  color: red;
+  font-style: italic;
 }
 
 .h3 {
