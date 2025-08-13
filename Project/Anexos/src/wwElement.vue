@@ -1,7 +1,10 @@
 <template>
     <div class="attachments">
         <div class="add-section">
-            <button class="add-button" @click="triggerFileInput">Adicionar</button>
+            <button type="button" class="upload-button" @click="triggerFileInput">
+                <span class="upload-icon">+</span>
+                <span class="upload-text">Adicionar anexo</span>
+            </button>
             <input
                 ref="fileInput"
                 type="file"
@@ -61,11 +64,33 @@ export default {
     margin-bottom: 1rem;
 }
 
-.add-button {
-    padding: 6px 12px;
-    border: 1px solid #ccc;
-    background: #fff;
+.upload-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 120px;
+    height: 100px;
+    padding: 12px;
+    border: 2px dashed #ccc;
+    border-radius: 6px;
+    background: #fafafa;
+    color: #555;
     cursor: pointer;
+    gap: 8px;
+}
+
+.upload-button:hover {
+    background: #f0f0f0;
+}
+
+.upload-icon {
+    font-size: 24px;
+    line-height: 1;
+}
+
+.upload-text {
+    font-size: 12px;
 }
 
 .hidden-input {
