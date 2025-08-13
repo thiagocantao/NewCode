@@ -55,6 +55,8 @@ export default {
       customSettingsPropertiesOrder: [
         "dataSource",
         "excludedDatesHeight",
+        "showDefaultCalendarMessage",
+        "defaultCalendarMessage",
         "rowData",
         "idFormula",
         "generateColumns",
@@ -788,6 +790,28 @@ export default {
         options: { noRange: true },
         bindable: true,
         defaultValue: "150px",
+      },
+      showDefaultCalendarMessage: {
+        label: { en: "Show default calendar message" },
+        type: "OnOff",
+        section: "settings",
+        bindable: true,
+        defaultValue: false,
+        /* wwEditor:start */
+        bindingValidation: {
+          type: "boolean",
+          tooltip: "Display message about default operating calendar",
+        },
+        /* wwEditor:end */
+      },
+      defaultCalendarMessage: {
+        label: { en: "Default calendar message" },
+        type: "Text",
+        section: "settings",
+        bindable: true,
+        defaultValue:
+          "No specific operating calendar is defined for this contract. The standard operating calendar is in use.",
+        hidden: (content) => !content.showDefaultCalendarMessage,
       },
       rowData: {
         label: { en: "Data" },
