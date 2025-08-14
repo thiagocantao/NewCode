@@ -51,7 +51,7 @@
                 class="nav-button prev"
                 @click="prevFile"
                 :disabled="currentIndex === 0"
-            >&lt;</button>
+            ><i class="material-symbols-outlined zoom-button">arrow_back_ios</i></button>
             <div class="modal-body">
                 <template v-if="currentFile && currentFile.url">
                     <img
@@ -74,7 +74,7 @@
                 class="nav-button next"
                 @click="nextFile"
                 :disabled="currentIndex === files.length - 1"
-            >&gt;</button>
+            ><i class="material-symbols-outlined zoom-button">arrow_next_ios</i></button></button>
         </div>
     </div>
 </template>
