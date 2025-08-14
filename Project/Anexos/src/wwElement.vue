@@ -47,6 +47,11 @@
     <div v-if="isModalOpen" class="modal-overlay" @click.self="closeModal">
         <div class="modal-content">
             <button class="close-button" @click="closeModal">&times;</button>
+            <button
+                class="nav-button prev"
+                @click="prevFile"
+                :disabled="currentIndex === 0"
+            >&lt;</button>
             <div class="modal-body">
                 <template v-if="currentFile && currentFile.url">
                     <img :src="currentFile.url" alt="" class="modal-image" />
@@ -55,15 +60,11 @@
                     <p class="no-preview">Preview not available for this file type.</p>
                 </template>
             </div>
-            <div class="modal-actions">
-                <button @click="prevFile" :disabled="currentIndex === 0">Previous</button>
-                <button
-                    @click="nextFile"
-                    :disabled="currentIndex === files.length - 1"
-                >
-                    Next
-                </button>
-            </div>
+            <button
+                class="nav-button next"
+                @click="nextFile"
+                :disabled="currentIndex === files.length - 1"
+            >&gt;</button>
         </div>
     </div>
 </template>
@@ -286,14 +287,14 @@ i.material-symbols-outlined {
 }
 
 .modal-content {
-    background: #fff;
-    padding: 16px;
-    border-radius: 6px;
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
     max-width: 80%;
     max-height: 80%;
     display: flex;
-    flex-direction: column;
     align-items: center;
+    position: relative;
 }
 
 .modal-body {
@@ -302,18 +303,13 @@ i.material-symbols-outlined {
     align-items: center;
     justify-content: center;
     max-height: 100%;
-    margin-bottom: 12px;
+    margin: 0;
 }
 
 .modal-image {
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
-}
-
-.modal-actions {
-    display: flex;
-    gap: 8px;
 }
 
 .close-button {
@@ -324,6 +320,20 @@ i.material-symbols-outlined {
     border: none;
     font-size: 24px;
     cursor: pointer;
+}
+
+.nav-button {
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    border: none;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 24px;
+}
+
+.nav-button:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
 }
 
 .no-preview {
