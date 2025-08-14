@@ -14,7 +14,7 @@
         </div>
 
         <div v-for="(file, index) in files" :key="index" class="file-item">
-            <template v-if="file.url">
+            <template v-if="file.isImage">
                 <img
                     :src="file.url"
                     alt=""
@@ -65,7 +65,7 @@
                 :disabled="currentIndex === 0"
             ><i class="material-symbols-outlined zoom-button">arrow_back_ios</i></button>
             <div class="modal-body">
-                <template v-if="currentFile && currentFile.url">
+                <template v-if="currentFile && currentFile.isImage">
                     <img
                         :src="currentFile.url"
                         alt=""
@@ -77,6 +77,13 @@
                         <button class="zoom-button" @click="zoomOut"><i class="material-symbols-outlined zoom-button">zoom_out</i></button>
                         <button class="zoom-button" @click="zoomIn"><i class="material-symbols-outlined zoom-button">zoom_in</i></button>
                     </div>
+                </template>
+                <template v-else-if="currentFile && currentFile.isPdf">
+                    <iframe
+                        :src="currentFile.url"
+                        class="modal-pdf"
+                    ></iframe>
+                    <div class="modal-file-name">{{ currentFile.file.name }}</div>
                 </template>
                 <template v-else>
                     <p class="no-preview">Preview not available for this file type.</p>
@@ -118,7 +125,12 @@ export default {
         function onFilesSelected(event) {
             const selected = Array.from(event.target.files || []).map(file => ({
                 file,
-                url: file.type.startsWith('image/') ? URL.createObjectURL(file) : null,
+                url:
+                    file.type.startsWith('image/') || file.type === 'application/pdf'
+                        ? URL.createObjectURL(file)
+                        : null,
+                isImage: file.type.startsWith('image/'),
+                isPdf: file.type === 'application/pdf',
             }));
             files.value.push(...selected);
             event.target.value = '';
@@ -392,6 +404,14 @@ export default {
         width: 600px;
         height: 400px;
         object-fit: contain;
+        position: relative;
+        z-index: 1;
+    }
+
+    .modal-pdf {
+        width: 600px;
+        height: 400px;
+        border: none;
         position: relative;
         z-index: 1;
     }
