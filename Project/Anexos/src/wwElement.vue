@@ -121,9 +121,15 @@ export default {
 }
 
 .file-preview {
-    max-width: 100%;
-    max-height: 80px;
-    object-fit: cover;
-    border-radius: 4px;
+    position: relative;
+    height: 90px;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: cover, 65px;
+    background-color: rgb(245, 246, 250);
+    border-radius: 6px;
+    margin-bottom: 4px;
+    cursor: pointer;
+    display: flex;
 }
 </style>
