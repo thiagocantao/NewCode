@@ -25,6 +25,16 @@
                 <div class="file-icon">📄</div>
             </template>
             <div class="file-name">{{ file.file.name }}</div>
+            <div class="file-actions">
+                <button type="button" class="action-button" @click="downloadFile(file)">⬇️</button>
+                <button
+                    type="button"
+                    class="action-button"
+                    @click="removeFile(index)"
+                >
+                    🗑️
+                </button>
+            </div>
         </div>
     </div>
 </template>
@@ -58,7 +68,28 @@ export default {
             event.target.value = '';
         }
 
-        return { files, fileInput, triggerFileInput, onFilesSelected };
+        function removeFile(index) {
+            const removed = files.value.splice(index, 1)[0];
+            if (removed && removed.url) URL.revokeObjectURL(removed.url);
+        }
+
+        function downloadFile(file) {
+            const url = file.url || URL.createObjectURL(file.file);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = file.file.name;
+            link.click();
+            if (!file.url) URL.revokeObjectURL(url);
+        }
+
+        return {
+            files,
+            fileInput,
+            triggerFileInput,
+            onFilesSelected,
+            removeFile,
+            downloadFile,
+        };
     },
 };
 </script>
@@ -101,6 +132,7 @@ export default {
 }
 
 .file-item {
+    position: relative;
     width: 150px;
     height: 140px;
     border: 1px solid #ddd;
@@ -131,5 +163,33 @@ export default {
     margin-bottom: 4px;
     cursor: pointer;
     display: flex;
+}
+
+.file-actions {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.file-item:hover .file-actions {
+    opacity: 1;
+}
+
+.action-button {
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
 }
 </style>
