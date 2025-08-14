@@ -472,7 +472,7 @@ export default {
     .modal-action-button {
         width: 40px;
         height: 40px;
-        background: rgba(0, 0, 0, 0.6);
+        background: #3c3c3c;
         color: #fff;
         border: none;
         border-radius: 4px;
@@ -483,7 +483,7 @@ export default {
     }
 
     .modal-action-button i.material-symbols-outlined {
-        font-size: 24px;
+        font-size: 22px;
         color: #fff;
     }
 
