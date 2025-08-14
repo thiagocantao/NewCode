@@ -288,6 +288,14 @@ export default {
     cursor: pointer;
 }
 
+.file-name {
+    width: 100%;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .file-actions {
     position: absolute;
     top: 4px;
