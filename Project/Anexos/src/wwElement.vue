@@ -46,7 +46,20 @@
     </div>
     <div v-if="isModalOpen" class="modal-overlay" @click.self="closeModal">
         <div class="modal-content">
-            <button class="close-button" @click="closeModal">&times;</button>
+            <div class="modal-top-actions">
+                <button
+                    class="modal-action-button"
+                    @click="downloadFile(currentFile)"
+                >
+                    <i class="material-symbols-outlined">download</i>
+                </button>
+                <button
+                    class="modal-action-button"
+                    @click="closeModal"
+                >
+                    <i class="material-symbols-outlined">close</i>
+                </button>
+            </div>
             <button
                 class="nav-button prev"
                 @click="prevFile"
@@ -74,7 +87,7 @@
                 class="nav-button next"
                 @click="nextFile"
                 :disabled="currentIndex === files.length - 1"
-            ><i class="material-symbols-outlined zoom-button">arrow_next_ios</i></button></button>
+            ><i class="material-symbols-outlined zoom-button">arrow_forward_ios</i></button>
         </div>
     </div>
 </template>
@@ -359,21 +372,37 @@ i.material-symbols-outlined {
 }
 
 .zoom-button {
-    border: none;    
+    border: none;
     color: #fff;
     cursor: pointer;
     font-size: 22px !important;
 }
 
-.close-button {
+.modal-top-actions {
     position: absolute;
     top: 8px;
     right: 8px;
-    background: transparent;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
+    display: flex;
+    gap: 8px;
     z-index: 2;
+}
+
+.modal-action-button {
+    width: 40px;
+    height: 40px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.modal-action-button i.material-symbols-outlined {
+    font-size: 24px;
+    color: #fff;
 }
 
 .nav-button {
@@ -385,16 +414,30 @@ i.material-symbols-outlined {
     cursor: pointer;
     font-size: 24px;
     border-radius: 50%;
-    margin: 0 20px;
+    display: flex;
     align-items: center;
-    text-align: center;
-    position: relative;
+    justify-content: center;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
     z-index: 2;
+}
+
+.nav-button.prev {
+    left: 40px;
+}
+
+.nav-button.next {
+    right: 40px;
 }
 
 .nav-button:disabled {
     opacity: 0.3;
     cursor: not-allowed;
+}
+
+.nav-button i.material-symbols-outlined {
+    color: #fff;
 }
 
 .no-preview {
