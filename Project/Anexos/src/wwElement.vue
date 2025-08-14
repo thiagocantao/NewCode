@@ -13,11 +13,18 @@
             />
         </div>
 
-        <div class="file-list">
-            <div v-for="(file, index) in files" :key="index" class="file-item">
+        <div
+            v-for="(file, index) in files"
+            :key="index"
+            class="file-item"
+        >
+            <template v-if="file.url">
+                <img :src="file.url" alt="" class="file-preview" />
+            </template>
+            <template v-else>
                 <div class="file-icon">📄</div>
-                <div class="file-name">{{ file.name }}</div>
-            </div>
+            </template>
+            <div class="file-name">{{ file.file.name }}</div>
         </div>
     </div>
 </template>
@@ -43,7 +50,10 @@ export default {
         }
 
         function onFilesSelected(event) {
-            const selected = Array.from(event.target.files || []);
+            const selected = Array.from(event.target.files || []).map(file => ({
+                file,
+                url: file.type.startsWith('image/') ? URL.createObjectURL(file) : null,
+            }));
             files.value.push(...selected);
             event.target.value = '';
         }
@@ -56,11 +66,8 @@ export default {
 <style lang="scss" scoped>
 .attachments {
     display: flex;
-    flex-direction: column;
-}
-
-.add-section {
-    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 12px;
 }
 
 .upload-button {
@@ -79,7 +86,6 @@ export default {
     gap: 8px;
 }
 
-
 .upload-icon {
     font-size: 55px;
     line-height: 1;
@@ -94,14 +100,9 @@ export default {
     display: none;
 }
 
-.file-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-}
-
 .file-item {
-    width: 120px;
+    width: 150px;
+    height: 140px;
     border: 1px solid #ddd;
     border-radius: 4px;
     padding: 10px;
@@ -109,11 +110,20 @@ export default {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 8px;
     font-size: 12px;
+    background: #fff;
 }
 
 .file-icon {
     font-size: 32px;
+}
+
+.file-preview {
+    max-width: 100%;
+    max-height: 80px;
+    object-fit: cover;
+    border-radius: 4px;
 }
 </style>
