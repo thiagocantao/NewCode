@@ -13,11 +13,7 @@
             />
         </div>
 
-        <div
-            v-for="(file, index) in files"
-            :key="index"
-            class="file-item"
-        >
+        <div v-for="(file, index) in files" :key="index" class="file-item">
             <template v-if="file.url">
                 <img
                     :src="file.url"
@@ -96,7 +92,7 @@
 </template>
 
 <script>
-import { ref, computed } from 'vue';
+    import { ref, computed } from 'vue';
 
 export default {
     name: 'Anexos',
@@ -144,7 +140,6 @@ export default {
 
         function getFileIcon(name) {
             const ext = name.split('.').pop().toLowerCase();
-            alert(ext);
             switch (ext) {
                 case 'pdf':
                     return 'fa-solid fa-file-pdf';
@@ -212,275 +207,286 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined');
-@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css');
+    @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined');
+    @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css');
 
-.attachments {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-}
+    .attachments {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
 
-.upload-button {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 150px;
-    height: 140px;
-    padding: 12px;
-    border: 2px dashed #ccc;
-    border-radius: 6px;
-    background: #FFFFFF;
-    color: #555;
-    cursor: pointer;
-    gap: 8px;
-}
+    .upload-button {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 150px;
+        height: 140px;
+        padding: 12px;
+        border: 2px dashed #ccc;
+        border-radius: 6px;
+        background: #FFFFFF;
+        color: #555;
+        cursor: pointer;
+        gap: 8px;
+    }
 
-.upload-icon {
-    font-size: 55px;
-    line-height: 1;
-    font-weight: 300;
-}
+    .upload-icon {
+        font-size: 55px;
+        line-height: 1;
+        font-weight: 300;
+    }
 
-.upload-text {
-    font-size: 12px;
-}
+    .upload-text {
+        font-size: 12px;
+    }
 
-.hidden-input {
-    display: none;
-}
+    .hidden-input {
+        display: none;
+    }
 
-.file-item {
-    position: relative;
-    width: 150px;
-    height: 140px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 10px;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    font-size: 12px;
-    background: #fff;
-}
+    .file-item {
+        position: relative;
+        width: 150px;
+        height: 140px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 10px;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-size: 12px;
+        background: #fff;
+    }
 
-.file-icon {
-    font-size: 85px;
-    cursor: pointer;
-}
+    .file-icon {
+        font-size: 90px;
+        cursor: pointer;
+    }
 
-.fa-file-pdf { color: #e53935; }
-.fa-file-word { color: #3b73b9; }
-.fa-file-excel { color: #2e7d32; }
-.fa-file-powerpoint { color: #d84315; }
+    .fa-file-pdf {
+        color: #e53935;
+    }
 
-.file-preview {
-    width: 100%;
-    height: 90px;
-    object-fit: contain;
-    background-color: rgb(245, 246, 250);
-    border-radius: 6px;
-    margin-bottom: 4px;
-    cursor: pointer;
-}
+    .fa-file-word {
+        color: #3b73b9;
+    }
 
-.file-name {
-    width: 100%;
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
+    .fa-file-excel {
+        color: #2e7d32;
+    }
 
-.file-actions {
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    display: flex;
-    gap: 4px;
-    opacity: 0;
-    transition: opacity 0.2s;
-}
+    .fa-file-powerpoint {
+        color: #d84315;
+    }
 
-.file-item:hover .file-actions {
-    opacity: 1;
-}
+    .file-preview {
+        width: 100%;
+        height: 90px;
+        object-fit: contain;
+        background-color: rgb(245, 246, 250);
+        border-radius: 6px;
+        margin-bottom: 4px;
+        cursor: pointer;
+    }
 
-.action-button {
-    width: 24px;
-    height: 24px;
-    border: none;
-    background: rgba(0, 0, 0, 0.6);
-    color: #fff;
-    border-radius: 4px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-}
+    .file-name {
+        width: 100%;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 
-.material-symbols-outlined {
-    font-size: 16px;
-    line-height: 1;
-    vertical-align: middle;
-}
+    .file-actions {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        display: flex;
+        gap: 4px;
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
 
-i.material-symbols-outlined {
-    font-family: 'Material Symbols Outlined';
-    font-weight: normal;
-    font-style: normal;
-    font-size: 18px;
-    line-height: 1;
-    letter-spacing: normal;
-    text-transform: none;
-    display: inline-block;
-    white-space: nowrap;
-    word-wrap: normal;
-    direction: ltr;
-    -webkit-font-feature-settings: 'liga';
-    -webkit-font-smoothing: antialiased;
-    vertical-align: middle;
-    color: #e0e0e0;
-}
+    .file-item:hover .file-actions {
+        opacity: 1;
+    }
 
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.6);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-}
+    .action-button {
+        width: 24px;
+        height: 24px;
+        border: none;
+        background: rgba(0, 0, 0, 0.6);
+        color: #fff;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+    }
 
-.modal-content {
-    background: transparent;
-    padding: 0;
-    border-radius: 0;
-    max-width: 80%;
-    max-height: 80%;
-    display: flex;
-    align-items: center;
-    position: relative;
-}
+    .material-symbols-outlined {
+        font-size: 16px;
+        line-height: 1;
+        vertical-align: middle;
+    }
 
-.modal-body {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    max-height: 100%;
-    margin: 0;
-}
+    i.material-symbols-outlined {
+        font-family: 'Material Symbols Outlined';
+        font-weight: normal;
+        font-style: normal;
+        font-size: 18px;
+        line-height: 1;
+        letter-spacing: normal;
+        text-transform: none;
+        display: inline-block;
+        white-space: nowrap;
+        word-wrap: normal;
+        direction: ltr;
+        -webkit-font-feature-settings: 'liga';
+        -webkit-font-smoothing: antialiased;
+        vertical-align: middle;
+        color: #e0e0e0;
+    }
 
-.modal-image {
-    width: 600px;
-    height: 400px;
-    object-fit: contain;
-    position: relative;
-    z-index: 1;
-}
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
 
-.modal-file-name {
-    margin-top: 8px;
-    color: #fff;
-    position: relative;
-    z-index: 2;
-}
+    .modal-content {
+        background: transparent;
+        padding: 0;
+        border-radius: 0;
+        max-width: 80%;
+        max-height: 80%;
+        display: flex;
+        align-items: center;
+        position: relative;
+    }
 
-.zoom-controls {
-    margin-top: 8px;
-    display: flex;
-    gap: 8px;
-    background: rgba(0, 0, 0, 0.6);
-    border-radius: 4px;
-    padding:5px;
-    align-items: center;
-    text-align: center;
-    z-index: 100;
-    position: relative;
-}
+    .modal-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        max-height: 100%;
+        margin: 0;
+    }
 
-.zoom-button {
-    border: none;
-    color: #fff;
-    cursor: pointer;
-    font-size: 22px !important;
-}
+    .modal-image {
+        width: 600px;
+        height: 400px;
+        object-fit: contain;
+        position: relative;
+        z-index: 1;
+    }
 
-.modal-top-actions {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    display: flex;
-    gap: 8px;
-    z-index: 2;
-}
+    .modal-file-name {
+        margin-top: 8px;
+        color: #fff;
+        position: relative;
+        z-index: 2;
+    }
 
-.modal-action-button {
-    width: 40px;
-    height: 40px;
-    background: rgba(0, 0, 0, 0.6);
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-}
+    .zoom-controls {
+        margin-top: 8px;
+        display: flex;
+        gap: 8px;
+        background: rgba(0, 0, 0, 0.6);
+        border-radius: 4px;
+        padding: 5px;
+        align-items: center;
+        text-align: center;
+        z-index: 100;
+        position: relative;
+    }
 
-.modal-action-button i.material-symbols-outlined {
-    font-size: 24px;
-    color: #fff;
-}
+    .zoom-button {
+        border: none;
+        color: #fff;
+        cursor: pointer;
+        font-size: 22px !important;
+    }
 
-.nav-button {
-    background: rgba(0, 0, 0, 0.6);
-    color: #fff;
-    border: none;
-    width: 40px;
-    height: 40px;
-    cursor: pointer;
-    font-size: 24px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 2;
-}
+    .modal-top-actions {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        display: flex;
+        gap: 8px;
+        z-index: 2;
+    }
 
-.nav-button.prev {
-    left: 40px;
-}
+    .modal-action-button {
+        width: 40px;
+        height: 40px;
+        background: rgba(0, 0, 0, 0.6);
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
 
-.nav-button.next {
-    right: 40px;
-}
+    .modal-action-button i.material-symbols-outlined {
+        font-size: 24px;
+        color: #fff;
+    }
 
-.nav-button:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-}
+    .nav-button {
+        background: rgba(0, 0, 0, 0.6);
+        color: #fff;
+        border: none;
+        width: 40px;
+        height: 40px;
+        cursor: pointer;
+        font-size: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 2;
+    }
 
-.nav-button i.material-symbols-outlined {
-    color: #fff;
-}
+    .nav-button.prev {
+        left: 40px;
+    }
 
-.no-preview {
-    font-size: 14px;
-    color: #333;
-}
+    .nav-button.next {
+        right: 40px;
+    }
+
+    .nav-button:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+    }
+
+    .nav-button i.material-symbols-outlined {
+        color: #fff;
+    }
+
+    .no-preview {
+        font-size: 14px;
+        color: #333;
+    }
 </style>
