@@ -3,7 +3,6 @@
         <div class="add-section">
             <button type="button" class="upload-button" @click="triggerFileInput">
                 <span class="upload-icon">+</span>
-                <span class="upload-text">Adicionar anexo</span>
             </button>
             <input
                 ref="fileInput"
@@ -69,24 +68,22 @@ export default {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 120px;
-    height: 100px;
+    width: 150px;
+    height: 140px;
     padding: 12px;
     border: 2px dashed #ccc;
     border-radius: 6px;
-    background: #fafafa;
+    background: #FFFFFF;
     color: #555;
     cursor: pointer;
     gap: 8px;
 }
 
-.upload-button:hover {
-    background: #f0f0f0;
-}
 
 .upload-icon {
-    font-size: 24px;
+    font-size: 55px;
     line-height: 1;
+    font-weight: 300;
 }
 
 .upload-text {
@@ -120,4 +117,3 @@ export default {
     font-size: 32px;
 }
 </style>
-
