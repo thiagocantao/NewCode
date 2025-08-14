@@ -26,13 +26,15 @@
             </template>
             <div class="file-name">{{ file.file.name }}</div>
             <div class="file-actions">
-                <button type="button" class="action-button" @click="downloadFile(file)">⬇️</button>
+                <button type="button" class="action-button" @click="downloadFile(file)">
+                    <i class="material-symbols-outlined">download</i>
+                </button>
                 <button
                     type="button"
                     class="action-button"
                     @click="removeFile(index)"
                 >
-                    🗑️
+                    <i class="material-symbols-outlined">delete</i>
                 </button>
             </div>
         </div>
@@ -153,16 +155,13 @@ export default {
 }
 
 .file-preview {
-    position: relative;
+    width: 100%;
     height: 90px;
-    background-position: center center;
-    background-repeat: no-repeat;
-    background-size: cover, 65px;
+    object-fit: contain;
     background-color: rgb(245, 246, 250);
     border-radius: 6px;
     margin-bottom: 4px;
     cursor: pointer;
-    display: flex;
 }
 
 .file-actions {
@@ -191,5 +190,28 @@ export default {
     align-items: center;
     justify-content: center;
     padding: 0;
+}
+
+.material-symbols-outlined {
+    font-size: 16px;
+    line-height: 1;
+    vertical-align: middle;
+}
+
+i.material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 18px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+    vertical-align: middle;
 }
 </style>
