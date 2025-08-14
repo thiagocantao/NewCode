@@ -62,8 +62,8 @@
                     />
                     <div class="modal-file-name">{{ currentFile.file.name }}</div>
                     <div class="zoom-controls">
-                        <button class="zoom-button" @click="zoomOut">-</button>
-                        <button class="zoom-button" @click="zoomIn">+</button>
+                        <button class="zoom-button" @click="zoomOut"><i class="material-symbols-outlined zoom-button">zoom_out</i></button>
+                        <button class="zoom-button" @click="zoomIn"><i class="material-symbols-outlined zoom-button">zoom_in</i></button>
                     </div>
                 </template>
                 <template v-else>
@@ -293,6 +293,7 @@ i.material-symbols-outlined {
     -webkit-font-feature-settings: 'liga';
     -webkit-font-smoothing: antialiased;
     vertical-align: middle;
+    color: #e0e0e0;
 }
 
 .modal-overlay {
@@ -344,16 +345,19 @@ i.material-symbols-outlined {
     margin-top: 8px;
     display: flex;
     gap: 8px;
+    background: rgba(0, 0, 0, 0.6);    
+    border-radius: 4px;
+    padding:5px;
+    align-items: center;
+    text-align: center;
+    z-index: 100;
 }
 
 .zoom-button {
-    width: 32px;
-    height: 32px;
-    border: none;
-    background: rgba(0, 0, 0, 0.6);
+    border: none;    
     color: #fff;
-    border-radius: 4px;
     cursor: pointer;
+    font-size: 22px !important;
 }
 
 .close-button {
@@ -376,6 +380,8 @@ i.material-symbols-outlined {
     font-size: 24px;
     border-radius: 50%;
     margin: 0 20px;
+    align-items: center;
+    text-align: center;
 }
 
 .nav-button:disabled {
