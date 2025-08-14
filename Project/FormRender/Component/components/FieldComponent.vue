@@ -146,14 +146,7 @@
             <button type="button" @click="insertImage" title="Inserir imagem"><span class="material-symbols-outlined">image</span></button>
             <button type="button" class="color-btn" :style="{ color: currentColor }" title="Cor do texto">
               <span style="font-weight:bold; font-size:16px;">A</span>
-              <input
-                type="color"
-                @mousedown="saveSelection"
-                @input="setColor($event)"
-                :value="currentColor"
-                class="color-input"
-                title="Cor do texto"
-              />
+              <input type="color" @input="setColor($event)" :value="currentColor" class="color-input" title="Cor do texto" />
             </button>
           </div>
           <div
@@ -247,7 +240,6 @@ export default {
       dataNow: new Date(),
       showDeadlinePicker: false,
       currentColor: '#699d8c',
-      savedSelection: null,
       isUserInput: false,
     }
   },
@@ -428,23 +420,6 @@ export default {
         this.$refs.rte.innerHTML = newVal || '';
       }
     },
-    searchTerm() {
-      if (this.dropdownOpen) {
-        this.$nextTick(() => {
-          this.updateDropdownDirection();
-        });
-      }
-    },
-    'field.options': {
-      handler() {
-        if (this.dropdownOpen) {
-          this.$nextTick(() => {
-            this.updateDropdownDirection();
-          });
-        }
-      },
-      deep: true
-    }
   },
   methods: {
     async updateValue(event) {
@@ -530,7 +505,7 @@ export default {
           p_fieldid: this.field.field_id || this.field.id,
           p_fieldvalue: value,
           p_ticketid: this.ticketId,
-          p_userid: this.userId || window.loggedUser
+          p_userid: window.wwLib?.wwVariable?.getValue("fc54ab80-1a04-4cfe-a504-793bdcfce5dd")
         };
         
         const response = await fetch(`${this.apiUrl.replace(/\/$/, '')}/postTicketFieldValue`, {
@@ -640,21 +615,8 @@ export default {
       this.$refs.rte && this.$refs.rte.focus();
       document.execCommand(cmd, false, null);
     },
-    saveSelection() {
-      const sel = window.getSelection();
-      if (sel && sel.rangeCount > 0) {
-        this.savedSelection = sel.getRangeAt(0);
-      }
-    },
     setColor(event) {
-      if (this.$refs.rte) {
-        this.$refs.rte.focus();
-      }
-      const sel = window.getSelection();
-      if (this.savedSelection && sel) {
-        sel.removeAllRanges();
-        sel.addRange(this.savedSelection);
-      }
+      this.$refs.rte && this.$refs.rte.focus();
       document.execCommand('foreColor', false, event.target.value);
       this.currentColor = event.target.value;
     },
@@ -680,34 +642,28 @@ export default {
             const input = this.$refs.dropdownList.querySelector('input');
             if (input) input.focus();
           }
-          
-          this.$nextTick(() => {
-            this.updateDropdownDirection();
-          });
+          setTimeout(() => {
+            const trigger = this.$el.querySelector('.custom-dropdown-selected');
+            const dropdown = this.$refs.dropdownList;
+            if (trigger && dropdown) {
+              const scrollParent = this.getScrollParent(trigger);
+              const triggerRect = trigger.getBoundingClientRect();
+              const dropdownHeight = 220; // max-height do dropdown
+              let spaceBelow;
+              if (scrollParent === document.body) {
+                spaceBelow = window.innerHeight - triggerRect.bottom;
+              } else {
+                const parentRect = scrollParent.getBoundingClientRect();
+                spaceBelow = parentRect.bottom - triggerRect.bottom;
+              }
+              // Se não cabe abaixo, abre para cima
+              this.dropdownOpenUp = spaceBelow < dropdownHeight;
+            }
+          }, 0);
           document.addEventListener('click', this.handleClickOutsideDropdown);
         });
       } else {
         document.removeEventListener('click', this.handleClickOutsideDropdown);
-      }
-    },
-    updateDropdownDirection() {
-      const trigger = this.$el.querySelector('.custom-dropdown-selected');
-      const dropdown = this.$refs.dropdownList;
-      if (trigger && dropdown) {
-      
-        const triggerRect = trigger.getBoundingClientRect();
-        const dropdownHeight = Math.min(dropdown.scrollHeight, 220);
-        const spaceBelow = window.innerHeight - triggerRect.bottom;
-        const spaceAbove = triggerRect.top;
-
-
-        if (spaceBelow >= dropdownHeight) {
-          this.dropdownOpenUp = false;
-        } else if (spaceAbove >= dropdownHeight) {
-          this.dropdownOpenUp = true;
-        } else {
-          this.dropdownOpenUp = spaceAbove > spaceBelow;
-        }
       }
     },
     selectDropdownOption(option) {
@@ -944,7 +900,6 @@ margin-left: 2px;
   background-color: #f0f0f0 !important;
   color: #888 !important;
   cursor: not-allowed !important;
-  border-style: dashed !important;
   opacity: 1 !important;
 }
 
