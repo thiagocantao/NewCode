@@ -506,11 +506,11 @@ export default {
     }
 
     .nav-button.prev {
-        left: -75px;
+        left: 35px;
     }
 
     .nav-button.next {
-        right: -75px;
+        right: 35px;
     }
 
     .nav-button:disabled {
