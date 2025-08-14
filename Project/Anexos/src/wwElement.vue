@@ -334,23 +334,28 @@ i.material-symbols-outlined {
     width: 600px;
     height: 400px;
     object-fit: contain;
+    position: relative;
+    z-index: 1;
 }
 
 .modal-file-name {
     margin-top: 8px;
     color: #fff;
+    position: relative;
+    z-index: 2;
 }
 
 .zoom-controls {
     margin-top: 8px;
     display: flex;
     gap: 8px;
-    background: rgba(0, 0, 0, 0.6);    
+    background: rgba(0, 0, 0, 0.6);
     border-radius: 4px;
     padding:5px;
     align-items: center;
     text-align: center;
     z-index: 100;
+    position: relative;
 }
 
 .zoom-button {
@@ -368,6 +373,7 @@ i.material-symbols-outlined {
     border: none;
     font-size: 24px;
     cursor: pointer;
+    z-index: 2;
 }
 
 .nav-button {
@@ -382,6 +388,8 @@ i.material-symbols-outlined {
     margin: 0 20px;
     align-items: center;
     text-align: center;
+    position: relative;
+    z-index: 2;
 }
 
 .nav-button:disabled {
