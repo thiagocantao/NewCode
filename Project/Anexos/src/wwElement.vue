@@ -47,6 +47,7 @@
         <div class="modal-content" :class="{ 'pdf-viewer': currentFile && currentFile.isPdf }">
             <div class="modal-top-actions">
                 <button
+                    v-if="currentFile && !currentFile.isPdf"
                     class="modal-action-button"
                     @click="downloadFile(currentFile)"
                 >
@@ -455,8 +456,8 @@ export default {
 
     .modal-top-actions {
         position: absolute;
-        top: -35px;
-        right: -75px;
+        top: 10px;
+        right: 10px;
         display: flex;
         gap: 8px;
         z-index: 2;
