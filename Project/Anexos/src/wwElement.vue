@@ -425,8 +425,8 @@ export default {
 
     .modal-top-actions {
         position: absolute;
-        top: 8px;
-        right: 8px;
+        top: -35px;
+        right: -75px;
         display: flex;
         gap: 8px;
         z-index: 2;
@@ -469,11 +469,11 @@ export default {
     }
 
     .nav-button.prev {
-        left: 40px;
+        left: -75px;
     }
 
     .nav-button.next {
-        right: 40px;
+        right: -75px;
     }
 
     .nav-button:disabled {
