@@ -87,7 +87,13 @@
                     <div class="modal-file-name">{{ currentFile.file.name }}</div>
                 </template>
                 <template v-else>
-                    <p class="no-preview">Preview not available for this file type.</p>
+                    <div class="file-not-viewable">
+                        <i
+                            v-if="currentFile"
+                            :class="['modal-file-icon', getFileIcon(currentFile.file.name)]"
+                        ></i>
+                        <p class="no-preview">This file cannot be viewed</p>
+                    </div>
                 </template>
             </div>
             <button
@@ -514,6 +520,22 @@ export default {
 
     .nav-button i.material-symbols-outlined {
         color: #fff;
+    }
+
+    .file-not-viewable {
+        width: 600px;
+        height: 400px;
+        background: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+    }
+
+    .modal-file-icon {
+        font-size: 120px;
+        margin-bottom: 16px;
     }
 
     .no-preview {
