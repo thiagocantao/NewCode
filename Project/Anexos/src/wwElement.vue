@@ -144,6 +144,7 @@ export default {
 
         function getFileIcon(name) {
             const ext = name.split('.').pop().toLowerCase();
+            alert(ext);
             switch (ext) {
                 case 'pdf':
                     return 'fa-solid fa-file-pdf';
@@ -268,7 +269,7 @@ export default {
 }
 
 .file-icon {
-    font-size: 32px;
+    font-size: 85px;
     cursor: pointer;
 }
 
