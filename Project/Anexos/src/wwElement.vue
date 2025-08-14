@@ -391,8 +391,10 @@ export default {
     }
 
     .modal-content.pdf-viewer {
-        max-width: 90vw;
-        max-height: 90vh;
+        max-width: none;
+        max-height: none;
+        width: 95vw;
+        height: 95vh;
     }
 
     .modal-body {
@@ -417,7 +419,8 @@ export default {
 
     .modal-pdf {
         width: 100%;
-        height: calc(100% - 40px);
+        height: 100%;
+        flex: 1;
         border: none;
         position: relative;
         z-index: 1;
