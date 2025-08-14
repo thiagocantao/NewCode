@@ -54,7 +54,17 @@
             >&lt;</button>
             <div class="modal-body">
                 <template v-if="currentFile && currentFile.url">
-                    <img :src="currentFile.url" alt="" class="modal-image" />
+                    <img
+                        :src="currentFile.url"
+                        alt=""
+                        class="modal-image"
+                        :style="{ transform: `scale(${zoom})` }"
+                    />
+                    <div class="modal-file-name">{{ currentFile.file.name }}</div>
+                    <div class="zoom-controls">
+                        <button class="zoom-button" @click="zoomOut">-</button>
+                        <button class="zoom-button" @click="zoomIn">+</button>
+                    </div>
                 </template>
                 <template v-else>
                     <p class="no-preview">Preview not available for this file type.</p>
@@ -87,6 +97,7 @@ export default {
         const isModalOpen = ref(false);
         const currentIndex = ref(0);
         const currentFile = computed(() => files.value[currentIndex.value]);
+        const zoom = ref(1);
 
         function triggerFileInput() {
             if (fileInput.value) fileInput.value.click();
@@ -132,6 +143,14 @@ export default {
             if (currentIndex.value > 0) currentIndex.value--;
         }
 
+        function zoomIn() {
+            zoom.value += 0.1;
+        }
+
+        function zoomOut() {
+            zoom.value = Math.max(0.1, zoom.value - 0.1);
+        }
+
         return {
             files,
             fileInput,
@@ -146,6 +165,9 @@ export default {
             closeModal,
             nextFile,
             prevFile,
+            zoom,
+            zoomIn,
+            zoomOut,
         };
     },
 };
@@ -300,6 +322,7 @@ i.material-symbols-outlined {
 .modal-body {
     flex: 1;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     max-height: 100%;
@@ -307,9 +330,30 @@ i.material-symbols-outlined {
 }
 
 .modal-image {
-    max-width: 100%;
-    max-height: 100%;
+    width: 600px;
+    height: 400px;
     object-fit: contain;
+}
+
+.modal-file-name {
+    margin-top: 8px;
+    color: #fff;
+}
+
+.zoom-controls {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+}
+
+.zoom-button {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    border-radius: 4px;
+    cursor: pointer;
 }
 
 .close-button {
@@ -326,9 +370,12 @@ i.material-symbols-outlined {
     background: rgba(0, 0, 0, 0.6);
     color: #fff;
     border: none;
-    padding: 8px 12px;
+    width: 40px;
+    height: 40px;
     cursor: pointer;
     font-size: 24px;
+    border-radius: 50%;
+    margin: 0 20px;
 }
 
 .nav-button:disabled {
