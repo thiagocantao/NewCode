@@ -44,7 +44,7 @@
         </div>
     </div>
     <div v-if="isModalOpen" class="modal-overlay" @click.self="closeModal">
-        <div class="modal-content">
+        <div class="modal-content" :class="{ 'pdf-viewer': currentFile && currentFile.isPdf }">
             <div class="modal-top-actions">
                 <button
                     class="modal-action-button"
@@ -390,6 +390,11 @@ export default {
         position: relative;
     }
 
+    .modal-content.pdf-viewer {
+        max-width: 90vw;
+        max-height: 90vh;
+    }
+
     .modal-body {
         flex: 1;
         display: flex;
@@ -398,6 +403,8 @@ export default {
         justify-content: center;
         max-height: 100%;
         margin: 0;
+        width: 100%;
+        height: 100%;
     }
 
     .modal-image {
@@ -409,8 +416,8 @@ export default {
     }
 
     .modal-pdf {
-        width: 600px;
-        height: 400px;
+        width: 100%;
+        height: calc(100% - 40px);
         border: none;
         position: relative;
         z-index: 1;
