@@ -27,7 +27,10 @@
                 />
             </template>
             <template v-else>
-                <div class="file-icon" @click="openModal(index)">📄</div>
+                <i
+                    :class="['file-icon', getFileIcon(file.file.name)]"
+                    @click="openModal(index)"
+                ></i>
             </template>
             <div class="file-name">{{ file.file.name }}</div>
             <div class="file-actions">
@@ -139,6 +142,25 @@ export default {
             if (!file.url) URL.revokeObjectURL(url);
         }
 
+        function getFileIcon(name) {
+            const ext = name.split('.').pop().toLowerCase();
+            switch (ext) {
+                case 'pdf':
+                    return 'fa-solid fa-file-pdf';
+                case 'doc':
+                case 'docx':
+                    return 'fa-solid fa-file-word';
+                case 'xls':
+                case 'xlsx':
+                    return 'fa-solid fa-file-excel';
+                case 'ppt':
+                case 'pptx':
+                    return 'fa-solid fa-file-powerpoint';
+                default:
+                    return 'fa-solid fa-file';
+            }
+        }
+
         function openModal(index) {
             currentIndex.value = index;
             isModalOpen.value = true;
@@ -181,6 +203,7 @@ export default {
             zoom,
             zoomIn,
             zoomOut,
+            getFileIcon,
         };
     },
 };
@@ -189,6 +212,7 @@ export default {
 
 <style lang="scss" scoped>
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css');
 
 .attachments {
     display: flex;
@@ -245,7 +269,13 @@ export default {
 
 .file-icon {
     font-size: 32px;
+    cursor: pointer;
 }
+
+.fa-file-pdf { color: #e53935; }
+.fa-file-word { color: #3b73b9; }
+.fa-file-excel { color: #2e7d32; }
+.fa-file-powerpoint { color: #d84315; }
 
 .file-preview {
     width: 100%;
