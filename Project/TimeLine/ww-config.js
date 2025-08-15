@@ -26,7 +26,7 @@ export default {
         "eventsAlignment",
       ],
     ],
-    customSettingsPropertiesOrder: [["data"]],
+    customSettingsPropertiesOrder: [["dataSource", "data"]],
   },
   properties: {
     // Marker styling
@@ -254,6 +254,24 @@ export default {
         type: "string",
         tooltip:
           'The alignment of timeline events\n\nFor vertical: "left", "right", or "alternate"\nFor horizontal: "top" or "bottom"',
+      },
+      /* wwEditor:end */
+    },
+
+    dataSource: {
+      label: { en: "Data Source" },
+      type: "Text",
+      section: "settings",
+      bindable: true,
+      defaultValue: "",
+      /* wwEditor:start */
+      bindingValidation: {
+        validations: [
+          { type: "array" },
+          { type: "string" },
+          { type: "object" },
+        ],
+        tooltip: "JSON array or string to initialize timeline data",
       },
       /* wwEditor:end */
     },

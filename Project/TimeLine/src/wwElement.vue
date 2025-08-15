@@ -23,7 +23,7 @@
     />
     <div ref="containerRef" class="ww-timeline__container">
       <div
-        v-for="(item, index) in content.data"
+        v-for="(item, index) in events"
         :key="index"
         class="ww-timeline__event"
         :class="{
@@ -40,8 +40,11 @@
             :class="[`ww-timeline__marker--${content.markerShape}`]"
             @click.stop="onMarkerClick(item)"
           >
-            <template v-if="content.markerIconOnOff && content.markerIcon">
-              <span v-html="iconHTML" class="ww-timeline__marker-icon" />
+            <template v-if="content.markerIconOnOff && getItemIcon(item, index)">
+              <span
+                v-html="getItemIcon(item, index)"
+                class="ww-timeline__marker-icon"
+              />
             </template>
           </div>
 
@@ -68,6 +71,7 @@ export default {
       type: Object,
       required: true,
     },
+    dataSource: { type: [Array, String], default: null },
     /* wwEditor:start */
     wwEditorState: { type: Object, required: true },
     /* wwEditor:end */
@@ -78,10 +82,10 @@ export default {
     const containerRef = ref(null);
     const { width: containerWidth } = useElementSize(containerRef);
 
-    // Icon handling
-    const icon = computed(() => props.content.markerIcon);
     const { getIcon } = wwLib.useIcons();
-    const iconHTML = ref("");
+    const events = ref([]);
+    const itemIcons = ref({});
+    const getItemIcon = (item, index) => itemIcons.value[item.EventID || index];
 
     // For horizontal timeline, calculate total content width based on actual content
     const connectorWidth = computed(() => {
@@ -98,11 +102,31 @@ export default {
     });
 
     watch(
-      icon,
-      async () => {
-        iconHTML.value = await getIcon(icon.value);
+      [() => props.content.dataSource, () => props.dataSource, () => props.content.data],
+      async ([contentDS, propDS, contentData]) => {
+        let data = [];
+        const ds = propDS ?? contentDS;
+        if (ds && (typeof ds !== "string" || ds.trim())) {
+          try {
+            data = typeof ds === "string" ? JSON.parse(ds) : ds;
+          } catch (e) {
+            console.error("Failed to parse dataSource", e);
+            data = [];
+          }
+        } else if (Array.isArray(contentData)) {
+          data = contentData;
+        }
+        events.value = data;
+
+        const entries = await Promise.all(
+          data.map(async (d, idx) => [
+            d.EventID || idx,
+            d.IcoEventType ? await getIcon(d.IcoEventType) : "",
+          ]),
+        );
+        itemIcons.value = Object.fromEntries(entries);
       },
-      { immediate: true },
+      { immediate: true, deep: true },
     );
 
     // Handle alignment based on layout
@@ -122,7 +146,8 @@ export default {
     });
 
     return {
-      iconHTML,
+      events,
+      getItemIcon,
       validAlignment,
       containerRef,
       connectorWidth,
