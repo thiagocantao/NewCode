@@ -159,7 +159,7 @@ export default {
             if (fileInput.value) fileInput.value.click();
         }
 
-        function onFilesSelected(event) {
+        async function onFilesSelected(event) {
             const selected = Array.from(event.target.files || []).map(file => ({
                 file,
                 url:
@@ -171,26 +171,62 @@ export default {
             }));
             files.value.push(...selected);
 
-            selected.forEach(({ file, url }) => {
-                const payload = {
-                    p_action: 'insert',
-                    p_workspace_id: props.content?.workspaceId ?? null,
-                    p_ticket_id: props.content?.ticketId ?? null,
-                    p_LoggerUserID: props.content?.loggerUserId ?? null,
-                    p_filename: file.name,
-                    p_fileextension: file.name.split('.').pop(),
-                    p_filesize: file.size,
-                    p_bucket: props.content?.bucket ?? null,
-                    p_objectpath: url,
-                    p_attachment_id: null,
-                    file,
-                };
+            const language = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
+            const apiKey = window.wwLib?.wwVariable?.getValue('d180be98-8926-47a7-b7f1-6375fbb95fa3');
+            const apiAuthorization = window.wwLib?.wwVariable?.getValue('dfcde09f-42f3-4b5c-b2e8-4314650655db');
+            const urlSupabase = window.wwLib?.wwVariable?.getValue('1195995b-34c3-42a5-b436-693f0f4f8825');
+            const WorkspaceID = window.wwLib?.wwVariable?.getValue('744511f1-3309-41da-a9fd-0721e7dd2f99');
+            const LoggedUserID = window.wwLib?.wwVariable?.getValue('fc54ab80-1a04-4cfe-a504-793bdcfce5dd');
+            const TicketID = window.wwLib?.wwVariable?.getValue('7bebd888-f31e-49e7-bef2-4052c8cb6cf5');
+            const bucket = 'ticket';
 
-                emit('trigger-event', {
-                    name: 'onUpload',
-                    event: { value: payload },
-                });
-            });
+            for (const { file } of selected) {
+                const extension = file.name.split('.').pop();
+                const uniqueName = (window.crypto?.randomUUID
+                    ? window.crypto.randomUUID()
+                    : Date.now().toString(36)) + `.${extension}`;
+                const pathObject = `${WorkspaceID}/${TicketID}/${uniqueName}`;
+
+                try {
+                    const uploadUrl = `${urlSupabase}/storage/v1/object/${bucket}/${pathObject}`;
+                    const uploadResponse = await fetch(uploadUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': file.type,
+                            apikey: apiKey,
+                            Authorization: apiAuthorization,
+                        },
+                        body: file,
+                    });
+
+                    if (!uploadResponse.ok) {
+                        console.error('Error uploading file to Supabase', await uploadResponse.text());
+                        continue;
+                    }
+
+                    const payload = {
+                        p_action: 'insert',
+                        p_workspace_id: WorkspaceID ?? null,
+                        p_ticket_id: TicketID ?? null,
+                        p_LoggerUserID: LoggedUserID ?? null,
+                        p_filename: file.name,
+                        p_fileextension: extension,
+                        p_filesize: file.size,
+                        p_bucket: bucket,
+                        p_objectpath: pathObject,
+                        p_attachment_id: null,
+                        language,
+                        file,
+                    };
+
+                    emit('trigger-event', {
+                        name: 'onUpload',
+                        event: { value: payload },
+                    });
+                } catch (error) {
+                    console.error('Supabase upload failed', error);
+                }
+            }
 
             event.target.value = '';
         }
