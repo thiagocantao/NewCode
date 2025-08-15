@@ -29,10 +29,9 @@
                 {{ getItemIcon(item) }}
               </i>
           </div>
-
           <!-- Event content -->
           <div class="ww-timeline__content" @click.stop="onClick(item)">
-            <div v-if="item.TagControl.toUpperCase() === 'ACTIVITYADDED'">
+            <template v-if="(item.TagControl || item.tagControl) === 'ActivityAdded'">
               <div class="activity-added-card">
                 <div class="activity-added-card__left">
                   <div class="activity-added-card__title">{{ item.Title }}</div>
@@ -57,13 +56,13 @@
                   <div class="activity-added-card__created-date">{{ formatDate(item.CreatedDate) }}</div>
                 </div>
               </div>
-            </div>
-            <div v-else>
+            </template>
+            <template v-else>
               <wwElement
                 v-bind="content.timelineElement"
                 class="ww-timeline__content-element"
               />
-            </div>
+            </template>
           </div>
         </wwLayoutItemContext>
       </div>
@@ -93,7 +92,41 @@ export default {
     const { width: containerWidth } = useElementSize(containerRef);
 
     const events = ref([]);
-    const getItemIcon = (item) => item.IcoEventType || "";
+    const getItemIcon = (item) =>
+      item.IcoEventType || props.content.markerIcon || "";
+
+    const getFieldValue = (item, fieldName) => {
+      const list = item?.FieldNewValue || [];
+      const target = String(fieldName).toLowerCase();
+      const found = list.find((f) => {
+        const key =
+          f?.Field || f?.field || f?.Name || f?.name || f?.Key || f?.key || "";
+        return String(key).toLowerCase() === target;
+      });
+      return found ? found.Value ?? found.value ?? "" : "";
+    };
+
+    const formatDate = (value) => {
+      if (!value) return "";
+      const date = new Date(value);
+      if (isNaN(date.getTime())) return value;
+      return date.toLocaleString("en-US", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+    };
+
+    const formatDuration = (minutes) => {
+      const total = parseInt(minutes, 10);
+      if (isNaN(total)) return minutes || "";
+      const h = Math.floor(total / 60);
+      const m = total % 60;
+      return `${h}:${m.toString().padStart(2, "0")}`;
+    };
 
     const getFieldValue = (item, fieldName) => {
       const list = item?.FieldNewValue || [];
@@ -604,3 +637,4 @@ export default {
     }
   }
 </style>
+
