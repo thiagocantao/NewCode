@@ -11,9 +11,7 @@
       '--marker-background-color': content.markerBackgroundColor,
       '--connector-full-width': `${connectorWidth}px`,
     }">
-    <!-- Fixed connector line for horizontal layout -->
-    <div v-if="content.timelineLayout === 'horizontal'" class="ww-timeline__fixed-connector"
-      :class="`ww-timeline__fixed-connector--${validAlignment}`" />
+    
     <div ref="containerRef" class="ww-timeline__container">
       <div v-for="(item, index) in events" :key="index" class="ww-timeline__event" :class="{
           'ww-timeline__event--alternate':
@@ -34,7 +32,7 @@
 
           <!-- Event content -->
           <div class="ww-timeline__content" @click.stop="onClick(item)">
-            <template v-if="item.TagControl === 'ActivityAdded'">
+            <div v-if="item.TagControl.toUpperCase() === 'ACTIVITYADDED'">
               <div class="activity-added-card">
                 <div class="activity-added-card__left">
                   <div class="activity-added-card__title">{{ item.Title }}</div>
@@ -59,13 +57,13 @@
                   <div class="activity-added-card__created-date">{{ formatDate(item.CreatedDate) }}</div>
                 </div>
               </div>
-            </template>
-            <template v-else>
+            </div>
+            <div v-else>
               <wwElement
                 v-bind="content.timelineElement"
                 class="ww-timeline__content-element"
               />
-            </template>
+            </div>
           </div>
         </wwLayoutItemContext>
       </div>
