@@ -106,7 +106,7 @@
 </template>
 
 <script>
-    import { ref, computed, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 
 export default {
     name: 'Anexos',
@@ -118,7 +118,8 @@ export default {
         /* wwEditor:end */
         uid: { type: String, required: true },
     },
-    setup(props) {
+    emits: ['trigger-event'],
+    setup(props, { emit }) {
         const files = ref([]);
         const fileInput = ref(null);
         const isModalOpen = ref(false);
@@ -169,6 +170,28 @@ export default {
                 isPdf: file.type === 'application/pdf',
             }));
             files.value.push(...selected);
+
+            selected.forEach(({ file, url }) => {
+                const payload = {
+                    p_action: 'insert',
+                    p_workspace_id: props.content?.workspaceId ?? null,
+                    p_ticket_id: props.content?.ticketId ?? null,
+                    p_LoggerUserID: props.content?.loggerUserId ?? null,
+                    p_filename: file.name,
+                    p_fileextension: file.name.split('.').pop(),
+                    p_filesize: file.size,
+                    p_bucket: props.content?.bucket ?? null,
+                    p_objectpath: url,
+                    p_attachment_id: null,
+                    file,
+                };
+
+                emit('trigger-event', {
+                    name: 'onUpload',
+                    event: { value: payload },
+                });
+            });
+
             event.target.value = '';
         }
 
