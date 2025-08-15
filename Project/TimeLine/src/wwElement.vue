@@ -207,7 +207,7 @@ export default {
 
         .ww-timeline__marker {
           position: absolute;
-          left: -32px;
+          left: 0px;
           top: 15px;
           transform: translateX(-50%);
         }
