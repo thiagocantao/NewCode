@@ -1,5 +1,4 @@
 <template>
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
   <div class="ww-timeline" :class="[
       `ww-timeline--${content.timelineLayout}`,
       `ww-timeline--align-${validAlignment}`,
@@ -145,6 +144,28 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+  @import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined");
+
+  .material-symbols-outlined {
+    font-family: "Material Symbols Outlined";
+    font-weight: normal;
+    font-style: normal;
+    font-size: var(--marker-icon-size);
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    direction: ltr;
+    -webkit-font-feature-settings: "liga";
+    -webkit-font-smoothing: antialiased;
+    font-variation-settings:
+      "FILL" 0,
+      "wght" 400,
+      "GRAD" 0,
+      "opsz" var(--marker-icon-size);
+  }
+
   .ww-timeline {
     position: relative;
     width: 100%;
@@ -166,52 +187,29 @@ export default {
         .ww-timeline__event {
           display: flex;
           flex-direction: row;
-          align-items: flex-end;
-          justify-content: flex-end;
+          align-items: flex-start;
+          justify-content: flex-start;
         }
 
-        /* Allow container to be used for container queries */
         .ww-timeline__container {
-          container-type: inline-size;
           padding-left: 40px;
 
-          /* Small screens - connector at left */
           &::before {
             content: "";
             position: absolute;
             top: 0;
             bottom: 0;
             left: 8px;
-            /* Position at 8px from the left edge */
             width: 1px;
-            /* Center the connector regardless of width */
             background-color: transparent;
-          }
-
-          /* Larger container - connector in center */
-          @container (min-width: 500px) {
-            padding-left: 0;
-
-            &::before {
-              left: 50%;
-              transform: translateX(-50%);
-            }
           }
         }
 
         .ww-timeline__marker {
           position: absolute;
           left: -32px;
-          /* Position relative to connector */
           top: 15px;
           transform: translateX(-50%);
-          /* Center the marker on the connector */
-
-          /* Larger container - marker in center */
-          @container (min-width: 500px) {
-            left: calc(50% - (30px / 2) - 20px);
-            transform: none;
-          }
         }
 
         .ww-timeline__content {
@@ -219,15 +217,6 @@ export default {
           display: flex;
           justify-content: flex-start;
           width: 100%;
-
-          /* Larger container - keep all content on the right side of center connector */
-          @container (min-width: 500px) {
-            width: calc(50% - 30px / 2);
-            margin-right: 0;
-            text-align: left;
-            justify-content: flex-start;
-            align-items: flex-start;
-          }
         }
       }
 
@@ -439,12 +428,11 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 30px;
-    height: 30px;
-    background-color: #d0e7df;
+    width: var(--marker-size);
+    height: var(--marker-size);
+    background-color: var(--marker-background-color);
     z-index: 2;
     cursor: pointer;
-    /* No transition or hover effect */
 
     &--circle {
       border-radius: 50%;
@@ -459,10 +447,10 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 30px;
-    height: 30px;
-    color: #333;
-    font-size: 25px;
+    width: 100%;
+    height: 100%;
+    color: var(--marker-icon-color);
+    font-size: var(--marker-icon-size);
     line-height: 1;
   }
 
