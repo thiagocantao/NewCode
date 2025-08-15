@@ -34,7 +34,38 @@
 
           <!-- Event content -->
           <div class="ww-timeline__content" @click.stop="onClick(item)">
-            <wwElement v-bind="content.timelineElement" class="ww-timeline__content-element" />
+            <template v-if="item.TagControl === 'ActivityAdded'">
+              <div class="activity-added-card">
+                <div class="activity-added-card__left">
+                  <div class="activity-added-card__title">{{ item.Title }}</div>
+                  <div class="activity-added-card__field">
+                    Responsible User: {{ getFieldValue(item, 'ResponsibleUserID') }}
+                  </div>
+                  <div class="activity-added-card__field">
+                    Start Time: {{ formatDate(getFieldValue(item, 'StartTime')) }}
+                  </div>
+                  <div class="activity-added-card__field">
+                    End Time: {{ formatDate(getFieldValue(item, 'EndTime')) }}
+                  </div>
+                  <div class="activity-added-card__field">
+                    Total: {{ formatDuration(getFieldValue(item, 'TotalMinutes')) }}
+                  </div>
+                  <div class="activity-added-card__field">
+                    Description: {{ getFieldValue(item, 'Description') }}
+                  </div>
+                </div>
+                <div class="activity-added-card__right">
+                  <div class="activity-added-card__created-by">{{ item.CreatedByName }}</div>
+                  <div class="activity-added-card__created-date">{{ formatDate(item.CreatedDate) }}</div>
+                </div>
+              </div>
+            </template>
+            <template v-else>
+              <wwElement
+                v-bind="content.timelineElement"
+                class="ww-timeline__content-element"
+              />
+            </template>
           </div>
         </wwLayoutItemContext>
       </div>
@@ -65,6 +96,42 @@ export default {
 
     const events = ref([]);
     const getItemIcon = (item) => item.IcoEventType || "";
+
+    const getFieldValue = (item, fieldName) => {
+      const list = item?.FieldNewValue || [];
+      const found = list.find(
+        (f) =>
+          f?.Field === fieldName ||
+          f?.field === fieldName ||
+          f?.Name === fieldName ||
+          f?.name === fieldName ||
+          f?.Key === fieldName ||
+          f?.key === fieldName,
+      );
+      return found ? found.Value ?? found.value ?? "" : "";
+    };
+
+    const formatDate = (value) => {
+      if (!value) return "";
+      const date = new Date(value);
+      if (isNaN(date.getTime())) return value;
+      return date.toLocaleString("en-US", {
+        year: "2-digit",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+    };
+
+    const formatDuration = (minutes) => {
+      const total = parseInt(minutes, 10);
+      if (isNaN(total)) return minutes || "";
+      const h = Math.floor(total / 60);
+      const m = total % 60;
+      return `${h}:${m.toString().padStart(2, "0")}`;
+    };
 
     // For horizontal timeline, calculate total content width based on actual content
     const connectorWidth = computed(() => {
@@ -119,6 +186,9 @@ export default {
     return {
       events,
       getItemIcon,
+      getFieldValue,
+      formatDate,
+      formatDuration,
       validAlignment,
       containerRef,
       connectorWidth,
@@ -507,5 +577,32 @@ export default {
 
   .ww-timeline--horizontal .ww-timeline__content-element {
     align-items: center;
+  }
+
+  .activity-added-card {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+
+    &__left {
+      flex: 1;
+    }
+
+    &__right {
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-end;
+    }
+
+    &__title {
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    &__field {
+      margin-bottom: 0.25rem;
+    }
   }
 </style>
