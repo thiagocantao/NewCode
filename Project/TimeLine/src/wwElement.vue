@@ -1,15 +1,9 @@
 <template>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
-    rel="stylesheet"
-  />
-  <div
-    class="ww-timeline"
-    :class="[
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+  <div class="ww-timeline" :class="[
       `ww-timeline--${content.timelineLayout}`,
       `ww-timeline--align-${validAlignment}`,
-    ]"
-    :style="{
+    ]" :style="{
       '--connector-color': content.connectorColor,
       '--connector-width': content.connectorWidth,
       '--marker-size': content.markerSize,
@@ -17,34 +11,22 @@
       '--marker-icon-color': content.markerIconColor,
       '--marker-background-color': content.markerBackgroundColor,
       '--connector-full-width': `${connectorWidth}px`,
-    }"
-  >
+    }">
     <!-- Fixed connector line for horizontal layout -->
-    <div
-      v-if="content.timelineLayout === 'horizontal'"
-      class="ww-timeline__fixed-connector"
-      :class="`ww-timeline__fixed-connector--${validAlignment}`"
-    />
+    <div v-if="content.timelineLayout === 'horizontal'" class="ww-timeline__fixed-connector"
+      :class="`ww-timeline__fixed-connector--${validAlignment}`" />
     <div ref="containerRef" class="ww-timeline__container">
-      <div
-        v-for="(item, index) in events"
-        :key="index"
-        class="ww-timeline__event"
-        :class="{
+      <div v-for="(item, index) in events" :key="index" class="ww-timeline__event" :class="{
           'ww-timeline__event--alternate':
             content.timelineLayout === 'vertical' &&
             validAlignment === 'alternate' &&
             index % 2 === 1,
-        }"
-      >
+        }">
         <wwLayoutItemContext is-repeat :index="index" :data="item">
           <!-- Event marker -->
-          <div
-            class="ww-timeline__marker"
-            :class="[`ww-timeline__marker--${content.markerShape}`]"
-            @click.stop="onMarkerClick(item)"
-          >
-            <template v-if="content.markerIconOnOff && getItemIcon(item)">
+          <div class="ww-timeline__marker" :class="[`ww-timeline__marker--${content.markerShape}`]"
+            @click.stop="onMarkerClick(item)">
+            <template>
               <span
                 class="material-symbols-outlined ww-timeline__marker-icon"
               >
@@ -55,10 +37,7 @@
 
           <!-- Event content -->
           <div class="ww-timeline__content" @click.stop="onClick(item)">
-            <wwElement
-              v-bind="content.timelineElement"
-              class="ww-timeline__content-element"
-            />
+            <wwElement v-bind="content.timelineElement" class="ww-timeline__content-element" />
           </div>
         </wwLayoutItemContext>
       </div>
@@ -67,7 +46,7 @@
 </template>
 
 <script>
-import { computed, ref, watch } from "vue";
+  import { computed, ref, watch } from "vue";
 import { useElementSize } from "@vueuse/core";
 
 export default {
@@ -166,380 +145,381 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.ww-timeline {
-  position: relative;
-  width: 100%;
+  .ww-timeline {
+    position: relative;
+    width: 100%;
 
-  &--vertical {
-    .ww-timeline__container {
-      padding: 20px 0;
-    }
+    &--vertical {
+      .ww-timeline__container {
+        padding: 20px 0;
+      }
 
-    .ww-timeline__event {
-      position: relative;
-      margin: 0;
-      padding-bottom: 20px;
-      min-height: 50px;
-    }
-
-    /* Left alignment (default) */
-    &.ww-timeline--align-left {
       .ww-timeline__event {
-        display: flex;
-        flex-direction: row;
-        align-items: flex-end;
-        justify-content: flex-end;
-      }
-
-      /* Allow container to be used for container queries */
-      .ww-timeline__container {
-        container-type: inline-size;
-        padding-left: 40px;
-
-        /* Small screens - connector at left */
-        &::before {
-          content: "";
-          position: absolute;
-          top: 0;
-          bottom: 0;
-          left: 8px; /* Position at 8px from the left edge */
-          width: var(--connector-width);
-          transform: translateX(
-            calc(-1 * var(--connector-width) / 2)
-          ); /* Center the connector regardless of width */
-          background-color: var(--connector-color);
-        }
-
-        /* Larger container - connector in center */
-        @container (min-width: 500px) {
-          padding-left: 0;
-
-          &::before {
-            left: 50%;
-            transform: translateX(-50%);
-          }
-        }
-      }
-
-      .ww-timeline__marker {
-        position: absolute;
-        left: -32px; /* Position relative to connector */
-        top: 15px;
-        transform: translateX(-50%); /* Center the marker on the connector */
-
-        /* Larger container - marker in center */
-        @container (min-width: 500px) {
-          left: calc(50% - (var(--marker-size) / 2) - 20px);
-          transform: none;
-        }
-      }
-
-      .ww-timeline__content {
-        text-align: left;
-        display: flex;
-        justify-content: flex-start;
-        width: 100%;
-
-        /* Larger container - keep all content on the right side of center connector */
-        @container (min-width: 500px) {
-          width: calc(50% - var(--marker-size) / 2);
-          margin-right: 0;
-          text-align: left;
-          justify-content: flex-start;
-          align-items: flex-start;
-        }
-      }
-    }
-
-    /* Right alignment */
-    &.ww-timeline--align-right {
-      .ww-timeline__container {
-        container-type: inline-size;
-        padding-right: 40px;
-
-        /* Default - connector at right */
-        &::before {
-          content: "";
-          position: absolute;
-          top: 0;
-          bottom: 0;
-          right: 8px; /* Position at 8px from the right edge */
-          width: var(--connector-width);
-          transform: translateX(
-            calc(var(--connector-width) / 2)
-          ); /* Center the connector regardless of width */
-          background-color: var(--connector-color);
-        }
-
-        /* Large screens - connector in center */
-        @container (min-width: 500px) {
-          padding-right: 0;
-
-          &::before {
-            right: auto;
-            left: 50%;
-            transform: translateX(-50%);
-          }
-        }
-      }
-
-      .ww-timeline__marker {
-        position: absolute;
-        right: -32px; /* Position relative to connector */
-        top: 15px;
-        transform: translateX(50%); /* Center the marker on the connector */
-
-        /* Large screens - marker in center */
-        @container (min-width: 500px) {
-          left: calc(50% - (var(--marker-size) / 2) + 20px);
-          transform: none;
-        }
-      }
-
-      .ww-timeline__content {
-        text-align: right;
-        align-items: flex-end;
-        display: flex;
-        justify-content: flex-end;
-        width: 100%; /* Use full width */
-
-        /* Large screens - content on left side of center connector */
-        @container (min-width: 500px) {
-          width: calc(50% - var(--marker-size) / 2);
-          margin-left: 0;
-          text-align: right;
-          justify-content: flex-end;
-          align-items: flex-end;
-        }
-      }
-    }
-
-    /* Alternate alignment */
-    &.ww-timeline--align-alternate {
-      .ww-timeline__container {
         position: relative;
-
-        &::before {
-          content: "";
-          position: absolute;
-          top: 0;
-          bottom: 0;
-          left: 50%;
-          transform: translateX(-50%); /* Center properly */
-          width: var(--connector-width);
-          background-color: var(--connector-color);
-          z-index: 1;
-        }
+        margin: 0;
+        padding-bottom: 20px;
+        min-height: 50px;
       }
 
-      .ww-timeline__event {
-        display: flex;
-        flex-direction: row;
-        align-items: flex-start;
-        justify-content: flex-end;
-        padding-right: 50%;
-        padding-left: 0;
+      /* Left alignment (default) */
+      &.ww-timeline--align-left {
+        .ww-timeline__event {
+          display: flex;
+          flex-direction: row;
+          align-items: flex-end;
+          justify-content: flex-end;
+        }
+
+        /* Allow container to be used for container queries */
+        .ww-timeline__container {
+          container-type: inline-size;
+          padding-left: 40px;
+
+          /* Small screens - connector at left */
+          &::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 8px;
+            /* Position at 8px from the left edge */
+            width: 1px;
+            /* Center the connector regardless of width */
+            background-color: transparent;
+          }
+
+          /* Larger container - connector in center */
+          @container (min-width: 500px) {
+            padding-left: 0;
+
+            &::before {
+              left: 50%;
+              transform: translateX(-50%);
+            }
+          }
+        }
 
         .ww-timeline__marker {
           position: absolute;
-          left: 50%;
+          left: -32px;
+          /* Position relative to connector */
           top: 15px;
           transform: translateX(-50%);
-          z-index: 2;
+          /* Center the marker on the connector */
+
+          /* Larger container - marker in center */
+          @container (min-width: 500px) {
+            left: calc(50% - (30px / 2) - 20px);
+            transform: none;
+          }
         }
 
         .ww-timeline__content {
+          text-align: left;
+          display: flex;
+          justify-content: flex-start;
           width: 100%;
-          margin-right: 30px;
+
+          /* Larger container - keep all content on the right side of center connector */
+          @container (min-width: 500px) {
+            width: calc(50% - 30px / 2);
+            margin-right: 0;
+            text-align: left;
+            justify-content: flex-start;
+            align-items: flex-start;
+          }
+        }
+      }
+
+      /* Right alignment */
+      &.ww-timeline--align-right {
+        .ww-timeline__container {
+          container-type: inline-size;
+          padding-right: 40px;
+
+          /* Default - connector at right */
+          &::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            right: 8px;
+            /* Position at 8px from the right edge */
+            width: 1px;
+            /* Center the connector regardless of width */
+            background-color: transparent;
+          }
+
+          /* Large screens - connector in center */
+          @container (min-width: 500px) {
+            padding-right: 0;
+
+            &::before {
+              right: auto;
+              left: 50%;
+              transform: translateX(-50%);
+            }
+          }
+        }
+
+        .ww-timeline__marker {
+          position: absolute;
+          right: -32px;
+          /* Position relative to connector */
+          top: 15px;
+          transform: translateX(50%);
+          /* Center the marker on the connector */
+
+          /* Large screens - marker in center */
+          @container (min-width: 500px) {
+            left: calc(50% - (30px / 2) + 20px);
+            transform: none;
+          }
+        }
+
+        .ww-timeline__content {
           text-align: right;
           align-items: flex-end;
           display: flex;
           justify-content: flex-end;
+          width: 100%;
+          /* Use full width */
+
+          /* Large screens - content on left side of center connector */
+          @container (min-width: 500px) {
+            width: calc(50% - 30px / 2);
+            margin-left: 0;
+            text-align: right;
+            justify-content: flex-end;
+            align-items: flex-end;
+          }
+        }
+      }
+
+      /* Alternate alignment */
+      &.ww-timeline--align-alternate {
+        .ww-timeline__container {
+          position: relative;
+
+          &::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            /* Center properly */
+            width: 1px;
+            background-color: transparent;
+            z-index: 1;
+          }
         }
 
-        &--alternate {
-          justify-content: flex-start;
-          padding-left: 50%;
-          padding-right: 0;
+        .ww-timeline__event {
+          display: flex;
+          flex-direction: row;
+          align-items: flex-start;
+          justify-content: flex-end;
+          padding-right: 50%;
+          padding-left: 0;
+
+          .ww-timeline__marker {
+            position: absolute;
+            left: 50%;
+            top: 15px;
+            transform: translateX(-50%);
+            z-index: 2;
+          }
 
           .ww-timeline__content {
-            margin-right: 0;
-            margin-left: 30px;
-            text-align: left;
-            align-items: flex-start;
-            justify-content: flex-start;
             width: 100%;
+            margin-right: 30px;
+            text-align: right;
+            align-items: flex-end;
+            display: flex;
+            justify-content: flex-end;
+          }
+
+          &--alternate {
+            justify-content: flex-start;
+            padding-left: 50%;
+            padding-right: 0;
+
+            .ww-timeline__content {
+              margin-right: 0;
+              margin-left: 30px;
+              text-align: left;
+              align-items: flex-start;
+              justify-content: flex-start;
+              width: 100%;
+            }
           }
         }
       }
     }
-  }
 
-  &--horizontal {
-    position: relative; /* Positioning context for fixed connector */
-
-    .ww-timeline__container {
-      display: flex;
+    &--horizontal {
       position: relative;
-      padding: 40px 20px 20px;
-      overflow-x: auto;
-      width: 100%; /* Ensure the container takes full width */
-    }
+      /* Positioning context for fixed connector */
 
-    .ww-timeline__event {
-      position: relative;
-      flex: 0 0 auto; /* Don't allow event to grow or shrink */
-      margin: 0 10px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .ww-timeline__content {
-      width: auto; /* Allow content to size to its children */
-      flex: 0 0 auto; /* Prevent flex growing/shrinking */
-    }
-
-    /* Top alignment (default) */
-    &.ww-timeline--align-top {
       .ww-timeline__container {
-        padding-top: calc(20px + var(--marker-size));
-
-        /* Hide the original ::before connector when using fixed connector */
-        &::before {
-          display: none;
-        }
+        display: flex;
+        position: relative;
+        padding: 40px 20px 20px;
+        overflow-x: auto;
+        width: 100%;
+        /* Ensure the container takes full width */
       }
 
-      .ww-timeline__marker {
-        position: absolute;
-        top: calc(-1 * var(--marker-size) - 12px);
+      .ww-timeline__event {
+        position: relative;
+        flex: 0 0 auto;
+        /* Don't allow event to grow or shrink */
+        margin: 0 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
       }
 
       .ww-timeline__content {
-        justify-content: center;
-        text-align: center;
+        width: auto;
+        /* Allow content to size to its children */
+        flex: 0 0 auto;
+        /* Prevent flex growing/shrinking */
       }
-    }
 
-    /* Bottom alignment */
-    &.ww-timeline--align-bottom {
-      .ww-timeline__container {
-        padding-top: 20px;
-        padding-bottom: calc(20px + var(--marker-size));
+      /* Top alignment (default) */
+      &.ww-timeline--align-top {
+        .ww-timeline__container {
+          padding-top: calc(20px + 30px);
 
-        /* Hide the original ::before connector when using fixed connector */
-        &::before {
-          display: none;
+          /* Hide the original ::before connector when using fixed connector */
+          &::before {
+            display: none;
+          }
+        }
+
+        .ww-timeline__marker {
+          position: absolute;
+          top: calc(-1 * 30px - 12px);
+        }
+
+        .ww-timeline__content {
+          justify-content: center;
+          text-align: center;
         }
       }
 
-      .ww-timeline__marker {
-        position: absolute;
-        bottom: calc(-1 * var(--marker-size) - 12px);
-      }
+      /* Bottom alignment */
+      &.ww-timeline--align-bottom {
+        .ww-timeline__container {
+          padding-top: 20px;
+          padding-bottom: calc(20px + 30px);
 
-      .ww-timeline__content {
-        justify-content: center;
-        text-align: center;
+          /* Hide the original ::before connector when using fixed connector */
+          &::before {
+            display: none;
+          }
+        }
+
+        .ww-timeline__marker {
+          position: absolute;
+          bottom: calc(-1 * 30px - 12px);
+        }
+
+        .ww-timeline__content {
+          justify-content: center;
+          text-align: center;
+        }
       }
     }
   }
-}
 
-.ww-timeline__marker {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--marker-size);
-  height: var(--marker-size);
-  background-color: var(--marker-background-color);
-  z-index: 2;
-  cursor: pointer;
-  /* No transition or hover effect */
+  .ww-timeline__marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    background-color: #d0e7df;
+    z-index: 2;
+    cursor: pointer;
+    /* No transition or hover effect */
 
-  &--circle {
-    border-radius: 50%;
+    &--circle {
+      border-radius: 50%;
+    }
+
+    &--square {
+      border-radius: 2px;
+    }
   }
 
-  &--square {
-    border-radius: 2px;
-  }
-}
-
-.ww-timeline__marker-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--marker-icon-size);
-  height: var(--marker-icon-size);
-  color: var(--marker-icon-color);
-  font-size: var(--marker-icon-size);
-  line-height: 1;
-}
-
-.ww-timeline__fixed-connector {
-  position: absolute;
-  left: 0;
-  z-index: 0;
-  pointer-events: none; /* Allow clicking through the connector */
-  background-color: var(--connector-color);
-  height: var(--connector-width);
-  width: var(--connector-full-width);
-
-  &--top {
-    top: calc(
-      8px + calc(var(--marker-size) / 2) - calc(var(--connector-width) / 2)
-    );
+  .ww-timeline__marker-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    color: #333;
+    font-size: 25px;
+    line-height: 1;
   }
 
-  &--bottom {
-    bottom: calc(
-      8px + calc(var(--marker-size) / 2) - calc(var(--connector-width) / 2)
-    );
-  }
-}
+  .ww-timeline__fixed-connector {
+    position: absolute;
+    left: 0;
+    z-index: 0;
+    pointer-events: none;
+    /* Allow clicking through the connector */
+    background-color: transparent;
+    height: 1px;
+    width: 1px;
 
-.ww-timeline__content {
-  cursor: pointer;
-  display: flex;
-  /* Full width by default to allow proper alignment */
-  width: 100%;
-}
-
-.ww-timeline__content-element {
-  /* Base styles for the content element */
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-
-  /* This ensures any width/height set on the element will be respected */
-  width: inherit; /* Inherit any width set on this element */
-  height: inherit; /* Inherit any height set on this element */
-}
-
-/* Different alignment depending on timeline layout and alignment */
-.ww-timeline--vertical {
-  &.ww-timeline--align-left .ww-timeline__content-element {
-    align-items: flex-start;
   }
 
-  &.ww-timeline--align-right .ww-timeline__content-element {
-    align-items: flex-end;
+  .ww-timeline__content {
+    cursor: pointer;
+    display: flex;
+    /* Full width by default to allow proper alignment */
+    width: 100%;
   }
 
-  &.ww-timeline--align-alternate {
-    .ww-timeline__content-element {
+  .ww-timeline__content-element {
+    /* Base styles for the content element */
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    /* This ensures any width/height set on the element will be respected */
+    width: inherit;
+    /* Inherit any width set on this element */
+    height: inherit;
+    /* Inherit any height set on this element */
+  }
+
+  /* Different alignment depending on timeline layout and alignment */
+  .ww-timeline--vertical {
+    &.ww-timeline--align-left .ww-timeline__content-element {
+      align-items: flex-start;
+    }
+
+    &.ww-timeline--align-right .ww-timeline__content-element {
       align-items: flex-end;
     }
 
-    .ww-timeline__event--alternate .ww-timeline__content-element {
-      align-items: flex-start;
+    &.ww-timeline--align-alternate {
+      .ww-timeline__content-element {
+        align-items: flex-end;
+      }
+
+      .ww-timeline__event--alternate .ww-timeline__content-element {
+        align-items: flex-start;
+      }
     }
   }
-}
 
-.ww-timeline--horizontal .ww-timeline__content-element {
-  align-items: center;
-}
+  .ww-timeline--horizontal .ww-timeline__content-element {
+    align-items: center;
+  }
 </style>
