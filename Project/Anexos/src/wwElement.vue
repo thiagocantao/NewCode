@@ -106,7 +106,7 @@
 </template>
 
 <script>
-    import { ref, computed } from 'vue';
+    import { ref, computed, watch } from 'vue';
 
 export default {
     name: 'Anexos',
@@ -116,14 +116,43 @@ export default {
         /* wwEditor:start */
         wwEditorState: { type: Object, required: true },
         /* wwEditor:end */
+        uid: { type: String, required: true },
     },
-    setup() {
+    setup(props) {
         const files = ref([]);
         const fileInput = ref(null);
         const isModalOpen = ref(false);
         const currentIndex = ref(0);
         const currentFile = computed(() => files.value[currentIndex.value]);
         const zoom = ref(1);
+
+        const attachmentsInfo = ref([]);
+        let setAttachmentsInfo;
+        if (typeof wwLib !== 'undefined' && wwLib.wwVariable && wwLib.wwVariable.useComponentVariable) {
+            const { value, setValue } = wwLib.wwVariable.useComponentVariable({
+                uid: props.uid,
+                name: 'attachmentsInfo',
+                type: 'array',
+                defaultValue: [],
+            });
+            attachmentsInfo.value = value.value;
+            setAttachmentsInfo = setValue;
+        }
+
+        watch(
+            files,
+            () => {
+                const info = files.value.map(f => ({
+                    name: f.file.name,
+                    size: f.file.size,
+                    type: f.file.type,
+                    url: f.url,
+                }));
+                attachmentsInfo.value = info;
+                if (setAttachmentsInfo) setAttachmentsInfo(info);
+            },
+            { deep: true, immediate: true }
+        );
 
         function triggerFileInput() {
             if (fileInput.value) fileInput.value.click();
@@ -219,6 +248,7 @@ export default {
             zoomIn,
             zoomOut,
             getFileIcon,
+            attachmentsInfo,
         };
     },
 };
