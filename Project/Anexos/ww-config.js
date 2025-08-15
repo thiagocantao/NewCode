@@ -54,4 +54,35 @@ export default {
             /* wwEditor:end */
         },
     },
+    events: {
+        onUpload: {
+            label: { en: 'On Upload' },
+            event: 'onUpload',
+            value: {
+                type: 'object',
+                label: { en: 'Uploaded file data' },
+            },
+        },
+    },
+    triggerEvents: [
+        {
+            name: 'onUpload',
+            label: { en: 'On file uploaded' },
+            event: {
+                value: {
+                    p_action: '',
+                    p_workspace_id: '',
+                    p_ticket_id: '',
+                    p_LoggerUserID: '',
+                    p_filename: '',
+                    p_fileextension: '',
+                    p_filesize: 0,
+                    p_bucket: '',
+                    p_objectpath: '',
+                    p_attachment_id: '',
+                    file: null,
+                },
+            },
+        },
+    ],
 };
