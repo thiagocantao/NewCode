@@ -246,6 +246,7 @@ export default {
                     const payload = {
                         ...rpcBody,
                         p_attachment_id: attachmentId,
+
                         language,
                         file,
                     };
