@@ -36,19 +36,19 @@
                 <div class="activity-added-card__left">
                   <div class="activity-added-card__title">{{ item.Title }}</div>
                   <div class="activity-added-card__field">
-                    Responsible User: {{ getFieldValue(item, 'ResponsibleUserID') }}
+                    Responsible User: {{ item.NewValueTitle.ResponsibleUserID }}
                   </div>
                   <div class="activity-added-card__field">
-                    Start Time: {{ formatDate(getFieldValue(item, 'StartTime')) }}
+                    Start Time: {{ formatDate(item.NewValueTitle.StartTime) }}
                   </div>
                   <div class="activity-added-card__field">
-                    End Time: {{ formatDate(getFieldValue(item, 'EndTime')) }}
+                    End Time: {{ formatDate(item.NewValueTitle.EndTime) }}
                   </div>
                   <div class="activity-added-card__field">
-                    Total: {{ formatDuration(getFieldValue(item, 'TotalMinutes')) }}
+                    Total: {{ formatDuration(item.NewValueTitle.TotalMinutes) }}
                   </div>
                   <div class="activity-added-card__field">
-                    Description: {{ getFieldValue(item, 'Description') }}
+                    Description: {{ item.NewValueTitle.Description }}
                   </div>
                 </div>
                 <div class="activity-added-card__right">
@@ -95,17 +95,6 @@ export default {
     const getItemIcon = (item) =>
       item.IcoEventType || props.content.markerIcon || "";
 
-    const getFieldValue = (item, fieldName) => {
-      const list = item?.FieldNewValue || [];
-      const target = String(fieldName).toLowerCase();
-      const found = list.find((f) => {
-        const key =
-          f?.Field || f?.field || f?.Name || f?.name || f?.Key || f?.key || "";
-        return String(key).toLowerCase() === target;
-      });
-      return found ? found.Value ?? found.value ?? "" : "";
-    };
-
     const formatDate = (value) => {
       if (!value) return "";
       const date = new Date(value);
@@ -128,41 +117,7 @@ export default {
       return `${h}:${m.toString().padStart(2, "0")}`;
     };
 
-    const getFieldValue = (item, fieldName) => {
-      const list = item?.FieldNewValue || [];
-      const found = list.find(
-        (f) =>
-          f?.Field === fieldName ||
-          f?.field === fieldName ||
-          f?.Name === fieldName ||
-          f?.name === fieldName ||
-          f?.Key === fieldName ||
-          f?.key === fieldName,
-      );
-      return found ? found.Value ?? found.value ?? "" : "";
-    };
-
-    const formatDate = (value) => {
-      if (!value) return "";
-      const date = new Date(value);
-      if (isNaN(date.getTime())) return value;
-      return date.toLocaleString("en-US", {
-        year: "2-digit",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      });
-    };
-
-    const formatDuration = (minutes) => {
-      const total = parseInt(minutes, 10);
-      if (isNaN(total)) return minutes || "";
-      const h = Math.floor(total / 60);
-      const m = total % 60;
-      return `${h}:${m.toString().padStart(2, "0")}`;
-    };
+   
 
     // For horizontal timeline, calculate total content width based on actual content
     const connectorWidth = computed(() => {
@@ -316,6 +271,7 @@ export default {
           display: flex;
           justify-content: flex-start;
           width: 100%;
+          margim-left: 30px;
         }
       }
 
@@ -637,4 +593,3 @@ export default {
     }
   }
 </style>
-
