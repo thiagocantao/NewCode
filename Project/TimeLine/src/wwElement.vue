@@ -11,9 +11,7 @@
       '--marker-background-color': content.markerBackgroundColor,
       '--connector-full-width': `${connectorWidth}px`,
     }">
-    <!-- Fixed connector line for horizontal layout -->
-    <div v-if="content.timelineLayout === 'horizontal'" class="ww-timeline__fixed-connector"
-      :class="`ww-timeline__fixed-connector--${validAlignment}`" />
+    
     <div ref="containerRef" class="ww-timeline__container">
       <div v-for="(item, index) in events" :key="index" class="ww-timeline__event" :class="{
           'ww-timeline__event--alternate':
@@ -31,7 +29,6 @@
                 {{ getItemIcon(item) }}
               </i>
           </div>
-
           <!-- Event content -->
           <div class="ww-timeline__content" @click.stop="onClick(item)">
             <template v-if="(item.TagControl || item.tagControl) === 'ActivityAdded'">
@@ -115,6 +112,42 @@ export default {
       if (isNaN(date.getTime())) return value;
       return date.toLocaleString("en-US", {
         year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+    };
+
+    const formatDuration = (minutes) => {
+      const total = parseInt(minutes, 10);
+      if (isNaN(total)) return minutes || "";
+      const h = Math.floor(total / 60);
+      const m = total % 60;
+      return `${h}:${m.toString().padStart(2, "0")}`;
+    };
+
+    const getFieldValue = (item, fieldName) => {
+      const list = item?.FieldNewValue || [];
+      const found = list.find(
+        (f) =>
+          f?.Field === fieldName ||
+          f?.field === fieldName ||
+          f?.Name === fieldName ||
+          f?.name === fieldName ||
+          f?.Key === fieldName ||
+          f?.key === fieldName,
+      );
+      return found ? found.Value ?? found.value ?? "" : "";
+    };
+
+    const formatDate = (value) => {
+      if (!value) return "";
+      const date = new Date(value);
+      if (isNaN(date.getTime())) return value;
+      return date.toLocaleString("en-US", {
+        year: "2-digit",
         month: "2-digit",
         day: "2-digit",
         hour: "2-digit",
@@ -604,3 +637,4 @@ export default {
     }
   }
 </style>
+
