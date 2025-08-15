@@ -25,13 +25,11 @@
           <!-- Event marker -->
           <div class="ww-timeline__marker" :class="[`ww-timeline__marker--${content.markerShape}`]"
             @click.stop="onMarkerClick(item)">
-            <template>
-              <span
+            <i
                 class="material-symbols-outlined ww-timeline__marker-icon"
               >
                 {{ getItemIcon(item) }}
-              </span>
-            </template>
+              </i>
           </div>
 
           <!-- Event content -->
@@ -449,8 +447,8 @@ export default {
     justify-content: center;
     width: 100%;
     height: 100%;
-    color: #333;
-    font-size: 25px;
+    color: #344767;
+    font-size: 16px;
     line-height: 1;
   }
 
