@@ -428,9 +428,9 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: var(--marker-size);
-    height: var(--marker-size);
-    background-color: var(--marker-background-color);
+    width: 30px;
+    height: 30px;
+    background-color: #d0e7df;
     z-index: 2;
     cursor: pointer;
 
@@ -449,8 +449,8 @@ export default {
     justify-content: center;
     width: 100%;
     height: 100%;
-    color: var(--marker-icon-color);
-    font-size: var(--marker-icon-size);
+    color: #333;
+    font-size: 25px;
     line-height: 1;
   }
 
