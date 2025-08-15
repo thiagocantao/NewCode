@@ -44,11 +44,11 @@
             :class="[`ww-timeline__marker--${content.markerShape}`]"
             @click.stop="onMarkerClick(item)"
           >
-            <template v-if="content.markerIconOnOff && getItemIcon(item, index)">
+            <template v-if="content.markerIconOnOff && getItemIcon(item)">
               <span
                 class="material-symbols-outlined ww-timeline__marker-icon"
               >
-                {{ getItemIcon(item, index) }}
+                {{ getItemIcon(item) }}
               </span>
             </template>
           </div>
@@ -88,8 +88,7 @@ export default {
     const { width: containerWidth } = useElementSize(containerRef);
 
     const events = ref([]);
-    const itemIcons = ref({});
-    const getItemIcon = (item, index) => itemIcons.value[item.EventID || index];
+    const getItemIcon = (item) => item.IcoEventType || "";
 
     // For horizontal timeline, calculate total content width based on actual content
     const connectorWidth = computed(() => {
@@ -121,12 +120,6 @@ export default {
           data = contentData;
         }
         events.value = data;
-
-        const entries = data.map((d, idx) => [
-          d.EventID || idx,
-          d.IcoEventType || "",
-        ]);
-        itemIcons.value = Object.fromEntries(entries);
       },
       { immediate: true, deep: true },
     );
