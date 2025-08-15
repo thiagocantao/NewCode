@@ -204,17 +204,49 @@ export default {
                         continue;
                     }
 
-                    const payload = {
+                    const rpcBody = {
                         p_action: 'insert',
                         p_workspace_id: WorkspaceID ?? null,
                         p_ticket_id: TicketID ?? null,
-                        p_LoggerUserID: LoggedUserID ?? null,
+                        p_loggeruserid: LoggedUserID ?? null,
                         p_filename: file.name,
                         p_fileextension: extension,
                         p_filesize: file.size,
+                        p_mimetype: `/${file.type.split('/')[0]}`,
                         p_bucket: bucket,
                         p_objectpath: pathObject,
                         p_attachment_id: null,
+                    };
+
+                    const rpcUrl = `${urlSupabase}/rest/v1/rpc/postticketattachment`;
+                    const rpcResponse = await fetch(rpcUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            apikey: apiKey,
+                            Authorization: apiAuthorization,
+                        },
+                        body: JSON.stringify(rpcBody),
+                    });
+
+                    let attachmentId = null;
+                    if (rpcResponse.ok) {
+                        try {
+                            const data = await rpcResponse.json();
+                            attachmentId = Array.isArray(data)
+                                ? data[0]?.p_attachment_id || data[0]?.attachment_id
+                                : data?.p_attachment_id || data?.attachment_id;
+                        } catch (e) {
+                            // ignore JSON parse errors
+                        }
+                    } else {
+                        console.error('Error calling postticketattachment', await rpcResponse.text());
+                    }
+
+                    const payload = {
+                        ...rpcBody,
+                        p_attachment_id: attachmentId,
+
                         language,
                         file,
                     };
