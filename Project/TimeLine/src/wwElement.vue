@@ -1,4 +1,8 @@
 <template>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
+    rel="stylesheet"
+  />
   <div
     class="ww-timeline"
     :class="[
@@ -42,9 +46,10 @@
           >
             <template v-if="content.markerIconOnOff && getItemIcon(item, index)">
               <span
-                v-html="getItemIcon(item, index)"
-                class="ww-timeline__marker-icon"
-              />
+                class="material-symbols-outlined ww-timeline__marker-icon"
+              >
+                {{ getItemIcon(item, index) }}
+              </span>
             </template>
           </div>
 
@@ -82,7 +87,6 @@ export default {
     const containerRef = ref(null);
     const { width: containerWidth } = useElementSize(containerRef);
 
-    const { getIcon } = wwLib.useIcons();
     const events = ref([]);
     const itemIcons = ref({});
     const getItemIcon = (item, index) => itemIcons.value[item.EventID || index];
@@ -103,7 +107,7 @@ export default {
 
     watch(
       [() => props.content.dataSource, () => props.dataSource, () => props.content.data],
-      async ([contentDS, propDS, contentData]) => {
+      ([contentDS, propDS, contentData]) => {
         let data = [];
         const ds = propDS ?? contentDS;
         if (ds && (typeof ds !== "string" || ds.trim())) {
@@ -118,12 +122,10 @@ export default {
         }
         events.value = data;
 
-        const entries = await Promise.all(
-          data.map(async (d, idx) => [
-            d.EventID || idx,
-            d.IcoEventType ? await getIcon(d.IcoEventType) : "",
-          ]),
-        );
+        const entries = data.map((d, idx) => [
+          d.EventID || idx,
+          d.IcoEventType || "",
+        ]);
         itemIcons.value = Object.fromEntries(entries);
       },
       { immediate: true, deep: true },
@@ -479,11 +481,8 @@ export default {
   width: var(--marker-icon-size);
   height: var(--marker-icon-size);
   color: var(--marker-icon-color);
-
-  :deep(svg) {
-    width: 100% !important;
-    height: 100% !important;
-  }
+  font-size: var(--marker-icon-size);
+  line-height: 1;
 }
 
 .ww-timeline__fixed-connector {
