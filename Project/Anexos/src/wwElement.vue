@@ -174,7 +174,15 @@ export default {
             const language = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
             const apiKey = window.wwLib?.wwVariable?.getValue('d180be98-8926-47a7-b7f1-6375fbb95fa3');
             const apiAuthorization = window.wwLib?.wwVariable?.getValue('dfcde09f-42f3-4b5c-b2e8-4314650655db');
-            const urlSupabase = window.wwLib?.wwVariable?.getValue('1195995b-34c3-42a5-b436-693f0f4f8825');
+            const rawSupabaseUrl = window.wwLib?.wwVariable?.getValue('1195995b-34c3-42a5-b436-693f0f4f8825');
+            const baseUrl = (() => {
+                try {
+                    return new URL(rawSupabaseUrl).origin;
+                } catch {
+                    return rawSupabaseUrl || '';
+                }
+            })();
+
             const WorkspaceID = window.wwLib?.wwVariable?.getValue('744511f1-3309-41da-a9fd-0721e7dd2f99');
             const LoggedUserID = window.wwLib?.wwVariable?.getValue('fc54ab80-1a04-4cfe-a504-793bdcfce5dd');
             const TicketID = window.wwLib?.wwVariable?.getValue('7bebd888-f31e-49e7-bef2-4052c8cb6cf5');
@@ -188,7 +196,7 @@ export default {
                 const pathObject = `${WorkspaceID}/${TicketID}/${uniqueName}`;
 
                 try {
-                    const uploadUrl = `${urlSupabase}/storage/v1/object/${bucket}/${pathObject}`;
+                    const uploadUrl = `${baseUrl}/storage/v1/object/${bucket}/${pathObject}`;
                     const uploadResponse = await fetch(uploadUrl, {
                         method: 'POST',
                         headers: {
@@ -218,7 +226,8 @@ export default {
                         p_attachment_id: null,
                     };
 
-                    const rpcUrl = `${urlSupabase}/rest/v1/rpc/postticketattachment`;
+                    const rpcUrl = `${baseUrl}postticketattachment`;
+
                     const rpcResponse = await fetch(rpcUrl, {
                         method: 'POST',
                         headers: {
@@ -246,7 +255,6 @@ export default {
                     const payload = {
                         ...rpcBody,
                         p_attachment_id: attachmentId,
-
                         language,
                         file,
                     };
