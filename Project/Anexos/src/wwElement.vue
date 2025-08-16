@@ -80,10 +80,7 @@
                     </div>
                 </template>
                 <template v-else-if="currentFile && currentFile.isPdf">
-                    <iframe
-                        :src="currentFile.url"
-                        class="modal-pdf"
-                    ></iframe>
+                    <iframe :src="currentFile.url" class="modal-pdf"></iframe>
                     <div class="modal-file-name">{{ currentFile.file.name }}</div>
                 </template>
                 <template v-else>
@@ -106,7 +103,7 @@
 </template>
 
 <script>
-import { ref, computed, watch } from 'vue';
+    import { ref, computed, watch } from 'vue';
 
 export default {
     name: 'Anexos',
@@ -226,7 +223,7 @@ export default {
                         p_attachment_id: null,
                     };
 
-                    const rpcUrl = `${baseUrl}postticketattachment`;
+                    const rpcUrl = `${baseUrl}/rest/v1/rpc/postticketattachment`;
 
                     const rpcResponse = await fetch(rpcUrl, {
                         method: 'POST',
