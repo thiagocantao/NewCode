@@ -182,6 +182,7 @@ export default {
                     return rawSupabaseUrl || '';
                 }
             })();
+
             const WorkspaceID = window.wwLib?.wwVariable?.getValue('744511f1-3309-41da-a9fd-0721e7dd2f99');
             const LoggedUserID = window.wwLib?.wwVariable?.getValue('fc54ab80-1a04-4cfe-a504-793bdcfce5dd');
             const TicketID = window.wwLib?.wwVariable?.getValue('7bebd888-f31e-49e7-bef2-4052c8cb6cf5');
@@ -225,7 +226,8 @@ export default {
                         p_attachment_id: null,
                     };
 
-                    const rpcUrl = `${baseUrl}/rest/v1/rpc/postticketattachment`;
+                    const rpcUrl = `${baseUrl}postticketattachment`;
+
                     const rpcResponse = await fetch(rpcUrl, {
                         method: 'POST',
                         headers: {
