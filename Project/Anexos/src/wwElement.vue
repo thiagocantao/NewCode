@@ -103,7 +103,7 @@
 </template>
 
 <script>
-    import { ref, computed, watch } from 'vue';
+    import { ref, computed, watch, getCurrentInstance } from 'vue';
 
 export default {
     name: 'Anexos',
@@ -137,6 +137,9 @@ export default {
             setAttachmentsInfo = setValue;
         }
 
+        const { proxy } = getCurrentInstance();
+        const supabase = proxy?.$plugins?.supabase;
+
         watch(
             files,
             () => {
@@ -169,21 +172,25 @@ export default {
             files.value.push(...selected);
 
             const language = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
-            const apiKey = window.wwLib?.wwVariable?.getValue('d180be98-8926-47a7-b7f1-6375fbb95fa3');
-            const apiAuthorization = window.wwLib?.wwVariable?.getValue('dfcde09f-42f3-4b5c-b2e8-4314650655db');
-            const rawSupabaseUrl = window.wwLib?.wwVariable?.getValue('1195995b-34c3-42a5-b436-693f0f4f8825');
-            const baseUrl = (() => {
-                try {
-                    return new URL(rawSupabaseUrl).origin;
-                } catch {
-                    return rawSupabaseUrl || '';
-                }
-            })();
-
             const WorkspaceID = window.wwLib?.wwVariable?.getValue('744511f1-3309-41da-a9fd-0721e7dd2f99');
             const LoggedUserID = window.wwLib?.wwVariable?.getValue('fc54ab80-1a04-4cfe-a504-793bdcfce5dd');
             const TicketID = window.wwLib?.wwVariable?.getValue('7bebd888-f31e-49e7-bef2-4052c8cb6cf5');
             const bucket = 'ticket';
+
+            if (!supabase) {
+                console.error('Supabase client não encontrado. Verifique se o plugin está configurado.');
+                return;
+            }
+
+            const { data: { user }, error: userErr } = await supabase.auth.getUser();
+            if (userErr) {
+                console.error('Erro ao obter usuário do Supabase', userErr);
+                return;
+            }
+            if (!user) {
+                console.error('Usuário não autenticado no Supabase.');
+                return;
+            }
 
             for (const { file } of selected) {
                 const extension = file.name.split('.').pop();
@@ -193,19 +200,31 @@ export default {
                 const pathObject = `${WorkspaceID}/${TicketID}/${uniqueName}`;
 
                 try {
-                    const uploadUrl = `${baseUrl}/storage/v1/object/${bucket}/${pathObject}`;
-                    const uploadResponse = await fetch(uploadUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': file.type,
-                            apikey: apiKey,
-                            Authorization: apiAuthorization,
-                        },
-                        body: file,
-                    });
+                    try {
+                        const { data: allowed, error: rpcErr } = await supabase.rpc(
+                            'rls_user_in_path_workspace',
+                            { obj_name: pathObject }
+                        );
+                        if (rpcErr) {
+                            console.warn('RPC rls_user_in_path_workspace falhou', rpcErr);
+                        } else if (!allowed) {
+                            console.error('RLS: usuário não tem acesso ao workspace.');
+                            continue;
+                        }
+                    } catch (e) {
+                        console.warn('Não foi possível validar membership via RPC:', e);
+                    }
 
-                    if (!uploadResponse.ok) {
-                        console.error('Error uploading file to Supabase', await uploadResponse.text());
+                    const { data: up, error: upErr } = await supabase.storage
+                        .from(bucket)
+                        .upload(pathObject, file, {
+                            cacheControl: '3600',
+                            upsert: false,
+                            contentType: file.type || 'application/octet-stream',
+                        });
+
+                    if (upErr) {
+                        console.error('Error uploading file to Supabase', upErr);
                         continue;
                     }
 
@@ -223,30 +242,18 @@ export default {
                         p_attachment_id: null,
                     };
 
-                    const rpcUrl = `${baseUrl}/rest/v1/rpc/postticketattachment`;
-
-                    const rpcResponse = await fetch(rpcUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            apikey: apiKey,
-                            Authorization: apiAuthorization,
-                        },
-                        body: JSON.stringify(rpcBody),
-                    });
+                    const { data: rpcData, error: rpcError } = await supabase.rpc(
+                        'postticketattachment',
+                        rpcBody
+                    );
 
                     let attachmentId = null;
-                    if (rpcResponse.ok) {
-                        try {
-                            const data = await rpcResponse.json();
-                            attachmentId = Array.isArray(data)
-                                ? data[0]?.p_attachment_id || data[0]?.attachment_id
-                                : data?.p_attachment_id || data?.attachment_id;
-                        } catch (e) {
-                            // ignore JSON parse errors
-                        }
+                    if (rpcError) {
+                        console.error('Error calling postticketattachment', rpcError);
                     } else {
-                        console.error('Error calling postticketattachment', await rpcResponse.text());
+                        attachmentId = Array.isArray(rpcData)
+                            ? rpcData[0]?.p_attachment_id || rpcData[0]?.attachment_id
+                            : rpcData?.p_attachment_id || rpcData?.attachment_id;
                     }
 
                     const payload = {
