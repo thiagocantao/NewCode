@@ -44,6 +44,26 @@
     </div>
   </div>
 
+  <div v-if="popup.visible" class="popup" :class="popup.type">
+    <div class="popup-header">
+      <span class="popup-title">
+        {{ popup.type === 'error' ? 'Error saving data' : 'Data saved successfully' }}
+      </span>
+      <button class="popup-close" @click="closePopup">
+        <i class="material-symbols-outlined">close</i>
+      </button>
+    </div>
+    <div v-if="popup.type === 'error'" class="popup-details">
+      <button class="details-toggle" @click="toggleDetails">
+        Details
+        <i class="material-symbols-outlined">
+          {{ detailsOpen ? 'expand_less' : 'expand_more' }}
+        </i>
+      </button>
+      <pre v-if="detailsOpen" class="details-text">{{ popup.details }}</pre>
+    </div>
+  </div>
+
   <div v-if="isModalOpen" class="modal-overlay" @click.self="closeModal">
     <div class="modal-content" :class="{ 'pdf-viewer': currentFile && currentFile.isPdf }">
       <div class="modal-top-actions">
@@ -134,6 +154,8 @@ export default {
     const currentIndex = ref(0);
     const currentFile = computed(() => files.value[currentIndex.value]);
     const zoom = ref(1);
+    const popup = ref({ visible: false, type: "", details: "" });
+    const detailsOpen = ref(false);
 
     // ---- WeWeb Vars (ajuste os IDs conforme seu projeto) ----
     const getVar = (id) => window?.wwLib?.wwVariable?.getValue?.(id);
@@ -193,6 +215,8 @@ export default {
       const picked = Array.from(event.target.files || []);
       if (!picked.length) return;
 
+      const errorMessages = [];
+
       // Pré-visualização local instantânea
       const selected = picked.map((file) => ({
         file,
@@ -219,9 +243,10 @@ export default {
 
       // Checagens de plugin
       if (!sb || !supabase || !auth) {
-        console.error(
+        errorMessages.push(
           "[Anexos] Plugins do Supabase não encontrados. Verifique a configuração (supabase e supabaseAuth)."
         );
+        showError(errorMessages.join("\n"));
         event.target.value = "";
         return;
       }
@@ -229,12 +254,14 @@ export default {
       // Verifica usuário autenticado
       const { data: userData, error: authErr } = await auth.auth.getUser();
       if (authErr) {
-        console.error("[Anexos] Erro ao obter usuário do Supabase Auth:", authErr);
+        errorMessages.push(`Erro ao obter usuário do Supabase Auth: ${authErr.message || authErr}`);
+        showError(errorMessages.join("\n"));
         event.target.value = "";
         return;
       }
       if (!userData?.user) {
-        console.error("[Anexos] Usuário não autenticado no Supabase.");
+        errorMessages.push("Usuário não autenticado no Supabase.");
+        showError(errorMessages.join("\n"));
         event.target.value = "";
         return;
       }
@@ -276,7 +303,7 @@ export default {
            contentType: file.type || "application/octet-stream",
            });
            if (upErr) {
-           console.error("[Anexos] Erro no upload para Supabase Storage:", upErr);
+           errorMessages.push(`Erro no upload para Supabase Storage: ${upErr.message || upErr}`);
            continue;
            }
 
@@ -303,7 +330,7 @@ export default {
 
           let attachmentId = null;
           if (rpcError) {
-            console.error("[Anexos] Erro ao chamar postticketattachment:", rpcError);
+            errorMessages.push(`Erro ao chamar postticketattachment: ${rpcError.message || rpcError}`);
           } else {
             attachmentId = Array.isArray(rpcData)
               ? rpcData[0]?.p_attachment_id || rpcData[0]?.attachment_id
@@ -350,12 +377,18 @@ export default {
             event: { value: payload },
           });
         } catch (err) {
-          console.error("[Anexos] Falha geral no upload:", err);
+          errorMessages.push(`Falha geral no upload: ${err.message || err}`);
         }
       }
 
       // limpa input
       event.target.value = "";
+
+      if (errorMessages.length) {
+        showError(errorMessages.join("\n"));
+      } else {
+        showSuccess();
+      }
     }
 
     function removeFile(index) {
@@ -443,6 +476,27 @@ export default {
       zoom.value = Math.max(0.1, zoom.value - 0.1);
     }
 
+    function showSuccess() {
+      popup.value = { visible: true, type: "success", details: "" };
+      detailsOpen.value = false;
+      setTimeout(() => {
+        popup.value.visible = false;
+      }, 1000);
+    }
+
+    function showError(details) {
+      popup.value = { visible: true, type: "error", details };
+      detailsOpen.value = false;
+    }
+
+    function closePopup() {
+      popup.value.visible = false;
+    }
+
+    function toggleDetails() {
+      detailsOpen.value = !detailsOpen.value;
+    }
+
     return {
       files,
       fileInput,
@@ -462,6 +516,10 @@ export default {
       zoomOut,
       getFileIcon,
       attachmentsInfo,
+      popup,
+      detailsOpen,
+      closePopup,
+      toggleDetails,
     };
   },
 };
@@ -783,5 +841,61 @@ i.material-symbols-outlined {
 .no-preview {
   font-size: 14px;
   color: #333;
+}
+
+.popup {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #fff;
+  border-left: 4px solid;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  padding: 16px;
+  min-width: 250px;
+  z-index: 1100;
+}
+
+.popup.success {
+  border-left-color: #4caf50;
+}
+
+.popup.error {
+  border-left-color: #f44336;
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.popup-title {
+  font-weight: 600;
+}
+
+.popup-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: #555;
+}
+
+.popup-details .details-toggle {
+  background: none;
+  border: none;
+  color: #007bff;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.details-text {
+  margin-top: 8px;
+  white-space: pre-wrap;
 }
 </style>
