@@ -647,6 +647,9 @@ export default {
         case "ppt":
         case "pptx":
           return "fa-solid fa-file-powerpoint";
+        case "txt":
+        case "text":
+          return "fa-solid fa-file-lines";
         default:
           return "fa-solid fa-file";
       }
