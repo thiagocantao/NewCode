@@ -512,7 +512,12 @@ async function loadFromDataSource(data) {
             p_workspace_id: WorkspaceID ?? null,
             p_ticket_id: TicketID ?? null,
             p_loggeruserid: LoggedUserID ?? null,
-            p_attachment_id: removed.attachmentId,
+            p_filename: removed.file?.name ?? null,
+            p_fileextension: removed.file?.name?.split(".").pop() ?? null,
+            p_filesize: removed.file?.size ?? null,
+            p_bucket: removed.bucket ?? null,
+            p_objectpath: removed.storagePath ?? null,
+            p_attachment_id: removed.attachmentId ?? null,
           };
 
           const { error: rpcError } = await sb.callPostgresFunction({
