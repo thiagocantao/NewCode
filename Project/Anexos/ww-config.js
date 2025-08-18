@@ -53,6 +53,23 @@ export default {
             },
             /* wwEditor:end */
         },
+        dataSource: {
+            label: {
+                en: 'Data Source',
+            },
+            type: 'array',
+            bindable: true,
+            defaultValue: [],
+            /* wwEditor:start */
+            bindingValidation: {
+                validations: [
+                    {
+                        type: 'array',
+                    },
+                ],
+            },
+            /* wwEditor:end */
+        },
     },
     events: {
         onUpload: {

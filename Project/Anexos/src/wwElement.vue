@@ -207,6 +207,52 @@ export default {
       { deep: true, immediate: true }
     );
 
+    // Carrega anexos a partir da propriedade Data Source
+    watch(
+      () => props.content.dataSource,
+      async (data) => {
+        files.value = [];
+        if (!Array.isArray(data)) return;
+        for (const item of data) {
+          const info = {
+            file: {
+              name: item.filename,
+              size: item.filesizebytes,
+              type: item.mimetype,
+            },
+            url: null,
+            isImage: item.mimetype?.startsWith("image/"),
+            isPdf: item.mimetype === "application/pdf",
+            isUploaded: true,
+            bucket: "ticket",
+            storagePath: item.objectpath,
+            signedUrl: null,
+            attachmentId: item.id,
+            createdBy: item.createdby,
+            createdDate: item.createddate,
+          };
+          if (sb?.createSignedUrl) {
+            try {
+              const { data: signed, error } = await sb.createSignedUrl({
+                mode: "single",
+                bucket: info.bucket,
+                path: item.objectpath,
+                expiresIn: 60 * 60,
+                options: { download: false, transform: null },
+              });
+              if (!error) {
+                info.url = info.signedUrl = signed?.signedUrl || null;
+              }
+            } catch (e) {
+              console.warn("[Anexos] Falha ao criar Signed URL:", e);
+            }
+          }
+          files.value.push(info);
+        }
+      },
+      { immediate: true, deep: true }
+    );
+
     function triggerFileInput() {
       if (fileInput.value) fileInput.value.click();
     }
