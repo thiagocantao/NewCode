@@ -13,15 +13,16 @@
       />
     </div>
 
-    <div v-for="(file, index) in files" :key="index" class="file-item">
-      <template v-if="file.isImage">
-        <img
-          :src="file.url"
-          alt=""
-          class="file-preview"
-          @click="openModal(index)"
-        />
-      </template>
+    <div v-for="(file, index) in files" :key="file.attachmentId || file.storagePath || index" class="file-item">
+      <template v-if="file.isImage && file.url">
+         <img
+           :src="file.url"
+           alt=""
+           class="file-preview"
+           @click="openModal(index)"
+         />
+       </template>
+
       <template v-else>
         <i
           :class="['file-icon', getFileIcon(file.file.name)]"
@@ -106,7 +107,7 @@
           </div>
         </template>
 
-        <template v-else-if="currentFile && currentFile.isPdf">
+        <template v-else-if="currentFile && currentFile.isPdf && currentFile.url">
           <iframe :src="currentFile.url" class="modal-pdf"></iframe>
           <div class="modal-file-name">{{ currentFile.file.name }}</div>
         </template>
@@ -183,9 +184,26 @@ export default {
     }
 
     // ---- Supabase via plugins do WeWeb ----
-    const sb = window?.wwLib?.wwPlugins?.supabase; // helpers (uploadFile, callPostgresFunction, etc)
-    const supabase = sb?.instance; // cliente @supabase/supabase-js
+    const sb = window?.wwLib?.wwPlugins?.supabase; // helpers
+    const supabase = sb?.instance; // cliente supabase-js
     const auth = window?.wwLib?.wwPlugins?.supabaseAuth?.publicInstance; // auth
+
+// Helpers para aguardar Auth pronto (fail-open: não bloqueia a UI)
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+async function ensureAuthReady(maxMs = 4000) {
+  try {
+    // Se o plugin não expôs getUser, não trava
+    if (!auth?.auth?.getUser) return true;
+    const start = Date.now();
+    while (Date.now() - start < maxMs) {
+      const { data, error } = await auth.auth.getUser();
+      if (data?.user && !error) return true;
+      await sleep(200);
+    }
+  } catch (_) {}
+  return true;
+}
+
 
     // Mantém a variável de anexos sincronizada
     watch(
@@ -207,51 +225,76 @@ export default {
       { deep: true, immediate: true }
     );
 
-    // Carrega anexos a partir da propriedade Data Source
-    watch(
-      () => props.content.dataSource,
-      async (data) => {
-        files.value = [];
-        if (!Array.isArray(data)) return;
-        for (const item of data) {
-          const info = {
-            file: {
-              name: item.filename,
-              size: item.filesizebytes,
-              type: item.mimetype,
-            },
-            url: null,
-            isImage: item.mimetype?.startsWith("image/"),
-            isPdf: item.mimetype === "application/pdf",
-            isUploaded: true,
-            bucket: "ticket",
-            storagePath: item.objectpath,
-            signedUrl: null,
-            attachmentId: item.id,
-            createdBy: item.createdby,
-            createdDate: item.createddate,
-          };
-          if (sb?.createSignedUrl) {
-            try {
-              const { data: signed, error } = await sb.createSignedUrl({
-                mode: "single",
-                bucket: info.bucket,
-                path: item.objectpath,
-                expiresIn: 60 * 60,
-                options: { download: false, transform: null },
-              });
-              if (!error) {
-                info.url = info.signedUrl = signed?.signedUrl || null;
-              }
-            } catch (e) {
-              console.warn("[Anexos] Falha ao criar Signed URL:", e);
-            }
-          }
-          files.value.push(info);
-        }
-      },
-      { immediate: true, deep: true }
-    );
+// controla concorrência entre mudanças de Data Source
+let dsLoadVersion = 0;
+
+async function loadFromDataSource(data) {
+  const myVersion = ++dsLoadVersion;
+
+  if (!Array.isArray(data)) {
+    files.value = [];
+    return;
+  }
+
+  await ensureAuthReady();
+
+  const items = await Promise.all(
+    data.map(async (item) => {
+      const info = {
+        file: {
+          name: item.filename,
+          size: item.filesizebytes,
+          type: item.mimetype,
+        },
+        url: null,
+        isImage: item.mimetype?.startsWith("image/"),
+        isPdf: item.mimetype === "application/pdf",
+        isUploaded: true,
+        bucket: "ticket",
+        storagePath: item.objectpath,
+        signedUrl: null,
+        attachmentId: item.id,
+        createdBy: item.createdby,
+        createdDate: item.createddate,
+      };
+
+      try {
+        const expiresIn = 60 * 60; // 1h
+        const options = info.isImage
+          ? { transform: { width: 1200, resize: "contain" } }
+          : undefined;
+
+        const { data: signed, error } = await supabase
+          .storage
+          .from(info.bucket)
+          .createSignedUrl(info.storagePath, expiresIn, options);
+
+        if (!error) info.url = info.signedUrl = signed?.signedUrl || null;
+      } catch (e) {
+        console.warn("[Anexos] Exceção ao criar signed URL:", e);
+      }
+
+      return info;
+    })
+  );
+
+  // se outra execução iniciou no meio do caminho, aborta aplicar este resultado
+  if (myVersion !== dsLoadVersion) return;
+
+  files.value = items;
+}
+
+
+    // Carrega anexos a partir da propriedade Data Source (gera signed URL)
+ watch(
+   () => JSON.stringify(props.content.dataSource || []),
+   (json) => {
+     let data = [];
+     try { data = JSON.parse(json); } catch (_) {}
+     loadFromDataSource(data);
+   },
+   { immediate: true }
+ );
 
     function triggerFileInput() {
       if (fileInput.value) fileInput.value.click();
@@ -273,7 +316,7 @@ export default {
         isImage: file.type.startsWith("image/"),
         isPdf: file.type === "application/pdf",
         isUploaded: false,
-        bucket: "ticket", // ajuste se usar outro bucket
+        bucket: "ticket",
         storagePath: null,
         signedUrl: null,
         attachmentId: null,
@@ -316,9 +359,9 @@ export default {
       for (const item of selected) {
         const { file } = item;
         const extension = (file.name.split(".").pop() || "").toLowerCase();
-        const unique = (window.crypto?.randomUUID
-          ? window.crypto.randomUUID()
-          : Date.now().toString(36)) + (extension ? `.${extension}` : "");
+        const unique =
+          (window.crypto?.randomUUID ? window.crypto.randomUUID() : Date.now().toString(36)) +
+          (extension ? `.${extension}` : "");
 
         const pathObject = `${WorkspaceID || "no-workspace"}/${TicketID || "no-ticket"}/${unique}`;
 
@@ -339,19 +382,19 @@ export default {
             console.warn("[Anexos] Não foi possível validar membership via RPC:", e);
           }
 
-          // Upload direto via cliente do Supabase (sem limites extras do helper do WeWeb)
-           const { error: upErr } = await supabase
-           .storage
-           .from(bucket)
-           .upload(pathObject, file, {
-           cacheControl: "3600",
-           upsert: false,
-           contentType: file.type || "application/octet-stream",
-           });
-           if (upErr) {
-           errorMessages.push(`Erro no upload para Supabase Storage: ${upErr.message || upErr}`);
-           continue;
-           }
+          // Upload direto via cliente do Supabase
+          const { error: upErr } = await supabase
+            .storage
+            .from(bucket)
+            .upload(pathObject, file, {
+              cacheControl: "3600",
+              upsert: false,
+              contentType: file.type || "application/octet-stream",
+            });
+          if (upErr) {
+            errorMessages.push(`Erro no upload para Supabase Storage: ${upErr.message || upErr}`);
+            continue;
+          }
 
           // Chama sua função para registrar metadados do anexo
           const rpcBody = {
@@ -368,7 +411,6 @@ export default {
             p_attachment_id: null,
           };
 
-          // Usando helper do plugin para RPC
           const { data: rpcData, error: rpcError } = await sb.callPostgresFunction({
             functionName: "postticketattachment",
             params: rpcBody,
@@ -376,7 +418,9 @@ export default {
 
           let attachmentId = null;
           if (rpcError) {
-            errorMessages.push(`Erro ao chamar postticketattachment: ${rpcError.message || rpcError}`);
+            errorMessages.push(
+              `Erro ao chamar postticketattachment: ${rpcError.message || rpcError}`
+            );
           } else {
             attachmentId = Array.isArray(rpcData)
               ? rpcData[0]?.p_attachment_id || rpcData[0]?.attachment_id
@@ -386,17 +430,14 @@ export default {
           // URL assinada para visualização (se bucket privado)
           let signedUrl = null;
           try {
-            const { data: signed, error: signErr } = await sb.createSignedUrl({
-              mode: "single",
-              bucket,
-              path: pathObject,
-              expiresIn: 60 * 60, // 1h
-              options: { download: false, transform: null },
-            });
-            if (signErr) {
-              console.warn("[Anexos] Falha ao criar Signed URL:", signErr);
-            } else {
+            const { data: signed, error: signErr } = await supabase
+              .storage
+              .from(bucket)
+              .createSignedUrl(pathObject, 60 * 60);
+            if (!signErr) {
               signedUrl = signed?.signedUrl || null;
+            } else {
+              console.warn("[Anexos] Falha ao criar Signed URL:", signErr);
             }
           } catch (e) {
             console.warn("[Anexos] Erro ao criar Signed URL:", e);
@@ -407,6 +448,7 @@ export default {
           item.bucket = bucket;
           item.storagePath = pathObject;
           item.signedUrl = signedUrl;
+          item.url = signedUrl; // garante preview imediato
           item.attachmentId = attachmentId;
 
           // Dispara evento para o fluxo do WeWeb
@@ -439,21 +481,21 @@ export default {
 
     function removeFile(index) {
       const removed = files.value.splice(index, 1)[0];
-      if (removed && removed.url) URL.revokeObjectURL(removed.url);
+      if (removed && removed.url && removed.url.startsWith("blob:")) {
+        URL.revokeObjectURL(removed.url);
+      }
     }
 
     async function downloadFile(file) {
-      // Se já temos Signed URL ou URL local, usa; caso contrário tenta gerar
       let url = file.signedUrl || file.url;
-      if (!url && file.bucket && file.storagePath && window?.wwLib?.wwPlugins?.supabase) {
+
+      if (!url && file.bucket && file.storagePath && supabase) {
         try {
-          const { data: signed, error } = await wwLib.wwPlugins.supabase.createSignedUrl({
-            mode: "single",
-            bucket: file.bucket,
-            path: file.storagePath,
-            expiresIn: 60 * 60,
-            options: { download: true, transform: null },
-          });
+          await ensureAuthReady();
+          const { data: signed, error } = await supabase
+            .storage
+            .from(file.bucket)
+            .createSignedUrl(file.storagePath, 60 * 60);
           if (!error) url = signed?.signedUrl;
         } catch (e) {
           console.warn("[Anexos] Erro ao gerar Signed URL para download:", e);
@@ -461,8 +503,7 @@ export default {
       }
 
       if (!url) {
-        // fallback: blob local
-        url = URL.createObjectURL(file.file);
+        url = URL.createObjectURL(file.file); // fallback local
       }
 
       const link = document.createElement("a");
@@ -472,7 +513,6 @@ export default {
       link.click();
       document.body.removeChild(link);
 
-      // se gerou blob temporário
       if (!file.url && !file.signedUrl && url.startsWith("blob:")) {
         URL.revokeObjectURL(url);
       }
@@ -586,8 +626,8 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 150px;
-  height: 140px;
+  width: 140px;
+  height: 130px;
   padding: 12px;
   border: 2px dashed #ccc;
   border-radius: 6px;
@@ -613,8 +653,8 @@ export default {
 
 .file-item {
   position: relative;
-  width: 150px;
-  height: 140px;
+  width: 140px;
+  height: 130px;
   border: 1px solid #ddd;
   border-radius: 4px;
   padding: 10px;
@@ -629,7 +669,7 @@ export default {
 }
 
 .file-icon {
-  font-size: 90px;
+  font-size: 85px;
   cursor: pointer;
 }
 
@@ -651,11 +691,10 @@ export default {
 
 .file-preview {
   width: 100%;
-  height: 90px;
+  height: 85px;
   object-fit: contain;
   background-color: rgb(245, 246, 250);
   border-radius: 6px;
-  margin-bottom: 4px;
   cursor: pointer;
 }
 
