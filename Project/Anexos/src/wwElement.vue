@@ -15,13 +15,13 @@
 
     <div v-for="(file, index) in files" :key="file.attachmentId || file.storagePath || index" class="file-item">
       <template v-if="file.isImage && file.url">
-         <img
-           :src="file.url"
-           alt=""
-           class="file-preview"
-           @click="openModal(index)"
-         />
-       </template>
+        <img
+          :src="file.url"
+          alt=""
+          class="file-preview"
+          @click="openModal(index)"
+        />
+      </template>
 
       <template v-else>
         <i
@@ -89,7 +89,7 @@
       </button>
 
       <div class="modal-body">
-        <template v-if="currentFile && currentFile.isImage">
+        <template v-if="currentFile && currentFile.isImage && currentFile.url">
           <img
             :src="currentFile.url"
             alt=""
@@ -112,8 +112,9 @@
           <div class="modal-file-name">{{ currentFile.file.name }}</div>
         </template>
 
-        <template v-else-if="currentFile && currentFile.isText">
-          <pre class="modal-text">{{ currentFile.textContent }}</pre>
+        <!-- TXT preview -->
+        <template v-else-if="currentFile && currentFile.isTxt">
+          <pre class="modal-txt">{{ currentFile.textContent || 'Carregando…' }}</pre>
           <div class="modal-file-name">{{ currentFile.file.name }}</div>
         </template>
 
@@ -193,22 +194,70 @@ export default {
     const supabase = sb?.instance; // cliente supabase-js
     const auth = window?.wwLib?.wwPlugins?.supabaseAuth?.publicInstance; // auth
 
-// Helpers para aguardar Auth pronto (fail-open: não bloqueia a UI)
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-async function ensureAuthReady(maxMs = 4000) {
-  try {
-    // Se o plugin não expôs getUser, não trava
-    if (!auth?.auth?.getUser) return true;
-    const start = Date.now();
-    while (Date.now() - start < maxMs) {
-      const { data, error } = await auth.auth.getUser();
-      if (data?.user && !error) return true;
-      await sleep(200);
+    // Helpers para aguardar Auth pronto (fail-open: não bloqueia a UI)
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    async function ensureAuthReady(maxMs = 4000) {
+      try {
+        if (!auth?.auth?.getUser) return true;
+        const start = Date.now();
+        while (Date.now() - start < maxMs) {
+          const { data, error } = await auth.auth.getUser();
+          if (data?.user && !error) return true;
+          await sleep(200);
+        }
+      } catch (_) {}
+      return true;
     }
-  } catch (_) {}
-  return true;
-}
 
+    // Gera/renova signed URLs e carrega TXT quando preciso
+    async function getFreshSignedUrl(file, { forceDownloadName, transformImage } = {}) {
+      if (!file?.bucket || !file?.storagePath || !supabase) return null;
+      await ensureAuthReady();
+
+      const options = {};
+      if (transformImage && file.isImage) options.transform = transformImage;
+      if (forceDownloadName) options.download = forceDownloadName;
+
+      const { data, error } = await supabase
+        .storage
+        .from(file.bucket)
+        .createSignedUrl(file.storagePath, 60 * 60, options); // 1h
+
+      if (error) {
+        console.warn("[Anexos] createSignedUrl falhou:", error);
+        return null;
+      }
+      return data?.signedUrl || null;
+    }
+
+    async function loadTxtIfNeeded(file) {
+      if (!file || file.textContent) return;
+
+      // TXT local (ainda não enviado)
+      if (file.file instanceof File && file.isTxt) {
+        try {
+          file.textContent = await file.file.text();
+          return;
+        } catch (e) {
+          console.warn("[Anexos] Falha ao ler TXT local:", e);
+        }
+      }
+
+      // Garante URL assinada
+      if (!file.url) {
+        file.url = file.signedUrl = await getFreshSignedUrl(file);
+        if (!file.url) return;
+      }
+
+      try {
+        const res = await fetch(file.url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        file.textContent = await res.text();
+      } catch (e) {
+        console.warn("[Anexos] Falha ao carregar conteúdo TXT:", e);
+        file.textContent = "(Não foi possível carregar este texto)";
+      }
+    }
 
     // Mantém a variável de anexos sincronizada
     watch(
@@ -230,78 +279,76 @@ async function ensureAuthReady(maxMs = 4000) {
       { deep: true, immediate: true }
     );
 
-// controla concorrência entre mudanças de Data Source
-let dsLoadVersion = 0;
+    // controla concorrência entre mudanças de Data Source
+    let dsLoadVersion = 0;
 
-async function loadFromDataSource(data) {
-  const myVersion = ++dsLoadVersion;
+    async function loadFromDataSource(data) {
+      const myVersion = ++dsLoadVersion;
 
-  if (!Array.isArray(data)) {
-    files.value = [];
-    return;
-  }
-
-  await ensureAuthReady();
-
-  const items = await Promise.all(
-    data.map(async (item) => {
-      const info = {
-        file: {
-          name: item.filename,
-          size: item.filesizebytes,
-          type: item.mimetype,
-        },
-        url: null,
-        isImage: item.mimetype?.startsWith("image/"),
-        isPdf: item.mimetype === "application/pdf",
-        isText: item.mimetype === "text/plain",
-        textContent: null,
-        isUploaded: true,
-        bucket: "ticket",
-        storagePath: item.objectpath,
-        signedUrl: null,
-        attachmentId: item.id,
-        createdBy: item.createdby,
-        createdDate: item.createddate,
-      };
-
-      try {
-        const expiresIn = 60 * 60; // 1h
-        const options = info.isImage
-          ? { transform: { width: 1200, resize: "contain" } }
-          : undefined;
-
-        const { data: signed, error } = await supabase
-          .storage
-          .from(info.bucket)
-          .createSignedUrl(info.storagePath, expiresIn, options);
-
-        if (!error) info.url = info.signedUrl = signed?.signedUrl || null;
-      } catch (e) {
-        console.warn("[Anexos] Exceção ao criar signed URL:", e);
+      if (!Array.isArray(data)) {
+        files.value = [];
+        return;
       }
 
-      return info;
-    })
-  );
+      await ensureAuthReady();
 
-  // se outra execução iniciou no meio do caminho, aborta aplicar este resultado
-  if (myVersion !== dsLoadVersion) return;
+      const items = await Promise.all(
+        data.map(async (item) => {
+          const info = {
+            file: {
+              name: item.filename,
+              size: item.filesizebytes,
+              type: item.mimetype,
+            },
+            url: null,
+            isImage: item.mimetype?.startsWith("image/"),
+            isPdf: item.mimetype === "application/pdf",
+            isTxt: item.mimetype === "text/plain",
+            isUploaded: true,
+            bucket: "ticket",
+            storagePath: item.objectpath,
+            signedUrl: null,
+            attachmentId: item.id,
+            createdBy: item.createdby,
+            createdDate: item.createddate,
+            textContent: null,
+          };
 
-  files.value = items;
-}
+          try {
+            const options = info.isImage
+              ? { transform: { width: 1200, resize: "contain" } }
+              : undefined;
 
+            const { data: signed, error } = await supabase
+              .storage
+              .from(info.bucket)
+              .createSignedUrl(info.storagePath, 60 * 60, options);
+
+            if (!error) info.url = info.signedUrl = signed?.signedUrl || null;
+          } catch (e) {
+            console.warn("[Anexos] Exceção ao criar signed URL:", e);
+          }
+
+          return info;
+        })
+      );
+
+      // se outra execução iniciou no meio do caminho, aborta aplicar este resultado
+      if (myVersion !== dsLoadVersion) return;
+
+      files.value = items;
+    }
 
     // Carrega anexos a partir da propriedade Data Source (gera signed URL)
- watch(
-   () => JSON.stringify(props.content.dataSource || []),
-   (json) => {
-     let data = [];
-     try { data = JSON.parse(json); } catch (_) {}
-     loadFromDataSource(data);
-   },
-   { immediate: true }
- );
+    watch(
+      () => JSON.stringify(props.content.dataSource || []),
+      (json) => {
+        let data = [];
+        try { data = JSON.parse(json); } catch (_) {}
+        loadFromDataSource(data);
+      },
+      { immediate: true }
+    );
 
     function triggerFileInput() {
       if (fileInput.value) fileInput.value.click();
@@ -314,38 +361,22 @@ async function loadFromDataSource(data) {
       const errorMessages = [];
 
       // Pré-visualização local instantânea
-      const selected = await Promise.all(
-        picked.map(async (file) => {
-          const isImage = file.type.startsWith("image/");
-          const isPdf = file.type === "application/pdf";
-          const isText = file.type === "text/plain";
-          let url = null;
-          if (isImage || isPdf || isText) {
-            url = URL.createObjectURL(file);
-          }
-          let textContent = null;
-          if (isText) {
-            try {
-              textContent = await file.text();
-            } catch (_) {
-              textContent = null;
-            }
-          }
-          return {
-            file,
-            url,
-            isImage,
-            isPdf,
-            isText,
-            textContent,
-            isUploaded: false,
-            bucket: "ticket",
-            storagePath: null,
-            signedUrl: null,
-            attachmentId: null,
-          };
-        })
-      );
+      const selected = picked.map((file) => ({
+        file,
+        url:
+          file.type.startsWith("image/") || file.type === "application/pdf"
+            ? URL.createObjectURL(file)
+            : null,
+        isImage: file.type.startsWith("image/"),
+        isPdf: file.type === "application/pdf",
+        isTxt: file.type === "text/plain",
+        isUploaded: false,
+        bucket: "ticket",
+        storagePath: null,
+        signedUrl: null,
+        attachmentId: null,
+        textContent: null,
+      }));
       files.value.push(...selected);
 
       // Variáveis de contexto
@@ -453,27 +484,17 @@ async function loadFromDataSource(data) {
           }
 
           // URL assinada para visualização (se bucket privado)
-          let signedUrl = null;
-          try {
-            const { data: signed, error: signErr } = await supabase
-              .storage
-              .from(bucket)
-              .createSignedUrl(pathObject, 60 * 60);
-            if (!signErr) {
-              signedUrl = signed?.signedUrl || null;
-            } else {
-              console.warn("[Anexos] Falha ao criar Signed URL:", signErr);
-            }
-          } catch (e) {
-            console.warn("[Anexos] Erro ao criar Signed URL:", e);
-          }
+          let signedUrl = await getFreshSignedUrl(
+            { bucket, storagePath: pathObject, isImage: item.isImage },
+            { transformImage: { width: 1200, resize: "contain" } }
+          );
 
           // Atualiza o item na lista com infos persistidas
           item.isUploaded = true;
           item.bucket = bucket;
           item.storagePath = pathObject;
-          item.signedUrl = signedUrl;
-          item.url = signedUrl; // garante preview imediato
+          item.signedUrl = signedUrl || null;
+          item.url = signedUrl || item.url; // garante preview imediato
           item.attachmentId = attachmentId;
 
           // Dispara evento para o fluxo do WeWeb
@@ -540,6 +561,7 @@ async function loadFromDataSource(data) {
             p_filename: removed.file?.name ?? null,
             p_fileextension: removed.file?.name?.split(".").pop() ?? null,
             p_filesize: removed.file?.size ?? null,
+            p_mimetype: "",
             p_bucket: removed.bucket ?? null,
             p_objectpath: removed.storagePath ?? null,
             p_attachment_id: removed.attachmentId ?? null,
@@ -568,46 +590,46 @@ async function loadFromDataSource(data) {
     }
 
     async function downloadFile(file) {
-      let url = file.signedUrl || file.url;
-      let revokeOriginal = false;
-
-      if (!url && file.bucket && file.storagePath && supabase) {
-        try {
-          await ensureAuthReady();
-          const { data: signed, error } = await supabase
-            .storage
-            .from(file.bucket)
-            .createSignedUrl(file.storagePath, 60 * 60);
-          if (!error) url = signed?.signedUrl;
-        } catch (e) {
-          console.warn("[Anexos] Erro ao gerar Signed URL para download:", e);
-        }
-      }
-
-      if (!url) {
-        url = URL.createObjectURL(file.file); // fallback local
-        revokeOriginal = true;
-      }
-
       try {
-        const response = await fetch(url);
-        const blob = await response.blob();
+        // Sempre gere uma signed URL "forçada para download" (Content-Disposition)
+        let signed = await getFreshSignedUrl(file, {
+          forceDownloadName: file.file?.name || "download"
+        });
+
+        // Fallback para arquivo local (ainda não enviado)
+        if (!signed && file.file instanceof File) {
+          const blobUrl = URL.createObjectURL(file.file);
+          const a = document.createElement("a");
+          a.href = blobUrl;
+          a.download = file.file?.name || "download";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(blobUrl);
+          return;
+        }
+
+        if (!signed) {
+          showError("Não foi possível gerar a URL para download.");
+          return;
+        }
+
+        // Baixa como blob para impedir abertura no navegador
+        const res = await fetch(signed);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
         const blobUrl = URL.createObjectURL(blob);
 
-        const link = document.createElement("a");
-        link.href = blobUrl;
-        link.download = file.file?.name || "download";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = file.file?.name || "download";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
         URL.revokeObjectURL(blobUrl);
       } catch (e) {
-        console.warn("[Anexos] Erro ao baixar arquivo:", e);
-      } finally {
-        if (revokeOriginal && url.startsWith("blob:")) {
-          URL.revokeObjectURL(url);
-        }
+        console.warn("[Anexos] Download falhou:", e);
+        showError(`Falha no download: ${e.message || e}`);
       }
     }
 
@@ -625,8 +647,6 @@ async function loadFromDataSource(data) {
         case "ppt":
         case "pptx":
           return "fa-solid fa-file-powerpoint";
-        case "txt":
-          return "fa-solid fa-file-lines text-file-icon";
         default:
           return "fa-solid fa-file";
       }
@@ -634,41 +654,17 @@ async function loadFromDataSource(data) {
 
     async function openModal(index) {
       currentIndex.value = index;
-      const file = files.value[index];
-
-      if (file?.isText && !file.textContent) {
-        let url = file.signedUrl || file.url;
-        if (!url && file.bucket && file.storagePath && supabase) {
-          try {
-            await ensureAuthReady();
-            const { data: signed, error } = await supabase
-              .storage
-              .from(file.bucket)
-              .createSignedUrl(file.storagePath, 60 * 60);
-            if (!error) url = signed?.signedUrl;
-          } catch (e) {
-            console.warn("[Anexos] Erro ao gerar Signed URL para texto:", e);
-          }
-        }
-
-        if (!url && file.file) {
-          url = URL.createObjectURL(file.file);
-        }
-
-        if (url) {
-          try {
-            const response = await fetch(url);
-            file.textContent = await response.text();
-          } catch (e) {
-            console.warn("[Anexos] Erro ao carregar conteúdo do texto:", e);
-          } finally {
-            if (!file.url && url.startsWith("blob:")) {
-              URL.revokeObjectURL(url);
-            }
-          }
-        }
+      const f = files.value[index];
+      // Garante URL assinada quando precisar
+      if (f && !f.url && (f.bucket && f.storagePath)) {
+        f.url = f.signedUrl = await getFreshSignedUrl(f, {
+          transformImage: { width: 1200, resize: "contain" }
+        });
       }
-
+      // Se for TXT, carrega o conteúdo
+      if (f?.isTxt) {
+        await loadTxtIfNeeded(f);
+      }
       isModalOpen.value = true;
     }
 
@@ -819,10 +815,6 @@ async function loadFromDataSource(data) {
   color: #d84315;
 }
 
-.text-file-icon {
-  color: #616161;
-}
-
 .file-preview {
   width: 100%;
   height: 85px;
@@ -948,19 +940,6 @@ i.material-symbols-outlined {
   height: 100%;
   flex: 1;
   border: none;
-  position: relative;
-  z-index: 1;
-}
-
-.modal-text {
-  width: 600px;
-  height: 400px;
-  overflow: auto;
-  background: #ffffff;
-  color: #333;
-  padding: 12px;
-  border-radius: 4px;
-  white-space: pre-wrap;
   position: relative;
   z-index: 1;
 }
@@ -1129,5 +1108,21 @@ i.material-symbols-outlined {
 .details-text {
   margin-top: 8px;
   white-space: pre-wrap;
+}
+
+/* TXT preview */
+.modal-txt {
+  max-width: 80vw;
+  max-height: 65vh;
+  overflow: auto;
+  background: #0b0b0b;
+  color: #eaeaea;
+  padding: 12px 14px;
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 </style>
