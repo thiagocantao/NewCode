@@ -112,6 +112,11 @@
           <div class="modal-file-name">{{ currentFile.file.name }}</div>
         </template>
 
+        <template v-else-if="currentFile && currentFile.isText">
+          <pre class="modal-text">{{ currentFile.textContent }}</pre>
+          <div class="modal-file-name">{{ currentFile.file.name }}</div>
+        </template>
+
         <template v-else>
           <div class="file-not-viewable">
             <i
@@ -249,6 +254,8 @@ async function loadFromDataSource(data) {
         url: null,
         isImage: item.mimetype?.startsWith("image/"),
         isPdf: item.mimetype === "application/pdf",
+        isText: item.mimetype === "text/plain",
+        textContent: null,
         isUploaded: true,
         bucket: "ticket",
         storagePath: item.objectpath,
@@ -307,20 +314,38 @@ async function loadFromDataSource(data) {
       const errorMessages = [];
 
       // Pré-visualização local instantânea
-      const selected = picked.map((file) => ({
-        file,
-        url:
-          file.type.startsWith("image/") || file.type === "application/pdf"
-            ? URL.createObjectURL(file)
-            : null,
-        isImage: file.type.startsWith("image/"),
-        isPdf: file.type === "application/pdf",
-        isUploaded: false,
-        bucket: "ticket",
-        storagePath: null,
-        signedUrl: null,
-        attachmentId: null,
-      }));
+      const selected = await Promise.all(
+        picked.map(async (file) => {
+          const isImage = file.type.startsWith("image/");
+          const isPdf = file.type === "application/pdf";
+          const isText = file.type === "text/plain";
+          let url = null;
+          if (isImage || isPdf || isText) {
+            url = URL.createObjectURL(file);
+          }
+          let textContent = null;
+          if (isText) {
+            try {
+              textContent = await file.text();
+            } catch (_) {
+              textContent = null;
+            }
+          }
+          return {
+            file,
+            url,
+            isImage,
+            isPdf,
+            isText,
+            textContent,
+            isUploaded: false,
+            bucket: "ticket",
+            storagePath: null,
+            signedUrl: null,
+            attachmentId: null,
+          };
+        })
+      );
       files.value.push(...selected);
 
       // Variáveis de contexto
@@ -544,6 +569,7 @@ async function loadFromDataSource(data) {
 
     async function downloadFile(file) {
       let url = file.signedUrl || file.url;
+      let revokeOriginal = false;
 
       if (!url && file.bucket && file.storagePath && supabase) {
         try {
@@ -560,17 +586,28 @@ async function loadFromDataSource(data) {
 
       if (!url) {
         url = URL.createObjectURL(file.file); // fallback local
+        revokeOriginal = true;
       }
 
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = file.file?.name || "download";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
 
-      if (!file.url && !file.signedUrl && url.startsWith("blob:")) {
-        URL.revokeObjectURL(url);
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.download = file.file?.name || "download";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        URL.revokeObjectURL(blobUrl);
+      } catch (e) {
+        console.warn("[Anexos] Erro ao baixar arquivo:", e);
+      } finally {
+        if (revokeOriginal && url.startsWith("blob:")) {
+          URL.revokeObjectURL(url);
+        }
       }
     }
 
@@ -588,13 +625,50 @@ async function loadFromDataSource(data) {
         case "ppt":
         case "pptx":
           return "fa-solid fa-file-powerpoint";
+        case "txt":
+          return "fa-solid fa-file-lines text-file-icon";
         default:
           return "fa-solid fa-file";
       }
     }
 
-    function openModal(index) {
+    async function openModal(index) {
       currentIndex.value = index;
+      const file = files.value[index];
+
+      if (file?.isText && !file.textContent) {
+        let url = file.signedUrl || file.url;
+        if (!url && file.bucket && file.storagePath && supabase) {
+          try {
+            await ensureAuthReady();
+            const { data: signed, error } = await supabase
+              .storage
+              .from(file.bucket)
+              .createSignedUrl(file.storagePath, 60 * 60);
+            if (!error) url = signed?.signedUrl;
+          } catch (e) {
+            console.warn("[Anexos] Erro ao gerar Signed URL para texto:", e);
+          }
+        }
+
+        if (!url && file.file) {
+          url = URL.createObjectURL(file.file);
+        }
+
+        if (url) {
+          try {
+            const response = await fetch(url);
+            file.textContent = await response.text();
+          } catch (e) {
+            console.warn("[Anexos] Erro ao carregar conteúdo do texto:", e);
+          } finally {
+            if (!file.url && url.startsWith("blob:")) {
+              URL.revokeObjectURL(url);
+            }
+          }
+        }
+      }
+
       isModalOpen.value = true;
     }
 
@@ -745,6 +819,10 @@ async function loadFromDataSource(data) {
   color: #d84315;
 }
 
+.text-file-icon {
+  color: #616161;
+}
+
 .file-preview {
   width: 100%;
   height: 85px;
@@ -870,6 +948,19 @@ i.material-symbols-outlined {
   height: 100%;
   flex: 1;
   border: none;
+  position: relative;
+  z-index: 1;
+}
+
+.modal-text {
+  width: 600px;
+  height: 400px;
+  overflow: auto;
+  background: #ffffff;
+  color: #333;
+  padding: 12px;
+  border-radius: 4px;
+  white-space: pre-wrap;
   position: relative;
   z-index: 1;
 }
