@@ -479,10 +479,61 @@ async function loadFromDataSource(data) {
       }
     }
 
-    function removeFile(index) {
+    async function removeFile(index) {
       const removed = files.value.splice(index, 1)[0];
       if (removed && removed.url && removed.url.startsWith("blob:")) {
         URL.revokeObjectURL(removed.url);
+      }
+
+      const errorMessages = [];
+
+      // remove da API/Storage apenas se já estiver enviado
+      if (removed?.attachmentId && sb) {
+        const WorkspaceID = getVar(workspaceVarId);
+        const LoggedUserID = getVar(loggedUserVarId);
+        const TicketID = getVar(ticketVarId);
+
+        try {
+          // exclui do storage quando possível
+          if (supabase && removed.bucket && removed.storagePath) {
+            const { error: storageErr } = await supabase
+              .storage
+              .from(removed.bucket)
+              .remove([removed.storagePath]);
+            if (storageErr) {
+              errorMessages.push(
+                `Erro ao remover arquivo do storage: ${storageErr.message || storageErr}`
+              );
+            }
+          }
+
+          const rpcBody = {
+            p_action: "delete",
+            p_workspace_id: WorkspaceID ?? null,
+            p_ticket_id: TicketID ?? null,
+            p_loggeruserid: LoggedUserID ?? null,
+            p_attachment_id: removed.attachmentId,
+          };
+
+          const { error: rpcError } = await sb.callPostgresFunction({
+            functionName: "postticketattachment",
+            params: rpcBody,
+          });
+
+          if (rpcError) {
+            errorMessages.push(
+              `Erro ao chamar postticketattachment: ${rpcError.message || rpcError}`
+            );
+          }
+        } catch (err) {
+          errorMessages.push(`Falha ao excluir anexo: ${err.message || err}`);
+        }
+      }
+
+      if (errorMessages.length) {
+        showError(errorMessages.join("\n"));
+      } else if (removed?.attachmentId) {
+        showSuccess();
       }
     }
 
