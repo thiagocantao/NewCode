@@ -16,12 +16,27 @@
             <p>Nenhuma seção encontrada</p>
           </div>
           <div v-else>
-            <FormSection v-for="section in formSections" :key="`section-${section.id}-${renderKey}`" :section="section"
-              :all-fields="allAvailableFields" :is-editing="isEditing" :api-url="apiUrl" :api-key="apiKey"
-              :api-authorization="apiAuthorization" :ticket-id="ticketId" :company-id="companyId" :language="language"
-              :read-only="formReadOnly" @update-section="updateFormState" @edit-section="editSection"
-              @edit-field="editFormField" @remove-field="removeFormField" @select-field="selectFieldForProperties"
-              @remove-section="handleRemoveSection" />
+            <FormSection
+              v-for="section in formSections"
+              :key="`section-${section.id}-${renderKey}`"
+              :section="section"
+              :all-fields="allAvailableFields"
+              :is-editing="isEditing"
+              :api-url="apiUrl"
+              :api-key="apiKey"
+              :api-authorization="apiAuthorization"
+              :ticket-id="ticketId"
+              :company-id="companyId"
+              :language="language"
+              :read-only="formReadOnly"
+              @update-section="updateFormState"
+              @edit-section="editSection"
+              @edit-field="editFormField"
+              @remove-field="removeFormField"
+              @select-field="selectFieldForProperties"
+              @remove-section="handleRemoveSection"
+              @update:value="payload => onFieldValueChange(section.id, payload)"
+            />
           </div>
         </template>
       </div>
@@ -38,6 +53,7 @@ export default {
   components: {
     FormSection
   },
+  emits: ['trigger-event'],
   props: {
     uid: {
       type: String,
@@ -72,7 +88,7 @@ export default {
       required: false
     }
   },
-  setup(props) {
+  setup(props, { emit }) {
     
     const isEditing = computed(() => {
       return props.wwEditorState.isEditing;
@@ -214,7 +230,19 @@ export default {
           }))
         };
         setFormData(formState);
-        
+
+        emit('trigger-event', {
+          name: 'fieldsUpdated',
+          event: {
+            value: formState.sections.flatMap(section => section.fields)
+          }
+        });
+
+        emit('trigger-event', {
+          name: 'formUpdated',
+          event: { value: formState }
+        });
+
         // Forçar reatividade após setFormData
         setTimeout(() => {
           // Forçar re-renderização do formSections
@@ -222,7 +250,7 @@ export default {
           // Incrementar renderKey para forçar re-renderização dos componentes
           renderKey.value++;
         }, 50);
-        
+
       } catch (error) {
       }
     };
@@ -273,6 +301,17 @@ export default {
     };
 
     const selectFieldForProperties = (field) => {
+    };
+
+    const onFieldValueChange = (sectionId, { fieldId, value }) => {
+      const section = formSections.value.find(s => s.id === sectionId);
+      if (section) {
+        const field = section.fields.find(f => f.id === fieldId || f.field_id === fieldId || f.ID === fieldId);
+        if (field) {
+          field.value = value;
+          updateFormState();
+        }
+      }
     };
 
     // Watch for changes in formJson
@@ -366,7 +405,8 @@ export default {
       language,
       formReadOnly,
       isLoading,
-      renderKey
+      renderKey,
+      onFieldValueChange
     };
   }
 };
