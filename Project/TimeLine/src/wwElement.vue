@@ -87,6 +87,7 @@ export default {
   },
   emits: ["trigger-event"],
   setup(props, { emit }) {
+
     // References for measuring elements
     const containerRef = ref(null);
     const { width: containerWidth } = useElementSize(containerRef);
@@ -105,10 +106,10 @@ export default {
           name: "timeline:change",
           event: { value: newVal, oldValue: oldVal },
         });
+        
       },
       { deep: true }
     );
-
     const getItemIcon = (item) =>
       item.IcoEventType || props.content.markerIcon || "";
 
