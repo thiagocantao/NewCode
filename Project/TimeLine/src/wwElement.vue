@@ -86,12 +86,29 @@ export default {
     /* wwEditor:end */
   },
   emits: ["trigger-event"],
-  setup(props) {
+  setup(props, { emit }) {
     // References for measuring elements
     const containerRef = ref(null);
     const { width: containerWidth } = useElementSize(containerRef);
 
     const events = ref([]);
+    const isInitialized = ref(false);
+
+    watch(
+      events,
+      (newVal, oldVal) => {
+        if (!isInitialized.value) {
+          isInitialized.value = true;
+          return;
+        }
+        emit("trigger-event", {
+          name: "timeline:change",
+          event: { value: newVal, oldValue: oldVal },
+        });
+        
+      },
+      { deep: true }
+    );
     const getItemIcon = (item) =>
       item.IcoEventType || props.content.markerIcon || "";
 
