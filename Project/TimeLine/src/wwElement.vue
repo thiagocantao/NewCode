@@ -87,6 +87,7 @@ export default {
   },
   emits: ["trigger-event"],
   setup(props, { emit }) {
+
     // References for measuring elements
     const containerRef = ref(null);
     const { width: containerWidth } = useElementSize(containerRef);
