@@ -319,6 +319,7 @@ export default {
                 display: 'inline-block',
                 overflow: 'hidden',
                 whiteSpace: 'nowrap',
+                height: '100%',
                 '--mention-fontSize': this.content.mention.fontSize,
                 '--mention-fontFamily': this.content.mention.fontFamily,
                 '--mention-fontWeight': this.content.mention.fontWeight,
@@ -555,14 +556,24 @@ export default {
 
 <style lang="scss">
 .ww-rich-text {
+    height: 32px;
+    overflow: hidden;
+
     .ww-rich-text__input {
         white-space: nowrap;
         overflow: hidden;
+        height: 100%;
+
+        .ProseMirror p.is-editor-empty:first-child::before {
+            font-size: 13px;
+        }
     }
+
     .ww-rich-text__input p {
         display: inline;
         margin: 0;
     }
+
     .mention {
         border: var(--mention-borderSize) solid var(--mention-color);
         border-radius: var(--mention-border-radius);
@@ -574,6 +585,7 @@ export default {
         font-weight: var(--mention-fontWeight);
         color: var(--mention-color);
     }
+
     &.-readonly .ProseMirror {
         cursor: inherit;
     }
