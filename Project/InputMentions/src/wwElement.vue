@@ -815,6 +815,7 @@ export default {
             content: attr(data-placeholder);
             float: left;
             color: #adb5bd;
+            font-size: 13px;
             pointer-events: none;
             height: 0;
         }
