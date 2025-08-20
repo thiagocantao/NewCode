@@ -319,7 +319,7 @@ export default {
             options: {
                 item: {
                     type: 'Object',
-                    defaultValue: { id: '', label: '' },
+                    defaultValue: { id: '', label: '', hint: '' },
                     options: {
                         item: {
                             id: {
@@ -328,6 +328,10 @@ export default {
                             },
                             label: {
                                 label: { en: 'Label' },
+                                type: 'Text',
+                            },
+                            hint: {
+                                label: { en: 'Hint' },
                                 type: 'Text',
                             },
                         },

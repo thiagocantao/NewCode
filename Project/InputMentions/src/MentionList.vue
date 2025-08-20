@@ -74,7 +74,7 @@ export default {
             const item = this.items[index];
 
             if (item) {
-                this.command({ id: item.id, label: item.label });
+                this.command({ id: item.id, label: item.label, hint: item.hint });
             }
         },
     },
