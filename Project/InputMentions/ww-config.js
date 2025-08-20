@@ -63,6 +63,7 @@ export default {
                 'mentionList',
                 'mentionIdPath',
                 'mentionLabelPath',
+                'mentionHintPath'
             ],
             [
                 'parameterTitle',
