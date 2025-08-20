@@ -1,4 +1,14 @@
 <template>
+    <div v-if="hasColumns" class="ww-select-option-header" :style="columnsStyle">
+        <span
+            v-for="(header, index) in columnsHeaders"
+            :key="index"
+            :style="{ width: columnsWidths[index] }"
+        >
+            {{ header }}
+        </span>
+    </div>
+
     <DynamicScroller
         v-if="/*virtualScroll &&*/ filteredOptions.length > 0"
         style="height: 100%"
@@ -100,6 +110,18 @@ export default {
             const items = rawData.value;
             return Array.isArray(items) ? items : [];
         });
+
+        const columns = computed(() => props.content.columns || []);
+        const parsedColumns = computed(() => columns.value.filter(col => col && col.column));
+        const columnsHeaders = computed(() => parsedColumns.value.map(col => col.header || ''));
+        const columnsWidths = computed(() => parsedColumns.value.map(col => col.width || '1fr'));
+        const hasColumns = computed(() => columnsHeaders.value.length > 0);
+        const columnsStyle = computed(() => ({
+            display: 'grid',
+            'grid-template-columns': columnsWidths.value.join(' '),
+            'align-items': 'center',
+            gap: '8px',
+        }));
 
         const optionProperties = computed(() => {
             if (!options.value || options.value.length === 0) return {};
@@ -208,6 +230,10 @@ export default {
         return {
             emptyStateText,
             filteredOptions,
+            hasColumns,
+            columnsHeaders,
+            columnsWidths,
+            columnsStyle,
             virtualScroll,
             virtualScrollSizeDependencies,
             virtualScrollMinItemSize,

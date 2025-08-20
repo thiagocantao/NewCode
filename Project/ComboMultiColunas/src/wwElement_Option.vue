@@ -18,7 +18,13 @@
             class="ww-select-option-values"
             :style="columnsStyle"
         >
-            <span v-for="(path, index) in columnsPaths" :key="index">{{ getColumnValue(path) }}</span>
+            <span
+                v-for="(path, index) in columnsPaths"
+                :key="index"
+                :style="{ width: columnsWidths[index] }"
+            >
+                {{ getColumnValue(path) }}
+            </span>
         </div>
         <span v-else>{{ data.label }}</span>
         <div v-if="data.isSelected" v-html="optionIcon" :style="optionIconStyle" aria-hidden="true"></div>
@@ -116,13 +122,13 @@ export default {
         });
 
         const columns = computed(() => props.content.columns || []);
-        const columnsPaths = computed(() =>
-            columns.value.filter(col => col && col.column).map(col => col.column)
-        );
+        const parsedColumns = computed(() => columns.value.filter(col => col && col.column));
+        const columnsPaths = computed(() => parsedColumns.value.map(col => col.column));
+        const columnsWidths = computed(() => parsedColumns.value.map(col => col.width || '1fr'));
         const hasColumns = computed(() => columnsPaths.value.length > 0);
         const columnsStyle = computed(() => ({
             display: 'grid',
-            'grid-template-columns': `repeat(${columnsPaths.value.length}, 1fr)`,
+            'grid-template-columns': columnsWidths.value.join(' '),
             flex: '1',
             'align-items': 'center',
             gap: '8px',
@@ -333,6 +339,7 @@ export default {
             optionIcon,
             optionIconStyle,
             columnsPaths,
+            columnsWidths,
             hasColumns,
             columnsStyle,
             getColumnValue,
