@@ -884,6 +884,14 @@ export default {
                                     options: { object: sidepanelContent.optionProperties || {} },
                                     defaultValue: '',
                                 },
+                                header: {
+                                    type: 'Text',
+                                    defaultValue: '',
+                                },
+                                width: {
+                                    type: 'Text',
+                                    defaultValue: '',
+                                },
                             },
                         },
                     },
@@ -892,7 +900,7 @@ export default {
             /* wwEditor:start */
             bindingValidation: {
                 validations: [{ type: 'array' }],
-                tooltip: `An array of objects defining which properties of the choices are displayed as columns. Ex: [{column: "['key1']"}]`,
+                tooltip: `An array of objects defining which properties of the choices are displayed as columns. Ex: [{column: "['key1']", header: 'Name', width: '100px'}]`,
             },
             propertyHelp: {
                 tooltip: 'Which properties of the choices are displayed as columns in the options list.',
