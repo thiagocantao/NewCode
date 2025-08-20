@@ -720,6 +720,7 @@ export default {
             position: absolute;
             inset: 0;
             z-index: 1;
+            font-size:13px !important;
         }
     }
 
@@ -904,7 +905,7 @@ export default {
         .mention {
             display: inline-flex;
             align-items: center;
-            gap: 0.2rem;
+            gap: 4px;
             border: 0px;
             border-radius: 12px;
             padding: 0.1rem 0.3rem;
@@ -928,6 +929,7 @@ justify-content: center;
             background: #95a9c9;
             color: #fff;
             font-size: 0.75rem;
+            border-radius: 50px;
         }
         .mention-label {
             line-height: 1;
@@ -967,7 +969,7 @@ justify-content: center;
                 color: var(--table-header-color);
                 font-style: normal;
                 font-weight: 500;
-                font-size: 15px;
+                font-size: 14px;
                 line-height: 18px;
                 letter-spacing: -0.08px;
                 background-color: var(--table-header-bg-color);
