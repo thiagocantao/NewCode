@@ -359,6 +359,17 @@ export default {
             defaultValue: null,
             section: 'settings',
         },
+        mentionHintPath: {
+            hidden: (content, sidepanelContent, boundProps) =>
+                !showObjectPropertyPath('mentionList', { content, boundProps }),
+            label: {
+                en: 'Hint property',
+            },
+            type: 'ObjectPropertyPath',
+            options: content => getObjectPropertyPathOptions('mentionList', { content }),
+            defaultValue: null,
+            section: 'settings',
+        },
         mentionAllowSpaces: {
             section: 'settings',
             hidden: content => !content.enableMention,
@@ -546,7 +557,7 @@ export default {
                 singleLine: true,
             },
             defaultValue: {
-                fontSize: '16px',
+                fontSize: '13px',
                 fontFamily: '',
                 fontWeight: '',
                 textAlign: '',
@@ -569,7 +580,7 @@ export default {
                 singleLine: true,
             },
             defaultValue: {
-                fontSize: '16px',
+                fontSize: '13px',
                 fontFamily: '',
                 fontWeight: '',
                 textAlign: '',
@@ -592,7 +603,7 @@ export default {
                 singleLine: true,
             },
             defaultValue: {
-                fontSize: '16px',
+                fontSize: '13px',
                 fontFamily: '',
                 fontWeight: '',
                 textAlign: '',
@@ -615,7 +626,7 @@ export default {
                 singleLine: true,
             },
             defaultValue: {
-                fontSize: '16px',
+                fontSize: '13px',
                 fontFamily: '',
                 fontWeight: '',
                 textAlign: '',
@@ -669,7 +680,7 @@ export default {
                 singleLine: true,
             },
             defaultValue: {
-                fontSize: '16px',
+                fontSize: '13px',
                 fontFamily: '',
                 fontFWeight: '',
                 color: '#099AF2',
@@ -712,7 +723,7 @@ export default {
                 singleLine: true,
             },
             defaultValue: {
-                fontSize: '16px',
+                fontSize: '13px',
                 fontFamily: '',
                 color: '',
                 isUnderline: true,
@@ -865,7 +876,7 @@ export default {
                 color: '#FFF',
                 bgColor: '#0D0D0D',
                 borderRadius: '8px',
-                paddingX: '16px',
+                paddingX: '13px',
                 paddingY: '12px',
                 fontSize: '13px',
             },
