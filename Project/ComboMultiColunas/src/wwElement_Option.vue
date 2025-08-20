@@ -18,7 +18,13 @@
             class="ww-select-option-values"
             :style="columnsStyle"
         >
-            <span v-for="(path, index) in columnsPaths" :key="index">{{ getColumnValue(path) }}</span>
+            <span
+                v-for="(path, index) in columnsPaths"
+                :key="index"
+                :style="{ width: columnsWidths[index] }"
+            >
+                {{ getColumnValue(path) }}
+            </span>
         </div>
         <span v-else>{{ data.label }}</span>
         <div v-if="data.isSelected" v-html="optionIcon" :style="optionIconStyle" aria-hidden="true"></div>
@@ -333,6 +339,7 @@ export default {
             optionIcon,
             optionIconStyle,
             columnsPaths,
+            columnsWidths,
             hasColumns,
             columnsStyle,
             getColumnValue,

@@ -1,6 +1,13 @@
 <template>
     <div v-if="hasColumns" class="ww-select-option-header" :style="columnsStyle">
-        <span v-for="(header, index) in columnsHeaders" :key="index">{{ header }}</span>
+        <span
+            v-for="(header, index) in columnsHeaders"
+            :key="index"
+            :style="{ width: columnsWidths[index] }"
+        >
+            {{ header }}
+        </span>
+
     </div>
 
     <DynamicScroller
@@ -226,6 +233,8 @@ export default {
             filteredOptions,
             hasColumns,
             columnsHeaders,
+            columnsWidths,
+
             columnsStyle,
             virtualScroll,
             virtualScrollSizeDependencies,
@@ -237,6 +246,7 @@ export default {
         };
     },
 };
+
 </script>
 
 <style>
