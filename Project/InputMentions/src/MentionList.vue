@@ -110,10 +110,6 @@ export default {
     border-radius: 0.4rem;
     border: 1px solid transparent;
     padding: 0.2rem 0.4rem;
-
-    &.is-selected {
-        border-color: #000;
-    }
 }
 
 .mention-info {
@@ -141,5 +137,6 @@ export default {
     background: #95a9c9;
     color: #fff;
     font-size: 0.75rem;
+    border-radius: 50px;
 }
 </style>
