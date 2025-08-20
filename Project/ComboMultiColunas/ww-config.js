@@ -169,6 +169,7 @@ export default {
                 'selectOnClick',
                 'virtualScrollBuffer',
                 'virtualScrollMinItemSize',
+                'columns',
             ],
             ['searchTitle', 'showSearch', 'searchBy', 'autoFocus'],
             'formInfobox',
@@ -861,6 +862,40 @@ export default {
             bindingValidation: {
                 type: 'boolean',
                 tooltip: 'A boolean that defines if the option is automatically unselected on click: `true | false`',
+            },
+            /* wwEditor:end */
+        },
+
+        columns: {
+            label: 'Columns',
+            section: 'settings',
+            states: true,
+            bindable: true,
+            responsive: true,
+            type: 'Array',
+            options: (_, sidepanelContent) => {
+                return {
+                    item: {
+                        type: 'Object',
+                        options: {
+                            item: {
+                                column: {
+                                    type: 'ObjectPropertyPath',
+                                    options: { object: sidepanelContent.optionProperties || {} },
+                                    defaultValue: '',
+                                },
+                            },
+                        },
+                    },
+                };
+            },
+            /* wwEditor:start */
+            bindingValidation: {
+                validations: [{ type: 'array' }],
+                tooltip: `An array of objects defining which properties of the choices are displayed as columns. Ex: [{column: "['key1']"}]`,
+            },
+            propertyHelp: {
+                tooltip: 'Which properties of the choices are displayed as columns in the options list.',
             },
             /* wwEditor:end */
         },

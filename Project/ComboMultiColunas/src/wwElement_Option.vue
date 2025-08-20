@@ -13,7 +13,14 @@
         :aria-selected="isSelected"
         :aria-disabled="isOptionDisabled"
     >
-        <span>{{ data.label }}</span>
+        <div
+            v-if="hasColumns"
+            class="ww-select-option-values"
+            :style="columnsStyle"
+        >
+            <span v-for="(path, index) in columnsPaths" :key="index">{{ getColumnValue(path) }}</span>
+        </div>
+        <span v-else>{{ data.label }}</span>
         <div v-if="data.isSelected" v-html="optionIcon" :style="optionIconStyle" aria-hidden="true"></div>
     </div>
 </template>
@@ -108,11 +115,32 @@ export default {
             };
         });
 
+        const columns = computed(() => props.content.columns || []);
+        const columnsPaths = computed(() =>
+            columns.value.filter(col => col && col.column).map(col => col.column)
+        );
+        const hasColumns = computed(() => columnsPaths.value.length > 0);
+        const columnsStyle = computed(() => ({
+            display: 'grid',
+            'grid-template-columns': `repeat(${columnsPaths.value.length}, 1fr)`,
+            flex: '1',
+            'align-items': 'center',
+            gap: '8px',
+        }));
+        const getColumnValue = path => {
+            try {
+                const parts = JSON.parse(path.replace(/'/g, '"'));
+                return parts.reduce((acc, key) => (acc ? acc[key] : undefined), props.localData) ?? '';
+            } catch (e) {
+                return '';
+            }
+        };
+
         const label = computed(() => {
             // Check if this is a wrapped primitive from OptionsList (has only 'value' and 'id' properties)
-            const isWrappedPrimitive = props.localData && 
-                                     typeof props.localData === 'object' && 
-                                     'value' in props.localData && 
+            const isWrappedPrimitive = props.localData &&
+                                     typeof props.localData === 'object' &&
+                                     'value' in props.localData &&
                                      'id' in props.localData &&
                                      Object.keys(props.localData).length === 2;
             
@@ -304,6 +332,10 @@ export default {
             optionStyles,
             optionIcon,
             optionIconStyle,
+            columnsPaths,
+            hasColumns,
+            columnsStyle,
+            getColumnValue,
             contextMethods,
             data,
             contextMarkdown,
@@ -330,5 +362,9 @@ export default {
         cursor: not-allowed;
         opacity: 0.5;
     }
+}
+
+.ww-select-option-values {
+    width: 100%;
 }
 </style>
