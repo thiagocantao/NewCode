@@ -116,13 +116,13 @@ export default {
         });
 
         const columns = computed(() => props.content.columns || []);
-        const columnsPaths = computed(() =>
-            columns.value.filter(col => col && col.column).map(col => col.column)
-        );
+        const parsedColumns = computed(() => columns.value.filter(col => col && col.column));
+        const columnsPaths = computed(() => parsedColumns.value.map(col => col.column));
+        const columnsWidths = computed(() => parsedColumns.value.map(col => col.width || '1fr'));
         const hasColumns = computed(() => columnsPaths.value.length > 0);
         const columnsStyle = computed(() => ({
             display: 'grid',
-            'grid-template-columns': `repeat(${columnsPaths.value.length}, 1fr)`,
+            'grid-template-columns': columnsWidths.value.join(' '),
             flex: '1',
             'align-items': 'center',
             gap: '8px',
