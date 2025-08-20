@@ -8,7 +8,11 @@
                 :key="index"
                 @click="selectItem(index)"
             >
-                {{ item.label }}
+                <span class="mention-avatar">{{ item.label.charAt(0).toUpperCase() }}</span>
+                <span class="mention-info">
+                    <span class="mention-label">{{ item.label }}</span>
+                    <span class="mention-hint" v-if="item.hint">{{ item.hint }}</span>
+                </span>
             </button>
         </template>
         <div class="item" v-else>No result</div>
@@ -96,7 +100,9 @@ export default {
 }
 
 .item {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
     margin: 0;
     width: 100%;
     text-align: left;
@@ -108,5 +114,32 @@ export default {
     &.is-selected {
         border-color: #000;
     }
+}
+
+.mention-info {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+.mention-label {
+    font-size: 13px;
+}
+
+.mention-hint {
+    font-size: 12px;
+}
+
+.mention-avatar {
+    display: inline-flex;
+    border: 2px solid #ffffff;
+    box-shadow: 0 0 0 1px #4f4f4f;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background: #95a9c9;
+    color: #fff;
+    font-size: 0.75rem;
 }
 </style>
