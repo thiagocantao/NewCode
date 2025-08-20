@@ -7,6 +7,7 @@
         >
             {{ header }}
         </span>
+
     </div>
 
     <DynamicScroller
@@ -233,6 +234,7 @@ export default {
             hasColumns,
             columnsHeaders,
             columnsWidths,
+
             columnsStyle,
             virtualScroll,
             virtualScrollSizeDependencies,
@@ -244,6 +246,7 @@ export default {
         };
     },
 };
+
 </script>
 
 <style>
