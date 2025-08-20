@@ -343,6 +343,27 @@ import suggestion from './suggestion.js';
 import { Markdown } from 'tiptap-markdown';
 import TableIcon from './icons/table-icon.vue';
 
+const MentionExtension = Mention.extend({
+    addAttributes() {
+        return {
+            id: { default: null },
+            label: { default: null },
+            hint: { default: null },
+        };
+    },
+    renderHTML({ node }) {
+        const { id, label, hint } = node.attrs;
+        const children = [];
+        if (hint) {
+            const initial = String(hint).charAt(0).toUpperCase();
+            children.push(['span', { class: 'mention-avatar', title: hint }, initial]);
+        }
+        children.push(['span', { class: 'mention-label' }, label]);
+        children.push(['span', { class: 'mention-remove' }, 'x']);
+        return ['span', { class: 'mention', 'data-id': id, 'data-label': label, 'data-hint': hint }, ...children];
+    },
+});
+
 function extractMentions(acc, currentNode) {
     if (currentNode.type === 'mention') {
         acc.push(currentNode.attrs.id);
@@ -563,7 +584,7 @@ export default {
             return data.map(mention => ({
                 id: wwLib.resolveObjectPropertyPath(mention, this.content.mentionIdPath || 'id') || '',
                 label: wwLib.resolveObjectPropertyPath(mention, this.content.mentionLabelPath || 'label') || '',
-                hint:wwLib.resolveObjectPropertyPath(mention, this.content.mentionHintPath || 'hint') || '',
+                hint: wwLib.resolveObjectPropertyPath(mention, this.content.mentionHintPath || 'hint') || '',
             }));
         },
         mentionListLength() {
@@ -810,7 +831,7 @@ export default {
                     Markdown.configure({ breaks: true }),
                     Image.configure({ ...this.editorConfig.image }),
                     this.editorConfig.mention.enabled &&
-                        Mention.configure({
+                        MentionExtension.configure({
                             HTMLAttributes: {
                                 class: 'mention',
                             },
@@ -831,13 +852,19 @@ export default {
                 },
                 onUpdate: this.handleOnUpdate,
                 editorProps: {
-                    handleClickOn: (view, pos, node) => {
+                    handleClickOn: (view, pos, node, nodePos, event) => {
+                        if (event?.target?.classList?.contains('mention-remove')) {
+                            view.dispatch(view.state.tr.delete(nodePos, nodePos + node.nodeSize));
+                            return true;
+                        }
                         if (node.type.name === 'mention') {
                             this.$emit('trigger-event', {
                                 name: 'mention:click',
                                 event: { mention: { id: node.attrs.id, label: node.attrs.label } },
                             });
+                            return true;
                         }
+                        return false;
                     },
                 },
             });
@@ -1189,6 +1216,9 @@ export default {
      
 
         .mention {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.2rem;
             border: var(--mention-borderSize) solid var(--mention-color);
             border-radius: var(--mention-border-radius);
             padding: 0.1rem 0.3rem;
@@ -1198,6 +1228,24 @@ export default {
             font-family: var(--mention-fontFamily);
             font-weight: var(--mention-fontSize);
             color: var(--mention-color);
+        }
+        .mention-avatar {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1rem;
+            height: 1rem;
+            border-radius: 50%;
+            background: var(--mention-color);
+            color: #fff;
+            font-size: 0.75rem;
+        }
+        .mention-label {
+            line-height: 1;
+        }
+        .mention-remove {
+            margin-left: 0.2rem;
+            cursor: pointer;
         }
 
         table {
