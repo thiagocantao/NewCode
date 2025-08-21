@@ -13,6 +13,13 @@
         :aria-selected="isSelected"
         :aria-disabled="isOptionDisabled"
     >
+        <input
+            v-if="isMultiple"
+            type="checkbox"
+            class="ww-select-option__checkbox"
+            :checked="data.isSelected"
+            @click.stop.prevent="handleClick"
+        />
         <div
             v-if="hasColumns"
             class="ww-select-option-values"
@@ -307,6 +314,8 @@ export default {
             { immediate: true }
         );
 
+        const isMultiple = computed(() => selectType.value === 'multiple');
+
         const contextMethods = {
             select: {
                 description: 'Select the current option',
@@ -347,6 +356,7 @@ export default {
             data,
             contextMarkdown,
             isOptionDisabled,
+            isMultiple,
         };
     },
 };
@@ -373,5 +383,9 @@ export default {
 
 .ww-select-option-values {
     width: 100%;
+}
+
+.ww-select-option__checkbox {
+    margin-right: 8px;
 }
 </style>
