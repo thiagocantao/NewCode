@@ -226,6 +226,7 @@ export default {
                 }
                 visibleChipCount.value = count;
                 hiddenChipCount.value = hidden;
+
             });
         };
 

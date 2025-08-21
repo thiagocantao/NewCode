@@ -38,6 +38,7 @@
     </div>
 </template>
 
+
 <script>
 import { ref, unref, toValue, inject, computed, watch, onBeforeUnmount, watchEffect, nextTick } from 'vue';
 import useAccessibility from './useAccessibility_Option';
@@ -339,6 +340,7 @@ export default {
             },
         };
 
+
         onBeforeUnmount(() => unregisterOption(optionId));
 
         const contextMarkdown = `### Select Option local informations
@@ -381,6 +383,7 @@ export default {
 
 <style scoped lang="scss">
 .ww-select-option {
+
     cursor: pointer;
     display: flex;
     flex-direction: row;
@@ -409,3 +412,4 @@ export default {
     accent-color: #7d899d;
 }
 </style>
+
