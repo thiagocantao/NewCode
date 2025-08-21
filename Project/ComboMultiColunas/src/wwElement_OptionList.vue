@@ -14,7 +14,7 @@
 
     <DynamicScroller
         v-if="/*virtualScroll &&*/ filteredOptions.length > 0"
-        style="height: 100%"
+        style="height: 100%; padding:10px;"
         :items="dynamicScrollerItems"
         :min-item-size="virtualScrollMinItemSize"
         :buffer="virtualScrollBuffer"
@@ -259,6 +259,13 @@ export default {
 .ww-select-option-header-wrapper {
     display: flex;
     align-items: center;
+    
+}
+
+.ww-select-option-header {
+    padding-left: 25px;
+    font-size: 13px;
+    
 }
 
 .ww-select-option-header__checkbox-spacer {
