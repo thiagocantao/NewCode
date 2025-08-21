@@ -63,10 +63,10 @@ export default {
             return {
                 width: props.content.searchWidth,
                 height: props.content.searchHeight,
-                'border-radius': props.content.searchBorderRadius,
+                'border-radius': '4px',
                 padding: props.content.searchPadding,
                 margin: props.content.searchMargin,
-                'background-color': props.content.searchBgColor,
+                'background-color': '#ffffff',
                 'font-family': props.content.searchFontFamily,
                 'font-size': props.content.searchFontSize,
                 'font-weight': props.content.searchFontWeight,
@@ -79,8 +79,26 @@ export default {
             };
         });
 
+        const columns = computed(() => props.content.columns || []);
+        const searchHeaders = computed(() => {
+            const fields = searchBy.value || [];
+            return columns.value
+                .filter(col => {
+                    try {
+                        const parts = JSON.parse(col.column.replace(/'/g, '"'));
+                        const key = Array.isArray(parts) ? parts[parts.length - 1] : parts;
+                        return fields.includes(key);
+                    } catch (e) {
+                        return false;
+                    }
+                })
+                .map(col => col.header || '')
+                .filter(Boolean);
+        });
+
         const searchPlaceholder = computed(() => {
-            return wwLib.wwLang.getText(props.content.searchPlaceholder);
+            const headers = searchHeaders.value.join(', ');
+            return headers ? `Search by ${headers}` : 'Search by';
         });
 
         // This event come from ww-input-basic => https://github.com/weweb-assets/ww-input-basic
