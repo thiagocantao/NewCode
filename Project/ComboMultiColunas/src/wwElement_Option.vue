@@ -358,6 +358,7 @@ export default {
             handleKeyDown,
             onOptionClick,
             handleCheckboxChange,
+
             isFocused,
             activeDescendant,
             option,
