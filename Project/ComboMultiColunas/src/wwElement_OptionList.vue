@@ -1,13 +1,15 @@
 <template>
-    <div v-if="hasColumns" class="ww-select-option-header" :style="columnsStyle">
-        <span
-            v-for="(header, index) in columnsHeaders"
-            :key="index"
-            :style="{ width: columnsWidths[index] }"
-        >
-            {{ header }}
-        </span>
-
+    <div v-if="hasColumns" class="ww-select-option-header-wrapper">
+        <span v-if="isMultiple" class="ww-select-option-header__checkbox-spacer"></span>
+        <div class="ww-select-option-header" :style="columnsStyle">
+            <span
+                v-for="(header, index) in columnsHeaders"
+                :key="index"
+                :style="{ width: columnsWidths[index] }"
+            >
+                {{ header }}
+            </span>
+        </div>
     </div>
 
     <DynamicScroller
@@ -98,6 +100,8 @@ export default {
 
         const rawData = inject('_wwSelect:rawData', ref([]));
         const searchState = inject('_wwSelect:searchState', ref(null));
+        const selectType = inject('_wwSelect:type', ref('single'));
+        const isMultiple = computed(() => selectType.value === 'multiple');
         const { updateSearch } = inject('_wwSelect:useSearch', {});
         const registerOptionProperties = inject('_wwSelect:registerOptionProperties', () => {});
         const virtualScroll = computed(() => props.content.virtualScroll);
@@ -234,8 +238,8 @@ export default {
             hasColumns,
             columnsHeaders,
             columnsWidths,
-
             columnsStyle,
+            isMultiple,
             virtualScroll,
             virtualScrollSizeDependencies,
             virtualScrollMinItemSize,
@@ -251,4 +255,15 @@ export default {
 
 <style>
 @import 'vue-virtual-scroller/dist/vue-virtual-scroller.css';
+
+.ww-select-option-header-wrapper {
+    display: flex;
+    align-items: center;
+}
+
+.ww-select-option-header__checkbox-spacer {
+    display: inline-block;
+    width: 16px;
+    margin-right: 8px;
+}
 </style>
