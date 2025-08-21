@@ -220,8 +220,13 @@ export default {
                     } while (used + moreWidth > containerWidth && count > 0);
                     container.removeChild(placeholder);
                 }
+                if (hidden > 0 && count > 0) {
+                    count--;
+                    hidden++;
+                }
                 visibleChipCount.value = count;
-                hiddenChipCount.value = chips.length - count;
+                hiddenChipCount.value = hidden;
+
             });
         };
 
