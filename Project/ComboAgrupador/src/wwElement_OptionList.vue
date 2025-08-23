@@ -5,7 +5,7 @@
         :items="dynamicScrollerItems"
         :min-item-size="virtualScrollMinItemSize"
         :buffer="virtualScrollBuffer"
-        :key="filteredOptions.length"
+        :key="dynamicScrollerItems.length"
     >
         <template v-slot="{ item, index, active }">
             <DynamicScrollerItem
@@ -15,9 +15,24 @@
                 :data-index="index"
             >
                 <wwLayoutItemContext :key="index" is-repeat :index="index" :data="item">
-                    <div :style="index != filteredOptions.length - 1 ? { paddingBottom: content.optionSpacing } : {}">
-                        <ww-element-option :local-data="item" :content="content" :wwEditorState="wwEditorState" />
-                    </div>
+                    <template v-if="item.__type === 'group'">
+                        <div class="ww-select-group" :style="{ padding: content.optionPadding }">
+                            <label v-if="selectType === 'multiple'" class="ww-select-group-label">
+                                <input
+                                    type="checkbox"
+                                    :checked="isGroupSelected(item)"
+                                    @change="toggleGroup(item)"
+                                />
+                                <span>{{ item.label }}</span>
+                            </label>
+                            <span v-else>{{ item.label }}</span>
+                        </div>
+                    </template>
+                    <template v-else>
+                        <div :style="index != dynamicScrollerItems.length - 1 ? { paddingBottom: content.optionSpacing } : {}">
+                            <ww-element-option :local-data="item" :content="content" :wwEditorState="wwEditorState" />
+                        </div>
+                    </template>
                 </wwLayoutItemContext>
             </DynamicScrollerItem>
         </template>
@@ -43,9 +58,10 @@
 
 <script>
 import InputSelectOption from './wwElement_Option.vue';
-import { ref, inject, computed, watch } from 'vue';
+import { ref, inject, computed, watch, toValue } from 'vue';
 import { DynamicScroller, DynamicScrollerItem } from 'vue-virtual-scroller';
 import { useMemoize } from '@vueuse/core';
+import { areValuesEqual } from './utils';
 /* wwEditor:start */
 import useEditorHint from './editor/useEditorHint';
 /* wwEditor:end */
@@ -89,6 +105,11 @@ export default {
         const searchState = inject('_wwSelect:searchState', ref(null));
         const { updateSearch } = inject('_wwSelect:useSearch', {});
         const registerOptionProperties = inject('_wwSelect:registerOptionProperties', () => {});
+        const selectValue = inject('_wwSelect:value', ref(null));
+        const selectType = inject('_wwSelect:type', ref('single'));
+        const updateValue = inject('_wwSelect:updateValue', () => {});
+        const removeSpecificValue = inject('_wwSelect:removeSpecificValue', () => {});
+        const mappingValue = inject('_wwSelect:mappingValue', ref(null));
         const virtualScroll = computed(() => props.content.virtualScroll);
         const virtualScrollSizeDependencies = computed(() => props.content.virtualScrollSizeDependencies);
         const virtualScrollMinItemSize = computed(() => props.content.virtualScrollMinItemSize || 40);
@@ -151,19 +172,79 @@ export default {
             return filtered;
         });
 
-        const dynamicScrollerItems = computed(() => {
-            return filteredOptions.value.map((item, index) => {
-                // Handle primitive values properly - don't spread them as they become indexed objects
-                const isPrimitive = typeof item !== 'object' || item === null;
-                if (isPrimitive) {
-                    // For primitives, create a simple object wrapper
-                    return { value: item, id: `id_${index}` };
-                } else {
-                    // For objects, use the existing spread logic
-                    return { ...item, id: item.id ?? `id_${index}` };
-                }
-            });
+        const { resolveMappingFormula } = wwLib.wwFormula.useFormula();
+
+        function getOptionValue(option) {
+            const isPrimitive = typeof option !== 'object' || option === null;
+            if (isPrimitive) return option;
+            return resolveMappingFormula(toValue(mappingValue), option) ?? option;
+        }
+
+        function isValueSelected(value) {
+            if (selectType.value !== 'multiple') return false;
+            return Array.isArray(selectValue.value)
+                ? selectValue.value.some(v => areValuesEqual(v, value))
+                : false;
+        }
+
+        function getGroupValue(option, path) {
+            return path
+                .split('.')
+                .reduce((obj, key) => (obj == null ? undefined : obj[key]), option);
+        }
+
+        const groupedOptions = computed(() => {
+            if (!props.content.groupBy) return [];
+            const groups = new Map();
+            for (let option of filteredOptions.value) {
+                const key = getGroupValue(option, props.content.groupBy);
+                const group = key != null ? key : '';
+                if (!groups.has(group)) groups.set(group, []);
+                groups.get(group).push(option);
+            }
+            return Array.from(groups, ([label, items]) => ({ label, items }));
         });
+
+        const dynamicScrollerItems = computed(() => {
+            if (!props.content.groupBy) {
+                return filteredOptions.value.map((item, index) => {
+                    const isPrimitive = typeof item !== 'object' || item === null;
+                    if (isPrimitive) {
+                        return { value: item, id: `id_${index}` };
+                    } else {
+                        return { ...item, id: item.id ?? `id_${index}` };
+                    }
+                });
+            }
+
+            const items = [];
+            groupedOptions.value.forEach((group, gIndex) => {
+                items.push({ __type: 'group', label: group.label, items: group.items, id: `group_${gIndex}` });
+                group.items.forEach((item, index) => {
+                    const isPrimitive = typeof item !== 'object' || item === null;
+                    if (isPrimitive) {
+                        items.push({ value: item, id: `id_${gIndex}_${index}` });
+                    } else {
+                        items.push({ ...item, id: item.id ?? `id_${gIndex}_${index}` });
+                    }
+                });
+            });
+            return items;
+        });
+
+        function isGroupSelected(group) {
+            return group.items.every(item => isValueSelected(getOptionValue(item)));
+        }
+
+        function toggleGroup(group) {
+            const values = group.items.map(getOptionValue);
+            const allSelected = values.every(isValueSelected);
+            if (allSelected) {
+                values.forEach(v => removeSpecificValue(v));
+            } else {
+                updateValue(values);
+            }
+        }
 
         watch(filteredOptions, () => {
             if (updateSearch) {
@@ -215,6 +296,9 @@ export default {
             showEmptyStateInEditor,
             dynamicScrollerItems,
             emptyStateStyle,
+            selectType,
+            isGroupSelected,
+            toggleGroup,
         };
     },
 };
@@ -222,4 +306,10 @@ export default {
 
 <style>
 @import 'vue-virtual-scroller/dist/vue-virtual-scroller.css';
+
+.ww-select-group-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
 </style>

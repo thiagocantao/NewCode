@@ -13,8 +13,20 @@
         :aria-selected="isSelected"
         :aria-disabled="isOptionDisabled"
     >
-        <span>{{ data.label }}</span>
-        <div v-if="data.isSelected" v-html="optionIcon" :style="optionIconStyle" aria-hidden="true"></div>
+        <label v-if="selectType === 'multiple'" class="ww-select-option-checkbox">
+            <input
+                type="checkbox"
+                :checked="data.isSelected"
+                :disabled="data.isOptionDisabled"
+                @change.stop="toggle"
+                @click.stop
+            />
+            <span>{{ data.label }}</span>
+        </label>
+        <template v-else>
+            <span>{{ data.label }}</span>
+            <div v-if="data.isSelected" v-html="optionIcon" :style="optionIconStyle" aria-hidden="true"></div>
+        </template>
     </div>
 </template>
 
@@ -242,6 +254,14 @@ export default {
             }
         };
 
+        const toggle = () => {
+            if (data.value.isSelected) {
+                removeSpecificValue(value.value);
+            } else {
+                updateValue(value.value);
+            }
+        };
+
         /*
          * Create a data ref with initial empty values, then use a watcher to update it.
          * This pattern prevents circular dependencies that can occur when reactive refs
@@ -308,6 +328,9 @@ export default {
             data,
             contextMarkdown,
             isOptionDisabled,
+            selectType,
+            toggle,
+            isSelected,
         };
     },
 };
@@ -330,5 +353,11 @@ export default {
         cursor: not-allowed;
         opacity: 0.5;
     }
+}
+
+.ww-select-option-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
 }
 </style>
