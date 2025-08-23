@@ -38,6 +38,7 @@
         </template>
     </DynamicScroller>
 
+
     <!-- <div v-else-if="!virtualScroll && filteredOptions.length > 0" style="height: 100%;overflow: auto;">
         <wwLayoutItemContext
             v-for="(item, index) in filteredOptions"
@@ -62,6 +63,7 @@ import { ref, inject, computed, watch, toValue } from 'vue';
 import { DynamicScroller, DynamicScrollerItem } from 'vue-virtual-scroller';
 import { useMemoize } from '@vueuse/core';
 import { areValuesEqual } from './utils';
+
 /* wwEditor:start */
 import useEditorHint from './editor/useEditorHint';
 /* wwEditor:end */
@@ -110,6 +112,7 @@ export default {
         const updateValue = inject('_wwSelect:updateValue', () => {});
         const removeSpecificValue = inject('_wwSelect:removeSpecificValue', () => {});
         const mappingValue = inject('_wwSelect:mappingValue', ref(null));
+
         const virtualScroll = computed(() => props.content.virtualScroll);
         const virtualScrollSizeDependencies = computed(() => props.content.virtualScrollSizeDependencies);
         const virtualScrollMinItemSize = computed(() => props.content.virtualScrollMinItemSize || 40);
@@ -193,18 +196,24 @@ export default {
                 .reduce((obj, key) => (obj == null ? undefined : obj[key]), option);
         }
 
-
         const groupedOptions = computed(() => {
-            if (!props.content.groupBy) return [];
-            const groups = new Map();
-            for (let option of filteredOptions.value) {
-                const key = getGroupValue(option, props.content.groupBy);
+            if (!props.content.groupBy) return { groups: [], ungrouped: filteredOptions.value };
 
-                const group = key != null ? key : '';
-                if (!groups.has(group)) groups.set(group, []);
-                groups.get(group).push(option);
+            const groups = new Map();
+            const ungrouped = [];
+            for (const option of filteredOptions.value) {
+                const key = getGroupValue(option, props.content.groupBy);
+                if (key === undefined || key === null || key === '') {
+                    ungrouped.push(option);
+                } else {
+                    if (!groups.has(key)) groups.set(key, []);
+                    groups.get(key).push(option);
+                }
             }
-            return Array.from(groups, ([label, items]) => ({ label, items }));
+            return {
+                groups: Array.from(groups, ([label, items]) => ({ label, items })),
+                ungrouped,
+            };
         });
 
         const dynamicScrollerItems = computed(() => {
@@ -220,7 +229,9 @@ export default {
             }
 
             const items = [];
-            groupedOptions.value.forEach((group, gIndex) => {
+            const { groups, ungrouped } = groupedOptions.value;
+
+            groups.forEach((group, gIndex) => {
                 items.push({ __type: 'group', label: group.label, items: group.items, id: `group_${gIndex}` });
                 group.items.forEach((item, index) => {
                     const isPrimitive = typeof item !== 'object' || item === null;
@@ -231,8 +242,34 @@ export default {
                     }
                 });
             });
+
+            // Add ungrouped items without a group header
+            ungrouped.forEach((item, index) => {
+                const isPrimitive = typeof item !== 'object' || item === null;
+                if (isPrimitive) {
+                    items.push({ value: item, id: `id_ungrouped_${index}` });
+                } else {
+                    items.push({ ...item, id: item.id ?? `id_ungrouped_${index}` });
+                }
+            });
+
             return items;
         });
+
+        function isGroupSelected(group) {
+            return group.items.every(item => isValueSelected(getOptionValue(item)));
+        }
+
+        function toggleGroup(group) {
+            const values = group.items.map(getOptionValue);
+            const allSelected = values.every(isValueSelected);
+            if (allSelected) {
+                values.forEach(v => removeSpecificValue(v));
+            } else {
+                updateValue(values);
+            }
+        }
+
 
         function isGroupSelected(group) {
             return group.items.every(item => isValueSelected(getOptionValue(item)));
@@ -315,3 +352,4 @@ export default {
     gap: 0.5em;
 }
 </style>
+
