@@ -144,6 +144,7 @@ export default {
             'mappingLabel',
             'mappingValue',
             'mappingDisabled',
+            'groupBy',
             'initValueSingle',
             'initValueMulti',
             'allowScrollingWhenOpen',
@@ -324,6 +325,26 @@ export default {
             },
             /* wwEditor:end */
             section: 'settings',
+        },
+        groupBy: {
+            label: 'Group by',
+            section: 'settings',
+            states: true,
+            bindable: true,
+            responsive: true,
+            type: 'ObjectPropertyPath',
+            options: (_, sidepanelContent) => ({
+                object: sidepanelContent.optionProperties || {},
+            }),
+            /* wwEditor:start */
+            bindingValidation: {
+                type: 'string',
+                tooltip: 'A property name to group options by: `"category"`',
+            },
+            propertyHelp: {
+                tooltip: 'Choose the property used to group the options.',
+            },
+            /* wwEditor:end */
         },
         initValueSingle: {
             type: 'Text',
