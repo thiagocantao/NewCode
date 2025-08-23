@@ -145,6 +145,8 @@ export default {
             'mappingValue',
             'mappingDisabled',
             'groupBy',
+            'optionBgColorField',
+            'optionFontColorField',
             'initValueSingle',
             'initValueMulti',
             'allowScrollingWhenOpen',
@@ -345,6 +347,28 @@ export default {
                 tooltip: 'Choose the property used to group the options.',
             },
             /* wwEditor:end */
+        },
+        optionBgColorField: {
+            label: 'Background color column',
+            section: 'settings',
+            states: true,
+            bindable: true,
+            responsive: true,
+            type: 'ObjectPropertyPath',
+            options: (_, sidepanelContent) => ({
+                object: sidepanelContent.optionProperties || {},
+            }),
+        },
+        optionFontColorField: {
+            label: 'Font color column',
+            section: 'settings',
+            states: true,
+            bindable: true,
+            responsive: true,
+            type: 'ObjectPropertyPath',
+            options: (_, sidepanelContent) => ({
+                object: sidepanelContent.optionProperties || {},
+            }),
         },
         initValueSingle: {
             type: 'Text',
