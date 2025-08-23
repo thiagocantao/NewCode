@@ -8,16 +8,29 @@
         </div>
         <!-- MULTI SELECT -->
         <div v-else :style="triggerStyle">
-            <div v-if="isOptionSelected" class="ww-input-select__chip_container">
+            <div
+                v-if="isOptionSelected"
+                class="ww-input-select__chip_container"
+                ref="chipContainer"
+            >
                 <div
                     class="ww-input-select__chip"
-                    v-for="option in localContext?.data?.select?.active?.details"
+                    v-for="(option, index) in localContext?.data?.select?.active?.details"
                     :key="option.value"
+                    :ref="setChipRef"
+                    v-show="index < visibleChipCount"
                     @click="e => handleChipClick(e, option.value)"
                     :style="chipStyle"
                 >
                     <span>{{ option.label }}</span>
                     <div v-html="chipIconUnselect" :style="chipIconStyle" aria-hidden="true"></div>
+                </div>
+                <div
+                    v-if="hiddenChipCount > 0"
+                    class="ww-input-select__chip"
+                    :style="chipStyle"
+                >
+                    <span>+{{ hiddenChipCount }}</span>
                 </div>
             </div>
             <span v-else :style="placeholderStyle">{{ data.placeholder }}</span>
@@ -28,7 +41,7 @@
 </template>
 
 <script>
-import { computed, inject, ref, watch } from 'vue';
+import { computed, inject, ref, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 
 const CLOSE_CHIP_PLACEHOLDER =
     '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-up"><path d="m18 15-6-6-6 6"/></svg>';
@@ -164,6 +177,78 @@ export default {
         const chipIcon = ref(null);
         const chipIconUnselect = ref(null);
 
+        const chipContainer = ref(null);
+        const chipRefs = ref([]);
+        const visibleChipCount = ref(Infinity);
+        const hiddenChipCount = ref(0);
+
+        const setChipRef = el => {
+            if (el) chipRefs.value.push(el);
+        };
+
+        const updateVisibleChips = () => {
+            nextTick(() => {
+                const container = chipContainer.value;
+                if (!container) return;
+                const containerWidth = container.clientWidth;
+                const chips = chipRefs.value;
+                let used = 0;
+                let count = chips.length;
+                for (let i = 0; i < chips.length; i++) {
+                    const w = chips[i].offsetWidth;
+                    if (used + w <= containerWidth) {
+                        used += w;
+                    } else {
+                        count = i;
+                        break;
+                    }
+                }
+                let hidden = chips.length - count;
+                if (hidden > 0) {
+                    const placeholder = document.createElement('div');
+                    placeholder.className = 'ww-input-select__chip';
+                    placeholder.style.visibility = 'hidden';
+                    placeholder.style.position = 'absolute';
+                    container.appendChild(placeholder);
+                    let moreWidth = 0;
+                    do {
+                        placeholder.textContent = `+${hidden}`;
+                        moreWidth = placeholder.offsetWidth;
+                        if (used + moreWidth > containerWidth && count > 0) {
+                            count--;
+                            hidden++;
+                            used -= chips[count].offsetWidth;
+                        } else {
+                            break;
+                        }
+                    } while (used + moreWidth > containerWidth && count > 0);
+                    container.removeChild(placeholder);
+                }
+                if (hidden > 0 && count > 0) {
+                    count--;
+                    hidden++;
+                }
+                visibleChipCount.value = count;
+                hiddenChipCount.value = hidden;
+            });
+        };
+
+        watch(
+            () => localContext.value?.data?.select?.active?.details,
+            () => {
+                chipRefs.value = [];
+                visibleChipCount.value = Infinity;
+                hiddenChipCount.value = 0;
+                updateVisibleChips();
+            },
+            { deep: true }
+        );
+
+        onMounted(() => {
+            window.addEventListener('resize', updateVisibleChips);
+        });
+        onBeforeUnmount(() => window.removeEventListener('resize', updateVisibleChips));
+
         watch(
             [isOpen, () => props.content.triggerIconOpen, () => props.content.triggerIconClose],
             async () => {
@@ -223,6 +308,10 @@ export default {
             chipIconUnselect,
             isOpen,
             handleChipClick,
+            chipContainer,
+            setChipRef,
+            visibleChipCount,
+            hiddenChipCount,
         };
     },
 };
@@ -242,7 +331,8 @@ export default {
         align-items: center;
         gap: 5px;
         width: 100%;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
+        overflow: hidden;
 
         .ww-input-select__chip {
             display: flex;
