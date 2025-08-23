@@ -187,11 +187,19 @@ export default {
                 : false;
         }
 
+        function getGroupValue(option, path) {
+            return path
+                .split('.')
+                .reduce((obj, key) => (obj == null ? undefined : obj[key]), option);
+        }
+
+
         const groupedOptions = computed(() => {
             if (!props.content.groupBy) return [];
             const groups = new Map();
             for (let option of filteredOptions.value) {
-                const key = option?.[props.content.groupBy];
+                const key = getGroupValue(option, props.content.groupBy);
+
                 const group = key != null ? key : '';
                 if (!groups.has(group)) groups.set(group, []);
                 groups.get(group).push(option);
@@ -300,4 +308,10 @@ export default {
 
 <style>
 @import 'vue-virtual-scroller/dist/vue-virtual-scroller.css';
+
+.ww-select-group-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
 </style>
