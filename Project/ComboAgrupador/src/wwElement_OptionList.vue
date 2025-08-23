@@ -39,6 +39,7 @@
     </DynamicScroller>
 
 
+
     <!-- <div v-else-if="!virtualScroll && filteredOptions.length > 0" style="height: 100%;overflow: auto;">
         <wwLayoutItemContext
             v-for="(item, index) in filteredOptions"
@@ -190,19 +191,13 @@ export default {
                 : false;
         }
 
-        function getGroupValue(option, path) {
-            return path
-                .split('.')
-                .reduce((obj, key) => (obj == null ? undefined : obj[key]), option);
-        }
-
         const groupedOptions = computed(() => {
             if (!props.content.groupBy) return { groups: [], ungrouped: filteredOptions.value };
 
             const groups = new Map();
             const ungrouped = [];
             for (const option of filteredOptions.value) {
-                const key = getGroupValue(option, props.content.groupBy);
+                const key = wwLib.resolveObjectPropertyPath(option, props.content.groupBy);
                 if (key === undefined || key === null || key === '') {
                     ungrouped.push(option);
                 } else {
@@ -255,6 +250,21 @@ export default {
 
             return items;
         });
+
+        function isGroupSelected(group) {
+            return group.items.every(item => isValueSelected(getOptionValue(item)));
+        }
+
+        function toggleGroup(group) {
+            const values = group.items.map(getOptionValue);
+            const allSelected = values.every(isValueSelected);
+            if (allSelected) {
+                values.forEach(v => removeSpecificValue(v));
+            } else {
+                updateValue(values);
+            }
+        }
+
 
         function isGroupSelected(group) {
             return group.items.every(item => isValueSelected(getOptionValue(item)));
