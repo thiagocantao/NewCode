@@ -17,6 +17,12 @@
                 <wwLayoutItemContext :key="index" is-repeat :index="index" :data="item">
                     <template v-if="item.__type === 'group'">
                         <div class="ww-select-group" :style="{ padding: content.optionPadding }">
+                            <span
+                                class="material-symbols-outlined ww-select-group-icon"
+                                @click.stop="toggleGroupCollapse(item.label)"
+                            >
+                                {{ collapsedGroups.has(item.label) ? 'chevron_right' : 'expand_more' }}
+                            </span>
                             <label v-if="selectType === 'multiple'" class="ww-select-group-label">
                                 <input
                                     type="checkbox"
@@ -29,7 +35,10 @@
                         </div>
                     </template>
                     <template v-else>
-                        <div :style="index != dynamicScrollerItems.length - 1 ? { paddingBottom: content.optionSpacing } : {}">
+                        <div
+                            :class="{ 'ww-select-grouped-option': item.__group }"
+                            :style="index != dynamicScrollerItems.length - 1 ? { paddingBottom: content.optionSpacing } : {}"
+                        >
                             <ww-element-option :local-data="item" :content="content" :wwEditorState="wwEditorState" />
                         </div>
                     </template>
@@ -118,6 +127,16 @@ export default {
         const virtualScrollSizeDependencies = computed(() => props.content.virtualScrollSizeDependencies);
         const virtualScrollMinItemSize = computed(() => props.content.virtualScrollMinItemSize || 40);
         const virtualScrollBuffer = computed(() => props.content.virtualScrollBuffer || 400);
+
+        const collapsedGroups = ref(new Set());
+
+        function toggleGroupCollapse(label) {
+            if (collapsedGroups.value.has(label)) {
+                collapsedGroups.value.delete(label);
+            } else {
+                collapsedGroups.value.add(label);
+            }
+        }
 
         const emptyStateText = computed(() => wwLib.wwLang.getText(props.content.emptyStateText));
 
@@ -228,14 +247,16 @@ export default {
 
             groups.forEach((group, gIndex) => {
                 items.push({ __type: 'group', label: group.label, items: group.items, id: `group_${gIndex}` });
-                group.items.forEach((item, index) => {
-                    const isPrimitive = typeof item !== 'object' || item === null;
-                    if (isPrimitive) {
-                        items.push({ value: item, id: `id_${gIndex}_${index}` });
-                    } else {
-                        items.push({ ...item, id: item.id ?? `id_${gIndex}_${index}` });
-                    }
-                });
+                if (!collapsedGroups.value.has(group.label)) {
+                    group.items.forEach((item, index) => {
+                        const isPrimitive = typeof item !== 'object' || item === null;
+                        if (isPrimitive) {
+                            items.push({ value: item, id: `id_${gIndex}_${index}`, __group: group.label });
+                        } else {
+                            items.push({ ...item, id: item.id ?? `id_${gIndex}_${index}`, __group: group.label });
+                        }
+                    });
+                }
             });
 
             // Add ungrouped items without a group header
@@ -348,6 +369,8 @@ export default {
             selectType,
             isGroupSelected,
             toggleGroup,
+            collapsedGroups,
+            toggleGroupCollapse,
         };
     },
 };
@@ -360,6 +383,20 @@ export default {
     display: flex;
     align-items: center;
     gap: 0.5em;
+}
+
+.ww-select-group {
+    display: flex;
+    align-items: center;
+    gap: 0.25em;
+}
+
+.ww-select-group-icon {
+    cursor: pointer;
+}
+
+.ww-select-grouped-option {
+    padding-left: 1.5em;
 }
 </style>
 
