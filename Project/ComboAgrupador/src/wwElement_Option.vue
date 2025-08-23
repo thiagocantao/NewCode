@@ -21,10 +21,10 @@
                 @change.stop="toggle"
                 @click.stop
             />
-            <span>{{ data.label }}</span>
+            <span :style="optionTextStyles">{{ data.label }}</span>
         </label>
         <template v-else>
-            <span>{{ data.label }}</span>
+            <span :style="optionTextStyles">{{ data.label }}</span>
             <div v-if="data.isSelected" v-html="optionIcon" :style="optionIconStyle" aria-hidden="true"></div>
         </template>
     </div>
@@ -101,8 +101,7 @@ export default {
         const optionStyles = computed(() => {
             return {
                 padding: props.content.optionPadding,
-                'background-color': resolvedBgColor.value || props.content.optionBgColor,
-                color: resolvedFontColor.value || props.content.optionFontColor,
+
                 'font-family': props.content.optionFontFamily,
                 'font-size': props.content.optionFontSize,
                 'font-weight': props.content.optionFontWeight,
@@ -113,6 +112,17 @@ export default {
                 '--ww-select-option-bg-color-focused': props.content.optionBgColorFocused,
             };
         });
+
+        const optionTextStyles = computed(() => {
+            return {
+                display: 'inline-block',
+                padding: '4px 6px',
+                'background-color': resolvedBgColor.value || props.content.optionBgColor,
+                color: resolvedFontColor.value || props.content.optionFontColor,
+                'border-radius': props.content.optionBorderRadius,
+            };
+        });
+
 
         const optionIcon = ref(null);
 
@@ -333,6 +343,7 @@ export default {
             activeDescendant,
             option,
             optionStyles,
+            optionTextStyles,
             optionIcon,
             optionIconStyle,
             contextMethods,
