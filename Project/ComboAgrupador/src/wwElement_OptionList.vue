@@ -17,7 +17,7 @@
                 <wwLayoutItemContext :key="index" is-repeat :index="index" :data="item">
                     <template v-if="item.__type === 'group'">
                         <div class="ww-select-group" :style="{ padding: content.optionPadding }">
-                            <span
+                            <span style="font-size:16px"
                                 class="material-symbols-outlined ww-select-group-icon"
                                 @click.stop="toggleGroupCollapse(item.label)"
                             >
@@ -394,6 +394,7 @@ export default {
 
 .ww-select-group-icon {
     cursor: pointer;
+    font-size: 15px;
 }
 
 .ww-select-grouped-option {
