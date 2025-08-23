@@ -38,6 +38,7 @@
         </template>
     </DynamicScroller>
 
+
     <!-- <div v-else-if="!virtualScroll && filteredOptions.length > 0" style="height: 100%;overflow: auto;">
         <wwLayoutItemContext
             v-for="(item, index) in filteredOptions"
@@ -62,6 +63,7 @@ import { ref, inject, computed, watch, toValue } from 'vue';
 import { DynamicScroller, DynamicScrollerItem } from 'vue-virtual-scroller';
 import { useMemoize } from '@vueuse/core';
 import { areValuesEqual } from './utils';
+
 /* wwEditor:start */
 import useEditorHint from './editor/useEditorHint';
 /* wwEditor:end */
@@ -110,6 +112,7 @@ export default {
         const updateValue = inject('_wwSelect:updateValue', () => {});
         const removeSpecificValue = inject('_wwSelect:removeSpecificValue', () => {});
         const mappingValue = inject('_wwSelect:mappingValue', ref(null));
+
         const virtualScroll = computed(() => props.content.virtualScroll);
         const virtualScrollSizeDependencies = computed(() => props.content.virtualScrollSizeDependencies);
         const virtualScrollMinItemSize = computed(() => props.content.virtualScrollMinItemSize || 40);
@@ -267,6 +270,21 @@ export default {
             }
         }
 
+
+        function isGroupSelected(group) {
+            return group.items.every(item => isValueSelected(getOptionValue(item)));
+        }
+
+        function toggleGroup(group) {
+            const values = group.items.map(getOptionValue);
+            const allSelected = values.every(isValueSelected);
+            if (allSelected) {
+                values.forEach(v => removeSpecificValue(v));
+            } else {
+                updateValue(values);
+            }
+        }
+
         watch(filteredOptions, () => {
             if (updateSearch) {
                 const searchMatches = searchState.value && searchState.value.value ? filteredOptions.value : [];
@@ -334,3 +352,4 @@ export default {
     gap: 0.5em;
 }
 </style>
+
