@@ -193,11 +193,13 @@ export default {
                 .reduce((obj, key) => (obj == null ? undefined : obj[key]), option);
         }
 
+
         const groupedOptions = computed(() => {
             if (!props.content.groupBy) return [];
             const groups = new Map();
             for (let option of filteredOptions.value) {
                 const key = getGroupValue(option, props.content.groupBy);
+
                 const group = key != null ? key : '';
                 if (!groups.has(group)) groups.set(group, []);
                 groups.get(group).push(option);
