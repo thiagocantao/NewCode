@@ -101,6 +101,7 @@ export default {
         const optionStyles = computed(() => {
             return {
                 padding: props.content.optionPadding,
+
                 'font-family': props.content.optionFontFamily,
                 'font-size': props.content.optionFontSize,
                 'font-weight': props.content.optionFontWeight,
@@ -121,6 +122,7 @@ export default {
                 'border-radius': props.content.optionBorderRadius,
             };
         });
+
 
         const optionIcon = ref(null);
 
