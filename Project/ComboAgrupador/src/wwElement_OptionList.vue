@@ -396,7 +396,7 @@ export default {
 }
 
 .ww-select-grouped-option {
-    padding-left: 1.5em;
+    margin-left: 1em;
 }
 </style>
 

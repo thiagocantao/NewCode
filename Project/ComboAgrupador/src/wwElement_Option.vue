@@ -21,10 +21,10 @@
                 @change.stop="toggle"
                 @click.stop
             />
-            <span>{{ data.label }}</span>
+            <span :style="optionTextStyles">{{ data.label }}</span>
         </label>
         <template v-else>
-            <span>{{ data.label }}</span>
+            <span :style="optionTextStyles">{{ data.label }}</span>
             <div v-if="data.isSelected" v-html="optionIcon" :style="optionIconStyle" aria-hidden="true"></div>
         </template>
     </div>
@@ -85,13 +85,22 @@ export default {
         const mappingLabel = inject('_wwSelect:mappingLabel', ref(null));
         const mappingValue = inject('_wwSelect:mappingValue', ref(null));
         const mappingDisabled = inject('_wwSelect:mappingDisabled', ref(null));
+        const mappingBgColor = inject('_wwSelect:mappingBgColor', ref(null));
+        const mappingFontColor = inject('_wwSelect:mappingFontColor', ref(null));
 
         // Styles
+        const resolvedBgColor = computed(() => {
+            const path = toValue(mappingBgColor);
+            return path ? wwLib.resolveObjectPropertyPath(props.localData, path) : null;
+        });
+        const resolvedFontColor = computed(() => {
+            const path = toValue(mappingFontColor);
+            return path ? wwLib.resolveObjectPropertyPath(props.localData, path) : null;
+        });
+
         const optionStyles = computed(() => {
             return {
                 padding: props.content.optionPadding,
-                'background-color': props.content.optionBgColor,
-                color: props.content.optionFontColor,
                 'font-family': props.content.optionFontFamily,
                 'font-size': props.content.optionFontSize,
                 'font-weight': props.content.optionFontWeight,
@@ -100,6 +109,16 @@ export default {
                 border: props.content.optionBorder,
                 '--ww-select-option-bg-color-hover': props.content.optionBgColorHover,
                 '--ww-select-option-bg-color-focused': props.content.optionBgColorFocused,
+            };
+        });
+
+        const optionTextStyles = computed(() => {
+            return {
+                display: 'inline-block',
+                padding: '4px 6px',
+                'background-color': resolvedBgColor.value || props.content.optionBgColor,
+                color: resolvedFontColor.value || props.content.optionFontColor,
+                'border-radius': props.content.optionBorderRadius,
             };
         });
 
@@ -322,6 +341,7 @@ export default {
             activeDescendant,
             option,
             optionStyles,
+            optionTextStyles,
             optionIcon,
             optionIconStyle,
             contextMethods,

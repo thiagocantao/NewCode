@@ -184,6 +184,8 @@ export default {
         const mappingLabel = computed(() => props.content.mappingLabel);
         const mappingValue = computed(() => props.content.mappingValue);
         const mappingDisabled = computed(() => props.content.mappingDisabled);
+        const mappingBgColor = computed(() => props.content.optionBgColorField);
+        const mappingFontColor = computed(() => props.content.optionFontColorField);
         const showSearch = computed(() => props.content.showSearch);
         const allowScrollingWhenOpen = computed(() => props.content.allowScrollingWhenOpen);
 
@@ -845,6 +847,8 @@ export default {
         provide('_wwSelect:mappingLabel', mappingLabel);
         provide('_wwSelect:mappingValue', mappingValue);
         provide('_wwSelect:mappingDisabled', mappingDisabled);
+        provide('_wwSelect:mappingBgColor', mappingBgColor);
+        provide('_wwSelect:mappingFontColor', mappingFontColor);
         provide('_wwSelect:rawData', rawData);
         provide('_wwSelect:options', options);
         provide('_wwSelect:type', selectType);
