@@ -120,6 +120,7 @@ export default {
                 'background-color': resolvedBgColor.value || props.content.optionBgColor,
                 color: resolvedFontColor.value || props.content.optionFontColor,
                 'border-radius': props.content.optionBorderRadius,
+                'font-size' : '13px',
             };
         });
 
@@ -362,6 +363,7 @@ export default {
 .ww-select-option {
     cursor: pointer;
     display: flex;
+    font-size: 13px;
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
