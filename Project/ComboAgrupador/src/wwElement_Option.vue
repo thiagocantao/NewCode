@@ -85,13 +85,24 @@ export default {
         const mappingLabel = inject('_wwSelect:mappingLabel', ref(null));
         const mappingValue = inject('_wwSelect:mappingValue', ref(null));
         const mappingDisabled = inject('_wwSelect:mappingDisabled', ref(null));
+        const mappingBgColor = inject('_wwSelect:mappingBgColor', ref(null));
+        const mappingFontColor = inject('_wwSelect:mappingFontColor', ref(null));
 
         // Styles
+        const resolvedBgColor = computed(() => {
+            const path = toValue(mappingBgColor);
+            return path ? wwLib.resolveObjectPropertyPath(props.localData, path) : null;
+        });
+        const resolvedFontColor = computed(() => {
+            const path = toValue(mappingFontColor);
+            return path ? wwLib.resolveObjectPropertyPath(props.localData, path) : null;
+        });
+
         const optionStyles = computed(() => {
             return {
                 padding: props.content.optionPadding,
-                'background-color': props.content.optionBgColor,
-                color: props.content.optionFontColor,
+                'background-color': resolvedBgColor.value || props.content.optionBgColor,
+                color: resolvedFontColor.value || props.content.optionFontColor,
                 'font-family': props.content.optionFontFamily,
                 'font-size': props.content.optionFontSize,
                 'font-weight': props.content.optionFontWeight,
