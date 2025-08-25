@@ -39,6 +39,7 @@
           </span>
         </div>
         <div class="user-selector__group-count">{{ currentGroupCountLabel }}</div>
+
       </template>
       <template v-else>
         <div class="user-selector__search">
@@ -202,6 +203,7 @@ export default {
       selectedUserIdVar: null,
       currentGroup: null,
       groupStack: []
+
     };
   },
   computed: {
@@ -310,6 +312,7 @@ export default {
       if (!this.isOpen) {
         this.currentGroup = null;
         this.groupStack = [];
+
         this.search = '';
       }
     },
@@ -318,6 +321,7 @@ export default {
         this.isOpen = false;
         this.currentGroup = null;
         this.groupStack = [];
+
         this.search = '';
       }
     },
@@ -334,12 +338,14 @@ export default {
     openGroup(group) {
       if (group.groupUsers && group.groupUsers.length) {
         this.groupStack.push(this.currentGroup);
+
         this.currentGroup = group;
         this.search = '';
       }
     },
     backToRoot() {
       this.currentGroup = this.groupStack.pop() || null;
+
       this.search = '';
     },
     handleClickOutside(event) {
