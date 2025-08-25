@@ -271,6 +271,7 @@ export default {
     unassignedLabel: { type: String, default: 'Unassigned' },
     searchPlaceholder: { type: String, default: 'Search user...' },
     initialSelectedId: [String, Number, Object],
+    initialGroupId: [String, Number],
     selectedUserId: [String, Number, Object],
     uid: String,
     maxWidth: [String, Number],
@@ -383,13 +384,15 @@ export default {
         this.setSelectedFromValue(newVal);
       }
     },
-    initialSelectedId(newVal) {
-      this.setSelectedFromValue(newVal);
+    initialSelectedId() {
+      this.initializeSelectedUser();
+    },
+    initialGroupId() {
+      this.initializeSelectedUser();
     },
     datasource: {
       handler() {
-        const target = this.selectedUserId || this.initialSelectedId;
-        this.setSelectedFromValue(target);
+        this.initializeSelectedUser();
       },
       deep: true
     },
@@ -472,7 +475,14 @@ export default {
       return ['GROUP', 'GROUPS', 'GRUPO', 'GRUPOS'].includes(value);
     },
     initializeSelectedUser() {
-      const target = this.selectedUserId || this.initialSelectedId;
+      let target = this.selectedUserId;
+      if (target == null) {
+        if (this.initialGroupId != null) {
+          target = { userid: this.initialSelectedId ?? null, groupid: this.initialGroupId };
+        } else {
+          target = this.initialSelectedId;
+        }
+      }
       this.setSelectedFromValue(target);
     },
     setSelectedFromValue(value) {
