@@ -1,6 +1,12 @@
 <template>
   <div ref="dropdownRoot" class="user-selector-dropdown">
-    <div class="user-selector__selected" @click="toggleDropdown" :style="containerStyle">
+    <div
+      class="user-selector__selected"
+      @click="toggleDropdown"
+      :style="containerStyle"
+      :class="{ 'user-selector__selected--group-user': selectedGroup && selectedUser }"
+    >
+
       <template v-if="!selectedGroup && !selectedUser">
         <div class="user-selector__avatar-unassigned">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -10,7 +16,12 @@
         </div>
       </template>
       <template v-else-if="selectedGroup && selectedUser">
-        <div class="avatar-outer group-avatar-wrapper" @mouseenter="showGroupTooltip = true" @mouseleave="showGroupTooltip = false">
+        <div
+          class="avatar-outer group-avatar-wrapper selected-group-avatar"
+          @mouseenter="showGroupTooltip = true"
+          @mouseleave="showGroupTooltip = false"
+        >
+
           <div class="avatar-middle">
             <div class="user-selector__avatar">
               <template v-if="selectedGroup.PhotoURL || selectedGroup.PhotoUrl">
@@ -26,7 +37,8 @@
             <div class="user-selector__group-tooltip-count">{{ selectedGroup.groupUsers?.length || 0 }} {{ (selectedGroup.groupUsers?.length || 0) === 1 ? 'member' : 'members' }}</div>
           </div>
         </div>
-        <div class="avatar-outer">
+        <div class="avatar-outer selected-user-avatar">
+
           <div class="avatar-middle">
             <div class="user-selector__avatar">
               <template v-if="selectedUser.PhotoURL || selectedUser.PhotoUrl">
@@ -538,6 +550,19 @@ export default {
 .group-avatar-wrapper {
   position: relative;
 }
+.user-selector__selected--group-user {
+  gap: 0;
+}
+.user-selector__selected--group-user .selected-group-avatar {
+  margin-right: -8px;
+  position: relative;
+  z-index: 1;
+}
+.user-selector__selected--group-user .selected-user-avatar {
+  position: relative;
+  z-index: 2;
+}
+
 .user-selector__group-tooltip {
   position: absolute;
   bottom: 120%;
