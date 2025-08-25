@@ -40,33 +40,41 @@
 
       <div class="user-selector__list">
         <template v-if="groupBy">
-          <template v-for="group in groupedUsers.groups" :key="group.label">
-            <div class="user-selector__group-label" :style="nameStyle">{{ group.label }}</div>
+          <div
+            class="user-selector__group"
+            v-for="group in groupedUsers.groups"
+            :key="group.label"
+          >
+            <div class="user-selector__group-label" :style="nameStyle">
+              {{ group.label }}
+            </div>
 
-            <div
-              v-for="user in group.items"
-              :key="user.id"
-              class="user-selector__item"
-              :class="{ disabled: user.isEnabled === false }"
-              @click.stop="user.isEnabled === false ? null : selectUser(user)"
-            >
-              <div class="avatar-outer">
-                <div class="avatar-middle">
-                  <div class="user-selector__avatar">
-                    <template v-if="user.PhotoURL || user.PhotoUrl">
-                      <img :src="user.PhotoURL || user.PhotoUrl" alt="User Photo" />
-                    </template>
-                    <template v-else>
-                      <span class="user-selector__initial" :style="initialStyle">
-                        {{ getInitial(user.name) }}
-                      </span>
-                    </template>
+            <div class="user-selector__group-items">
+              <div
+                v-for="user in group.items"
+                :key="user.id"
+                class="user-selector__item"
+                :class="{ disabled: user.isEnabled === false }"
+                @click.stop="user.isEnabled === false ? null : selectUser(user)"
+              >
+                <div class="avatar-outer">
+                  <div class="avatar-middle">
+                    <div class="user-selector__avatar">
+                      <template v-if="user.PhotoURL || user.PhotoUrl">
+                        <img :src="user.PhotoURL || user.PhotoUrl" alt="User Photo" />
+                      </template>
+                      <template v-else>
+                        <span class="user-selector__initial" :style="initialStyle">
+                          {{ getInitial(user.name) }}
+                        </span>
+                      </template>
+                    </div>
                   </div>
                 </div>
+                <span class="user-selector__name" :style="nameStyle">{{ user.name }}</span>
               </div>
-              <span class="user-selector__name" :style="nameStyle">{{ user.name }}</span>
             </div>
-          </template>
+          </div>
 
           <div
             v-for="user in groupedUsers.ungrouped"
@@ -478,6 +486,33 @@ export default {
   padding: 4px 12px;
   font-weight: 600;
   color: #444;
+}
+
+.user-selector__group-items {
+  max-height: 200px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #bdbdbd transparent;
+}
+
+.user-selector__group-items::-webkit-scrollbar {
+  width: 6px;
+  background: transparent;
+  border-radius: 12px;
+}
+
+.user-selector__group-items::-webkit-scrollbar-thumb {
+  background: #bdbdbd;
+  border-radius: 12px;
+}
+
+.user-selector__group-items::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.user-selector__group-items::-webkit-scrollbar-button {
+  display: none;
+  height: 0;
 }
 .user-selector__no-results {
   color: #aaa;
