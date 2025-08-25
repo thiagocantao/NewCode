@@ -1175,6 +1175,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               cellType === 'DATE' ||
               cellType === 'DATETIME';
             if (isDateField) {
+
               result.filter = DateTimeFilter;
               // Remove default date configuration applied above
               delete result.cellDataType;

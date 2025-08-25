@@ -23,6 +23,7 @@ export default class DateTimeFilter {
     this.eGui.innerHTML = `
       <input type="date" class="from-date" style="flex:1;" lang="${this.lang}" />
       <input type="date" class="to-date" style="flex:1;" lang="${this.lang}" />
+
     `;
     this.fromInput = this.eGui.querySelector('.from-date');
     this.toInput = this.eGui.querySelector('.to-date');
@@ -30,6 +31,7 @@ export default class DateTimeFilter {
     this.fromInput.addEventListener('input', listener);
     this.toInput.addEventListener('input', listener);
   }
+
 
   isFilterActive() {
     return this.fromInput.value !== '' || this.toInput.value !== '';
@@ -42,6 +44,7 @@ export default class DateTimeFilter {
     if (isNaN(date.getTime())) return false;
     const from = this.fromInput.value ? new Date(this.fromInput.value) : null;
     const to = this.toInput.value ? new Date(this.toInput.value) : null;
+
     if (from && date < from) return false;
     if (to && date > to) return false;
     return true;
