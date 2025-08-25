@@ -31,7 +31,9 @@
         <div class="user-selector__group-header">
           <span
             class="material-symbols-outlined user-selector__back"
-            @click="backToRoot"
+
+            @click.stop="backToRoot"
+
             >chevron_left</span
           >
           <span class="user-selector__group-title" :style="nameStyle">
@@ -345,8 +347,9 @@ export default {
     },
     backToRoot() {
       this.currentGroup = this.groupStack.pop() || null;
-
       this.search = '';
+      this.isOpen = true;
+
     },
     handleClickOutside(event) {
       this.closeDropdown(event);
