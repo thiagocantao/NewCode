@@ -271,6 +271,7 @@ export default {
     unassignedLabel: { type: String, default: 'Unassigned' },
     searchPlaceholder: { type: String, default: 'Search user...' },
     initialSelectedId: [String, Number, Object],
+    initialGroupId: [String, Number],
     selectedUserId: [String, Number, Object],
     uid: String,
     maxWidth: [String, Number],
@@ -379,17 +380,26 @@ export default {
   watch: {
     selectedUserId: {
       immediate: true,
+      deep: true,
       handler(newVal) {
         this.setSelectedFromValue(newVal);
       }
     },
-    initialSelectedId(newVal) {
-      this.setSelectedFromValue(newVal);
+    initialSelectedId: {
+      immediate: true,
+      handler() {
+        this.initializeSelectedUser(true);
+      }
+    },
+    initialGroupId: {
+      immediate: true,
+      handler() {
+        this.initializeSelectedUser(true);
+      }
     },
     datasource: {
       handler() {
-        const target = this.selectedUserId || this.initialSelectedId;
-        this.setSelectedFromValue(target);
+        this.initializeSelectedUser();
       },
       deep: true
     },
@@ -471,8 +481,21 @@ export default {
       const value = String(label || '').toUpperCase();
       return ['GROUP', 'GROUPS', 'GRUPO', 'GRUPOS'].includes(value);
     },
-    initializeSelectedUser() {
-      const target = this.selectedUserId || this.initialSelectedId;
+    initializeSelectedUser(force = false) {
+      let target = this.selectedUserId;
+      const hasSelected = !force && target !== undefined && target !== null && target !== '';
+      if (!hasSelected) {
+        const groupId =
+          this.initialGroupId !== undefined && this.initialGroupId !== null && this.initialGroupId !== ''
+            ? this.initialGroupId
+            : null;
+        const userId =
+          this.initialSelectedId !== undefined && this.initialSelectedId !== null && this.initialSelectedId !== ''
+            ? this.initialSelectedId
+            : null;
+
+        target = groupId !== null ? { userid: userId, groupid: groupId } : userId;
+      }
       this.setSelectedFromValue(target);
     },
     setSelectedFromValue(value) {
@@ -482,20 +505,27 @@ export default {
         return;
       }
       if (typeof value === 'object') {
-        const group = value.groupid != null ? (this.datasource || []).find(u => String(u.id) === String(value.groupid)) : null;
+        const hasGroupId = value.groupid !== undefined && value.groupid !== null && value.groupid !== '';
+        const group = hasGroupId ? (this.datasource || []).find(u => String(u.id) === String(value.groupid)) : null;
         this.selectedGroup = group || null;
-        if (group && value.userid != null) {
+
+        const hasUserId = value.userid !== undefined && value.userid !== null && value.userid !== '';
+        if (group && hasUserId) {
           const user = (group.groupUsers || []).find(u => String(u.id) === String(value.userid));
           this.selectedUser = user || null;
-        } else if (group && value.userid == null) {
+        } else if (group && !hasUserId) {
           this.selectedUser = null;
-        } else {
+        } else if (hasUserId) {
           const user = (this.datasource || []).find(u => String(u.id) === String(value.userid));
           this.selectedUser = user || null;
           this.selectedGroup = null;
+        } else {
+          this.selectedUser = null;
+          this.selectedGroup = null;
         }
       } else {
-        const user = (this.datasource || []).find(u => String(u.id) === String(value));
+        const hasId = value !== undefined && value !== null && value !== '';
+        const user = hasId ? (this.datasource || []).find(u => String(u.id) === String(value)) : null;
         this.selectedUser = user || null;
         this.selectedGroup = null;
       }

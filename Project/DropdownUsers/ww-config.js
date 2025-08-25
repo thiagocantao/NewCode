@@ -159,6 +159,12 @@ export default {
             defaultValue: '',
             bindable: true,
         },
+        initialGroupId: {
+            label: { en: 'Initial group ID' },
+            type: 'text',
+            defaultValue: '',
+            bindable: true,
+        },
         maxWidth: {
             label: { en: 'Max width' },
             type: 'text',
