@@ -1145,7 +1145,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             if (colCopy.headerAlign) {
               result.headerClass = `ag-header-align-${colCopy.headerAlign}`;
             }
-            // Formatação especial para DEADLINE
+            // Formatação especial para campos de usuário ou data
             const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
             const identifier = (colCopy.FieldDB || '').toUpperCase();
 
@@ -1165,7 +1165,17 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                 };
               }
             }
-            if (tagControl === 'DEADLINE') {
+            const isDeadline = tagControl === 'DEADLINE';
+            const cellType = (colCopy.cellDataType || '').toUpperCase();
+            const isDateField =
+              isDeadline ||
+              tagControl === 'DATE' ||
+              tagControl === 'DATETIME' ||
+              identifier.includes('DATE') ||
+              cellType === 'DATE' ||
+              cellType === 'DATETIME';
+            if (isDateField) {
+
               result.filter = DateTimeFilter;
               // Remove default date configuration applied above
               delete result.cellDataType;
@@ -1194,6 +1204,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                 };
                 delete result.valueParser;
               }
+            }
+            if (isDeadline) {
               result.cellRenderer = params => {
                 // Função utilitária para calcular diff e cor (idêntica ao FieldComponent.vue)
                 function normalizeDeadline(val) {
