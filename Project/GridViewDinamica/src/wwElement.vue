@@ -58,7 +58,9 @@
       this.closeBtn = this.eGui.querySelector('.editor-close');
 
       let optionsArr = [];
-      if (Array.isArray(params.colDef.options)) {
+      if (Array.isArray(params.options)) {
+        optionsArr = params.options;
+      } else if (Array.isArray(params.colDef.options)) {
         optionsArr = params.colDef.options;
       } else if (Array.isArray(params.colDef.listOptions)) {
         optionsArr = params.colDef.listOptions;
@@ -288,7 +290,7 @@
     return [];
   };
 
-  const loadApiOptions = async col => {
+  const loadApiOptions = async (col, ticketId) => {
     try {
       const lang = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
       const companyId = window.wwLib?.wwVariable?.getValue('5d099f04-cd42-41fd-94ad-22d4de368c3a');
@@ -304,7 +306,8 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...(companyId ? { p_idcompany: companyId } : {}),
-          ...(lang ? { p_language: lang } : {})
+          ...(lang ? { p_language: lang } : {}),
+          ...(ticketId ? { p_ticketid: ticketId } : {})
         })
       };
 
@@ -341,7 +344,7 @@
     }
   };
 
-  const getColumnOptions = async col => {
+  const getColumnOptions = async (col, ticketId) => {
     let opts = [];
     if (col.listOptions) {
       opts = parseStaticOptions(col.listOptions);
@@ -353,7 +356,7 @@
 
     const hasFn = col.dataSource?.functionName || col.dataSource?.dataSource?.functionName;
     if (!opts.length && hasFn) {
-      opts = await loadApiOptions(col);
+      opts = await loadApiOptions(col, ticketId);
     }
 
     return opts;
@@ -361,10 +364,15 @@
 
   const loadAllColumnOptions = async () => {
     if (!props.content || !Array.isArray(props.content.columns)) return;
+    const rows = wwLib.wwUtils.getDataFromCollection(props.content.rowData) || [];
     const result = {};
     for (const col of props.content.columns) {
       const colId = col.id || col.field;
-      result[colId] = await getColumnOptions(col);
+      result[colId] = {};
+      for (const row of rows) {
+        const ticketId = row?.TicketID;
+        result[colId][ticketId] = await getColumnOptions(col, ticketId);
+      }
     }
     columnOptions.value = result;
   };
@@ -374,6 +382,10 @@
   });
 
   watch(() => props.content?.columns, () => {
+    loadAllColumnOptions();
+  }, { deep: true });
+
+  watch(() => props.content?.rowData, () => {
     loadAllColumnOptions();
   }, { deep: true });
 
@@ -873,7 +885,11 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             }
           };
           const fieldKey = colCopy.id || colCopy.field;
-          const dsOptions = this.columnOptions[fieldKey] || [];
+          const getDsOptions = params => {
+            const ticketId = params.data?.TicketID;
+            const colOpts = this.columnOptions[fieldKey] || {};
+            return colOpts[ticketId] || [];
+          };
 
           if (
             colCopy.cellDataType === 'list' ||
@@ -883,28 +899,51 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               ? colCopy.options
               : Array.isArray(colCopy.listOptions)
               ? colCopy.listOptions
-              : dsOptions;
-            if (optionsArr.length && colCopy.editable) {
+              : null;
+            if (colCopy.editable) {
               result.editable = true;
-              result.cellEditor = ListCellEditor;
-              result.options = optionsArr;
-              result.cellRendererParams = {
-                ...result.cellRendererParams,
-                options: optionsArr,
-              };
+              if (optionsArr && optionsArr.length) {
+                result.cellEditor = ListCellEditor;
+                result.cellEditorParams = { options: optionsArr };
+                const baseRendererParams = result.cellRendererParams;
+                result.cellRendererParams = params => ({
+                  ...(typeof baseRendererParams === 'function'
+                    ? baseRendererParams(params)
+                    : baseRendererParams),
+                  options: optionsArr,
+                });
+              } else {
+                result.cellEditor = FixedListCellEditor;
+                result.cellEditorParams = params => ({ options: getDsOptions(params) });
+                const baseRendererParams = result.cellRendererParams;
+                result.cellRendererParams = params => ({
+                  ...(typeof baseRendererParams === 'function'
+                    ? baseRendererParams(params)
+                    : baseRendererParams),
+                  options: getDsOptions(params),
+                });
+              }
+            } else {
+              const baseRendererParams = result.cellRendererParams;
+              result.cellRendererParams = params => ({
+                ...(typeof baseRendererParams === 'function'
+                  ? baseRendererParams(params)
+                  : baseRendererParams),
+                options: optionsArr || getDsOptions(params),
+              });
             }
           }
-          // Editor fixo quando a coluna possui dataSource
-          if (colCopy.dataSource && dsOptions.length && colCopy.editable) {
+          if (colCopy.dataSource && colCopy.editable) {
             result.editable = true;
             result.cellEditor = FixedListCellEditor;
-            result.listOptions = dsOptions;
-            if (!result.cellRendererParams.options) {
-              result.cellRendererParams = {
-                ...result.cellRendererParams,
-                options: dsOptions,
-              };
-            }
+            result.cellEditorParams = params => ({ options: getDsOptions(params) });
+            const baseRendererParams = result.cellRendererParams;
+            result.cellRendererParams = params => ({
+              ...(typeof baseRendererParams === 'function'
+                ? baseRendererParams(params)
+                : baseRendererParams),
+              options: getDsOptions(params),
+            });
           }
           return result;
         }
@@ -958,7 +997,17 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           case "list":
             {
               const fieldKey = colCopy.id || colCopy.field;
-              const dsOptions = this.columnOptions[fieldKey] || [];
+              const getDsOptions = params => {
+                const ticketId = params.data?.TicketID;
+                const colOpts = this.columnOptions[fieldKey] || {};
+                return colOpts[ticketId] || [];
+              };
+
+              const staticOptions = Array.isArray(colCopy.options)
+                ? colCopy.options
+                : Array.isArray(colCopy.listOptions)
+                ? colCopy.listOptions
+                : null;
 
               const result = {
                 ...commonProperties,
@@ -972,17 +1021,28 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                 cellRendererParams: {
                   useCustomFormatter: colCopy.useCustomFormatter,
                   formatter: colCopy.formatter,
-                  // options will be added below when available
                 },
                 editable: false,
-                cellEditor: ListCellEditor,
-                options: Array.isArray(colCopy.options)
-                  ? colCopy.options
-                  : Array.isArray(colCopy.listOptions)
-                  ? colCopy.listOptions
-                  : dsOptions,
+                cellEditor: staticOptions && staticOptions.length ? ListCellEditor : FixedListCellEditor,
               };
-              if (result.options && result.options.length && colCopy.editable) {
+              if (staticOptions && staticOptions.length) {
+                result.options = staticOptions;
+                result.cellEditorParams = { options: staticOptions };
+                result.cellRendererParams = {
+                  ...result.cellRendererParams,
+                  options: staticOptions,
+                };
+              } else {
+                result.cellEditorParams = params => ({ options: getDsOptions(params) });
+                const baseRendererParams = result.cellRendererParams;
+                result.cellRendererParams = params => ({
+                  ...(typeof baseRendererParams === 'function'
+                    ? baseRendererParams(params)
+                    : baseRendererParams),
+                  options: getDsOptions(params),
+                });
+              }
+              if (colCopy.editable) {
                 result.editable = true;
               }
               // Add cursor pointer style when column is editable
@@ -1215,7 +1275,11 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               };
             }
             const fieldKey = colCopy.id || colCopy.field;
-            const dsOptions = this.columnOptions[fieldKey] || [];
+            const getDsOptions = params => {
+              const ticketId = params.data?.TicketID;
+              const colOpts = this.columnOptions[fieldKey] || {};
+              return colOpts[ticketId] || [];
+            };
             if (
               colCopy.cellDataType === 'list' ||
               (tagControl && tagControl.toUpperCase() === 'LIST')
@@ -1224,29 +1288,49 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                 ? colCopy.options
                 : Array.isArray(colCopy.listOptions)
                 ? colCopy.listOptions
-                : dsOptions;
-              if (optionsArr.length && colCopy.editable) {
+                : null;
+              if (colCopy.editable) {
                 result.editable = true;
-                result.cellEditor = ListCellEditor;
-                result.options = optionsArr;
-                result.cellRendererParams = {
-                  ...result.cellRendererParams,
-                  options: optionsArr,
-                };
+                if (optionsArr && optionsArr.length) {
+                  result.cellEditor = ListCellEditor;
+                  result.cellEditorParams = { options: optionsArr };
+                  result.cellRendererParams = {
+                    ...result.cellRendererParams,
+                    options: optionsArr,
+                  };
+                } else {
+                  result.cellEditor = FixedListCellEditor;
+                  result.cellEditorParams = params => ({ options: getDsOptions(params) });
+                  const baseRendererParams = result.cellRendererParams;
+                  result.cellRendererParams = params => ({
+                    ...(typeof baseRendererParams === 'function'
+                      ? baseRendererParams(params)
+                      : baseRendererParams),
+                    options: getDsOptions(params),
+                  });
+                }
+              } else {
+                const baseRendererParams = result.cellRendererParams;
+                result.cellRendererParams = params => ({
+                  ...(typeof baseRendererParams === 'function'
+                    ? baseRendererParams(params)
+                    : baseRendererParams),
+                  options: optionsArr || getDsOptions(params),
+                });
               }
               // O cellRenderer já aplica a formatação visual
             }
-            // Editor fixo quando a coluna possui dataSource
-            if (colCopy.dataSource && dsOptions.length && colCopy.editable) {
+            if (colCopy.dataSource && colCopy.editable) {
               result.editable = true;
               result.cellEditor = FixedListCellEditor;
-              result.listOptions = dsOptions;
-              if (!result.cellRendererParams.options) {
-                result.cellRendererParams = {
-                  ...result.cellRendererParams,
-                  options: dsOptions,
-                };
-              }
+              result.cellEditorParams = params => ({ options: getDsOptions(params) });
+              const baseRendererParams = result.cellRendererParams;
+              result.cellRendererParams = params => ({
+                ...(typeof baseRendererParams === 'function'
+                  ? baseRendererParams(params)
+                  : baseRendererParams),
+                options: getDsOptions(params),
+              });
             }
             return result;
           }
@@ -1379,7 +1463,9 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
   const identifier = (colDef.FieldDB || '').toUpperCase();
   if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
     const fieldKey = colDef.colId || colDef.field;
-    const opts = this.columnOptions[fieldKey] || [];
+    const colOpts = this.columnOptions[fieldKey] || {};
+    const ticketId = event.data?.TicketID;
+    const opts = ticketId != null ? colOpts[ticketId] || [] : [];
     const match = opts.find(o => String(o.value) === String(event.newValue));
     if (match) {
       if (event.data) {

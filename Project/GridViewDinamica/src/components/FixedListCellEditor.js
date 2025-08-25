@@ -28,7 +28,9 @@ export default class FixedListCellEditor {
 
     // Fixed list options
     let optionsArr = [];
-    if (Array.isArray(params.colDef.listOptions)) {
+    if (Array.isArray(params.options)) {
+      optionsArr = params.options;
+    } else if (Array.isArray(params.colDef.listOptions)) {
       optionsArr = params.colDef.listOptions;
     } else if (
       typeof params.colDef.listOptions === 'string' &&
