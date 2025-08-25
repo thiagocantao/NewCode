@@ -396,6 +396,7 @@ export default {
       handler() {
         this.initializeSelectedUser(true);
       }
+
     },
     datasource: {
       handler() {
@@ -508,6 +509,7 @@ export default {
     initializeSelectedUser(force = false) {
       let target = this.selectedUserId;
       const hasSelected = !force && target !== undefined && target !== null && target !== '';
+
       if (!hasSelected) {
         const groupId =
           this.initialGroupId !== undefined && this.initialGroupId !== null && this.initialGroupId !== ''
@@ -519,6 +521,7 @@ export default {
             : null;
 
         target = groupId !== null ? { userid: userId, groupid: groupId } : userId;
+
       }
       this.setSelectedFromValue(target);
     },
@@ -530,17 +533,21 @@ export default {
       }
       if (typeof value === 'object') {
         const hasGroupId = value.groupid !== undefined && value.groupid !== null && value.groupid !== '';
+
         const group = hasGroupId ? this.findGroupById(value.groupid) : null;
+
         this.selectedGroup = group || null;
 
         const hasUserId = value.userid !== undefined && value.userid !== null && value.userid !== '';
         if (group && hasUserId) {
           const user = this.findUserById(value.userid, group.groupUsers || []);
+
           this.selectedUser = user || null;
         } else if (group && !hasUserId) {
           this.selectedUser = null;
         } else if (hasUserId) {
           const user = this.findUserById(value.userid);
+
           this.selectedUser = user || null;
           this.selectedGroup = null;
         } else {
@@ -549,6 +556,7 @@ export default {
         }
       } else {
         const user = this.findUserById(value);
+
         this.selectedUser = user || null;
         this.selectedGroup = null;
       }
