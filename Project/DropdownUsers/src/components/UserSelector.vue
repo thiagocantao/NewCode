@@ -46,7 +46,7 @@
             :key="group.label"
           >
             <div class="user-selector__group-label" :style="nameStyle">
-              {{ group.label }}
+              {{ group.label.toUpperCase() != "USERS" &&  group.label.toUpperCase() != "USER" && group.label.toUpperCase() != "USUARIOS" ? group.label : ""}}
             </div>
 
             <div class="user-selector__group-items">
@@ -405,7 +405,7 @@ export default {
   flex-direction: column;
 }
 .user-selector__list {
-  max-height: 250px;
+  max-height: 400px;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: #bdbdbd transparent;
@@ -489,7 +489,7 @@ export default {
 }
 
 .user-selector__group-items {
-  max-height: 200px;
+  max-height: 130px;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: #bdbdbd transparent;
