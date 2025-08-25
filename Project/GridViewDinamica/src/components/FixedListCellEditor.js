@@ -1,6 +1,11 @@
 export default class FixedListCellEditor {
   init(params) {
     this.params = params;
+    const colDef = params.colDef || {};
+    this.rendererParams =
+      typeof colDef.cellRendererParams === 'function'
+        ? colDef.cellRendererParams(params)
+        : colDef.cellRendererParams || {};
     this.eGui = document.createElement('div');
     this.eGui.className = 'list-editor';
     this.eGui.innerHTML = `
@@ -28,7 +33,9 @@ export default class FixedListCellEditor {
 
     // Fixed list options
     let optionsArr = [];
-    if (Array.isArray(params.colDef.listOptions)) {
+    if (Array.isArray(params.options)) {
+      optionsArr = params.options;
+    } else if (Array.isArray(params.colDef.listOptions)) {
       optionsArr = params.colDef.listOptions;
     } else if (
       typeof params.colDef.listOptions === 'string' &&
@@ -113,7 +120,7 @@ export default class FixedListCellEditor {
   formatOption(opt) {
     const value = opt.label != null ? opt.label : opt.value;
     const colDef = this.params.colDef || {};
-    const params = colDef.cellRendererParams || {};
+    const params = this.rendererParams || {};
     try {
       if (params.useCustomFormatter && typeof params.formatter === 'string') {
         const fn = new Function(
