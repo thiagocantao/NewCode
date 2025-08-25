@@ -38,6 +38,7 @@
   import UserCellRenderer from "./components/UserCellRenderer.vue";
   import ListFilterRenderer from "./components/ListFilterRenderer.js";
   import DateTimeCellEditor from "./components/DateTimeCellEditor.js";
+  import DateTimeFilter from "./components/DateTimeFilter.js";
   import FixedListCellEditor from "./components/FixedListCellEditor.js";
   // Editor customizado inline para listas
   class ListCellEditor {
@@ -786,6 +787,7 @@
         ListCellEditor,
         FixedListCellEditor,
         DateTimeCellEditor,
+        DateTimeFilter,
       },
     };
   },
@@ -1164,7 +1166,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               }
             }
             if (tagControl === 'DEADLINE') {
-              result.filter = 'agDateColumnFilter';
+              result.filter = DateTimeFilter;
               // Remove default date configuration applied above
               delete result.cellDataType;
               if (colCopy.editable) {
