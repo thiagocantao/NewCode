@@ -355,7 +355,7 @@ export default {
     },
     selectedLabel() {
       if (this.selectedGroup && this.selectedUser) return this.selectedUser.name;
-      if (this.selectedGroup && !this.selectedUser) return 'Assign to team';
+      if (this.selectedGroup && !this.selectedUser) return this.selectedGroup.name;
       return this.selectedUser ? this.selectedUser.name : this.unassignedLabel;
     },
   },
