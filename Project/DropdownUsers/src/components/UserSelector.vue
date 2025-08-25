@@ -396,6 +396,7 @@ export default {
       handler() {
         this.initializeSelectedUser(true);
       }
+
     },
     datasource: {
       handler() {
@@ -484,6 +485,7 @@ export default {
     initializeSelectedUser(force = false) {
       let target = this.selectedUserId;
       const hasSelected = !force && target !== undefined && target !== null && target !== '';
+
       if (!hasSelected) {
         const groupId =
           this.initialGroupId !== undefined && this.initialGroupId !== null && this.initialGroupId !== ''
@@ -495,6 +497,7 @@ export default {
             : null;
 
         target = groupId !== null ? { userid: userId, groupid: groupId } : userId;
+
       }
       this.setSelectedFromValue(target);
     },
