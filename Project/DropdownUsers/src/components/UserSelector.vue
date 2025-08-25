@@ -485,9 +485,10 @@ export default {
     findGroupById(id, list = this.datasource) {
       for (const item of list || []) {
         if (String(item.id) === String(id)) {
-          return item.groupUsers ? item : null;
+          return item;
         }
-        if (item.groupUsers?.length) {
+        if (Array.isArray(item.groupUsers) && item.groupUsers.length) {
+
           const found = this.findGroupById(id, item.groupUsers);
           if (found) return found;
         }
@@ -496,10 +497,12 @@ export default {
     },
     findUserById(id, list = this.datasource) {
       for (const item of list || []) {
-        if (String(item.id) === String(id) && !item.groupUsers) {
+        const hasGroup = Array.isArray(item.groupUsers) && item.groupUsers.length > 0;
+        if (String(item.id) === String(id) && !hasGroup) {
           return item;
         }
-        if (item.groupUsers?.length) {
+        if (hasGroup) {
+
           const found = this.findUserById(id, item.groupUsers);
           if (found) return found;
         }
@@ -508,7 +511,12 @@ export default {
     },
     initializeSelectedUser(force = false) {
       let target = this.selectedUserId;
-      const hasSelected = !force && target !== undefined && target !== null && target !== '';
+      const hasSelected =
+        !force &&
+        target !== undefined &&
+        target !== null &&
+        target !== '' &&
+        !(typeof target === 'object' && Object.keys(target).length === 0);
 
       if (!hasSelected) {
         const groupId =
@@ -524,6 +532,15 @@ export default {
 
       }
       this.setSelectedFromValue(target);
+      this.updateComponentVariable();
+      if (this.selectedGroup || this.selectedUser) {
+        const value = {
+          userid: this.selectedUser ? this.selectedUser.id : null,
+          groupid: this.selectedGroup ? this.selectedGroup.id : null
+        };
+        this.$emit('user-selected', value);
+        this.$emit('trigger-event', { name: 'onChange', event: { value } });
+      }
     },
     setSelectedFromValue(value) {
       if (!value) {
