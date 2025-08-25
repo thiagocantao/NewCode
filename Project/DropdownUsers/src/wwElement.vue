@@ -1,130 +1,34 @@
 <template>
-  <div ref="dropdownRoot" class="user-selector-dropdown">
-    <div class="user-selector__selected" @click="toggleDropdown" :style="containerStyle">
-      <div v-if="!selectedUser" class="user-selector__avatar-unassigned">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="12" cy="12" r="12" fill="#F3F4F6"/>
-          <path d="M12 12c1.933 0 3.5-1.567 3.5-3.5S13.933 5 12 5s-3.5 1.567-3.5 3.5S10.067 12 12 12zm0 2c-2.33 0-7 1.167-7 3.5V20h14v-2.5c0-2.333-4.67-3.5-7-3.5z" fill="#BDBDBD"/>
-        </svg>
-      </div>
-      <div v-else class="avatar-outer">
-        <div class="avatar-middle">
-          <div class="user-selector__avatar">
-            <template v-if="selectedUser.PhotoURL || selectedUser.PhotoUrl">
-              <img :src="selectedUser.PhotoURL || selectedUser.PhotoUrl" alt="User Photo" />
-            </template>
-            <template v-else>
-              <span class="user-selector__initial" :style="initialStyle">
-                {{ getInitial(selectedUser.Username) }}
-              </span>
-            </template>
-          </div>
-        </div>
-      </div>
-      <span class="user-selector__name" :style="nameStyle">
-        {{ selectedUser ? selectedUser.Username : unassignedLabel }}
-      </span>
-    </div>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+    <UserSelector
+        :datasource="content.userDatasource"
+        :group-by="content.groupBy"
+        :value-column="content.valueColumn"
+        :label-column="content.labelColumn"
+        :name-font-family="content.nameFontFamily"
+        :name-font-size="content.nameFontSize"
+        :name-font-weight="content.nameFontWeight"
+        :initial-font-family="content.initialFontFamily"
+        :initial-font-size="content.initialFontSize"
+        :initial-font-weight="content.initialFontWeight"
+        :input-font-family="content.inputFontFamily"
+        :input-font-size="content.inputFontSize"
+        :input-font-weight="content.inputFontWeight"
+        :unassigned-label="content.unassignedLabel"
+        :search-placeholder="content.searchPlaceholder"
+        :initial-selected-id="content.initialSelectedId"
+        :selected-user-id="selectedUserId"
+        :max-width="content.maxWidth"
+        :table-name="content.tableName"
+        :column-name="content.columnName"
+        :supabase-url="content.supabaseUrl"
+        :api-key="content.apiKey"
+        :auth-token="content.authToken"
+        :filter-query="content.filterQuery"
+        @user-selected="onUserSelected"
+        @trigger-event="onTriggerEvent"
+    />
 
-    <div v-if="isOpen" class="user-selector__dropdown">
-      <div class="user-selector__search">
-        <input
-          v-model="search"
-          type="text"
-          :placeholder="searchPlaceholder"
-          class="user-selector__input"
-          :style="inputStyle"
-        />
-        <span class="material-symbols-outlined user-selector__icon">search</span>
-      </div>
-
-      <div class="user-selector__list">
-        <template v-if="groupBy">
-          <template v-for="group in groupedUsers.groups" :key="group.label">
-            <div class="user-selector__group-label" :style="nameStyle">{{ group.label }}</div>
-
-            <div
-              v-for="user in group.items"
-              :key="user.userID"
-              class="user-selector__item"
-              :class="{ disabled: user.isEnabled === false }"
-              @click.stop="user.isEnabled === false ? null : selectUser(user)"
-            >
-              <div class="avatar-outer">
-                <div class="avatar-middle">
-                  <div class="user-selector__avatar">
-                    <template v-if="user.PhotoURL || user.PhotoUrl">
-                      <img :src="user.PhotoURL || user.PhotoUrl" alt="User Photo" />
-                    </template>
-                    <template v-else>
-                      <span class="user-selector__initial" :style="initialStyle">
-                        {{ getInitial(user.Username) }}
-                      </span>
-                    </template>
-                  </div>
-                </div>
-              </div>
-              <span class="user-selector__name" :style="nameStyle">{{ user.Username }}</span>
-            </div>
-          </template>
-
-          <div
-            v-for="user in groupedUsers.ungrouped"
-            :key="user.userID"
-            class="user-selector__item"
-            :class="{ disabled: user.isEnabled === false }"
-            @click.stop="user.isEnabled === false ? null : selectUser(user)"
-          >
-            <div class="avatar-outer">
-              <div class="avatar-middle">
-                <div class="user-selector__avatar">
-                  <template v-if="user.PhotoURL || user.PhotoUrl">
-                    <img :src="user.PhotoURL || user.PhotoUrl" alt="User Photo" />
-                  </template>
-                  <template v-else>
-                    <span class="user-selector__initial" :style="initialStyle">
-                      {{ getInitial(user.Username) }}
-                    </span>
-                  </template>
-                </div>
-              </div>
-            </div>
-            <span class="user-selector__name" :style="nameStyle">{{ user.Username }}</span>
-          </div>
-        </template>
-
-        <template v-else>
-          <div
-            v-for="user in filteredUsers"
-            :key="user.userID"
-            class="user-selector__item"
-            :class="{ disabled: user.isEnabled === false }"
-            @click.stop="user.isEnabled === false ? null : selectUser(user)"
-          >
-            <div class="avatar-outer">
-              <div class="avatar-middle">
-                <div class="user-selector__avatar">
-                  <template v-if="user.PhotoURL || user.PhotoUrl">
-                    <img :src="user.PhotoURL || user.PhotoUrl" alt="User Photo" />
-                  </template>
-                  <template v-else>
-                    <span class="user-selector__initial" :style="initialStyle">
-                      {{ getInitial(user.Username) }}
-                    </span>
-                  </template>
-                </div>
-              </div>
-            </div>
-            <span class="user-selector__name" :style="nameStyle">{{ user.Username }}</span>
-          </div>
-        </template>
-
-        <div v-if="filteredUsers.length === 0" class="user-selector__no-results" :style="nameStyle">
-          No user found
-        </div>
-      </div>
-    </div>
-  </div>
 </template>
 
 <script>
