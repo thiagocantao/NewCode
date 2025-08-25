@@ -488,6 +488,7 @@ export default {
             : null;
 
         target = groupId !== null ? { userid: userId, groupid: groupId } : userId;
+
       }
       this.setSelectedFromValue(target);
     },
