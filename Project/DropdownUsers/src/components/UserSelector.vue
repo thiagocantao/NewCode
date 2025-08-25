@@ -482,6 +482,30 @@ export default {
       const value = String(label || '').toUpperCase();
       return ['GROUP', 'GROUPS', 'GRUPO', 'GRUPOS'].includes(value);
     },
+    findGroupById(id, list = this.datasource) {
+      for (const item of list || []) {
+        if (String(item.id) === String(id)) {
+          return item.groupUsers ? item : null;
+        }
+        if (item.groupUsers?.length) {
+          const found = this.findGroupById(id, item.groupUsers);
+          if (found) return found;
+        }
+      }
+      return null;
+    },
+    findUserById(id, list = this.datasource) {
+      for (const item of list || []) {
+        if (String(item.id) === String(id) && !item.groupUsers) {
+          return item;
+        }
+        if (item.groupUsers?.length) {
+          const found = this.findUserById(id, item.groupUsers);
+          if (found) return found;
+        }
+      }
+      return null;
+    },
     initializeSelectedUser(force = false) {
       let target = this.selectedUserId;
       const hasSelected = !force && target !== undefined && target !== null && target !== '';
@@ -509,17 +533,21 @@ export default {
       }
       if (typeof value === 'object') {
         const hasGroupId = value.groupid !== undefined && value.groupid !== null && value.groupid !== '';
-        const group = hasGroupId ? (this.datasource || []).find(u => String(u.id) === String(value.groupid)) : null;
+
+        const group = hasGroupId ? this.findGroupById(value.groupid) : null;
+
         this.selectedGroup = group || null;
 
         const hasUserId = value.userid !== undefined && value.userid !== null && value.userid !== '';
         if (group && hasUserId) {
-          const user = (group.groupUsers || []).find(u => String(u.id) === String(value.userid));
+          const user = this.findUserById(value.userid, group.groupUsers || []);
+
           this.selectedUser = user || null;
         } else if (group && !hasUserId) {
           this.selectedUser = null;
         } else if (hasUserId) {
-          const user = (this.datasource || []).find(u => String(u.id) === String(value.userid));
+          const user = this.findUserById(value.userid);
+
           this.selectedUser = user || null;
           this.selectedGroup = null;
         } else {
@@ -527,8 +555,8 @@ export default {
           this.selectedGroup = null;
         }
       } else {
-        const hasId = value !== undefined && value !== null && value !== '';
-        const user = hasId ? (this.datasource || []).find(u => String(u.id) === String(value)) : null;
+        const user = this.findUserById(value);
+
         this.selectedUser = user || null;
         this.selectedGroup = null;
       }
