@@ -58,7 +58,9 @@
       this.closeBtn = this.eGui.querySelector('.editor-close');
 
       let optionsArr = [];
-      if (Array.isArray(params.colDef.options)) {
+      if (Array.isArray(params.options)) {
+        optionsArr = params.options;
+      } else if (Array.isArray(params.colDef.options)) {
         optionsArr = params.colDef.options;
       } else if (Array.isArray(params.colDef.listOptions)) {
         optionsArr = params.colDef.listOptions;
