@@ -73,7 +73,13 @@
                 :key="user.id"
                 class="user-selector__item"
                 :class="{ disabled: user.isEnabled === false }"
-                @click.stop="user.isEnabled === false ? null : selectUser(user)"
+                @click.stop="
+                  user.isEnabled === false
+                    ? null
+                    : isGroupLabel(group.label)
+                      ? openGroup(user)
+                      : selectUser(user)
+                "
               >
                 <div class="avatar-outer">
                   <div class="avatar-middle">
@@ -82,7 +88,17 @@
                         <img :src="user.PhotoURL || user.PhotoUrl" alt="User Photo" />
                       </template>
                       <template v-else>
-                        <span class="user-selector__initial" :style="initialStyle">
+                        <span
+                          v-if="isGroupLabel(group.label)"
+                          class="material-symbols-outlined user-selector__group-icon"
+                        >
+                          groups
+                        </span>
+                        <span
+                          v-else
+                          class="user-selector__initial"
+                          :style="initialStyle"
+                        >
                           {{ getInitial(user.name) }}
                         </span>
                       </template>
@@ -357,6 +373,10 @@ export default {
     getInitial(name) {
       return name ? String(name).trim().charAt(0).toUpperCase() : '';
     },
+    isGroupLabel(label) {
+      const value = String(label || '').toUpperCase();
+      return ['GROUP', 'GROUPS', 'GRUPO', 'GRUPOS'].includes(value);
+    },
     initializeSelectedUser() {
       const targetId = this.selectedUserId || this.initialSelectedId;
       const user = (this.datasource || []).find(u => String(u.id) === String(targetId));
@@ -438,6 +458,15 @@ export default {
   color: #fff;
   border-radius: 50%;
   letter-spacing: 0.5px;
+}
+.user-selector__group-icon {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #fff;
 }
 .user-selector__name {
   font-size: 15px;
