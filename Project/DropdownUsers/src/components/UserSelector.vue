@@ -271,6 +271,7 @@ export default {
     unassignedLabel: { type: String, default: 'Unassigned' },
     searchPlaceholder: { type: String, default: 'Search user...' },
     initialSelectedId: [String, Number, Object],
+    initialGroupId: [String, Number],
     selectedUserId: [String, Number, Object],
     uid: String,
     maxWidth: [String, Number],
@@ -379,17 +380,26 @@ export default {
   watch: {
     selectedUserId: {
       immediate: true,
+      deep: true,
       handler(newVal) {
         this.setSelectedFromValue(newVal);
       }
     },
-    initialSelectedId(newVal) {
-      this.setSelectedFromValue(newVal);
+    initialSelectedId: {
+      immediate: true,
+      handler() {
+        this.initializeSelectedUser(true);
+      }
+    },
+    initialGroupId: {
+      immediate: true,
+      handler() {
+        this.initializeSelectedUser(true);
+      }
     },
     datasource: {
       handler() {
-        const target = this.selectedUserId || this.initialSelectedId;
-        this.setSelectedFromValue(target);
+        this.initializeSelectedUser();
       },
       deep: true
     },
@@ -471,9 +481,61 @@ export default {
       const value = String(label || '').toUpperCase();
       return ['GROUP', 'GROUPS', 'GRUPO', 'GRUPOS'].includes(value);
     },
-    initializeSelectedUser() {
-      const target = this.selectedUserId || this.initialSelectedId;
+    findGroupById(id, list = this.datasource) {
+      for (const item of list || []) {
+        if (String(item.id) === String(id)) {
+          return item;
+        }
+        if (Array.isArray(item.groupUsers) && item.groupUsers.length) {
+          const found = this.findGroupById(id, item.groupUsers);
+          if (found) return found;
+        }
+      }
+      return null;
+    },
+    findUserById(id, list = this.datasource) {
+      for (const item of list || []) {
+        const hasGroup = Array.isArray(item.groupUsers) && item.groupUsers.length > 0;
+        if (String(item.id) === String(id) && !hasGroup) {
+          return item;
+        }
+        if (hasGroup) {
+          const found = this.findUserById(id, item.groupUsers);
+          if (found) return found;
+        }
+      }
+      return null;
+    },
+    initializeSelectedUser(force = false) {
+      let target = this.selectedUserId;
+      const hasSelected =
+        !force &&
+        target !== undefined &&
+        target !== null &&
+        target !== '' &&
+        !(typeof target === 'object' && Object.keys(target).length === 0);
+      if (!hasSelected) {
+        const groupId =
+          this.initialGroupId !== undefined && this.initialGroupId !== null && this.initialGroupId !== ''
+            ? this.initialGroupId
+            : null;
+        const userId =
+          this.initialSelectedId !== undefined && this.initialSelectedId !== null && this.initialSelectedId !== ''
+            ? this.initialSelectedId
+            : null;
+
+        target = groupId !== null ? { userid: userId, groupid: groupId } : userId;
+      }
       this.setSelectedFromValue(target);
+      this.updateComponentVariable();
+      if (this.selectedGroup || this.selectedUser) {
+        const value = {
+          userid: this.selectedUser ? this.selectedUser.id : null,
+          groupid: this.selectedGroup ? this.selectedGroup.id : null
+        };
+        this.$emit('user-selected', value);
+        this.$emit('trigger-event', { name: 'onChange', event: { value } });
+      }
     },
     setSelectedFromValue(value) {
       if (!value) {
@@ -482,20 +544,26 @@ export default {
         return;
       }
       if (typeof value === 'object') {
-        const group = value.groupid != null ? (this.datasource || []).find(u => String(u.id) === String(value.groupid)) : null;
+        const hasGroupId = value.groupid !== undefined && value.groupid !== null && value.groupid !== '';
+        const group = hasGroupId ? this.findGroupById(value.groupid) : null;
         this.selectedGroup = group || null;
-        if (group && value.userid != null) {
-          const user = (group.groupUsers || []).find(u => String(u.id) === String(value.userid));
+
+        const hasUserId = value.userid !== undefined && value.userid !== null && value.userid !== '';
+        if (group && hasUserId) {
+          const user = this.findUserById(value.userid, group.groupUsers || []);
           this.selectedUser = user || null;
-        } else if (group && value.userid == null) {
+        } else if (group && !hasUserId) {
           this.selectedUser = null;
-        } else {
-          const user = (this.datasource || []).find(u => String(u.id) === String(value.userid));
+        } else if (hasUserId) {
+          const user = this.findUserById(value.userid);
           this.selectedUser = user || null;
+          this.selectedGroup = null;
+        } else {
+          this.selectedUser = null;
           this.selectedGroup = null;
         }
       } else {
-        const user = (this.datasource || []).find(u => String(u.id) === String(value));
+        const user = this.findUserById(value);
         this.selectedUser = user || null;
         this.selectedGroup = null;
       }
