@@ -1,6 +1,11 @@
 export default class ListCellEditor {
   init(params) {
     this.params = params;
+    const colDef = params.colDef || {};
+    this.rendererParams =
+      typeof colDef.cellRendererParams === 'function'
+        ? colDef.cellRendererParams(params)
+        : colDef.cellRendererParams || {};
     this.eGui = document.createElement('div');
     this.eGui.className = 'list-editor';
     this.eGui.innerHTML = `
@@ -113,7 +118,7 @@ export default class ListCellEditor {
   formatOption(opt) {
     const value = opt.label != null ? opt.label : opt.value;
     const colDef = this.params.colDef || {};
-    const params = colDef.cellRendererParams || {};
+    const params = this.rendererParams || {};
     try {
       if (params.useCustomFormatter && typeof params.formatter === 'string') {
         const fn = new Function(
