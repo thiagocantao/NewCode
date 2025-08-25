@@ -14,6 +14,7 @@
         :input-font-weight="content.inputFontWeight"
         :unassigned-label="content.unassignedLabel"
         :search-placeholder="content.searchPlaceholder"
+        :initial-group-id="content.initialGroupId"
         :initial-selected-id="content.initialSelectedId"
         :selected-user-id="selectedUserId"
         :max-width="content.maxWidth"
