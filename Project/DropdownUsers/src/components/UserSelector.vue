@@ -29,10 +29,17 @@
     <div v-if="isOpen" class="user-selector__dropdown">
       <template v-if="currentGroup">
         <div class="user-selector__group-header">
-          <span class="material-symbols-outlined user-selector__back" @click="backToRoot">chevron_left</span>
-          <span class="user-selector__group-title" :style="nameStyle">{{ currentGroup.name }}</span>
+          <span
+            class="material-symbols-outlined user-selector__back"
+            @click="backToRoot"
+            >chevron_left</span
+          >
+          <span class="user-selector__group-title" :style="nameStyle">
+            {{ currentGroup.name }}
+          </span>
         </div>
-        <div class="user-selector__group-count">{{ currentGroup.groupUsers?.length || 0 }}</div>
+        <div class="user-selector__group-count">{{ currentGroupCountLabel }}</div>
+
       </template>
       <template v-else>
         <div class="user-selector__search">
@@ -194,7 +201,9 @@ export default {
       isOpen: false,
       selectedUser: null,
       selectedUserIdVar: null,
-      currentGroup: null
+      currentGroup: null,
+      groupStack: []
+
     };
   },
   computed: {
@@ -249,6 +258,10 @@ export default {
     containerStyle() {
       return this.maxWidth ? { maxWidth: typeof this.maxWidth === 'number' ? `${this.maxWidth}px` : this.maxWidth } : {};
     },
+    currentGroupCountLabel() {
+      const count = this.currentGroup?.groupUsers?.length || 0;
+      return `${count} ${count === 1 ? 'member' : 'members'}`;
+    },
   },
   created() {
     if (typeof wwLib !== 'undefined' && wwLib.wwVariable && wwLib.wwVariable.useComponentVariable) {
@@ -298,6 +311,8 @@ export default {
       this.isOpen = !this.isOpen;
       if (!this.isOpen) {
         this.currentGroup = null;
+        this.groupStack = [];
+
         this.search = '';
       }
     },
@@ -305,6 +320,8 @@ export default {
       if (this.isOpen && !(this.$refs.dropdownRoot?.contains?.(event.target))) {
         this.isOpen = false;
         this.currentGroup = null;
+        this.groupStack = [];
+
         this.search = '';
       }
     },
@@ -320,12 +337,15 @@ export default {
     },
     openGroup(group) {
       if (group.groupUsers && group.groupUsers.length) {
+        this.groupStack.push(this.currentGroup);
+
         this.currentGroup = group;
         this.search = '';
       }
     },
     backToRoot() {
-      this.currentGroup = null;
+      this.currentGroup = this.groupStack.pop() || null;
+
       this.search = '';
     },
     handleClickOutside(event) {
