@@ -1,5 +1,5 @@
 <template>
-    <div ref="dropdownRoot" class="user-selector-dropdown">
+  <div ref="dropdownRoot" class="user-selector-dropdown">
     <div class="user-selector__selected" @click="toggleDropdown" :style="containerStyle">
       <div v-if="!selectedUser" class="user-selector__avatar-unassigned">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -10,21 +10,22 @@
       <div v-else class="avatar-outer">
         <div class="avatar-middle">
           <div class="user-selector__avatar">
-              <template v-if="selectedUser.PhotoURL || selectedUser.PhotoUrl">
-                <img :src="selectedUser.PhotoURL || selectedUser.PhotoUrl" alt="User Photo" />
-              </template>
-              <template v-else>
-                <span class="user-selector__initial" :style="initialStyle">
-                  {{ getInitial(selectedUser[labelColumn]) }}
-                </span>
-              </template>
+            <template v-if="selectedUser.PhotoURL || selectedUser.PhotoUrl">
+              <img :src="selectedUser.PhotoURL || selectedUser.PhotoUrl" alt="User Photo" />
+            </template>
+            <template v-else>
+              <span class="user-selector__initial" :style="initialStyle">
+                {{ getInitial(selectedUser.name) }}
+              </span>
+            </template>
           </div>
         </div>
       </div>
       <span class="user-selector__name" :style="nameStyle">
-        {{ selectedUser ? selectedUser[labelColumn] : unassignedLabel }}
+        {{ selectedUser ? selectedUser.name : unassignedLabel }}
       </span>
     </div>
+
     <div v-if="isOpen" class="user-selector__dropdown">
       <div class="user-selector__search">
         <input
@@ -36,13 +37,15 @@
         />
         <span class="material-symbols-outlined user-selector__icon">search</span>
       </div>
+
       <div class="user-selector__list">
         <template v-if="groupBy">
           <template v-for="group in groupedUsers.groups" :key="group.label">
             <div class="user-selector__group-label" :style="nameStyle">{{ group.label }}</div>
+
             <div
               v-for="user in group.items"
-              :key="user[valueColumn]"
+              :key="user.id"
               class="user-selector__item"
               :class="{ disabled: user.isEnabled === false }"
               @click.stop="user.isEnabled === false ? null : selectUser(user)"
@@ -55,18 +58,19 @@
                     </template>
                     <template v-else>
                       <span class="user-selector__initial" :style="initialStyle">
-                        {{ getInitial(user[labelColumn]) }}
+                        {{ getInitial(user.name) }}
                       </span>
                     </template>
                   </div>
                 </div>
               </div>
-              <span class="user-selector__name" :style="nameStyle">{{ user[labelColumn] }}</span>
+              <span class="user-selector__name" :style="nameStyle">{{ user.name }}</span>
             </div>
           </template>
+
           <div
             v-for="user in groupedUsers.ungrouped"
-            :key="user[valueColumn]"
+            :key="user.id"
             class="user-selector__item"
             :class="{ disabled: user.isEnabled === false }"
             @click.stop="user.isEnabled === false ? null : selectUser(user)"
@@ -79,19 +83,20 @@
                   </template>
                   <template v-else>
                     <span class="user-selector__initial" :style="initialStyle">
-                      {{ getInitial(user[labelColumn]) }}
+                      {{ getInitial(user.name) }}
                     </span>
                   </template>
                 </div>
               </div>
             </div>
-            <span class="user-selector__name" :style="nameStyle">{{ user[labelColumn] }}</span>
+            <span class="user-selector__name" :style="nameStyle">{{ user.name }}</span>
           </div>
         </template>
+
         <template v-else>
           <div
             v-for="user in filteredUsers"
-            :key="user[valueColumn]"
+            :key="user.id"
             class="user-selector__item"
             :class="{ disabled: user.isEnabled === false }"
             @click.stop="user.isEnabled === false ? null : selectUser(user)"
@@ -104,38 +109,31 @@
                   </template>
                   <template v-else>
                     <span class="user-selector__initial" :style="initialStyle">
-                      {{ getInitial(user[labelColumn]) }}
+                      {{ getInitial(user.name) }}
                     </span>
                   </template>
                 </div>
               </div>
             </div>
-            <span class="user-selector__name" :style="nameStyle">{{ user[labelColumn] }}</span>
+            <span class="user-selector__name" :style="nameStyle">{{ user.name }}</span>
           </div>
         </template>
-        <div v-if="filteredUsers.length === 0" class="user-selector__no-results" :style="nameStyle">No user found</div>
+
+        <div v-if="filteredUsers.length === 0" class="user-selector__no-results" :style="nameStyle">
+          No user found
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
-
 export default {
   name: 'UserSelector',
-  emits: ['trigger-event'],
+  emits: ['trigger-event', 'user-selected'],
   props: {
-    datasource: Array,
+    datasource: { type: Array, default: () => [] },
     groupBy: String,
-    valueColumn: {
-      type: String,
-      default: 'userID',
-    },
-    labelColumn: {
-      type: String,
-      default: 'Username',
-    },
     nameFontFamily: String,
     nameFontSize: String,
     nameFontWeight: [String, Number],
@@ -145,14 +143,8 @@ export default {
     inputFontFamily: String,
     inputFontSize: String,
     inputFontWeight: [String, Number],
-    unassignedLabel: {
-      type: String,
-      default: 'Unassigned',
-    },
-    searchPlaceholder: {
-      type: String,
-      default: 'Search user...',
-    },
+    unassignedLabel: { type: String, default: 'Unassigned' },
+    searchPlaceholder: { type: String, default: 'Search user...' },
     initialSelectedId: [String, Number],
     selectedUserId: [String, Number],
     uid: String,
@@ -166,12 +158,15 @@ export default {
       search: '',
       isOpen: false,
       selectedUser: null,
+      selectedUserIdVar: null
     };
   },
   computed: {
     filteredUsers() {
-      if (!this.search) return this.datasource;
-      return this.datasource.filter(user => String(user[this.labelColumn]).toLowerCase().includes(this.search.toLowerCase()));
+      const list = Array.isArray(this.datasource) ? this.datasource : [];
+      if (!this.search) return list;
+      const q = this.search.toLowerCase();
+      return list.filter(u => String(u.name || '').toLowerCase().includes(q));
     },
     groupedUsers() {
       if (!this.groupBy) {
@@ -183,7 +178,7 @@ export default {
         const key =
           (typeof wwLib !== 'undefined' && wwLib.resolveObjectPropertyPath)
             ? wwLib.resolveObjectPropertyPath(user, this.groupBy)
-            : user[this.groupBy];
+            : user?.[this.groupBy];
         if (key === undefined || key === null || key === '') {
           ungrouped.push(user);
         } else {
@@ -239,26 +234,25 @@ export default {
     selectedUserId: {
       immediate: true,
       handler(newId) {
-        const user = this.datasource.find(u => String(u[this.valueColumn]) === String(newId));
+        const user = (this.datasource || []).find(u => String(u.id) === String(newId));
         this.selectedUser = user || null;
       }
     },
     initialSelectedId(newId) {
-      const user = this.datasource.find(u => String(u[this.valueColumn]) === String(newId));
+      const user = (this.datasource || []).find(u => String(u.id) === String(newId));
       this.selectedUser = user || null;
     },
     datasource: {
       handler() {
-        // Prioridade: selectedUserId > initialSelectedId
         const targetId = this.selectedUserId || this.initialSelectedId;
-        const user = this.datasource.find(u => String(u[this.valueColumn]) === String(targetId));
+        const user = (this.datasource || []).find(u => String(u.id) === String(targetId));
         this.selectedUser = user || null;
       },
       deep: true
     },
     selectedUser(newUser) {
       if (this.selectedUserIdVar?.setValue) {
-        this.selectedUserIdVar.setValue(newUser?.[this.valueColumn] || '');
+        this.selectedUserIdVar.setValue(newUser?.id || '');
       }
     }
   },
@@ -267,34 +261,33 @@ export default {
       this.isOpen = !this.isOpen;
     },
     closeDropdown(event) {
-      if (this.isOpen && !this.$refs.dropdownRoot.contains(event.target)) {
+      if (this.isOpen && !(this.$refs.dropdownRoot?.contains?.(event.target))) {
         this.isOpen = false;
       }
     },
     async selectUser(user) {
       this.selectedUser = user;
       this.isOpen = false;
-      this.$emit('user-selected', user[this.valueColumn]);
+      this.$emit('user-selected', user.id);
       this.$emit('trigger-event', {
         name: 'onChange',
-        event: { value: user?.[this.valueColumn] || '' }
+        event: { value: user?.id || '' }
       });
     },
     handleClickOutside(event) {
       this.closeDropdown(event);
     },
     getInitial(name) {
-      return name ? name.trim().charAt(0).toUpperCase() : '';
+      return name ? String(name).trim().charAt(0).toUpperCase() : '';
     },
     initializeSelectedUser() {
       const targetId = this.selectedUserId || this.initialSelectedId;
-      const user = this.datasource.find(u => String(u[this.valueColumn]) === String(targetId));
+      const user = (this.datasource || []).find(u => String(u.id) === String(targetId));
       this.selectedUser = user || null;
     },
   }
 };
 </script>
-
 
 <style scoped>
 .user-selector-dropdown {
@@ -315,11 +308,9 @@ export default {
   gap: 10px;
   border: none;
   width: auto;
-  /* max-width agora é controlado via style binding (containerStyle) */
   min-width: 0;
 }
 .user-selector__selected:hover, .user-selector__selected:focus {
-  /* box-shadow: 0 2px 8px #0001; */
   box-shadow: none;
 }
 .avatar-outer {
@@ -504,4 +495,4 @@ export default {
   justify-content: center;
   border: 1px dashed #3A4663;
 }
-</style> 
+</style>
