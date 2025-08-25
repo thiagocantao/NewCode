@@ -380,15 +380,23 @@ export default {
   watch: {
     selectedUserId: {
       immediate: true,
+      deep: true,
       handler(newVal) {
         this.setSelectedFromValue(newVal);
       }
     },
-    initialSelectedId() {
-      this.initializeSelectedUser();
+    initialSelectedId: {
+      immediate: true,
+      handler() {
+        this.initializeSelectedUser(true);
+      }
     },
-    initialGroupId() {
-      this.initializeSelectedUser();
+    initialGroupId: {
+      immediate: true,
+      handler() {
+        this.initializeSelectedUser(true);
+      }
+
     },
     datasource: {
       handler() {
@@ -474,9 +482,10 @@ export default {
       const value = String(label || '').toUpperCase();
       return ['GROUP', 'GROUPS', 'GRUPO', 'GRUPOS'].includes(value);
     },
-    initializeSelectedUser() {
+    initializeSelectedUser(force = false) {
       let target = this.selectedUserId;
-      const hasSelected = target !== undefined && target !== null && target !== '';
+      const hasSelected = !force && target !== undefined && target !== null && target !== '';
+
       if (!hasSelected) {
         const groupId =
           this.initialGroupId !== undefined && this.initialGroupId !== null && this.initialGroupId !== ''
