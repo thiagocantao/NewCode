@@ -1143,7 +1143,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             if (colCopy.headerAlign) {
               result.headerClass = `ag-header-align-${colCopy.headerAlign}`;
             }
-            // Formatação especial para DEADLINE
+            // Formatação especial para campos de usuário ou data
             const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
             const identifier = (colCopy.FieldDB || '').toUpperCase();
 
@@ -1163,35 +1163,43 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                 };
               }
             }
-            if (tagControl === 'DEADLINE') {
-              result.filter = 'agDateColumnFilter';
-              // Remove default date configuration applied above
-              delete result.cellDataType;
+            const isDeadline = tagControl === 'DEADLINE';
+            const cellType = (colCopy.cellDataType || '').toUpperCase();
+            const isDateField =
+              isDeadline ||
+              tagControl === 'DATE' ||
+              tagControl === 'DATETIME' ||
+              identifier.includes('DATE') ||
+              cellType === 'DATE' ||
+              cellType === 'DATETIME';
+            if (isDateField) {
+              // Format value for display
+              result.valueFormatter = params => {
+                const val = params.value;
+                if (!val) return '';
+                const date = val instanceof Date ? val : new Date(val);
+                if (isNaN(date.getTime())) return val;
+                try {
+                  const lang =
+                    window?.wwLib?.wwVariable?.getValue?.('aa44dc4c-476b-45e9-a094-16687e063342') ||
+                    'en';
+                  return new Intl.DateTimeFormat(lang, {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                  }).format(date);
+                } catch (e) {
+                  return val;
+                }
+              };
+
               if (colCopy.editable) {
                 // use the class directly to avoid lookup issues
                 result.cellEditor = DateTimeCellEditor;
-
-                // Format value for display when editing ends
-                result.valueFormatter = params => {
-                  if (typeof params.value === 'string' && params.value) {
-                    try {
-                      const date = new Date(params.value);
-                      if (!isNaN(date.getTime())) {
-                        const pad = n => n.toString().padStart(2, '0');
-                        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
-                      }
-                    } catch (e) {
-                      return params.value;
-                    }
-                  }
-                  if (params.value instanceof Date && !isNaN(params.value.getTime())) {
-                    const pad = n => n.toString().padStart(2, '0');
-                    return `${params.value.getFullYear()}-${pad(params.value.getMonth() + 1)}-${pad(params.value.getDate())} ${pad(params.value.getHours())}:${pad(params.value.getMinutes())}:${pad(params.value.getSeconds())}`;
-                  }
-                  return params.value || '';
-                };
                 delete result.valueParser;
               }
+            }
+            if (isDeadline) {
               result.cellRenderer = params => {
                 // Função utilitária para calcular diff e cor (idêntica ao FieldComponent.vue)
                 function normalizeDeadline(val) {
