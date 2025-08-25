@@ -1,28 +1,80 @@
 <template>
   <div ref="dropdownRoot" class="user-selector-dropdown">
     <div class="user-selector__selected" @click="toggleDropdown" :style="containerStyle">
-      <div v-if="!selectedUser" class="user-selector__avatar-unassigned">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="12" cy="12" r="12" fill="#F3F4F6"/>
-          <path d="M12 12c1.933 0 3.5-1.567 3.5-3.5S13.933 5 12 5s-3.5 1.567-3.5 3.5S10.067 12 12 12zm0 2c-2.33 0-7 1.167-7 3.5V20h14v-2.5c0-2.333-4.67-3.5-7-3.5z" fill="#BDBDBD"/>
-        </svg>
-      </div>
-      <div v-else class="avatar-outer">
-        <div class="avatar-middle">
-          <div class="user-selector__avatar">
-            <template v-if="selectedUser.PhotoURL || selectedUser.PhotoUrl">
-              <img :src="selectedUser.PhotoURL || selectedUser.PhotoUrl" alt="User Photo" />
-            </template>
-            <template v-else>
-              <span class="user-selector__initial" :style="initialStyle">
-                {{ getInitial(selectedUser.name) }}
-              </span>
-            </template>
+      <template v-if="!selectedGroup && !selectedUser">
+        <div class="user-selector__avatar-unassigned">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="12" fill="#F3F4F6"/>
+            <path d="M12 12c1.933 0 3.5-1.567 3.5-3.5S13.933 5 12 5s-3.5 1.567-3.5 3.5S10.067 12 12 12zm0 2c-2.33 0-7 1.167-7 3.5V20h14v-2.5c0-2.333-4.67-3.5-7-3.5z" fill="#BDBDBD"/>
+          </svg>
+        </div>
+      </template>
+      <template v-else-if="selectedGroup && selectedUser">
+        <div class="avatar-outer group-avatar-wrapper" @mouseenter="showGroupTooltip = true" @mouseleave="showGroupTooltip = false">
+          <div class="avatar-middle">
+            <div class="user-selector__avatar">
+              <template v-if="selectedGroup.PhotoURL || selectedGroup.PhotoUrl">
+                <img :src="selectedGroup.PhotoURL || selectedGroup.PhotoUrl" alt="Group Photo" />
+              </template>
+              <template v-else>
+                <span class="material-symbols-outlined user-selector__group-icon">groups</span>
+              </template>
+            </div>
+          </div>
+          <div v-if="showGroupTooltip" class="user-selector__group-tooltip">
+            <div>{{ selectedGroup.name }}</div>
+            <div class="user-selector__group-tooltip-count">{{ selectedGroup.groupUsers?.length || 0 }} {{ (selectedGroup.groupUsers?.length || 0) === 1 ? 'member' : 'members' }}</div>
           </div>
         </div>
-      </div>
+        <div class="avatar-outer">
+          <div class="avatar-middle">
+            <div class="user-selector__avatar">
+              <template v-if="selectedUser.PhotoURL || selectedUser.PhotoUrl">
+                <img :src="selectedUser.PhotoURL || selectedUser.PhotoUrl" alt="User Photo" />
+              </template>
+              <template v-else>
+                <span class="user-selector__initial" :style="initialStyle">
+                  {{ getInitial(selectedUser.name) }}
+                </span>
+              </template>
+            </div>
+          </div>
+        </div>
+      </template>
+      <template v-else>
+        <div class="avatar-outer group-avatar-wrapper" v-if="selectedGroup" @mouseenter="showGroupTooltip = true" @mouseleave="showGroupTooltip = false">
+          <div class="avatar-middle">
+            <div class="user-selector__avatar">
+              <template v-if="selectedGroup.PhotoURL || selectedGroup.PhotoUrl">
+                <img :src="selectedGroup.PhotoURL || selectedGroup.PhotoUrl" alt="Group Photo" />
+              </template>
+              <template v-else>
+                <span class="material-symbols-outlined user-selector__group-icon">groups</span>
+              </template>
+            </div>
+          </div>
+          <div v-if="showGroupTooltip" class="user-selector__group-tooltip">
+            <div>{{ selectedGroup.name }}</div>
+            <div class="user-selector__group-tooltip-count">{{ selectedGroup.groupUsers?.length || 0 }} {{ (selectedGroup.groupUsers?.length || 0) === 1 ? 'member' : 'members' }}</div>
+          </div>
+        </div>
+        <div class="avatar-outer" v-else>
+          <div class="avatar-middle">
+            <div class="user-selector__avatar">
+              <template v-if="selectedUser && (selectedUser.PhotoURL || selectedUser.PhotoUrl)">
+                <img :src="selectedUser.PhotoURL || selectedUser.PhotoUrl" alt="User Photo" />
+              </template>
+              <template v-else>
+                <span class="user-selector__initial" :style="initialStyle">
+                  {{ selectedUser ? getInitial(selectedUser.name) : '' }}
+                </span>
+              </template>
+            </div>
+          </div>
+        </div>
+      </template>
       <span class="user-selector__name" :style="nameStyle">
-        {{ selectedUser ? selectedUser.name : unassignedLabel }}
+        {{ selectedLabel }}
       </span>
     </div>
 
@@ -150,7 +202,7 @@
         <template v-else>
           <div
             v-for="user in filteredUsers"
-            :key="user.id"
+            :key="user.id !== null ? user.id : 'assign'"
             class="user-selector__item"
             :class="{ disabled: user.isEnabled === false }"
             @click.stop="user.isEnabled === false || user.groupUsers?.length ? null : selectUser(user)"
@@ -162,7 +214,8 @@
                     <img :src="user.PhotoURL || user.PhotoUrl" alt="User Photo" />
                   </template>
                   <template v-else>
-                    <span class="user-selector__initial" :style="initialStyle">
+                    <span v-if="user.isAssignToTeam" class="material-symbols-outlined user-selector__group-icon">groups</span>
+                    <span v-else class="user-selector__initial" :style="initialStyle">
                       {{ getInitial(user.name) }}
                     </span>
                   </template>
@@ -205,8 +258,8 @@ export default {
     inputFontWeight: [String, Number],
     unassignedLabel: { type: String, default: 'Unassigned' },
     searchPlaceholder: { type: String, default: 'Search user...' },
-    initialSelectedId: [String, Number],
-    selectedUserId: [String, Number],
+    initialSelectedId: [String, Number, Object],
+    selectedUserId: [String, Number, Object],
     uid: String,
     maxWidth: [String, Number],
     supabaseUrl: String,
@@ -218,18 +271,26 @@ export default {
       search: '',
       isOpen: false,
       selectedUser: null,
+      selectedGroup: null,
       selectedUserIdVar: null,
       currentGroup: null,
-      groupStack: []
+      currentGroupUsers: [],
+      groupStack: [],
+      showGroupTooltip: false
 
     };
   },
   computed: {
     filteredUsers() {
-      const source = this.currentGroup ? this.currentGroup.groupUsers || [] : this.datasource;
+      const source = this.currentGroup ? this.currentGroupUsers || [] : this.datasource;
       const list = Array.isArray(source) ? source : [];
       if (!this.search) return list;
       const q = this.search.toLowerCase();
+      if (this.currentGroup) {
+        const assignItem = list[0];
+        const rest = list.slice(1).filter(u => String(u.name || '').toLowerCase().includes(q));
+        return [assignItem, ...rest];
+      }
       return list.filter(u => String(u.name || '').toLowerCase().includes(q));
     },
     groupedUsers() {
@@ -280,6 +341,11 @@ export default {
       const count = this.currentGroup?.groupUsers?.length || 0;
       return `${count} ${count === 1 ? 'member' : 'members'}`;
     },
+    selectedLabel() {
+      if (this.selectedGroup && this.selectedUser) return this.selectedUser.name;
+      if (this.selectedGroup && !this.selectedUser) return 'Assign to team';
+      return this.selectedUser ? this.selectedUser.name : this.unassignedLabel;
+    },
   },
   created() {
     if (typeof wwLib !== 'undefined' && wwLib.wwVariable && wwLib.wwVariable.useComponentVariable) {
@@ -301,27 +367,25 @@ export default {
   watch: {
     selectedUserId: {
       immediate: true,
-      handler(newId) {
-        const user = (this.datasource || []).find(u => String(u.id) === String(newId));
-        this.selectedUser = user || null;
+      handler(newVal) {
+        this.setSelectedFromValue(newVal);
       }
     },
-    initialSelectedId(newId) {
-      const user = (this.datasource || []).find(u => String(u.id) === String(newId));
-      this.selectedUser = user || null;
+    initialSelectedId(newVal) {
+      this.setSelectedFromValue(newVal);
     },
     datasource: {
       handler() {
-        const targetId = this.selectedUserId || this.initialSelectedId;
-        const user = (this.datasource || []).find(u => String(u.id) === String(targetId));
-        this.selectedUser = user || null;
+        const target = this.selectedUserId || this.initialSelectedId;
+        this.setSelectedFromValue(target);
       },
       deep: true
     },
-    selectedUser(newUser) {
-      if (this.selectedUserIdVar?.setValue) {
-        this.selectedUserIdVar.setValue(newUser?.id || '');
-      }
+    selectedUser() {
+      this.updateComponentVariable();
+    },
+    selectedGroup() {
+      this.updateComponentVariable();
     }
   },
   methods: {
@@ -329,8 +393,8 @@ export default {
       this.isOpen = !this.isOpen;
       if (!this.isOpen) {
         this.currentGroup = null;
+        this.currentGroupUsers = [];
         this.groupStack = [];
-
         this.search = '';
       }
     },
@@ -338,31 +402,49 @@ export default {
       if (this.isOpen && !(this.$refs.dropdownRoot?.contains?.(event.target))) {
         this.isOpen = false;
         this.currentGroup = null;
+        this.currentGroupUsers = [];
         this.groupStack = [];
-
         this.search = '';
       }
     },
     async selectUser(user) {
-      this.selectedUser = user;
+      let value;
+      if (this.currentGroup) {
+        if (user.isAssignToTeam) {
+          this.selectedGroup = this.currentGroup;
+          this.selectedUser = null;
+          value = { userid: null, groupid: this.currentGroup.id };
+        } else {
+          this.selectedGroup = this.currentGroup;
+          this.selectedUser = user;
+          value = { userid: user.id, groupid: this.currentGroup.id };
+        }
+      } else {
+        this.selectedGroup = null;
+        this.selectedUser = user;
+        value = { userid: user.id, groupid: null };
+      }
       this.isOpen = false;
       this.currentGroup = null;
-      this.$emit('user-selected', user.id);
+      this.currentGroupUsers = [];
+      this.groupStack = [];
+      this.$emit('user-selected', value);
       this.$emit('trigger-event', {
         name: 'onChange',
-        event: { value: user?.id || '' }
+        event: { value }
       });
     },
     openGroup(group) {
       if (group.groupUsers && group.groupUsers.length) {
         this.groupStack.push(this.currentGroup);
-
         this.currentGroup = group;
+        this.currentGroupUsers = [{ id: null, name: 'Assign to team', isAssignToTeam: true }, ...group.groupUsers];
         this.search = '';
       }
     },
     backToRoot() {
       this.currentGroup = this.groupStack.pop() || null;
+      this.currentGroupUsers = this.currentGroup ? [{ id: null, name: 'Assign to team', isAssignToTeam: true }, ...(this.currentGroup.groupUsers || [])] : [];
       this.search = '';
       this.isOpen = true;
 
@@ -378,9 +460,42 @@ export default {
       return ['GROUP', 'GROUPS', 'GRUPO', 'GRUPOS'].includes(value);
     },
     initializeSelectedUser() {
-      const targetId = this.selectedUserId || this.initialSelectedId;
-      const user = (this.datasource || []).find(u => String(u.id) === String(targetId));
-      this.selectedUser = user || null;
+      const target = this.selectedUserId || this.initialSelectedId;
+      this.setSelectedFromValue(target);
+    },
+    setSelectedFromValue(value) {
+      if (!value) {
+        this.selectedUser = null;
+        this.selectedGroup = null;
+        return;
+      }
+      if (typeof value === 'object') {
+        const group = value.groupid != null ? (this.datasource || []).find(u => String(u.id) === String(value.groupid)) : null;
+        this.selectedGroup = group || null;
+        if (group && value.userid != null) {
+          const user = (group.groupUsers || []).find(u => String(u.id) === String(value.userid));
+          this.selectedUser = user || null;
+        } else if (group && value.userid == null) {
+          this.selectedUser = null;
+        } else {
+          const user = (this.datasource || []).find(u => String(u.id) === String(value.userid));
+          this.selectedUser = user || null;
+          this.selectedGroup = null;
+        }
+      } else {
+        const user = (this.datasource || []).find(u => String(u.id) === String(value));
+        this.selectedUser = user || null;
+        this.selectedGroup = null;
+      }
+    },
+    updateComponentVariable() {
+      if (this.selectedUserIdVar?.setValue) {
+        const val = {
+          userid: this.selectedUser ? this.selectedUser.id : null,
+          groupid: this.selectedGroup ? this.selectedGroup.id : null
+        };
+        this.selectedUserIdVar.setValue(JSON.stringify(val));
+      }
     },
   }
 };
@@ -419,6 +534,27 @@ export default {
   align-items: center;
   justify-content: center;
   background: #fff;
+}
+.group-avatar-wrapper {
+  position: relative;
+}
+.user-selector__group-tooltip {
+  position: absolute;
+  bottom: 120%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 20;
+  text-align: center;
+}
+.user-selector__group-tooltip-count {
+  font-size: 10px;
+  color: #ddd;
 }
 .avatar-middle {
   width: 30px;
