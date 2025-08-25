@@ -37,29 +37,82 @@
         <span class="material-symbols-outlined user-selector__icon">search</span>
       </div>
       <div class="user-selector__list">
-        <div
-          v-for="user in filteredUsers"
-          :key="user.userID"
-          class="user-selector__item"
-          :class="{ disabled: user.isEnabled === false }"
-          @click.stop="user.isEnabled === false ? null : selectUser(user)"
-        >
-          <div class="avatar-outer">
-            <div class="avatar-middle">
-              <div class="user-selector__avatar">
-                <template v-if="user.PhotoURL || user.PhotoUrl">
-                  <img :src="user.PhotoURL || user.PhotoUrl" alt="User Photo" />
-                </template>
-                <template v-else>
-                  <span class="user-selector__initial" :style="initialStyle">
-                    {{ getInitial(user.Username) }}
-                  </span>
-                </template>
+        <template v-if="groupBy">
+          <template v-for="group in groupedUsers.groups" :key="group.label">
+            <div class="user-selector__group-label" :style="nameStyle">{{ group.label }}</div>
+            <div
+              v-for="user in group.items"
+              :key="user.userID"
+              class="user-selector__item"
+              :class="{ disabled: user.isEnabled === false }"
+              @click.stop="user.isEnabled === false ? null : selectUser(user)"
+            >
+              <div class="avatar-outer">
+                <div class="avatar-middle">
+                  <div class="user-selector__avatar">
+                    <template v-if="user.PhotoURL || user.PhotoUrl">
+                      <img :src="user.PhotoURL || user.PhotoUrl" alt="User Photo" />
+                    </template>
+                    <template v-else>
+                      <span class="user-selector__initial" :style="initialStyle">
+                        {{ getInitial(user.Username) }}
+                      </span>
+                    </template>
+                  </div>
+                </div>
+              </div>
+              <span class="user-selector__name" :style="nameStyle">{{ user.Username }}</span>
+            </div>
+          </template>
+          <div
+            v-for="user in groupedUsers.ungrouped"
+            :key="user.userID"
+            class="user-selector__item"
+            :class="{ disabled: user.isEnabled === false }"
+            @click.stop="user.isEnabled === false ? null : selectUser(user)"
+          >
+            <div class="avatar-outer">
+              <div class="avatar-middle">
+                <div class="user-selector__avatar">
+                  <template v-if="user.PhotoURL || user.PhotoUrl">
+                    <img :src="user.PhotoURL || user.PhotoUrl" alt="User Photo" />
+                  </template>
+                  <template v-else>
+                    <span class="user-selector__initial" :style="initialStyle">
+                      {{ getInitial(user.Username) }}
+                    </span>
+                  </template>
+                </div>
               </div>
             </div>
+            <span class="user-selector__name" :style="nameStyle">{{ user.Username }}</span>
           </div>
-          <span class="user-selector__name" :style="nameStyle">{{ user.Username }}</span>
-        </div>
+        </template>
+        <template v-else>
+          <div
+            v-for="user in filteredUsers"
+            :key="user.userID"
+            class="user-selector__item"
+            :class="{ disabled: user.isEnabled === false }"
+            @click.stop="user.isEnabled === false ? null : selectUser(user)"
+          >
+            <div class="avatar-outer">
+              <div class="avatar-middle">
+                <div class="user-selector__avatar">
+                  <template v-if="user.PhotoURL || user.PhotoUrl">
+                    <img :src="user.PhotoURL || user.PhotoUrl" alt="User Photo" />
+                  </template>
+                  <template v-else>
+                    <span class="user-selector__initial" :style="initialStyle">
+                      {{ getInitial(user.Username) }}
+                    </span>
+                  </template>
+                </div>
+              </div>
+            </div>
+            <span class="user-selector__name" :style="nameStyle">{{ user.Username }}</span>
+          </div>
+        </template>
         <div v-if="filteredUsers.length === 0" class="user-selector__no-results" :style="nameStyle">No user found</div>
       </div>
     </div>
@@ -74,6 +127,7 @@ export default {
   emits: ['trigger-event'],
   props: {
     datasource: Array,
+    groupBy: String,
     nameFontFamily: String,
     nameFontSize: String,
     nameFontWeight: [String, Number],
@@ -110,6 +164,26 @@ export default {
     filteredUsers() {
       if (!this.search) return this.datasource;
       return this.datasource.filter(user => user.Username.toLowerCase().includes(this.search.toLowerCase()));
+    },
+    groupedUsers() {
+      if (!this.groupBy) {
+        return { groups: [], ungrouped: this.filteredUsers };
+      }
+      const groups = new Map();
+      const ungrouped = [];
+      for (const user of this.filteredUsers) {
+        const key =
+          (typeof wwLib !== 'undefined' && wwLib.resolveObjectPropertyPath)
+            ? wwLib.resolveObjectPropertyPath(user, this.groupBy)
+            : user[this.groupBy];
+        if (key === undefined || key === null || key === '') {
+          ungrouped.push(user);
+        } else {
+          if (!groups.has(key)) groups.set(key, []);
+          groups.get(key).push(user);
+        }
+      }
+      return { groups: Array.from(groups, ([label, items]) => ({ label, items })), ungrouped };
     },
     nameStyle() {
       return {
@@ -400,6 +474,11 @@ export default {
 }
 .user-selector__item:hover {
   background: #f5f5f5;
+}
+.user-selector__group-label {
+  padding: 4px 12px;
+  font-weight: 600;
+  color: #444;
 }
 .user-selector__no-results {
   color: #aaa;

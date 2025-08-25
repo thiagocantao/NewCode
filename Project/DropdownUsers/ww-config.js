@@ -63,6 +63,14 @@ export default {
             defaultValue: [],
             description: 'Array of users with Name, ID, and PhotoURL',
         },
+        groupBy: {
+            label: { en: 'Group by column' },
+            type: 'ObjectPropertyPath',
+            options: content => ({ object: content.userDatasource?.[0] || {} }),
+            defaultValue: '',
+            bindable: true,
+            description: 'Property name used to group users in the dropdown',
+        },
         nameFontFamily: {
             label: { en: 'Name font family' },
             type: 'text',

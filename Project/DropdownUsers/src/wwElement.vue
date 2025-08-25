@@ -2,6 +2,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
     <UserSelector
         :datasource="content.userDatasource"
+        :group-by="content.groupBy"
         :name-font-family="content.nameFontFamily"
         :name-font-size="content.nameFontSize"
         :name-font-weight="content.nameFontWeight"
