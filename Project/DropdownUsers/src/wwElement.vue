@@ -3,6 +3,8 @@
     <UserSelector
         :datasource="content.userDatasource"
         :group-by="content.groupBy"
+        :value-column="content.valueColumn"
+        :label-column="content.labelColumn"
         :name-font-family="content.nameFontFamily"
         :name-font-size="content.nameFontSize"
         :name-font-weight="content.nameFontWeight"

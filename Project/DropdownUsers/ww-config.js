@@ -71,6 +71,22 @@ export default {
             bindable: true,
             description: 'Property name used to group users in the dropdown',
         },
+        valueColumn: {
+            label: { en: 'Value column' },
+            type: 'ObjectPropertyPath',
+            options: content => ({ object: content.userDatasource?.[0] || {} }),
+            defaultValue: 'userID',
+            bindable: true,
+            description: 'Property used as the value for each option',
+        },
+        labelColumn: {
+            label: { en: 'Label column' },
+            type: 'ObjectPropertyPath',
+            options: content => ({ object: content.userDatasource?.[0] || {} }),
+            defaultValue: 'Username',
+            bindable: true,
+            description: 'Property used as the display label for each option',
+        },
         nameFontFamily: {
             label: { en: 'Name font family' },
             type: 'text',
