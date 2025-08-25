@@ -38,6 +38,7 @@
   import UserCellRenderer from "./components/UserCellRenderer.vue";
   import ListFilterRenderer from "./components/ListFilterRenderer.js";
   import DateTimeCellEditor from "./components/DateTimeCellEditor.js";
+  import DateTimeFilter from "./components/DateTimeFilter.js";
   import FixedListCellEditor from "./components/FixedListCellEditor.js";
   // Editor customizado inline para listas
   class ListCellEditor {
@@ -786,6 +787,7 @@
         ListCellEditor,
         FixedListCellEditor,
         DateTimeCellEditor,
+        DateTimeFilter,
       },
     };
   },
@@ -1173,6 +1175,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               cellType === 'DATE' ||
               cellType === 'DATETIME';
             if (isDateField) {
+
               // Format value for display
               result.valueFormatter = params => {
                 const val = params.value;

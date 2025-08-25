@@ -19,6 +19,7 @@ export default class DateTimeCellEditor {
     const input = document.createElement('input');
     input.type = 'date';
     input.lang = this.lang;
+
     input.style.width = '100%';
     input.style.height = '100%';
     input.style.fontSize = '13px';
@@ -38,6 +39,7 @@ export default class DateTimeCellEditor {
   toISODate(date) {
     const pad = n => n.toString().padStart(2, '0');
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+
   }
 
   getGui() {
@@ -53,6 +55,7 @@ export default class DateTimeCellEditor {
 
   getValue() {
     return this.eInput.value || '';
+
   }
 
   destroy() {}
