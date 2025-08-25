@@ -27,19 +27,28 @@
     </div>
 
     <div v-if="isOpen" class="user-selector__dropdown">
-      <div class="user-selector__search">
-        <input
-          v-model="search"
-          type="text"
-          :placeholder="searchPlaceholder"
-          class="user-selector__input"
-          :style="inputStyle"
-        />
-        <span class="material-symbols-outlined user-selector__icon">search</span>
-      </div>
+      <template v-if="currentGroup">
+        <div class="user-selector__group-header">
+          <span class="material-symbols-outlined user-selector__back" @click="backToRoot">chevron_left</span>
+          <span class="user-selector__group-title" :style="nameStyle">{{ currentGroup.name }}</span>
+        </div>
+        <div class="user-selector__group-count">{{ currentGroup.groupUsers?.length || 0 }}</div>
+      </template>
+      <template v-else>
+        <div class="user-selector__search">
+          <input
+            v-model="search"
+            type="text"
+            :placeholder="searchPlaceholder"
+            class="user-selector__input"
+            :style="inputStyle"
+          />
+          <span class="material-symbols-outlined user-selector__icon">search</span>
+        </div>
+      </template>
 
       <div class="user-selector__list">
-        <template v-if="groupBy">
+        <template v-if="groupBy && !currentGroup">
           <div
             class="user-selector__group"
             v-for="group in groupedUsers.groups"
@@ -72,6 +81,12 @@
                   </div>
                 </div>
                 <span class="user-selector__name" :style="nameStyle">{{ user.name }}</span>
+                <span
+                  v-if="user.groupUsers?.length"
+                  class="material-symbols-outlined user-selector__chevron"
+                  @click.stop="openGroup(user)"
+                  >chevron_right</span
+                >
               </div>
             </div>
           </div>
@@ -98,6 +113,12 @@
               </div>
             </div>
             <span class="user-selector__name" :style="nameStyle">{{ user.name }}</span>
+            <span
+              v-if="user.groupUsers?.length"
+              class="material-symbols-outlined user-selector__chevron"
+              @click.stop="openGroup(user)"
+              >chevron_right</span
+            >
           </div>
         </template>
 
@@ -107,7 +128,7 @@
             :key="user.id"
             class="user-selector__item"
             :class="{ disabled: user.isEnabled === false }"
-            @click.stop="user.isEnabled === false ? null : selectUser(user)"
+            @click.stop="user.isEnabled === false || user.groupUsers?.length ? null : selectUser(user)"
           >
             <div class="avatar-outer">
               <div class="avatar-middle">
@@ -124,6 +145,12 @@
               </div>
             </div>
             <span class="user-selector__name" :style="nameStyle">{{ user.name }}</span>
+            <span
+              v-if="user.groupUsers?.length"
+              class="material-symbols-outlined user-selector__chevron"
+              @click.stop="openGroup(user)"
+              >chevron_right</span
+            >
           </div>
         </template>
 
@@ -166,12 +193,14 @@ export default {
       search: '',
       isOpen: false,
       selectedUser: null,
-      selectedUserIdVar: null
+      selectedUserIdVar: null,
+      currentGroup: null
     };
   },
   computed: {
     filteredUsers() {
-      const list = Array.isArray(this.datasource) ? this.datasource : [];
+      const source = this.currentGroup ? this.currentGroup.groupUsers || [] : this.datasource;
+      const list = Array.isArray(source) ? source : [];
       if (!this.search) return list;
       const q = this.search.toLowerCase();
       return list.filter(u => String(u.name || '').toLowerCase().includes(q));
@@ -267,20 +296,37 @@ export default {
   methods: {
     toggleDropdown() {
       this.isOpen = !this.isOpen;
+      if (!this.isOpen) {
+        this.currentGroup = null;
+        this.search = '';
+      }
     },
     closeDropdown(event) {
       if (this.isOpen && !(this.$refs.dropdownRoot?.contains?.(event.target))) {
         this.isOpen = false;
+        this.currentGroup = null;
+        this.search = '';
       }
     },
     async selectUser(user) {
       this.selectedUser = user;
       this.isOpen = false;
+      this.currentGroup = null;
       this.$emit('user-selected', user.id);
       this.$emit('trigger-event', {
         name: 'onChange',
         event: { value: user?.id || '' }
       });
+    },
+    openGroup(group) {
+      if (group.groupUsers && group.groupUsers.length) {
+        this.currentGroup = group;
+        this.search = '';
+      }
+    },
+    backToRoot() {
+      this.currentGroup = null;
+      this.search = '';
     },
     handleClickOutside(event) {
       this.closeDropdown(event);
@@ -481,6 +527,31 @@ export default {
 }
 .user-selector__item:hover {
   background: #f5f5f5;
+}
+.user-selector__chevron {
+  margin-left: auto;
+  font-size: 20px;
+  color: #888;
+  cursor: pointer;
+}
+.user-selector__group-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 12px 4px;
+}
+.user-selector__back {
+  cursor: pointer;
+  font-size: 20px;
+  color: #444;
+}
+.user-selector__group-title {
+  flex: 1;
+}
+.user-selector__group-count {
+  font-size: 12px;
+  padding: 0 12px 8px;
+  color: #888;
 }
 .user-selector__group-label {
   padding: 4px 12px;
