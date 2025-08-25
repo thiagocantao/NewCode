@@ -565,20 +565,20 @@ export default {
 
 .user-selector__group-tooltip {
   position: absolute;
-  bottom: 120%;
+  top: 35px;
   left: 50%;
   transform: translateX(-50%);
   background: #333;
   color: #fff;
-  padding: 4px 8px;
+  padding: 6px 10px;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 16px;
   white-space: nowrap;
-  z-index: 20;
+  z-index: 101;
   text-align: center;
 }
 .user-selector__group-tooltip-count {
-  font-size: 10px;
+  font-size: 12px;
   color: #ddd;
 }
 .avatar-middle {
@@ -639,6 +639,7 @@ export default {
   flex-shrink: 1;
   min-width: 0;
   max-width: 100%;
+  padding-left: 3px;
 }
 .user-selector__placeholder {
   color: #aaa;
