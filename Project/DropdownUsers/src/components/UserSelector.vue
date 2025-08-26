@@ -374,6 +374,7 @@ export default {
       });
     } else {
       this.selectedUserIdVar = null;
+
     }
   },
   mounted() {
@@ -586,6 +587,7 @@ export default {
     },
     updateComponentVariable() {
     if (!this.selectedUserIdVar) return;
+
     const val = {
       userid: this.selectedUser ? this.selectedUser.id : null,
       groupid: this.selectedGroup ? this.selectedGroup.id : null
