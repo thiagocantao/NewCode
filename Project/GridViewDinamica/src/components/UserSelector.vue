@@ -285,7 +285,6 @@ export default {
       isOpen: false,
       selectedUser: null,
       selectedGroup: null,
-      selectedUserIdVar: null,
       currentGroup: null,
       currentGroupUsers: [],
       groupStack: [],
@@ -374,10 +373,8 @@ export default {
         defaultValue: ''
       });
     } else {
-      this.selectedUserIdVar = {
-        getValue: () => '',
-        setValue: () => {}
-      };
+      this.selectedUserIdVar = null;
+
     }
   },
   mounted() {
@@ -589,6 +586,8 @@ export default {
       }
     },
     updateComponentVariable() {
+    if (!this.selectedUserIdVar) return;
+
     const val = {
       userid: this.selectedUser ? this.selectedUser.id : null,
       groupid: this.selectedGroup ? this.selectedGroup.id : null
