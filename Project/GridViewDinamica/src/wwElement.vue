@@ -17,7 +17,7 @@
 </template>
 
 <script>
-  import { shallowRef, watchEffect, computed, ref, onMounted, onUnmounted, watch, h } from "vue";
+  import { shallowRef, computed, ref, onMounted, onUnmounted, watch } from "vue";
   import { AgGridVue } from "ag-grid-vue3";
   import {
   AllCommunityModule,
@@ -39,6 +39,7 @@
   import ListFilterRenderer from "./components/ListFilterRenderer.js";
   import DateTimeCellEditor from "./components/DateTimeCellEditor.js";
   import FixedListCellEditor from "./components/FixedListCellEditor.js";
+  import ResponsibleUserCellEditor from "./components/ResponsibleUserCellEditor.vue";
   // Editor customizado inline para listas
   class ListCellEditor {
     init(params) {
@@ -217,6 +218,7 @@
   UserCellRenderer,
   ListCellEditor, // registrar editor customizado
   FixedListCellEditor,
+  ResponsibleUserCellEditor,
   DateTimeCellEditor,
   },
   props: {
@@ -279,6 +281,37 @@
   });
 
   const columnOptions = ref({});
+  const responsibleUsersOptions = ref(null);
+
+  const loadResponsibleUsersOptions = async () => {
+    if (responsibleUsersOptions.value) return responsibleUsersOptions.value;
+    try {
+      const lang = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
+      const companyId = window.wwLib?.wwVariable?.getValue('5d099f04-cd42-41fd-94ad-22d4de368c3a');
+      const apiUrl = window.wwLib?.wwVariable?.getValue('1195995b-34c3-42a5-b436-693f0f4f8825');
+      const apiKey = window.wwLib?.wwVariable?.getValue('d180be98-8926-47a7-b7f1-6375fbb95fa3');
+      const apiAuth = window.wwLib?.wwVariable?.getValue('dfcde09f-42f3-4b5c-b2e8-4314650655db');
+      if (!apiUrl) return [];
+      const fetchOptions = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...(companyId ? { p_idcompany: companyId } : {}),
+          ...(lang ? { p_language: lang } : {})
+        })
+      };
+      if (apiKey) fetchOptions.headers['apikey'] = apiKey;
+      if (apiAuth) fetchOptions.headers['Authorization'] = apiAuth;
+      const response = await fetch(apiUrl + 'getLookupGroupsAndUsers', fetchOptions);
+      const data = await response.json();
+      responsibleUsersOptions.value = Array.isArray(data) ? data : [];
+    } catch (e) {
+      console.error('Failed to load responsible users options', e);
+      responsibleUsersOptions.value = [];
+    }
+    return responsibleUsersOptions.value;
+  };
+
 
   const parseStaticOptions = (opts) => {
     if (Array.isArray(opts)) {
@@ -348,8 +381,12 @@
       return [];
     }
   };
-
   const getColumnOptions = async (col, ticketId) => {
+    const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
+    const identifier = (col.FieldDB || '').toUpperCase();
+    if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
+      return await loadResponsibleUsersOptions();
+    }
     let opts = [];
     if (col.listOptions) {
       opts = parseStaticOptions(col.listOptions);
@@ -373,7 +410,13 @@
     const result = {};
     for (const col of props.content.columns) {
       const colId = col.id || col.field;
+      const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
+      const identifier = (col.FieldDB || '').toUpperCase();
       result[colId] = {};
+      if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
+        result[colId]['*'] = await getColumnOptions(col);
+        continue;
+      }
       for (const row of rows) {
         const ticketId = row?.TicketID;
         result[colId][ticketId] = await getColumnOptions(col, ticketId);
@@ -752,6 +795,8 @@
       forceSelectionColumnFirst,
       forceSelectionColumnFirstDOM,
       columnOptions,
+      selectedRows,
+      setSelectedRows,
       localeText: computed(() => {
         let lang = 'en-US';
         try {
@@ -786,6 +831,7 @@
         ListCellEditor,
         FixedListCellEditor,
         DateTimeCellEditor,
+        ResponsibleUserCellEditor,
       },
     };
   },
@@ -867,8 +913,34 @@
           ...(colCopy.pinned === 'left' ? { lockPinned: true, lockPosition: true } : {}),
         };
 
-const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
-              const identifier = (colCopy.FieldDB || '').toUpperCase();
+        const fieldKey = colCopy.id || colCopy.field;
+        const getDsOptions = params => {
+          const ticketId = params.data?.TicketID;
+          const colOpts = this.columnOptions[fieldKey] || {};
+          return colOpts[ticketId] || colOpts['*'] || [];
+        };
+        const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
+        const identifier = (colCopy.FieldDB || '').toUpperCase();
+
+        if (tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
+          const result = {
+            ...commonProperties,
+            id: colCopy.id,
+            colId: colCopy.id,
+            headerName: colCopy.headerName,
+            field: colCopy.field,
+            sortable: colCopy.sortable,
+            filter: ListFilterRenderer,
+            cellRenderer: 'UserCellRenderer',
+            editable: !!colCopy.editable,
+          };
+          result.cellRendererParams = params => ({ options: getDsOptions(params) });
+          if (colCopy.editable) {
+            result.cellEditor = ResponsibleUserCellEditor;
+            result.cellEditorParams = params => ({ options: getDsOptions(params) });
+          }
+          return result;
+        }
 
         // Se o filtro for agListColumnFilter, usar o filtro customizado
         if (colCopy.filter === 'agListColumnFilter') {
@@ -888,12 +960,6 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               formatter: colCopy.formatter,
               // options will be added below when available
             }
-          };
-          const fieldKey = colCopy.id || colCopy.field;
-          const getDsOptions = params => {
-            const ticketId = params.data?.TicketID;
-            const colOpts = this.columnOptions[fieldKey] || {};
-            return colOpts[ticketId] || [];
           };
 
           if (
@@ -1144,26 +1210,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               result.headerClass = `ag-header-align-${colCopy.headerAlign}`;
             }
             // Formatação especial para DEADLINE
-            const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
-            const identifier = (colCopy.FieldDB || '').toUpperCase();
-
-
-
-            if (tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
-              result.cellRenderer = 'UserCellRenderer';
-              const opts = Array.isArray(colCopy.options)
-                ? colCopy.options
-                : Array.isArray(colCopy.listOptions)
-                ? colCopy.listOptions
-                : dsOptions;
-              if (opts.length) {
-                result.cellRendererParams = {
-                  ...(result.cellRendererParams || {}),
-                  options: opts
-                };
-              }
-            }
-            if (tagControl === 'DEADLINE') {
+            // tagControl e identifier já foram calculados acima
+            if (tagControl === 'DEADLINE' || identifier === 'DEADLINE') {
               result.filter = 'agDateColumnFilter';
               // Remove default date configuration applied above
               delete result.cellDataType;
