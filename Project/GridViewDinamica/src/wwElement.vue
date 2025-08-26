@@ -923,8 +923,14 @@
           ...(colCopy.pinned === 'left' ? { lockPinned: true, lockPosition: true } : {}),
         };
 
-const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
-              const identifier = (colCopy.FieldDB || '').toUpperCase();
+        const fieldKey = colCopy.id || colCopy.field;
+        const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
+        const identifier = (colCopy.FieldDB || '').toUpperCase();
+        const getDsOptions = params => {
+          const ticketId = params.data?.TicketID;
+          const colOpts = this.columnOptions[fieldKey] || {};
+          return colOpts[ticketId] || [];
+        };
 
         // Se o filtro for agListColumnFilter, usar o filtro customizado
         if (colCopy.filter === 'agListColumnFilter') {
@@ -945,12 +951,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               // options will be added below when available
             }
           };
-          const fieldKey = colCopy.id || colCopy.field;
-          const getDsOptions = params => {
-            const ticketId = params.data?.TicketID;
-            const colOpts = this.columnOptions[fieldKey] || {};
-            return colOpts[ticketId] || [];
-          };
+          // getDsOptions already defined above
 
           if (
             colCopy.cellDataType === 'list' ||
@@ -1057,7 +1058,6 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           }
           case "list":
             {
-              const fieldKey = colCopy.id || colCopy.field;
               const getDsOptions = params => {
                 const ticketId = params.data?.TicketID;
                 const colOpts = this.columnOptions[fieldKey] || {};
@@ -1200,14 +1200,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               result.headerClass = `ag-header-align-${colCopy.headerAlign}`;
             }
             // Formatação especial para DEADLINE
-            const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
-            const identifier = (colCopy.FieldDB || '').toUpperCase();
-            const fieldKey = colCopy.id || colCopy.field;
-            const getDsOptions = params => {
-              const ticketId = params.data?.TicketID;
-              const colOpts = this.columnOptions[fieldKey] || {};
-              return colOpts[ticketId] || [];
-            };
+
 
             if (tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
               result.cellRenderer = 'UserCellRenderer';
@@ -1337,12 +1330,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                 return `<span class="deadline-visual ${colorClass}" title="${tooltip}">${diff}</span>`;
               };
             }
-            const fieldKey = colCopy.id || colCopy.field;
-            const getDsOptions = params => {
-              const ticketId = params.data?.TicketID;
-              const colOpts = this.columnOptions[fieldKey] || {};
-              return colOpts[ticketId] || [];
-            };
+            // fieldKey and getDsOptions are defined above
             if (
               colCopy.cellDataType === 'list' ||
               (tagControl && tagControl.toUpperCase() === 'LIST')
@@ -1524,8 +1512,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
   const colDef = event.column.getColDef ? event.column.getColDef() : {};
   const tag = (colDef.TagControl || colDef.tagControl || colDef.tagcontrol || '').toUpperCase();
   const identifier = (colDef.FieldDB || '').toUpperCase();
+  const fieldKey = colDef.colId || colDef.field;
   if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
-    const fieldKey = colDef.colId || colDef.field;
     const colOpts = this.columnOptions[fieldKey] || {};
     const ticketId = event.data?.TicketID;
     const opts = ticketId != null ? colOpts[ticketId] || [] : [];
@@ -1551,7 +1539,6 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
     }
   }
   if (tag === 'DEADLINE') {
-    const fieldKey = colDef.colId || colDef.field;
     if (event.node && fieldKey) {
       // Accept the value returned by the editor without conversion
       const v = event.newValue;
