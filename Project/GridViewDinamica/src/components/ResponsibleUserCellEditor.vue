@@ -12,7 +12,8 @@
 
 <script>
 import { ref, onMounted, nextTick } from 'vue';
-import UserSelector from '../../../DropdownUsers/src/components/UserSelector.vue';
+import UserSelector from './UserSelector.vue';
+
 
 export default {
   name: 'ResponsibleUserCellEditor',
