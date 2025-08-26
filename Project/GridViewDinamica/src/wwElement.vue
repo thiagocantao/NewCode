@@ -910,12 +910,24 @@
           if (!isNaN(Number(val))) return Number(val);
           return undefined;
         }
+
+        // Converte diferentes representações para booleano, com valor padrão
+        function parseEditable(val, defaultVal = false) {
+          if (val === undefined || val === null || val === '') return defaultVal;
+          if (typeof val === 'string') {
+            const lowered = val.toLowerCase();
+            if (lowered === 'false' || lowered === '0') return false;
+            if (lowered === 'true' || lowered === '1') return true;
+          }
+          return Boolean(val);
+        }
         
         const minWidth = toNumber(colCopy.minWidth) || toNumber(colCopy.MinWidth) || 80;
         const isFlex = colCopy.widthAlgo === 'flex';
         const width = isFlex ? undefined : minWidth;
         const flex = isFlex ? (colCopy.flex ?? 1) : undefined;
         const maxWidth = toNumber(colCopy.maxWidth) || undefined;
+        const baseEditable = parseEditable(colCopy.editable);
         const commonProperties = {
           minWidth,
           ...(width ? { width } : {}),
@@ -923,7 +935,7 @@
           ...(maxWidth ? { maxWidth } : {}),
           pinned: colCopy.pinned === "none" ? false : colCopy.pinned,
           hide: !!colCopy.hide,
-          editable: !!colCopy.editable, // <-- garantir editable
+          editable: baseEditable,
           ...(colCopy.pinned === 'left' ? { lockPinned: true, lockPosition: true } : {}),
           context: { FieldDB: colCopy.FieldDB, TagControl: colCopy.TagControl, id: colCopy.id }
         };
@@ -934,23 +946,26 @@
           const colOpts = this.columnOptions[fieldKey] || {};
           return colOpts[ticketId] || colOpts['*'] || [];
         };
-        const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
-        const identifier = (colCopy.FieldDB || '').toUpperCase();
+        const rawTagControl = colCopy.TagControl ?? colCopy.tagControl ?? colCopy.tagcontrol ?? '';
+        const rawIdentifier = colCopy.FieldDB ?? '';
+        const tagControl = rawTagControl.toString().trim().toUpperCase();
+        const identifier = rawIdentifier.toString().trim().toUpperCase();
 
         if (tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
+          const isEditable = colCopy.editable == null ? true : parseEditable(colCopy.editable);
           const result = {
             ...commonProperties,
-
             colId: colCopy.id,
             headerName: colCopy.headerName,
             field: colCopy.field,
             sortable: colCopy.sortable,
             filter: ListFilterRenderer,
             cellRenderer: 'UserCellRenderer',
-            editable: colCopy.editable !== false,
+            editable: isEditable,
           };
           result.cellRendererParams = params => ({ options: getDsOptions(params) });
-          if (colCopy.editable !== false) {
+          if (isEditable) {
+
             result.cellEditor = ResponsibleUserCellEditor;
             result.cellEditorParams = params => ({ options: getDsOptions(params) });
           }
