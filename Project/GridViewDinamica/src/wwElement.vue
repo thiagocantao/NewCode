@@ -38,10 +38,10 @@
   import UserCellRenderer from "./components/UserCellRenderer.vue";
   import ListFilterRenderer from "./components/ListFilterRenderer.js";
   import DateTimeCellEditor from "./components/DateTimeCellEditor.js";
-  import FixedListCellEditor from "./components/FixedListCellEditor.js";
-  import ResponsibleUserCellEditor from "./components/ResponsibleUserCellEditor.vue";
-  // Editor customizado inline para listas
-  class ListCellEditor {
+import FixedListCellEditor from "./components/FixedListCellEditor.js";
+import ResponsibleUserCellEditor from "./components/ResponsibleUserCellEditor.vue";
+// Editor customizado inline para listas
+class ListCellEditor {
     init(params) {
       this.params = params;
       const colDef = params.colDef || {};
@@ -141,8 +141,29 @@
         return `${datePart}`;
       } catch (error) {
         return dateValue;
+  }
+}
+
+  const mapResponsibleOptions = list =>
+    (list || []).map(item => ({
+      ...item,
+      value: item.id,
+      label: item.name,
+      ...(Array.isArray(item.groupUsers) && item.groupUsers.length
+        ? { groupUsers: mapResponsibleOptions(item.groupUsers) }
+        : {})
+    }));
+
+  const findResponsibleOption = (list, id) => {
+    for (const item of list || []) {
+      if (String(item.value) === String(id)) return item;
+      if (Array.isArray(item.groupUsers) && item.groupUsers.length) {
+        const found = findResponsibleOption(item.groupUsers, id);
+        if (found) return found;
       }
     }
+    return null;
+  };
     formatOption(opt) {
       const value = opt.label != null ? opt.label : opt.value;
       const colDef = this.params.colDef || {};
@@ -373,7 +394,8 @@
       const baseUrl = apiUrl.endsWith('/') ? apiUrl : apiUrl + '/';
       const response = await fetch(baseUrl + 'getLookupGroupsAndUsers', fetchOptions);
       const data = await response.json();
-      return Array.isArray(data)
+      const arr = Array.isArray(data)
+
         ? data
         : Array.isArray(data?.data)
           ? data.data
@@ -382,6 +404,8 @@
             : Array.isArray(data?.results)
               ? data.results
               : [];
+      return mapResponsibleOptions(arr);
+
     } catch (e) {
       return [];
     }
@@ -1517,17 +1541,18 @@
     const colOpts = this.columnOptions[fieldKey] || {};
     const ticketId = event.data?.TicketID;
     const opts = ticketId != null ? colOpts[ticketId] || [] : [];
-    const match = opts.find(o => String(o.value) === String(event.newValue));
+    let match;
+    if (event.newValue && typeof event.newValue === 'object') {
+      const id = event.newValue.userid || event.newValue.groupid;
+      match = findResponsibleOption(opts, id);
+    } else {
+      match = findResponsibleOption(opts, event.newValue);
+    }
     if (match) {
       if (event.data) {
-        event.data.ResponsibleUser = match.label || event.data.ResponsibleUser;
-        if (match.photo || match.image || match.img) {
-          event.data.PhotoUrl = match.photo || match.image || match.img;
-        } else {
-          // When the selected user has no photo, clear any existing one so the
-          // avatar with the initial is displayed
-          event.data.PhotoUrl = '';
-        }
+        event.data.ResponsibleUser = match.label || match.name || event.data.ResponsibleUser;
+        const photo = match.photo || match.PhotoURL || match.PhotoUrl || match.image || match.img;
+        event.data.PhotoUrl = photo || '';
       }
       if (this.gridApi && event.node) {
         this.gridApi.refreshCells({
