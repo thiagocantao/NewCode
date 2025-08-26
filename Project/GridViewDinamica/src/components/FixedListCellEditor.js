@@ -22,12 +22,11 @@ export default class FixedListCellEditor {
 
 
     const tag =
-      ((params.colDef.context && params.colDef.context.TagControl) ||
-        params.colDef.TagControl ||
+      (params.colDef.TagControl ||
         params.colDef.tagControl ||
         params.colDef.tagcontrol ||
         '').toUpperCase();
-    const identifier = ((params.colDef.context && params.colDef.context.FieldDB) || '').toUpperCase();
+    const identifier = (params.colDef.FieldDB || '').toUpperCase();
     this.isResponsibleUser =
       tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
 
@@ -143,7 +142,7 @@ export default class FixedListCellEditor {
         const styled = this.getRoundedSpanColor(
           value,
           params.styleArray,
-          (colDef.context && colDef.context.FieldDB)
+          colDef.FieldDB
         );
         if (styled) return styled;
       }
@@ -201,7 +200,7 @@ export default class FixedListCellEditor {
     return this.value;
   }
 
-  destroy() {}
+  destroy() { }
 
   isPopup() {
     return true;
