@@ -113,6 +113,7 @@ export default {
     groupPhoto() {
       return this.selectedGroup?.PhotoURL || this.selectedGroup?.PhotoUrl || this.selectedGroup?.photo || '';
     },
+
     userInitial() {
       return this.selectedUser ? this.getInitial(this.selectedUser.name) : '';
     },
@@ -141,7 +142,6 @@ export default {
         const apiAuth = window.wwLib?.wwVariable?.getValue('dfcde09f-42f3-4b5c-b2e8-4314650655db');
 
         if (!apiUrl) return [];
-
         const fetchOptions = {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
