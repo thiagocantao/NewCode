@@ -1,7 +1,11 @@
 <template>
   <div v-if="selectedLabel" class="user-cell" :class="{ 'user-cell--group-user': selectedGroup && selectedUser }" :style="pointerStyle">
     <template v-if="selectedGroup && selectedUser">
-      <div class="avatar-outer group-avatar-wrapper selected-group-avatar">
+      <div
+        class="avatar-outer group-avatar-wrapper selected-group-avatar"
+        @mouseenter="onGroupMouseEnter"
+        @mouseleave="onGroupMouseLeave"
+      >
         <div class="avatar-middle">
           <div class="user-cell__avatar">
             <template v-if="groupPhoto">
@@ -11,6 +15,9 @@
               <span class="material-symbols-outlined user-cell__group-icon">groups</span>
             </template>
           </div>
+        </div>
+        <div v-if="showGroupTooltip" class="user-cell__group-tooltip">
+          {{ selectedGroup.name }}
         </div>
       </div>
       <div class="avatar-outer selected-user-avatar">
@@ -27,7 +34,11 @@
       </div>
     </template>
     <template v-else-if="selectedGroup">
-      <div class="avatar-outer group-avatar-wrapper">
+      <div
+        class="avatar-outer group-avatar-wrapper"
+        @mouseenter="onGroupMouseEnter"
+        @mouseleave="onGroupMouseLeave"
+      >
         <div class="avatar-middle">
           <div class="user-cell__avatar">
             <template v-if="groupPhoto">
@@ -37,6 +48,9 @@
               <span class="material-symbols-outlined user-cell__group-icon">groups</span>
             </template>
           </div>
+        </div>
+        <div v-if="showGroupTooltip" class="user-cell__group-tooltip">
+          {{ selectedGroup.name }}
         </div>
       </div>
     </template>
@@ -69,7 +83,8 @@ export default {
   },
   data() {
     return {
-      optionsCache: []
+      optionsCache: [],
+      showGroupTooltip: false
     };
   },
   async created() {
@@ -143,6 +158,25 @@ export default {
     }
   },
   methods: {
+    onGroupMouseEnter() {
+      this.showGroupTooltip = true;
+      this.updateRowZIndex(true);
+    },
+    onGroupMouseLeave() {
+      this.showGroupTooltip = false;
+      this.updateRowZIndex(false);
+    },
+    updateRowZIndex(raise) {
+      const cell = this.params?.eGridCell;
+      if (cell) {
+        cell.style.overflow = raise ? 'visible' : '';
+        const row = cell.parentElement;
+        if (row) {
+          row.style.zIndex = raise ? 1000 : '';
+          row.style.overflow = raise ? 'visible' : '';
+        }
+      }
+    },
     async fetchOptions() {
       try {
         const lang = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
@@ -293,5 +327,20 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
   padding-left: 3px;
+}
+
+.user-cell__group-tooltip {
+  position: absolute;
+  top: 35px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 1000;
+  text-align: center;
 }
 </style>
