@@ -1210,6 +1210,7 @@
             // Formatação especial para DEADLINE
             // tagControl e identifier já foram calculados acima
             if (tagControl === 'DEADLINE' || identifier === 'DEADLINE') {
+
               result.filter = 'agDateColumnFilter';
               // Remove default date configuration applied above
               delete result.cellDataType;
