@@ -965,6 +965,7 @@
           };
           result.cellRendererParams = params => ({ options: getDsOptions(params) });
           if (isEditable) {
+
             result.cellEditor = ResponsibleUserCellEditor;
             result.cellEditorParams = params => ({ options: getDsOptions(params) });
           }
