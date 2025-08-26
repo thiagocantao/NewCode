@@ -960,7 +960,6 @@
             }
           };
 
-
           if (
             colCopy.cellDataType === 'list' ||
             (tagControl && tagControl.toUpperCase() === 'LIST')
@@ -1209,12 +1208,9 @@
               result.headerClass = `ag-header-align-${colCopy.headerAlign}`;
             }
             // Formatação especial para DEADLINE
-            const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
-            const identifier = (colCopy.FieldDB || '').toUpperCase();
+            // tagControl e identifier já foram calculados acima
+            if (tagControl === 'DEADLINE' || identifier === 'DEADLINE') {
 
-
-
-            if (tagControl === 'DEADLINE') {
               result.filter = 'agDateColumnFilter';
               // Remove default date configuration applied above
               delete result.cellDataType;
