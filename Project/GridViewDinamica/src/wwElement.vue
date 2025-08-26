@@ -959,8 +959,7 @@
               // options will be added below when available
             }
           };
-            return colOpts[ticketId] || [];
-          };
+
 
           if (
             colCopy.cellDataType === 'list' ||
