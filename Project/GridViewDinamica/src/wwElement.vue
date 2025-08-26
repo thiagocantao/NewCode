@@ -842,6 +842,7 @@
       /* wwEditor:end */
       onFirstDataRendered,
       gridComponents,
+
     };
   },
     computed: {
