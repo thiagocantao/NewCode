@@ -7,7 +7,7 @@
         :getMainMenuItems="getMainMenuItems" :isColumnMovable="isColumnMovable" :theme="theme" :getRowId="getRowId"
         :pagination="content.pagination" :paginationPageSize="content.paginationPageSize || 10"
         :paginationPageSizeSelector="false" :columnHoverHighlight="content.columnHoverHighlight" :locale-text="localeText"
-        :components="editorComponents"
+        :components="gridComponents"
         :singleClickEdit="true" @grid-ready="onGridReady" @row-selected="onRowSelected"
         @selection-changed="onSelectionChanged" @cell-value-changed="onCellValueChanged" @filter-changed="onFilterChanged"
         @sort-changed="onSortChanged" @row-clicked="onRowClicked" @first-data-rendered="onFirstDataRendered"
@@ -219,6 +219,7 @@
   ListCellEditor, // registrar editor customizado
   FixedListCellEditor,
   DateTimeCellEditor,
+  ResponsibleUserCellEditor,
   },
   props: {
   content: {
@@ -734,6 +735,18 @@
   
   /* wwEditor:start */
   const { createElement } = wwLib.useCreateElement();
+
+  const gridComponents = {
+    ActionCellRenderer,
+    ImageCellRenderer,
+    WewebCellRenderer,
+    FormatterCellRenderer,
+    UserCellRenderer,
+    ListCellEditor,
+    FixedListCellEditor,
+    DateTimeCellEditor,
+    ResponsibleUserCellEditor,
+  };
   /* wwEditor:end */
   
   function updateColumnsPosition() {
@@ -828,12 +841,8 @@
       createElement,
       /* wwEditor:end */
       onFirstDataRendered,
-      editorComponents: {
-        ListCellEditor,
-        FixedListCellEditor,
-        DateTimeCellEditor,
-        ResponsibleUserCellEditor,
-      },
+      gridComponents,
+
     };
   },
     computed: {
