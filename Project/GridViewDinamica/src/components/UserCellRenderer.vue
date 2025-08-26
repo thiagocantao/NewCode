@@ -292,5 +292,6 @@ export default {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  padding-left: 3px;
 }
 </style>
