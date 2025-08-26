@@ -88,7 +88,11 @@ export default {
           if (match) displayValue = match.label;
         }
         // DEADLINE: barra proporcional
-        if (this.params.colDef?.TagControl === 'DEADLINE' || this.params.colDef?.tagControl === 'DEADLINE') {
+        if (
+          this.params.colDef?.context?.TagControl === 'DEADLINE' ||
+          this.params.colDef?.TagControl === 'DEADLINE' ||
+          this.params.colDef?.tagControl === 'DEADLINE'
+        ) {
           const value = this.params.value;
           if (!value) return '';
           // Parse data DEADLINE
@@ -178,7 +182,7 @@ export default {
           if (styleArray && Array.isArray(styleArray)) {
             // Defina o raio de acordo com o FieldDB
             let borderRadius = '12px';
-            if (this.params.colDef?.FieldDB === 'StatusID') borderRadius = '5px';
+            if (this.params.colDef?.context?.FieldDB === 'StatusID') borderRadius = '5px';
             // Função inline para aplicar o raio
             function getRoundedSpanColorWithRadius(matchVal, textVal, colorArray) {
               if (!colorArray || !Array.isArray(colorArray) || !matchVal) return textVal;

@@ -4,7 +4,7 @@
         :domLayout="content.layout === 'auto' ? 'autoHeight' : 'normal'" :style="style" :rowSelection="rowSelection"
         :suppressMovableColumns="!content.movableColumns" :alwaysShowHorizontalScroll="false"
         :suppressColumnMoveAnimation="true" :suppressDragLeaveHidesColumns="true" :maintainColumnOrder="true"
-        :getMainMenuItems="getMainMenuItems" :isColumnMovable="isColumnMovable" :theme="theme" :getRowId="getRowId"
+        :isColumnMovable="isColumnMovable" :theme="theme" :getRowId="getRowId"
         :pagination="content.pagination" :paginationPageSize="content.paginationPageSize || 10"
         :paginationPageSizeSelector="false" :columnHoverHighlight="content.columnHoverHighlight" :locale-text="localeText"
         :components="editorComponents"
@@ -17,7 +17,7 @@
 </template>
 
 <script>
-  import { shallowRef, watchEffect, computed, ref, onMounted, onUnmounted, watch, h } from "vue";
+  import { shallowRef, computed, ref, onMounted, onUnmounted, watch, watchEffect } from "vue";
   import { AgGridVue } from "ag-grid-vue3";
   import {
   AllCommunityModule,
@@ -39,6 +39,7 @@
   import ListFilterRenderer from "./components/ListFilterRenderer.js";
   import DateTimeCellEditor from "./components/DateTimeCellEditor.js";
   import FixedListCellEditor from "./components/FixedListCellEditor.js";
+  import ResponsibleUserCellEditor from "./components/ResponsibleUserCellEditor.vue";
   // Editor customizado inline para listas
   class ListCellEditor {
     init(params) {
@@ -167,7 +168,7 @@
           const styled = this.getRoundedSpanColor(
             value,
             params.styleArray,
-            colDef.FieldDB
+            (colDef.context && colDef.context.FieldDB)
           );
           if (styled) return styled;
         }
@@ -217,6 +218,7 @@
   UserCellRenderer,
   ListCellEditor, // registrar editor customizado
   FixedListCellEditor,
+  ResponsibleUserCellEditor,
   DateTimeCellEditor,
   },
   props: {
@@ -279,6 +281,49 @@
   });
 
   const columnOptions = ref({});
+  const responsibleUsersOptions = ref(null);
+
+  const loadResponsibleUsersOptions = async () => {
+    if (responsibleUsersOptions.value) return responsibleUsersOptions.value;
+    try {
+      const lang = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
+      const companyId = window.wwLib?.wwVariable?.getValue('5d099f04-cd42-41fd-94ad-22d4de368c3a');
+      const apiUrl = window.wwLib?.wwVariable?.getValue('1195995b-34c3-42a5-b436-693f0f4f8825');
+      const apiKey = window.wwLib?.wwVariable?.getValue('d180be98-8926-47a7-b7f1-6375fbb95fa3');
+      const apiAuth = window.wwLib?.wwVariable?.getValue('dfcde09f-42f3-4b5c-b2e8-4314650655db');
+      if (!apiUrl) {
+        responsibleUsersOptions.value = [];
+        return responsibleUsersOptions.value;
+      }
+      const fetchOptions = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...(companyId ? { p_idcompany: companyId } : {}),
+          ...(lang ? { p_language: lang } : {})
+        })
+      };
+      if (apiKey) fetchOptions.headers['apikey'] = apiKey;
+      if (apiAuth) fetchOptions.headers['Authorization'] = apiAuth;
+      const baseUrl = apiUrl.endsWith('/') ? apiUrl : apiUrl + '/';
+      const response = await fetch(baseUrl + 'getLookupGroupsAndUsers', fetchOptions);
+      const data = await response.json();
+      responsibleUsersOptions.value = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.data)
+          ? data.data
+          : Array.isArray(data?.result)
+            ? data.result
+            : Array.isArray(data?.results)
+              ? data.results
+              : [];
+    } catch (e) {
+      console.error('Failed to load responsible users options', e);
+      responsibleUsersOptions.value = [];
+    }
+    return responsibleUsersOptions.value;
+  };
+
 
   const parseStaticOptions = (opts) => {
     if (Array.isArray(opts)) {
@@ -348,8 +393,12 @@
       return [];
     }
   };
-
   const getColumnOptions = async (col, ticketId) => {
+    const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
+    const identifier = (col.FieldDB || '').toUpperCase();
+    if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
+      return await loadResponsibleUsersOptions();
+    }
     let opts = [];
     if (col.listOptions) {
       opts = parseStaticOptions(col.listOptions);
@@ -373,7 +422,13 @@
     const result = {};
     for (const col of props.content.columns) {
       const colId = col.id || col.field;
+      const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
+      const identifier = (col.FieldDB || '').toUpperCase();
       result[colId] = {};
+      if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
+        result[colId]['*'] = await getColumnOptions(col);
+        continue;
+      }
       for (const row of rows) {
         const ticketId = row?.TicketID;
         result[colId][ticketId] = await getColumnOptions(col, ticketId);
@@ -694,7 +749,7 @@
   if (!gridApi.value) return;
   const allColumns = gridApi.value.getAllGridColumns();
   const positions = allColumns.map((col, idx) => ({
-  FieldID: col.getColDef().id,
+  FieldID: col.getColId(),
   PositionField: idx + 1,
   IsDeleted: false
   })).filter(col => col.FieldID);
@@ -752,6 +807,8 @@
       forceSelectionColumnFirst,
       forceSelectionColumnFirstDOM,
       columnOptions,
+      selectedRows,
+      setSelectedRows,
       localeText: computed(() => {
         let lang = 'en-US';
         try {
@@ -786,6 +843,7 @@
         ListCellEditor,
         FixedListCellEditor,
         DateTimeCellEditor,
+        ResponsibleUserCellEditor,
       },
     };
   },
@@ -863,18 +921,42 @@
           pinned: colCopy.pinned === "none" ? false : colCopy.pinned,
           hide: !!colCopy.hide,
           editable: !!colCopy.editable, // <-- garantir editable
-          FieldDB: colCopy.FieldDB, // <-- garantir FieldDB no colDef
           ...(colCopy.pinned === 'left' ? { lockPinned: true, lockPosition: true } : {}),
+          context: { FieldDB: colCopy.FieldDB, TagControl: colCopy.TagControl, id: colCopy.id }
         };
 
-const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
-              const identifier = (colCopy.FieldDB || '').toUpperCase();
+        const fieldKey = colCopy.id || colCopy.field;
+        const getDsOptions = params => {
+          const ticketId = params.data?.TicketID;
+          const colOpts = this.columnOptions[fieldKey] || {};
+          return colOpts[ticketId] || colOpts['*'] || [];
+        };
+        const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
+        const identifier = (colCopy.FieldDB || '').toUpperCase();
+
+        if (tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
+          const result = {
+            ...commonProperties,
+            colId: colCopy.id,
+            headerName: colCopy.headerName,
+            field: colCopy.field,
+            sortable: colCopy.sortable,
+            filter: ListFilterRenderer,
+            cellRenderer: 'UserCellRenderer',
+            editable: !!colCopy.editable,
+          };
+          result.cellRendererParams = params => ({ options: getDsOptions(params) });
+          if (colCopy.editable) {
+            result.cellEditor = ResponsibleUserCellEditor;
+            result.cellEditorParams = params => ({ options: getDsOptions(params) });
+          }
+          return result;
+        }
 
         // Se o filtro for agListColumnFilter, usar o filtro customizado
         if (colCopy.filter === 'agListColumnFilter') {
           const result = {
             ...commonProperties,
-            id: colCopy.id,
             colId: colCopy.id,
             headerName: colCopy.headerName,
             field: colCopy.field,
@@ -888,12 +970,6 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               formatter: colCopy.formatter,
               // options will be added below when available
             }
-          };
-          const fieldKey = colCopy.id || colCopy.field;
-          const getDsOptions = params => {
-            const ticketId = params.data?.TicketID;
-            const colOpts = this.columnOptions[fieldKey] || {};
-            return colOpts[ticketId] || [];
           };
 
           if (
@@ -957,7 +1033,6 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           case "action": {
             return {
               ...commonProperties,
-              id: colCopy.id,
               colId: colCopy.id,
               headerName: colCopy.headerName,
               cellRenderer: "ActionCellRenderer",
@@ -974,7 +1049,6 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           case "custom":
             return {
               ...commonProperties,
-              id: colCopy.id,
               colId: colCopy.id,
               headerName: colCopy.headerName,
               field: colCopy.field,
@@ -988,7 +1062,6 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           case "image": {
             return {
               ...commonProperties,
-              id: colCopy.id,
               colId: colCopy.id,
               headerName: colCopy.headerName,
               field: colCopy.field,
@@ -1016,7 +1089,6 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
 
               const result = {
                 ...commonProperties,
-                id: colCopy.id,
                 colId: colCopy.id,
                 headerName: colCopy.headerName,
                 field: colCopy.field,
@@ -1082,7 +1154,6 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           default: {
             const result = {
               ...commonProperties,
-              id: colCopy.id,
               colId: colCopy.id,
               headerName: colCopy.headerName,
               field: colCopy.field,
@@ -1144,26 +1215,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               result.headerClass = `ag-header-align-${colCopy.headerAlign}`;
             }
             // Formatação especial para DEADLINE
-            const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
-            const identifier = (colCopy.FieldDB || '').toUpperCase();
-
-
-
-            if (tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
-              result.cellRenderer = 'UserCellRenderer';
-              const opts = Array.isArray(colCopy.options)
-                ? colCopy.options
-                : Array.isArray(colCopy.listOptions)
-                ? colCopy.listOptions
-                : dsOptions;
-              if (opts.length) {
-                result.cellRendererParams = {
-                  ...(result.cellRendererParams || {}),
-                  options: opts
-                };
-              }
-            }
-            if (tagControl === 'DEADLINE') {
+            // tagControl e identifier já foram calculados acima
+            if (tagControl === 'DEADLINE' || identifier === 'DEADLINE') {
               result.filter = 'agDateColumnFilter';
               // Remove default date configuration applied above
               delete result.cellDataType;
@@ -1396,11 +1449,11 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
   headerBackgroundColor: this.content.headerBackgroundColor,
   headerTextColor: this.content.headerTextColor,
   headerFontSize: this.content.headerFontSize,
-  headerFontFamily: this.content.headerFontFamily,
+  headerFontFamily: this.content.headerFontFamily || undefined,
   headerFontWeight: this.content.headerFontWeight,
   borderColor: this.content.borderColor,
   cellTextColor: this.content.cellColor,
-  cellFontFamily: this.content.cellFontFamily,
+  cellFontFamily: this.content.cellFontFamily || undefined,
   dataFontSize: this.content.cellFontSize,
   oddRowBackgroundColor: this.content.rowAlternateColor,
   backgroundColor: this.content.rowBackgroundColor,
@@ -1446,7 +1499,21 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
     }
   },
   getRowId(params) {
-  return this.resolveMappingFormula(this.content.idFormula, params.data);
+  const resolver = this.resolveMappingFormula;
+  const formula = this.content && this.content.idFormula;
+  if (typeof resolver === 'function' && formula) {
+    try {
+      return resolver(formula, params.data);
+    } catch (e) {}
+  }
+  const data = params.data || {};
+  return (
+    data.TicketID ||
+    data.id ||
+    data.ID ||
+    data.Id ||
+    (params.node ? params.node.id : null)
+  );
   },
   onActionTrigger(event) {
   if (!event) return;
@@ -1464,8 +1531,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
   },
   onCellValueChanged(event) {
   const colDef = event.column.getColDef ? event.column.getColDef() : {};
-  const tag = (colDef.TagControl || colDef.tagControl || colDef.tagcontrol || '').toUpperCase();
-  const identifier = (colDef.FieldDB || '').toUpperCase();
+  const tag = ((colDef.context && colDef.context.TagControl) || colDef.TagControl || colDef.tagControl || colDef.tagcontrol || '').toUpperCase();
+  const identifier = ((colDef.context && colDef.context.FieldDB) || '').toUpperCase();
   if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
     const fieldKey = colDef.colId || colDef.field;
     const colOpts = this.columnOptions[fieldKey] || {};
@@ -1694,11 +1761,6 @@ forceClearSelection() {
       // Caso contrário, segue a configuração global
       return this.content.movableColumns;
     },
-      getMainMenuItems(params) {
-      const defaultItems = params.defaultItems;
-      // Remove opções de pin/unpin para todas as colunas
-      return defaultItems.filter(item => !item.toLowerCase().includes('pin'));
-    }
   },
     /* wwEditor:start */
   watch: {
