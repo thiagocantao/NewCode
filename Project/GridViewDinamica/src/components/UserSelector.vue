@@ -285,7 +285,6 @@ export default {
       isOpen: false,
       selectedUser: null,
       selectedGroup: null,
-      selectedUserIdVar: null,
       currentGroup: null,
       currentGroupUsers: [],
       groupStack: [],
@@ -361,13 +360,20 @@ export default {
     },
   },
   created() {
-    if (typeof wwLib !== 'undefined' && wwLib.wwVariable && wwLib.wwVariable.useComponentVariable) {
+    if (
+      this.uid &&
+      typeof wwLib !== 'undefined' &&
+      wwLib.wwVariable &&
+      wwLib.wwVariable.useComponentVariable
+    ) {
       this.selectedUserIdVar = wwLib.wwVariable.useComponentVariable({
         uid: this.uid,
         name: 'selectedUserId',
         type: 'text',
         defaultValue: ''
       });
+    } else {
+      this.selectedUserIdVar = null;
     }
   },
   mounted() {
@@ -579,14 +585,13 @@ export default {
       }
     },
     updateComponentVariable() {
-      if (this.selectedUserIdVar?.setValue) {
-        const val = {
-          userid: this.selectedUser ? this.selectedUser.id : null,
-          groupid: this.selectedGroup ? this.selectedGroup.id : null
-        };
-        this.selectedUserIdVar.setValue(JSON.stringify(val));
-      }
-    },
+    if (!this.selectedUserIdVar) return;
+    const val = {
+      userid: this.selectedUser ? this.selectedUser.id : null,
+      groupid: this.selectedGroup ? this.selectedGroup.id : null
+    };
+    this.selectedUserIdVar.setValue(JSON.stringify(val));
+  },
   }
 };
 </script>
