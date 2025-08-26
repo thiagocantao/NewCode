@@ -7,7 +7,7 @@
         :getMainMenuItems="getMainMenuItems" :isColumnMovable="isColumnMovable" :theme="theme" :getRowId="getRowId"
         :pagination="content.pagination" :paginationPageSize="content.paginationPageSize || 10"
         :paginationPageSizeSelector="false" :columnHoverHighlight="content.columnHoverHighlight" :locale-text="localeText"
-        :components="editorComponents"
+        :components="gridComponents"
         :singleClickEdit="true" @grid-ready="onGridReady" @row-selected="onRowSelected"
         @selection-changed="onSelectionChanged" @cell-value-changed="onCellValueChanged" @filter-changed="onFilterChanged"
         @sort-changed="onSortChanged" @row-clicked="onRowClicked" @first-data-rendered="onFirstDataRendered"
@@ -38,10 +38,10 @@
   import UserCellRenderer from "./components/UserCellRenderer.vue";
   import ListFilterRenderer from "./components/ListFilterRenderer.js";
   import DateTimeCellEditor from "./components/DateTimeCellEditor.js";
-  import FixedListCellEditor from "./components/FixedListCellEditor.js";
-  import ResponsibleUserCellEditor from "./components/ResponsibleUserCellEditor.vue";
-  // Editor customizado inline para listas
-  class ListCellEditor {
+import FixedListCellEditor from "./components/FixedListCellEditor.js";
+import ResponsibleUserCellEditor from "./components/ResponsibleUserCellEditor.vue";
+// Editor customizado inline para listas
+class ListCellEditor {
     init(params) {
       this.params = params;
       const colDef = params.colDef || {};
@@ -141,8 +141,29 @@
         return `${datePart}`;
       } catch (error) {
         return dateValue;
+  }
+}
+
+  const mapResponsibleOptions = list =>
+    (list || []).map(item => ({
+      ...item,
+      value: item.id,
+      label: item.name,
+      ...(Array.isArray(item.groupUsers) && item.groupUsers.length
+        ? { groupUsers: mapResponsibleOptions(item.groupUsers) }
+        : {})
+    }));
+
+  const findResponsibleOption = (list, id) => {
+    for (const item of list || []) {
+      if (String(item.value) === String(id)) return item;
+      if (Array.isArray(item.groupUsers) && item.groupUsers.length) {
+        const found = findResponsibleOption(item.groupUsers, id);
+        if (found) return found;
       }
     }
+    return null;
+  };
     formatOption(opt) {
       const value = opt.label != null ? opt.label : opt.value;
       const colDef = this.params.colDef || {};
@@ -219,6 +240,7 @@
   ListCellEditor, // registrar editor customizado
   FixedListCellEditor,
   DateTimeCellEditor,
+  ResponsibleUserCellEditor,
   },
   props: {
   content: {
@@ -280,6 +302,7 @@
   });
 
   const columnOptions = ref({});
+  let responsibleUserCache = null;
 
   const parseStaticOptions = (opts) => {
     if (Array.isArray(opts)) {
@@ -350,7 +373,52 @@
     }
   };
 
+  const loadResponsibleUserOptions = async () => {
+    try {
+      const lang = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
+      const companyId = window.wwLib?.wwVariable?.getValue('5d099f04-cd42-41fd-94ad-22d4de368c3a');
+      const apiUrl = window.wwLib?.wwVariable?.getValue('1195995b-34c3-42a5-b436-693f0f4f8825');
+      const apiKey = window.wwLib?.wwVariable?.getValue('d180be98-8926-47a7-b7f1-6375fbb95fa3');
+      const apiAuth = window.wwLib?.wwVariable?.getValue('dfcde09f-42f3-4b5c-b2e8-4314650655db');
+      if (!apiUrl) return [];
+      const fetchOptions = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...(companyId ? { p_idcompany: companyId } : {}),
+          ...(lang ? { p_language: lang } : {}),
+        }),
+      };
+      if (apiKey) fetchOptions.headers['apikey'] = apiKey;
+      if (apiAuth) fetchOptions.headers['Authorization'] = apiAuth;
+      const baseUrl = apiUrl.endsWith('/') ? apiUrl : apiUrl + '/';
+      const response = await fetch(baseUrl + 'getLookupGroupsAndUsers', fetchOptions);
+      const data = await response.json();
+      const arr = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.data)
+          ? data.data
+          : Array.isArray(data?.result)
+            ? data.result
+            : Array.isArray(data?.results)
+              ? data.results
+              : [];
+      return mapResponsibleOptions(arr);
+    } catch (e) {
+      return [];
+    }
+  };
+
   const getColumnOptions = async (col, ticketId) => {
+    const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
+    const identifier = (col.FieldDB || '').toUpperCase();
+    if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
+      if (!responsibleUserCache) {
+        responsibleUserCache = await loadResponsibleUserOptions();
+      }
+      return responsibleUserCache;
+    }
+
     let opts = [];
     if (col.listOptions) {
       opts = parseStaticOptions(col.listOptions);
@@ -689,6 +757,18 @@
   
   /* wwEditor:start */
   const { createElement } = wwLib.useCreateElement();
+
+  const gridComponents = {
+    ActionCellRenderer,
+    ImageCellRenderer,
+    WewebCellRenderer,
+    FormatterCellRenderer,
+    UserCellRenderer,
+    ListCellEditor,
+    FixedListCellEditor,
+    DateTimeCellEditor,
+    ResponsibleUserCellEditor,
+  };
   /* wwEditor:end */
   
   function updateColumnsPosition() {
@@ -783,11 +863,7 @@
       createElement,
       /* wwEditor:end */
       onFirstDataRendered,
-      editorComponents: {
-        ListCellEditor,
-        FixedListCellEditor,
-        DateTimeCellEditor,
-      },
+      gridComponents,
     };
   },
     computed: {
@@ -868,8 +944,14 @@
           ...(colCopy.pinned === 'left' ? { lockPinned: true, lockPosition: true } : {}),
         };
 
-const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
-              const identifier = (colCopy.FieldDB || '').toUpperCase();
+        const fieldKey = colCopy.id || colCopy.field;
+        const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
+        const identifier = (colCopy.FieldDB || '').toUpperCase();
+        const getDsOptions = params => {
+          const ticketId = params.data?.TicketID;
+          const colOpts = this.columnOptions[fieldKey] || {};
+          return colOpts[ticketId] || [];
+        };
 
         // Se o filtro for agListColumnFilter, usar o filtro customizado
         if (colCopy.filter === 'agListColumnFilter') {
@@ -890,12 +972,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               // options will be added below when available
             }
           };
-          const fieldKey = colCopy.id || colCopy.field;
-          const getDsOptions = params => {
-            const ticketId = params.data?.TicketID;
-            const colOpts = this.columnOptions[fieldKey] || {};
-            return colOpts[ticketId] || [];
-          };
+          // getDsOptions already defined above
 
           if (
             colCopy.cellDataType === 'list' ||
@@ -1002,7 +1079,6 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           }
           case "list":
             {
-              const fieldKey = colCopy.id || colCopy.field;
               const getDsOptions = params => {
                 const ticketId = params.data?.TicketID;
                 const colOpts = this.columnOptions[fieldKey] || {};
@@ -1145,24 +1221,19 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               result.headerClass = `ag-header-align-${colCopy.headerAlign}`;
             }
             // Formatação especial para DEADLINE
-            const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
-            const identifier = (colCopy.FieldDB || '').toUpperCase();
-
-
+            // tagControl, identifier, fieldKey and getDsOptions are defined above
 
             if (tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
               result.cellRenderer = 'UserCellRenderer';
-              const opts = Array.isArray(colCopy.options)
-                ? colCopy.options
-                : Array.isArray(colCopy.listOptions)
-                ? colCopy.listOptions
-                : dsOptions;
-              if (opts.length) {
-                result.cellRendererParams = {
-                  ...(result.cellRendererParams || {}),
-                  options: opts
-                };
+              if (colCopy.editable) {
+                result.cellEditor = ResponsibleUserCellEditor;
+                result.cellEditorParams = params => ({ options: getDsOptions(params) });
               }
+              const baseRendererParams = result.cellRendererParams;
+              result.cellRendererParams = params => ({
+                ...(typeof baseRendererParams === 'function' ? baseRendererParams(params) : baseRendererParams),
+                options: getDsOptions(params),
+              });
             }
             if (tagControl === 'DEADLINE') {
               result.filter = 'agDateColumnFilter';
@@ -1280,12 +1351,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                 return `<span class="deadline-visual ${colorClass}" title="${tooltip}">${diff}</span>`;
               };
             }
-            const fieldKey = colCopy.id || colCopy.field;
-            const getDsOptions = params => {
-              const ticketId = params.data?.TicketID;
-              const colOpts = this.columnOptions[fieldKey] || {};
-              return colOpts[ticketId] || [];
-            };
+            // fieldKey and getDsOptions are defined above
             if (
               colCopy.cellDataType === 'list' ||
               (tagControl && tagControl.toUpperCase() === 'LIST')
@@ -1467,22 +1533,23 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
   const colDef = event.column.getColDef ? event.column.getColDef() : {};
   const tag = (colDef.TagControl || colDef.tagControl || colDef.tagcontrol || '').toUpperCase();
   const identifier = (colDef.FieldDB || '').toUpperCase();
+  const fieldKey = colDef.colId || colDef.field;
   if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
-    const fieldKey = colDef.colId || colDef.field;
     const colOpts = this.columnOptions[fieldKey] || {};
     const ticketId = event.data?.TicketID;
     const opts = ticketId != null ? colOpts[ticketId] || [] : [];
-    const match = opts.find(o => String(o.value) === String(event.newValue));
+    let match;
+    if (event.newValue && typeof event.newValue === 'object') {
+      const id = event.newValue.userid || event.newValue.groupid;
+      match = findResponsibleOption(opts, id);
+    } else {
+      match = findResponsibleOption(opts, event.newValue);
+    }
     if (match) {
       if (event.data) {
-        event.data.ResponsibleUser = match.label || event.data.ResponsibleUser;
-        if (match.photo || match.image || match.img) {
-          event.data.PhotoUrl = match.photo || match.image || match.img;
-        } else {
-          // When the selected user has no photo, clear any existing one so the
-          // avatar with the initial is displayed
-          event.data.PhotoUrl = '';
-        }
+        event.data.ResponsibleUser = match.label || match.name || event.data.ResponsibleUser;
+        const photo = match.photo || match.PhotoURL || match.PhotoUrl || match.image || match.img;
+        event.data.PhotoUrl = photo || '';
       }
       if (this.gridApi && event.node) {
         this.gridApi.refreshCells({
@@ -1494,7 +1561,6 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
     }
   }
   if (tag === 'DEADLINE') {
-    const fieldKey = colDef.colId || colDef.field;
     if (event.node && fieldKey) {
       // Accept the value returned by the editor without conversion
       const v = event.newValue;
