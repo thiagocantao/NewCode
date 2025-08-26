@@ -960,6 +960,7 @@
             }
           };
 
+
           if (
             colCopy.cellDataType === 'list' ||
             (tagControl && tagControl.toUpperCase() === 'LIST')
