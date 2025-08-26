@@ -361,7 +361,12 @@ export default {
     },
   },
   created() {
-    if (typeof wwLib !== 'undefined' && wwLib.wwVariable && wwLib.wwVariable.useComponentVariable) {
+    if (
+      this.uid &&
+      typeof wwLib !== 'undefined' &&
+      wwLib.wwVariable &&
+      wwLib.wwVariable.useComponentVariable
+    ) {
       this.selectedUserIdVar = wwLib.wwVariable.useComponentVariable({
         uid: this.uid,
         name: 'selectedUserId',
