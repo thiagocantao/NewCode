@@ -3,8 +3,10 @@
     <template v-if="selectedGroup && selectedUser">
       <div
         class="avatar-outer group-avatar-wrapper selected-group-avatar"
-        @mouseenter="showGroupTooltip = true"
-        @mouseleave="showGroupTooltip = false"
+
+        @mouseenter="onGroupMouseEnter"
+        @mouseleave="onGroupMouseLeave"
+
       >
         <div class="avatar-middle">
           <div class="user-cell__avatar">
@@ -36,8 +38,9 @@
     <template v-else-if="selectedGroup">
       <div
         class="avatar-outer group-avatar-wrapper"
-        @mouseenter="showGroupTooltip = true"
-        @mouseleave="showGroupTooltip = false"
+        @mouseenter="onGroupMouseEnter"
+        @mouseleave="onGroupMouseLeave"
+
       >
         <div class="avatar-middle">
           <div class="user-cell__avatar">
@@ -158,6 +161,25 @@ export default {
     }
   },
   methods: {
+    onGroupMouseEnter() {
+      this.showGroupTooltip = true;
+      this.updateRowZIndex(true);
+    },
+    onGroupMouseLeave() {
+      this.showGroupTooltip = false;
+      this.updateRowZIndex(false);
+    },
+    updateRowZIndex(raise) {
+      const cell = this.params?.eGridCell;
+      if (cell) {
+        cell.style.overflow = raise ? 'visible' : '';
+        const row = cell.parentElement;
+        if (row) {
+          row.style.zIndex = raise ? 1000 : '';
+          row.style.overflow = raise ? 'visible' : '';
+        }
+      }
+    },
     async fetchOptions() {
       try {
         const lang = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
@@ -321,7 +343,8 @@ export default {
   border-radius: 4px;
   font-size: 12px;
   white-space: nowrap;
-  z-index: 101;
+  z-index: 1000;
+
   text-align: center;
 }
 </style>
