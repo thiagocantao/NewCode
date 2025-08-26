@@ -291,10 +291,12 @@
       const apiUrl = window.wwLib?.wwVariable?.getValue('1195995b-34c3-42a5-b436-693f0f4f8825');
       const apiKey = window.wwLib?.wwVariable?.getValue('d180be98-8926-47a7-b7f1-6375fbb95fa3');
       const apiAuth = window.wwLib?.wwVariable?.getValue('dfcde09f-42f3-4b5c-b2e8-4314650655db');
+
       if (!apiUrl) {
         responsibleUsersOptions.value = [];
         return responsibleUsersOptions.value;
       }
+
       const fetchOptions = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -317,6 +319,7 @@
             : Array.isArray(data?.results)
               ? data.results
               : [];
+
     } catch (e) {
       console.error('Failed to load responsible users options', e);
       responsibleUsersOptions.value = [];
@@ -1224,6 +1227,7 @@
             // Formatação especial para DEADLINE
             // tagControl e identifier já foram calculados acima
             if (tagControl === 'DEADLINE' || identifier === 'DEADLINE') {
+
               result.filter = 'agDateColumnFilter';
               // Remove default date configuration applied above
               delete result.cellDataType;

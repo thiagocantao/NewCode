@@ -113,6 +113,7 @@ export default {
     groupPhoto() {
       return this.selectedGroup?.PhotoURL || this.selectedGroup?.PhotoUrl || this.selectedGroup?.photo || '';
     },
+
     userInitial() {
       return this.selectedUser ? this.getInitial(this.selectedUser.name) : '';
     },
@@ -140,7 +141,10 @@ export default {
         const apiKey = window.wwLib?.wwVariable?.getValue('d180be98-8926-47a7-b7f1-6375fbb95fa3');
         const apiAuth = window.wwLib?.wwVariable?.getValue('dfcde09f-42f3-4b5c-b2e8-4314650655db');
 
+
         if (!apiUrl) return [];
+
+
 
         const fetchOptions = {
           method: 'POST',
@@ -152,6 +156,7 @@ export default {
         };
         if (apiKey) fetchOptions.headers['apikey'] = apiKey;
         if (apiAuth) fetchOptions.headers['Authorization'] = apiAuth;
+
 
         const baseUrl = apiUrl.endsWith('/') ? apiUrl : apiUrl + '/';
         const response = await fetch(baseUrl + 'getLookupGroupsAndUsers', fetchOptions);
@@ -165,6 +170,7 @@ export default {
               : Array.isArray(data?.results)
                 ? data.results
                 : [];
+
       } catch (e) {
         return [];
       }
