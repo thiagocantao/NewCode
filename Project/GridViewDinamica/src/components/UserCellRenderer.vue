@@ -3,8 +3,10 @@
     <template v-if="selectedGroup && selectedUser">
       <div
         class="avatar-outer group-avatar-wrapper selected-group-avatar"
+
         @mouseenter="onGroupMouseEnter"
         @mouseleave="onGroupMouseLeave"
+
       >
         <div class="avatar-middle">
           <div class="user-cell__avatar">
@@ -38,6 +40,7 @@
         class="avatar-outer group-avatar-wrapper"
         @mouseenter="onGroupMouseEnter"
         @mouseleave="onGroupMouseLeave"
+
       >
         <div class="avatar-middle">
           <div class="user-cell__avatar">
@@ -341,6 +344,7 @@ export default {
   font-size: 12px;
   white-space: nowrap;
   z-index: 1000;
+
   text-align: center;
 }
 </style>
