@@ -395,6 +395,7 @@ class ListCellEditor {
       const response = await fetch(baseUrl + 'getLookupGroupsAndUsers', fetchOptions);
       const data = await response.json();
       const arr = Array.isArray(data)
+
         ? data
         : Array.isArray(data?.data)
           ? data.data
@@ -404,6 +405,7 @@ class ListCellEditor {
               ? data.results
               : [];
       return mapResponsibleOptions(arr);
+
     } catch (e) {
       return [];
     }
@@ -864,6 +866,7 @@ class ListCellEditor {
       /* wwEditor:end */
       onFirstDataRendered,
       gridComponents,
+
     };
   },
     computed: {
@@ -1221,7 +1224,7 @@ class ListCellEditor {
               result.headerClass = `ag-header-align-${colCopy.headerAlign}`;
             }
             // Formatação especial para DEADLINE
-            // tagControl, identifier, fieldKey and getDsOptions are defined above
+
 
             if (tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
               result.cellRenderer = 'UserCellRenderer';
