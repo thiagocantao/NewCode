@@ -37,6 +37,14 @@ export default {
         const apiUrl = window.wwLib?.wwVariable?.getValue('1195995b-34c3-42a5-b436-693f0f4f8825');
         const apiKey = window.wwLib?.wwVariable?.getValue('d180be98-8926-47a7-b7f1-6375fbb95fa3');
         const apiAuth = window.wwLib?.wwVariable?.getValue('dfcde09f-42f3-4b5c-b2e8-4314650655db');
+
+
+        if (!apiUrl) {
+          options.value = [];
+          return;
+        }
+
+
         const fetchOptions = {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -47,9 +55,20 @@ export default {
         };
         if (apiKey) fetchOptions.headers['apikey'] = apiKey;
         if (apiAuth) fetchOptions.headers['Authorization'] = apiAuth;
-        const response = await fetch(apiUrl + 'getLookupGroupsAndUsers', fetchOptions);
+
+        const baseUrl = apiUrl.endsWith('/') ? apiUrl : apiUrl + '/';
+        const response = await fetch(baseUrl + 'getLookupGroupsAndUsers', fetchOptions);
         const data = await response.json();
-        options.value = Array.isArray(data) ? data : [];
+        options.value = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.data)
+            ? data.data
+            : Array.isArray(data?.result)
+              ? data.result
+              : Array.isArray(data?.results)
+                ? data.results
+                : [];
+
       } catch (e) {
         options.value = [];
       }
