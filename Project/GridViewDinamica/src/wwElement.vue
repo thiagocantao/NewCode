@@ -280,6 +280,7 @@
   });
 
   const columnOptions = ref({});
+  let responsibleUserCache = null;
 
   const parseStaticOptions = (opts) => {
     if (Array.isArray(opts)) {
@@ -350,7 +351,51 @@
     }
   };
 
+  const loadResponsibleUserOptions = async () => {
+    try {
+      const lang = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
+      const companyId = window.wwLib?.wwVariable?.getValue('5d099f04-cd42-41fd-94ad-22d4de368c3a');
+      const apiUrl = window.wwLib?.wwVariable?.getValue('1195995b-34c3-42a5-b436-693f0f4f8825');
+      const apiKey = window.wwLib?.wwVariable?.getValue('d180be98-8926-47a7-b7f1-6375fbb95fa3');
+      const apiAuth = window.wwLib?.wwVariable?.getValue('dfcde09f-42f3-4b5c-b2e8-4314650655db');
+      if (!apiUrl) return [];
+      const fetchOptions = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...(companyId ? { p_idcompany: companyId } : {}),
+          ...(lang ? { p_language: lang } : {}),
+        }),
+      };
+      if (apiKey) fetchOptions.headers['apikey'] = apiKey;
+      if (apiAuth) fetchOptions.headers['Authorization'] = apiAuth;
+      const baseUrl = apiUrl.endsWith('/') ? apiUrl : apiUrl + '/';
+      const response = await fetch(baseUrl + 'getLookupGroupsAndUsers', fetchOptions);
+      const data = await response.json();
+      return Array.isArray(data)
+        ? data
+        : Array.isArray(data?.data)
+          ? data.data
+          : Array.isArray(data?.result)
+            ? data.result
+            : Array.isArray(data?.results)
+              ? data.results
+              : [];
+    } catch (e) {
+      return [];
+    }
+  };
+
   const getColumnOptions = async (col, ticketId) => {
+    const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
+    const identifier = (col.FieldDB || '').toUpperCase();
+    if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
+      if (!responsibleUserCache) {
+        responsibleUserCache = await loadResponsibleUserOptions();
+      }
+      return responsibleUserCache;
+    }
+
     let opts = [];
     if (col.listOptions) {
       opts = parseStaticOptions(col.listOptions);
@@ -787,6 +832,7 @@
         ListCellEditor,
         FixedListCellEditor,
         DateTimeCellEditor,
+        ResponsibleUserCellEditor,
       },
     };
   },
@@ -1147,22 +1193,24 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             // Formatação especial para DEADLINE
             const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
             const identifier = (colCopy.FieldDB || '').toUpperCase();
-
-
+            const fieldKey = colCopy.id || colCopy.field;
+            const getDsOptions = params => {
+              const ticketId = params.data?.TicketID;
+              const colOpts = this.columnOptions[fieldKey] || {};
+              return colOpts[ticketId] || [];
+            };
 
             if (tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
               result.cellRenderer = 'UserCellRenderer';
-              const opts = Array.isArray(colCopy.options)
-                ? colCopy.options
-                : Array.isArray(colCopy.listOptions)
-                ? colCopy.listOptions
-                : dsOptions;
-              if (opts.length) {
-                result.cellRendererParams = {
-                  ...(result.cellRendererParams || {}),
-                  options: opts
-                };
+              if (colCopy.editable) {
+                result.cellEditor = ResponsibleUserCellEditor;
+                result.cellEditorParams = params => ({ options: getDsOptions(params) });
               }
+              const baseRendererParams = result.cellRendererParams;
+              result.cellRendererParams = params => ({
+                ...(typeof baseRendererParams === 'function' ? baseRendererParams(params) : baseRendererParams),
+                options: getDsOptions(params),
+              });
             }
             if (tagControl === 'DEADLINE') {
               result.filter = 'agDateColumnFilter';
