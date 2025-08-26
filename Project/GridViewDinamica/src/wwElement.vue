@@ -947,10 +947,10 @@
             sortable: colCopy.sortable,
             filter: ListFilterRenderer,
             cellRenderer: 'UserCellRenderer',
-            editable: !!colCopy.editable,
+            editable: colCopy.editable !== false,
           };
           result.cellRendererParams = params => ({ options: getDsOptions(params) });
-          if (colCopy.editable) {
+          if (colCopy.editable !== false) {
             result.cellEditor = ResponsibleUserCellEditor;
             result.cellEditorParams = params => ({ options: getDsOptions(params) });
           }
