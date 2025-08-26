@@ -14,6 +14,7 @@
 import { ref, onMounted, nextTick } from 'vue';
 import UserSelector from './UserSelector.vue';
 
+
 export default {
   name: 'ResponsibleUserCellEditor',
   components: { UserSelector },
