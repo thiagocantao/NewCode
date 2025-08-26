@@ -842,6 +842,7 @@
       /* wwEditor:end */
       onFirstDataRendered,
       gridComponents,
+
     };
   },
     computed: {
@@ -1199,7 +1200,7 @@
               result.headerClass = `ag-header-align-${colCopy.headerAlign}`;
             }
             // Formatação especial para DEADLINE
-            // tagControl, identifier, fieldKey and getDsOptions are defined above
+
 
             if (tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
               result.cellRenderer = 'UserCellRenderer';
