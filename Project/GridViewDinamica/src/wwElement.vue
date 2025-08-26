@@ -4,7 +4,7 @@
         :domLayout="content.layout === 'auto' ? 'autoHeight' : 'normal'" :style="style" :rowSelection="rowSelection"
         :suppressMovableColumns="!content.movableColumns" :alwaysShowHorizontalScroll="false"
         :suppressColumnMoveAnimation="true" :suppressDragLeaveHidesColumns="true" :maintainColumnOrder="true"
-        :getMainMenuItems="getMainMenuItems" :isColumnMovable="isColumnMovable" :theme="theme" :getRowId="getRowId"
+        :isColumnMovable="isColumnMovable" :theme="theme" :getRowId="getRowId"
         :pagination="content.pagination" :paginationPageSize="content.paginationPageSize || 10"
         :paginationPageSizeSelector="false" :columnHoverHighlight="content.columnHoverHighlight" :locale-text="localeText"
         :components="editorComponents"
@@ -17,7 +17,7 @@
 </template>
 
 <script>
-  import { shallowRef, computed, ref, onMounted, onUnmounted, watch } from "vue";
+  import { shallowRef, computed, ref, onMounted, onUnmounted, watch, watchEffect } from "vue";
   import { AgGridVue } from "ag-grid-vue3";
   import {
   AllCommunityModule,
@@ -168,7 +168,7 @@
           const styled = this.getRoundedSpanColor(
             value,
             params.styleArray,
-            colDef.FieldDB
+            (colDef.context && colDef.context.FieldDB)
           );
           if (styled) return styled;
         }
@@ -752,7 +752,7 @@
   if (!gridApi.value) return;
   const allColumns = gridApi.value.getAllGridColumns();
   const positions = allColumns.map((col, idx) => ({
-  FieldID: col.getColDef().id,
+  FieldID: col.getColId(),
   PositionField: idx + 1,
   IsDeleted: false
   })).filter(col => col.FieldID);
@@ -924,8 +924,8 @@
           pinned: colCopy.pinned === "none" ? false : colCopy.pinned,
           hide: !!colCopy.hide,
           editable: !!colCopy.editable, // <-- garantir editable
-          FieldDB: colCopy.FieldDB, // <-- garantir FieldDB no colDef
           ...(colCopy.pinned === 'left' ? { lockPinned: true, lockPosition: true } : {}),
+          context: { FieldDB: colCopy.FieldDB, TagControl: colCopy.TagControl, id: colCopy.id }
         };
 
         const fieldKey = colCopy.id || colCopy.field;
@@ -940,7 +940,7 @@
         if (tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
           const result = {
             ...commonProperties,
-            id: colCopy.id,
+
             colId: colCopy.id,
             headerName: colCopy.headerName,
             field: colCopy.field,
@@ -961,7 +961,6 @@
         if (colCopy.filter === 'agListColumnFilter') {
           const result = {
             ...commonProperties,
-            id: colCopy.id,
             colId: colCopy.id,
             headerName: colCopy.headerName,
             field: colCopy.field,
@@ -1038,7 +1037,6 @@
           case "action": {
             return {
               ...commonProperties,
-              id: colCopy.id,
               colId: colCopy.id,
               headerName: colCopy.headerName,
               cellRenderer: "ActionCellRenderer",
@@ -1055,7 +1053,6 @@
           case "custom":
             return {
               ...commonProperties,
-              id: colCopy.id,
               colId: colCopy.id,
               headerName: colCopy.headerName,
               field: colCopy.field,
@@ -1069,7 +1066,6 @@
           case "image": {
             return {
               ...commonProperties,
-              id: colCopy.id,
               colId: colCopy.id,
               headerName: colCopy.headerName,
               field: colCopy.field,
@@ -1097,7 +1093,6 @@
 
               const result = {
                 ...commonProperties,
-                id: colCopy.id,
                 colId: colCopy.id,
                 headerName: colCopy.headerName,
                 field: colCopy.field,
@@ -1163,7 +1158,6 @@
           default: {
             const result = {
               ...commonProperties,
-              id: colCopy.id,
               colId: colCopy.id,
               headerName: colCopy.headerName,
               field: colCopy.field,
@@ -1460,11 +1454,11 @@
   headerBackgroundColor: this.content.headerBackgroundColor,
   headerTextColor: this.content.headerTextColor,
   headerFontSize: this.content.headerFontSize,
-  headerFontFamily: this.content.headerFontFamily,
+  headerFontFamily: this.content.headerFontFamily || undefined,
   headerFontWeight: this.content.headerFontWeight,
   borderColor: this.content.borderColor,
   cellTextColor: this.content.cellColor,
-  cellFontFamily: this.content.cellFontFamily,
+  cellFontFamily: this.content.cellFontFamily || undefined,
   dataFontSize: this.content.cellFontSize,
   oddRowBackgroundColor: this.content.rowAlternateColor,
   backgroundColor: this.content.rowBackgroundColor,
@@ -1510,7 +1504,21 @@
     }
   },
   getRowId(params) {
-  return this.resolveMappingFormula(this.content.idFormula, params.data);
+  const resolver = this.resolveMappingFormula;
+  const formula = this.content && this.content.idFormula;
+  if (typeof resolver === 'function' && formula) {
+    try {
+      return resolver(formula, params.data);
+    } catch (e) {}
+  }
+  const data = params.data || {};
+  return (
+    data.TicketID ||
+    data.id ||
+    data.ID ||
+    data.Id ||
+    (params.node ? params.node.id : null)
+  );
   },
   onActionTrigger(event) {
   if (!event) return;
@@ -1528,8 +1536,8 @@
   },
   onCellValueChanged(event) {
   const colDef = event.column.getColDef ? event.column.getColDef() : {};
-  const tag = (colDef.TagControl || colDef.tagControl || colDef.tagcontrol || '').toUpperCase();
-  const identifier = (colDef.FieldDB || '').toUpperCase();
+  const tag = ((colDef.context && colDef.context.TagControl) || colDef.TagControl || colDef.tagControl || colDef.tagcontrol || '').toUpperCase();
+  const identifier = ((colDef.context && colDef.context.FieldDB) || '').toUpperCase();
   if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
     const fieldKey = colDef.colId || colDef.field;
     const colOpts = this.columnOptions[fieldKey] || {};
@@ -1758,11 +1766,6 @@ forceClearSelection() {
       // Caso contrário, segue a configuração global
       return this.content.movableColumns;
     },
-      getMainMenuItems(params) {
-      const defaultItems = params.defaultItems;
-      // Remove opções de pin/unpin para todas as colunas
-      return defaultItems.filter(item => !item.toLowerCase().includes('pin'));
-    }
   },
     /* wwEditor:start */
   watch: {
