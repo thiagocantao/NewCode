@@ -373,6 +373,11 @@ export default {
         type: 'text',
         defaultValue: ''
       });
+    } else {
+      this.selectedUserIdVar = {
+        getValue: () => '',
+        setValue: () => {}
+      };
     }
   },
   mounted() {
@@ -584,14 +589,12 @@ export default {
       }
     },
     updateComponentVariable() {
-      if (this.selectedUserIdVar?.setValue) {
-        const val = {
-          userid: this.selectedUser ? this.selectedUser.id : null,
-          groupid: this.selectedGroup ? this.selectedGroup.id : null
-        };
-        this.selectedUserIdVar.setValue(JSON.stringify(val));
-      }
-    },
+    const val = {
+      userid: this.selectedUser ? this.selectedUser.id : null,
+      groupid: this.selectedGroup ? this.selectedGroup.id : null
+    };
+    this.selectedUserIdVar.setValue(JSON.stringify(val));
+  },
   }
 };
 </script>
