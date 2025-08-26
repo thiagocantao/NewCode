@@ -1,7 +1,11 @@
 <template>
   <div v-if="selectedLabel" class="user-cell" :class="{ 'user-cell--group-user': selectedGroup && selectedUser }" :style="pointerStyle">
     <template v-if="selectedGroup && selectedUser">
-      <div class="avatar-outer group-avatar-wrapper selected-group-avatar">
+      <div
+        class="avatar-outer group-avatar-wrapper selected-group-avatar"
+        @mouseenter="showGroupTooltip = true"
+        @mouseleave="showGroupTooltip = false"
+      >
         <div class="avatar-middle">
           <div class="user-cell__avatar">
             <template v-if="groupPhoto">
@@ -11,6 +15,9 @@
               <span class="material-symbols-outlined user-cell__group-icon">groups</span>
             </template>
           </div>
+        </div>
+        <div v-if="showGroupTooltip" class="user-cell__group-tooltip">
+          {{ selectedGroup.name }}
         </div>
       </div>
       <div class="avatar-outer selected-user-avatar">
@@ -27,7 +34,11 @@
       </div>
     </template>
     <template v-else-if="selectedGroup">
-      <div class="avatar-outer group-avatar-wrapper">
+      <div
+        class="avatar-outer group-avatar-wrapper"
+        @mouseenter="showGroupTooltip = true"
+        @mouseleave="showGroupTooltip = false"
+      >
         <div class="avatar-middle">
           <div class="user-cell__avatar">
             <template v-if="groupPhoto">
@@ -37,6 +48,9 @@
               <span class="material-symbols-outlined user-cell__group-icon">groups</span>
             </template>
           </div>
+        </div>
+        <div v-if="showGroupTooltip" class="user-cell__group-tooltip">
+          {{ selectedGroup.name }}
         </div>
       </div>
     </template>
@@ -69,7 +83,8 @@ export default {
   },
   data() {
     return {
-      optionsCache: []
+      optionsCache: [],
+      showGroupTooltip: false
     };
   },
   async created() {
@@ -293,5 +308,20 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
   padding-left: 3px;
+}
+
+.user-cell__group-tooltip {
+  position: absolute;
+  top: 35px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 101;
+  text-align: center;
 }
 </style>
