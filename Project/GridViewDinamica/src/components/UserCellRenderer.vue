@@ -86,6 +86,11 @@ export default {
       if (val && typeof val === 'object' && val.groupid) {
         return this.findGroupById(val.groupid);
       }
+      const name = this.params.data?.AssignedGroupName;
+      if (name) {
+        const photo = this.params.data?.AssignedGroupPhoto || this.params.data?.GroupPhotoURL || this.params.data?.GroupPhotoUrl;
+        return { name, photo };
+      }
       return null;
     },
     selectedUser() {
@@ -99,6 +104,11 @@ export default {
         }
       } else if (val) {
         return this.findUserById(val);
+      }
+      const name = this.params.data?.ResponsibleUser || this.params.data?.Username || this.params.data?.UserName;
+      if (name) {
+        const photo = this.params.data?.PhotoURL || this.params.data?.PhotoUrl || this.params.data?.UserPhoto;
+        return { name, photo };
       }
       return null;
     },
