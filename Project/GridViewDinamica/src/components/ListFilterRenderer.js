@@ -12,8 +12,8 @@ export default class ListFilterRenderer {
   init(params) {
     this.params = params;
     const colDef = this.params.column.getColDef();
-    const tag = ((colDef.context && colDef.context.TagControl) || colDef.TagControl || colDef.tagControl || colDef.tagcontrol || '').toUpperCase();
-    const identifier = ((colDef.context && colDef.context.FieldDB) || '').toUpperCase();
+    const tag = (colDef.TagControl || colDef.tagControl || colDef.tagcontrol || '').toUpperCase();
+    const identifier = (colDef.FieldDB || '').toUpperCase();
     this.isResponsibleUser = tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
     this.loadValues();
     this.createGui();
