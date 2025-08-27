@@ -952,6 +952,7 @@
             }
           };
           // getDsOptions already defined above
+
           if (
             colCopy.cellDataType === 'list' ||
             (tagControl && tagControl.toUpperCase() === 'LIST')
@@ -961,29 +962,40 @@
               : Array.isArray(colCopy.listOptions)
               ? colCopy.listOptions
               : null;
-            const isResp = tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
             if (colCopy.editable) {
               result.editable = true;
-              if (isResp) {
-                result.cellEditor = ResponsibleUserCellEditor;
-                result.cellEditorParams = params => ({ options: optionsArr || getDsOptions(params) });
-              } else if (optionsArr && optionsArr.length) {
+              if (optionsArr && optionsArr.length) {
                 result.cellEditor = ListCellEditor;
                 result.cellEditorParams = { options: optionsArr };
+                const baseRendererParams = result.cellRendererParams;
+                result.cellRendererParams = params => ({
+                  ...(typeof baseRendererParams === 'function'
+                    ? baseRendererParams(params)
+                    : baseRendererParams),
+                  options: optionsArr,
+                });
               } else {
                 result.cellEditor = FixedListCellEditor;
                 result.cellEditorParams = params => ({ options: getDsOptions(params) });
+                const baseRendererParams = result.cellRendererParams;
+                result.cellRendererParams = params => ({
+                  ...(typeof baseRendererParams === 'function'
+                    ? baseRendererParams(params)
+                    : baseRendererParams),
+                  options: getDsOptions(params),
+                });
               }
+            } else {
+              const baseRendererParams = result.cellRendererParams;
+              result.cellRendererParams = params => ({
+                ...(typeof baseRendererParams === 'function'
+                  ? baseRendererParams(params)
+                  : baseRendererParams),
+                options: optionsArr || getDsOptions(params),
+              });
             }
-            const baseRendererParams = result.cellRendererParams;
-            result.cellRendererParams = params => ({
-              ...(typeof baseRendererParams === 'function'
-                ? baseRendererParams(params)
-                : baseRendererParams),
-              options: optionsArr || getDsOptions(params),
-            });
           }
-          if (colCopy.dataSource && colCopy.editable && !(tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID')) {
+          if (colCopy.dataSource && colCopy.editable) {
             result.editable = true;
             result.cellEditor = FixedListCellEditor;
             result.cellEditorParams = params => ({ options: getDsOptions(params) });
@@ -1058,8 +1070,6 @@
                 ? colCopy.listOptions
                 : null;
 
-              const isResp = tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
-
               const result = {
                 ...commonProperties,
                 id: colCopy.id,
@@ -1068,23 +1078,17 @@
                 field: colCopy.field,
                 sortable: colCopy.sortable,
                 filter: ListFilterRenderer,
-                cellRenderer: isResp ? 'UserCellRenderer' : 'FormatterCellRenderer',
+                cellRenderer: 'FormatterCellRenderer',
                 cellRendererParams: {
                   useCustomFormatter: colCopy.useCustomFormatter,
                   formatter: colCopy.formatter,
                 },
                 editable: false,
-                cellEditor: isResp
-                  ? ResponsibleUserCellEditor
-                  : staticOptions && staticOptions.length
-                    ? ListCellEditor
-                    : FixedListCellEditor,
+                cellEditor: staticOptions && staticOptions.length ? ListCellEditor : FixedListCellEditor,
               };
               if (staticOptions && staticOptions.length) {
                 result.options = staticOptions;
-                result.cellEditorParams = isResp
-                  ? params => ({ options: staticOptions })
-                  : { options: staticOptions };
+                result.cellEditorParams = { options: staticOptions };
                 result.cellRendererParams = {
                   ...result.cellRendererParams,
                   options: staticOptions,
@@ -1201,6 +1205,7 @@
             if (tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
               result.cellRenderer = 'UserCellRenderer';
               if (colCopy.editable) {
+                alert();
                 result.cellEditor = ResponsibleUserCellEditor;
                 result.cellEditorParams = params => ({ options: getDsOptions(params) });
               }
@@ -1331,46 +1336,43 @@
               colCopy.cellDataType === 'list' ||
               (tagControl && tagControl.toUpperCase() === 'LIST')
             ) {
-              const isResp = tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
-              if (!isResp) {
-                const optionsArr = Array.isArray(colCopy.options)
-                  ? colCopy.options
-                  : Array.isArray(colCopy.listOptions)
-                  ? colCopy.listOptions
-                  : null;
-                if (colCopy.editable) {
-                  result.editable = true;
-                  if (optionsArr && optionsArr.length) {
-                    result.cellEditor = ListCellEditor;
-                    result.cellEditorParams = { options: optionsArr };
-                    result.cellRendererParams = {
-                      ...result.cellRendererParams,
-                      options: optionsArr,
-                    };
-                  } else {
-                    result.cellEditor = FixedListCellEditor;
-                    result.cellEditorParams = params => ({ options: getDsOptions(params) });
-                    const baseRendererParams = result.cellRendererParams;
-                    result.cellRendererParams = params => ({
-                      ...(typeof baseRendererParams === 'function'
-                        ? baseRendererParams(params)
-                        : baseRendererParams),
-                      options: getDsOptions(params),
-                    });
-                  }
+              const optionsArr = Array.isArray(colCopy.options)
+                ? colCopy.options
+                : Array.isArray(colCopy.listOptions)
+                ? colCopy.listOptions
+                : null;
+              if (colCopy.editable) {
+                result.editable = true;
+                if (optionsArr && optionsArr.length) {
+                  result.cellEditor = ListCellEditor;
+                  result.cellEditorParams = { options: optionsArr };
+                  result.cellRendererParams = {
+                    ...result.cellRendererParams,
+                    options: optionsArr,
+                  };
                 } else {
+                  result.cellEditor = FixedListCellEditor;
+                  result.cellEditorParams = params => ({ options: getDsOptions(params) });
                   const baseRendererParams = result.cellRendererParams;
                   result.cellRendererParams = params => ({
                     ...(typeof baseRendererParams === 'function'
                       ? baseRendererParams(params)
                       : baseRendererParams),
-                    options: optionsArr || getDsOptions(params),
+                    options: getDsOptions(params),
                   });
                 }
-                // O cellRenderer já aplica a formatação visual
+              } else {
+                const baseRendererParams = result.cellRendererParams;
+                result.cellRendererParams = params => ({
+                  ...(typeof baseRendererParams === 'function'
+                    ? baseRendererParams(params)
+                    : baseRendererParams),
+                  options: optionsArr || getDsOptions(params),
+                });
               }
+              // O cellRenderer já aplica a formatação visual
             }
-            if (colCopy.dataSource && colCopy.editable && !(tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID')) {
+            if (colCopy.dataSource && colCopy.editable) {
               result.editable = true;
               result.cellEditor = FixedListCellEditor;
               result.cellEditorParams = params => ({ options: getDsOptions(params) });
