@@ -129,6 +129,31 @@ export default {
 
     const onSelected = (val) => {
       value.value = val;
+
+      const meta = selector.value;
+      const colId = props.params.column?.getColId
+        ? props.params.column.getColId()
+        : props.params.column?.colId;
+
+      if (props.params.node?.setDataValue) {
+        props.params.node.setDataValue(colId, val);
+      } else if (props.params.data && colId != null) {
+        props.params.data[colId] = val;
+      }
+
+      if (props.params.data && meta) {
+        props.params.data.ResponsibleUser = meta.selectedUser?.name || null;
+        props.params.data.AssignedGroupName = meta.selectedGroup?.name || null;
+      }
+
+      if (props.params.api?.refreshCells) {
+        props.params.api.refreshCells({
+          rowNodes: props.params.node ? [props.params.node] : undefined,
+          columns: colId ? [colId] : undefined,
+          force: true
+        });
+      }
+
       if (props.params.api && props.params.api.stopEditing) {
         props.params.api.stopEditing();
       } else if (props.params.stopEditing) {

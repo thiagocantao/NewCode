@@ -212,35 +212,37 @@
         </template>
 
         <template v-else>
-          <div
-            v-for="user in filteredUsers"
-            :key="user.id !== null ? user.id : 'assign'"
-            class="user-selector__item"
-            :class="{ disabled: user.isEnabled === false }"
-            @click.stop="user.isEnabled === false || user.groupUsers?.length ? null : selectUser(user)"
-          >
-            <div class="avatar-outer">
-              <div class="avatar-middle">
-                <div class="user-selector__avatar">
-                  <template v-if="user.PhotoURL || user.PhotoUrl">
-                    <img :src="user.PhotoURL || user.PhotoUrl" alt="User Photo" />
-                  </template>
-                  <template v-else>
-                    <span v-if="user.isAssignToTeam" class="material-symbols-outlined user-selector__group-icon">groups</span>
-                    <span v-else class="user-selector__initial" :style="initialStyle">
-                      {{ getInitial(user.name) }}
-                    </span>
-                  </template>
+          <div class="user-selector__current-group-items">
+            <div
+              v-for="user in filteredUsers"
+              :key="user.id !== null ? user.id : 'assign'"
+              class="user-selector__item"
+              :class="{ disabled: user.isEnabled === false }"
+              @click.stop="user.isEnabled === false || user.groupUsers?.length ? null : selectUser(user)"
+            >
+              <div class="avatar-outer">
+                <div class="avatar-middle">
+                  <div class="user-selector__avatar">
+                    <template v-if="user.PhotoURL || user.PhotoUrl">
+                      <img :src="user.PhotoURL || user.PhotoUrl" alt="User Photo" />
+                    </template>
+                    <template v-else>
+                      <span v-if="user.isAssignToTeam" class="material-symbols-outlined user-selector__group-icon">groups</span>
+                      <span v-else class="user-selector__initial" :style="initialStyle">
+                        {{ getInitial(user.name) }}
+                      </span>
+                    </template>
+                  </div>
                 </div>
               </div>
+              <span class="user-selector__name" :style="nameStyle">{{ user.name }}</span>
+              <span
+                v-if="user.groupUsers?.length"
+                class="material-symbols-outlined user-selector__chevron"
+                @click.stop="openGroup(user)"
+                >chevron_right</span
+              >
             </div>
-            <span class="user-selector__name" :style="nameStyle">{{ user.name }}</span>
-            <span
-              v-if="user.groupUsers?.length"
-              class="material-symbols-outlined user-selector__chevron"
-              @click.stop="openGroup(user)"
-              >chevron_right</span
-            >
           </div>
         </template>
 
@@ -865,6 +867,13 @@ export default {
   scrollbar-color: #bdbdbd transparent;
 }
 
+.user-selector__current-group-items {
+  max-height: 200px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #bdbdbd transparent;
+}
+
 .user-selector__group-items::-webkit-scrollbar {
   width: 6px;
   background: transparent;
@@ -881,6 +890,26 @@ export default {
 }
 
 .user-selector__group-items::-webkit-scrollbar-button {
+  display: none;
+  height: 0;
+}
+
+.user-selector__current-group-items::-webkit-scrollbar {
+  width: 6px;
+  background: transparent;
+  border-radius: 12px;
+}
+
+.user-selector__current-group-items::-webkit-scrollbar-thumb {
+  background: #bdbdbd;
+  border-radius: 12px;
+}
+
+.user-selector__current-group-items::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.user-selector__current-group-items::-webkit-scrollbar-button {
   display: none;
   height: 0;
 }
