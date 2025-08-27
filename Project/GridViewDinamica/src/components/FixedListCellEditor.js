@@ -374,7 +374,7 @@ export default class FixedListCellEditor {
     // ResponsibleUser: avatar/inicial/ícone de grupo
     const photo = user.PhotoURL || user.PhotoUrl || user.photo || user.image || user.img || '';
     const avatarHTML = isGroupType
-      ? `<span style="font-size: 19px; padding-left:3px; padding-top:3px" class="material-symbols-outlined user-selector__group-icon">groups</span>`
+      ? `<span style="font-size: 19px; " class="material-symbols-outlined user-selector__group-icon">groups</span>`
       : (photo
           ? `<img src="${photo}" alt="User Photo" />`
           : `<span class="user-selector__initial">${this.getInitial(user.name || plain)}</span>`);
@@ -451,7 +451,7 @@ export default class FixedListCellEditor {
     // ResponsibleUser: avatar/inicial/ícone de grupo
     const photo = isAssign ? '' : (member.PhotoURL || member.PhotoUrl || member.photo || member.image || member.img || '');
     const avatarHTML = isAssign
-      ? `<span style="font-size: 19px; padding-left:3px; padding-top:3px" class="material-symbols-outlined user-selector__group-icon">groups</span>`
+      ? `<span style="font-size: 19px; " class="material-symbols-outlined user-selector__group-icon">groups</span>`
       : (photo
           ? `<img src="${photo}" alt="User Photo" />`
           : `<span class="user-selector__initial">${this.getInitial(name)}</span>`);
@@ -607,8 +607,8 @@ export default class FixedListCellEditor {
 }
 .editor-close {
   position: absolute;
-  top: 6px;
-  right: 8px;
+  top: 4px;
+  right: 4px;
   cursor: pointer;
   font-size: 16px;
   color: #6b7280;
