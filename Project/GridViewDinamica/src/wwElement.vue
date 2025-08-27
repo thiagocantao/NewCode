@@ -965,6 +965,7 @@
               if (optionsArr && optionsArr.length) {
                 result.cellEditorParams = { options: optionsArr };
               } else {
+
                 result.cellEditorParams = params => ({ options: getDsOptions(params) });
               }
             }
