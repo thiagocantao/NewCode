@@ -102,12 +102,42 @@ export default class FixedListCellEditor {
 
     this.backBtn.addEventListener('click', () => this.backToRoot());
 
-    // CSS (ajustado: 14px, wght 400, ícone groups 12px)
+    // CSS (ajustado: 14px, wght 400, ícone groups centralizado)
     this.injectCSSOnce();
 
     // Render inicial (root)
     this.applyRootFilter();
     this.render();
+  }
+
+  // --------- HELPERS DE RESOLUÇÃO (nomes por id) ----------
+  findOptionById(id) {
+    if (id == null) return null;
+    const sid = String(id);
+    return (this.options || []).find(o => String(o.id ?? o.value) === sid) || null;
+  }
+  getGroupNameById(id) {
+    const opt = this.findOptionById(id);
+    return opt?.name || opt?.label || null;
+  }
+  getUserNameById(id) {
+    if (id == null) return null;
+    const sid = String(id);
+
+    // usuários na raiz
+    const rootUser = (this.options || []).find(
+      o => String(o.id ?? o.value) === sid && String(o?.type || '').toLowerCase() !== 'group'
+    );
+    if (rootUser) return rootUser.name || rootUser.label || null;
+
+    // membros de grupos
+    for (const g of (this.options || [])) {
+      if (String(g?.type || '').toLowerCase() === 'group' && Array.isArray(g.groupUsers)) {
+        const m = g.groupUsers.find(x => String(x.id ?? x.value ?? x.UserID) === sid);
+        if (m) return m.name || m.DisplayName || m.label || null;
+      }
+    }
+    return null;
   }
 
   // Busca na raiz (considera grupos e membros)
@@ -313,7 +343,6 @@ export default class FixedListCellEditor {
           userName: selected?.name || selected?.label || '',
           groupName: null,
         });
-
       });
     });
   }
@@ -378,11 +407,10 @@ export default class FixedListCellEditor {
           try { this.params.colDef.onSelect(payload, this.params); } catch {}
         }
         this.postGroupAndUser({ p_groupid: this.currentGroup.id, p_responsibleuserid: null });
-        this.commitSelection({ userid: null, groupid: this.currentGroup.id }, {
+        this.commitSelection(payload, {
           userName: null,
           groupName: this.currentGroup?.name || '',
         });
-
       });
     });
 
@@ -396,11 +424,10 @@ export default class FixedListCellEditor {
         this.postGroupAndUser({ p_groupid: this.currentGroup.id, p_responsibleuserid: userId });
 
         const member = (this.currentGroup.groupUsers || []).find(m => String(m.id || m.UserID || m.value) === String(userId));
-        this.commitSelection({ userid: userId, groupid: this.currentGroup.id }, {
+        this.commitSelection(payload, {
           userName: member?.name || member?.DisplayName || member?.label || '',
           groupName: this.currentGroup?.name || '',
         });
-
       });
     });
   }
@@ -441,42 +468,61 @@ export default class FixedListCellEditor {
     `;
   }
 
-  // Commit & AG Grid hooks
-  commitSelection(val, meta = {}) {
-    this.value = val; // objeto { userid, groupid }
+  // ---------------- Commit & AG Grid hooks (corrigido) ----------------
+  commitSelection(sel, meta = {}) {
+    // Normaliza o payload interno completo
+    const payload = (sel && typeof sel === 'object' && ('userid' in sel || 'groupid' in sel))
+      ? { userid: sel.userid ?? null, groupid: sel.groupid ?? null }
+      : { userid: sel ?? null, groupid: null };
 
-    // Atualiza o valor da célula diretamente para garantir refresh imediato
+    const userId  = payload.userid ?? null;
+    const groupId = payload.groupid ?? null;
+
+    // Mantém payload completo internamente (para getValue/efeitos)
+    this.value = payload;
+
+    // Valor que vai para a célula desta coluna:
+    // - ResponsibleUserID: somente o userid
+    // - outras colunas: payload inteiro (mantém compatibilidade)
+    const nextCellValue = this.isResponsibleUser ? userId : payload;
+
+    // Atualiza dados da linha (campos auxiliares)
+    const row = this.params.data || {};
+    if (this.isResponsibleUser) {
+      // IDs
+      row.ResponsibleUserID = userId;
+      row.AssignedGroupID   = groupId;
+
+      // Nomes (usa meta se veio, senão resolve por datasource)
+      const resolvedUserName  = meta.userName  ?? this.getUserNameById(userId);
+      const resolvedGroupName = meta.groupName ?? this.getGroupNameById(groupId);
+
+      row.ResponsibleUser   = userId  ? resolvedUserName  : null;
+      row.AssignedGroupName = groupId ? resolvedGroupName : null;
+    }
+
+    // Atualiza a célula no grid
     const colId = this.params.column?.getColId
       ? this.params.column.getColId()
       : this.params.column?.colId;
+
     if (colId != null) {
       if (this.params.node?.setDataValue) {
-        this.params.node.setDataValue(colId, this.value);
+        this.params.node.setDataValue(colId, nextCellValue);
       } else if (this.params.data) {
-        this.params.data[colId] = this.value;
+        this.params.data[colId] = nextCellValue;
       }
     }
 
-
-    if (this.params.data) {
-      if (Object.prototype.hasOwnProperty.call(meta, 'userName')) {
-        this.params.data.ResponsibleUser = meta.userName;
-      }
-      if (Object.prototype.hasOwnProperty.call(meta, 'groupName')) {
-        this.params.data.AssignedGroupName = meta.groupName;
-      }
-    }
-
-    // Para forçar re-render do cellRenderer após edição
+    // Força re-render de toda a linha (para refletir campos auxiliares)
     if (this.params.api?.refreshCells) {
       this.params.api.refreshCells({
         rowNodes: this.params.node ? [this.params.node] : undefined,
-        columns: colId ? [colId] : undefined,
         force: true,
       });
     }
 
-
+    // Fecha o editor
     if (this.params.api && this.params.api.stopEditing) {
       this.params.api.stopEditing();
     } else if (this.params.stopEditing) {
@@ -514,7 +560,14 @@ export default class FixedListCellEditor {
   }
 
   getValue() {
-    // Retorna o que o grid salvará na célula (userid ou null)
+    // Para ResponsibleUserID devolvemos apenas o userid.
+    if (this.isResponsibleUser) {
+      if (this.value && typeof this.value === 'object') {
+        return this.value.userid ?? null;
+      }
+      return this.value ?? null;
+    }
+    // Outras colunas podem continuar devolvendo o payload completo, se preciso
     return this.value;
   }
 
@@ -524,7 +577,7 @@ export default class FixedListCellEditor {
     return true;
   }
 
-  // CSS injetado (14px, wght 400, ícone groups 12px)
+  // CSS injetado (14px, wght 400, ícone groups centralizado)
   injectCSSOnce() {
     const id = '__fixed_list_user_selector_css_v2__';
     const old = document.getElementById('__fixed_list_user_selector_css__');
@@ -733,16 +786,12 @@ export default class FixedListCellEditor {
   background: transparent; color: #fff; border-radius: 50%; letter-spacing: .5px;
 }
 
+/* Ícone de grupo (centralizado) */
 .user-selector__group-icon {
-  /* tamanho do glifo: mude 14px ↔ 12px se quiser menor/maior */
-  font-size: 20px;
-  /* centralização vertical sem “saltar” por causa da linha */
+  font-size: 14px;            /* ajuste aqui se quiser 12/16/20 */
   line-height: 1;
-  /* evita comportamento de baseline dentro do flex do avatar */
   display: inline-block;
-
   color: #fff;
-  /* Material Symbols: peso regular, sem fill, opsz padrão */
   font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
 }
 
