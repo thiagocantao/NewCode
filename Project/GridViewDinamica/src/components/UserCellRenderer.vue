@@ -173,19 +173,44 @@ export default {
         }
         return undefined;
       };
-      return (list || []).map(item => {
-        const children = getProp(item, 'groupUsers');
-        return {
-          ...item,
-          id: getProp(item, 'id', 'value'),
-          name: getProp(item, 'name', 'label'),
-          value: getProp(item, 'value', 'id'),
-          label: getProp(item, 'label', 'name'),
-          ...(Array.isArray(children) && children.length
-            ? { groupUsers: this.mapOptions(children) }
-            : {})
-        };
-      });
+      const arr = Array.isArray(list) ? list : [];
+      const hasNested = arr.some(it => Array.isArray(getProp(it, 'groupUsers')) && getProp(it, 'groupUsers').length);
+      if (hasNested) {
+        return arr.map(item => {
+          const children = getProp(item, 'groupUsers');
+          return {
+            ...item,
+            id: getProp(item, 'id', 'value'),
+            name: getProp(item, 'name', 'label'),
+            value: getProp(item, 'value', 'id'),
+            label: getProp(item, 'label', 'name'),
+            ...(Array.isArray(children) && children.length ? { groupUsers: this.mapOptions(children) } : {})
+          };
+        });
+      }
+
+      const groups = {};
+      const users = [];
+      for (const raw of arr) {
+        const id = getProp(raw, 'id', 'value');
+        const name = getProp(raw, 'name', 'label');
+        const type = String(getProp(raw, 'type') || '').toLowerCase();
+        if (type === 'group') {
+          groups[id] = { ...raw, id, name, value: id, label: name, groupUsers: [] };
+        } else {
+          const gid = getProp(raw, 'groupId', 'groupid', 'group_id', 'group');
+          users.push({ ...raw, id, name, value: id, label: name, groupId: gid });
+        }
+      }
+
+      const result = Object.values(groups);
+      for (const usr of users) {
+        const gid = usr.groupId;
+        delete usr.groupId;
+        if (gid != null && groups[gid]) groups[gid].groupUsers.push(usr);
+        else result.push(usr);
+      }
+      return result;
     },
     onGroupMouseEnter() {
       this.showGroupTooltip = true;
