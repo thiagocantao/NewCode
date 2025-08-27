@@ -51,6 +51,7 @@ export default {
         };
       });
 
+
     const loadOptions = async () => {
       if (props.params.options && props.params.options.length) {
         options.value = mapOptions(props.params.options);
