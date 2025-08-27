@@ -26,9 +26,21 @@ export default {
     const value = ref(props.params.value || null);
     const selector = ref(null);
 
+    const mapOptions = list =>
+      (list || []).map(item => ({
+        ...item,
+        id: item.id ?? item.value,
+        name: item.name ?? item.label,
+        value: item.value ?? item.id,
+        label: item.label ?? item.name,
+        ...(Array.isArray(item.groupUsers) && item.groupUsers.length
+          ? { groupUsers: mapOptions(item.groupUsers) }
+          : {})
+      }));
+
     const loadOptions = async () => {
       if (props.params.options && props.params.options.length) {
-        options.value = props.params.options;
+        options.value = mapOptions(props.params.options);
         return;
       }
       try {
@@ -59,7 +71,7 @@ export default {
         const baseUrl = apiUrl.endsWith('/') ? apiUrl : apiUrl + '/';
         const response = await fetch(baseUrl + 'getLookupGroupsAndUsers', fetchOptions);
         const data = await response.json();
-        options.value = Array.isArray(data)
+        const raw = Array.isArray(data)
           ? data
           : Array.isArray(data?.data)
             ? data.data
@@ -68,6 +80,7 @@ export default {
               : Array.isArray(data?.results)
                 ? data.results
                 : [];
+        options.value = mapOptions(raw);
 
       } catch (e) {
         options.value = [];
