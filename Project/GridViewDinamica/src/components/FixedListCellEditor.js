@@ -102,7 +102,7 @@ export default class FixedListCellEditor {
 
     this.backBtn.addEventListener('click', () => this.backToRoot());
 
-    // CSS (ajustado: 14px, wght 400, ícone groups 14px)
+    // CSS (ajustado: 14px, wght 400, ícone groups 12px)
     this.injectCSSOnce();
 
     // Render inicial (root)
@@ -444,6 +444,20 @@ export default class FixedListCellEditor {
   // Commit & AG Grid hooks
   commitSelection(val, meta = {}) {
     this.value = val; // objeto { userid, groupid }
+
+    // Atualiza o valor da célula diretamente para garantir refresh imediato
+    const colId = this.params.column?.getColId
+      ? this.params.column.getColId()
+      : this.params.column?.colId;
+    if (colId != null) {
+      if (this.params.node?.setDataValue) {
+        this.params.node.setDataValue(colId, this.value);
+      } else if (this.params.data) {
+        this.params.data[colId] = this.value;
+      }
+    }
+
+
     if (this.params.data) {
       if (Object.prototype.hasOwnProperty.call(meta, 'userName')) {
         this.params.data.ResponsibleUser = meta.userName;
@@ -452,6 +466,17 @@ export default class FixedListCellEditor {
         this.params.data.AssignedGroupName = meta.groupName;
       }
     }
+
+    // Para forçar re-render do cellRenderer após edição
+    if (this.params.api?.refreshCells) {
+      this.params.api.refreshCells({
+        rowNodes: this.params.node ? [this.params.node] : undefined,
+        columns: colId ? [colId] : undefined,
+        force: true,
+      });
+    }
+
+
     if (this.params.api && this.params.api.stopEditing) {
       this.params.api.stopEditing();
     } else if (this.params.stopEditing) {
@@ -499,7 +524,7 @@ export default class FixedListCellEditor {
     return true;
   }
 
-  // CSS injetado (14px, wght 400, ícone groups 14px)
+  // CSS injetado (14px, wght 400, ícone groups 12px)
   injectCSSOnce() {
     const id = '__fixed_list_user_selector_css_v2__';
     const old = document.getElementById('__fixed_list_user_selector_css__');
@@ -708,11 +733,11 @@ export default class FixedListCellEditor {
   background: transparent; color: #fff; border-radius: 50%; letter-spacing: .5px;
 }
 
-/* Ícone de grupo (14px) */
+/* Ícone de grupo (12px) */
 .user-selector__group-icon {
   width: 100%; height: 100%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 14px;            /* 14px */
+  font-size: 12px;            /* 12px */
   font-weight: 400;           /* sem bold */
   color: #fff;
   font-variation-settings: "wght" 400, "GRAD" 0, "opsz" 24, "FILL" 0;
