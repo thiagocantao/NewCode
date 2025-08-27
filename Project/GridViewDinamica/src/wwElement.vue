@@ -7,7 +7,7 @@
         :getMainMenuItems="getMainMenuItems" :isColumnMovable="isColumnMovable" :theme="theme" :getRowId="getRowId"
         :pagination="content.pagination" :paginationPageSize="content.paginationPageSize || 10"
         :paginationPageSizeSelector="false" :columnHoverHighlight="content.columnHoverHighlight" :locale-text="localeText"
-        :components="gridComponents"
+        :components="editorComponents"
         :singleClickEdit="true" @grid-ready="onGridReady" @row-selected="onRowSelected"
         @selection-changed="onSelectionChanged" @cell-value-changed="onCellValueChanged" @filter-changed="onFilterChanged"
         @sort-changed="onSortChanged" @row-clicked="onRowClicked" @first-data-rendered="onFirstDataRendered"
@@ -15,7 +15,7 @@
       </ag-grid-vue> 
     </div> 
 </template>
-
+ 
 <script>
   import { shallowRef, watchEffect, computed, ref, onMounted, onUnmounted, watch, h } from "vue";
   import { AgGridVue } from "ag-grid-vue3";
@@ -219,7 +219,6 @@
   ListCellEditor, // registrar editor customizado
   FixedListCellEditor,
   DateTimeCellEditor,
-  ResponsibleUserCellEditor,
   },
   props: {
   content: {
@@ -281,7 +280,6 @@
   });
 
   const columnOptions = ref({});
-  let responsibleUserCache = null;
 
   const parseStaticOptions = (opts) => {
     if (Array.isArray(opts)) {
@@ -390,6 +388,7 @@
   const getColumnOptions = async (col, ticketId) => {
     const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
     const identifier = (col.FieldDB || '').toUpperCase();
+    let responsibleUserCache = null;
     if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
       if (!responsibleUserCache) {
         responsibleUserCache = await loadResponsibleUserOptions();
@@ -735,18 +734,6 @@
   
   /* wwEditor:start */
   const { createElement } = wwLib.useCreateElement();
-
-  const gridComponents = {
-    ActionCellRenderer,
-    ImageCellRenderer,
-    WewebCellRenderer,
-    FormatterCellRenderer,
-    UserCellRenderer,
-    ListCellEditor,
-    FixedListCellEditor,
-    DateTimeCellEditor,
-    ResponsibleUserCellEditor,
-  };
   /* wwEditor:end */
   
   function updateColumnsPosition() {
@@ -841,8 +828,11 @@
       createElement,
       /* wwEditor:end */
       onFirstDataRendered,
-      gridComponents,
-
+      editorComponents: {
+        ListCellEditor,
+        FixedListCellEditor,
+        DateTimeCellEditor,
+      },
     };
   },
     computed: {
@@ -923,14 +913,8 @@
           ...(colCopy.pinned === 'left' ? { lockPinned: true, lockPosition: true } : {}),
         };
 
-        const fieldKey = colCopy.id || colCopy.field;
-        const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
-        const identifier = (colCopy.FieldDB || '').toUpperCase();
-        const getDsOptions = params => {
-          const ticketId = params.data?.TicketID;
-          const colOpts = this.columnOptions[fieldKey] || {};
-          return colOpts[ticketId] || [];
-        };
+const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
+              const identifier = (colCopy.FieldDB || '').toUpperCase();
 
         // Se o filtro for agListColumnFilter, usar o filtro customizado
         if (colCopy.filter === 'agListColumnFilter') {
@@ -951,7 +935,12 @@
               // options will be added below when available
             }
           };
-          // getDsOptions already defined above
+          const fieldKey = colCopy.id || colCopy.field;
+          const getDsOptions = params => {
+            const ticketId = params.data?.TicketID;
+            const colOpts = this.columnOptions[fieldKey] || {};
+            return colOpts[ticketId] || [];
+          };
 
           if (
             colCopy.cellDataType === 'list' ||
@@ -1058,6 +1047,7 @@
           }
           case "list":
             {
+              const fieldKey = colCopy.id || colCopy.field;
               const getDsOptions = params => {
                 const ticketId = params.data?.TicketID;
                 const colOpts = this.columnOptions[fieldKey] || {};
@@ -1200,20 +1190,24 @@
               result.headerClass = `ag-header-align-${colCopy.headerAlign}`;
             }
             // Formatação especial para DEADLINE
+            const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
+            const identifier = (colCopy.FieldDB || '').toUpperCase();
+
 
 
             if (tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
               result.cellRenderer = 'UserCellRenderer';
-              if (colCopy.editable) {
-                alert();
-                result.cellEditor = ResponsibleUserCellEditor;
-                result.cellEditorParams = params => ({ options: getDsOptions(params) });
+              const opts = Array.isArray(colCopy.options)
+                ? colCopy.options
+                : Array.isArray(colCopy.listOptions)
+                ? colCopy.listOptions
+                : dsOptions;
+              if (opts.length) {
+                result.cellRendererParams = {
+                  ...(result.cellRendererParams || {}),
+                  options: opts
+                };
               }
-              const baseRendererParams = result.cellRendererParams;
-              result.cellRendererParams = params => ({
-                ...(typeof baseRendererParams === 'function' ? baseRendererParams(params) : baseRendererParams),
-                options: getDsOptions(params),
-              });
             }
             if (tagControl === 'DEADLINE') {
               result.filter = 'agDateColumnFilter';
@@ -1331,7 +1325,12 @@
                 return `<span class="deadline-visual ${colorClass}" title="${tooltip}">${diff}</span>`;
               };
             }
-            // fieldKey and getDsOptions are defined above
+            const fieldKey = colCopy.id || colCopy.field;
+            const getDsOptions = params => {
+              const ticketId = params.data?.TicketID;
+              const colOpts = this.columnOptions[fieldKey] || {};
+              return colOpts[ticketId] || [];
+            };
             if (
               colCopy.cellDataType === 'list' ||
               (tagControl && tagControl.toUpperCase() === 'LIST')
@@ -1513,8 +1512,8 @@
   const colDef = event.column.getColDef ? event.column.getColDef() : {};
   const tag = (colDef.TagControl || colDef.tagControl || colDef.tagcontrol || '').toUpperCase();
   const identifier = (colDef.FieldDB || '').toUpperCase();
-  const fieldKey = colDef.colId || colDef.field;
   if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
+    const fieldKey = colDef.colId || colDef.field;
     const colOpts = this.columnOptions[fieldKey] || {};
     const ticketId = event.data?.TicketID;
     const opts = ticketId != null ? colOpts[ticketId] || [] : [];
@@ -1540,6 +1539,7 @@
     }
   }
   if (tag === 'DEADLINE') {
+    const fieldKey = colDef.colId || colDef.field;
     if (event.node && fieldKey) {
       // Accept the value returned by the editor without conversion
       const v = event.newValue;
