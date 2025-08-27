@@ -269,6 +269,10 @@ export default {
     },
     getInitial(name) {
       return name ? String(name).trim().charAt(0).toUpperCase() : '';
+    },
+    refresh(params) {
+      this.params = params;
+      return true;
     }
   }
 };
