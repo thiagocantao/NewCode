@@ -26,9 +26,34 @@ export default {
     const value = ref(props.params.value || null);
     const selector = ref(null);
 
+    const getProp = (obj, ...keys) => {
+      for (const key of keys) {
+        const match = Object.keys(obj || {}).find(
+          k => k.toLowerCase() === String(key).toLowerCase()
+        );
+        if (match) return obj[match];
+      }
+      return undefined;
+    };
+
+    const mapOptions = list =>
+      (list || []).map(item => {
+        const children = getProp(item, 'groupUsers');
+        return {
+          ...item,
+          id: getProp(item, 'id', 'value'),
+          name: getProp(item, 'name', 'label'),
+          value: getProp(item, 'value', 'id'),
+          label: getProp(item, 'label', 'name'),
+          ...(Array.isArray(children) && children.length
+            ? { groupUsers: mapOptions(children) }
+            : {})
+        };
+      });
+
     const loadOptions = async () => {
       if (props.params.options && props.params.options.length) {
-        options.value = props.params.options;
+        options.value = mapOptions(props.params.options);
         return;
       }
       try {
@@ -59,7 +84,7 @@ export default {
         const baseUrl = apiUrl.endsWith('/') ? apiUrl : apiUrl + '/';
         const response = await fetch(baseUrl + 'getLookupGroupsAndUsers', fetchOptions);
         const data = await response.json();
-        options.value = Array.isArray(data)
+        const raw = Array.isArray(data)
           ? data
           : Array.isArray(data?.data)
             ? data.data
@@ -68,6 +93,7 @@ export default {
               : Array.isArray(data?.results)
                 ? data.results
                 : [];
+        options.value = mapOptions(raw);
 
       } catch (e) {
         options.value = [];
