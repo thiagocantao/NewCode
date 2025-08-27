@@ -1235,6 +1235,7 @@
                 ...(typeof baseRendererParams === 'function' ? baseRendererParams(params) : baseRendererParams),
                 options: getDsOptions(params),
               });
+              return result;
             }
             if (tagControl === 'DEADLINE') {
               result.filter = 'agDateColumnFilter';
