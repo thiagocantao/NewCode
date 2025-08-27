@@ -307,7 +307,12 @@ export default class FixedListCellEditor {
         if (typeof this.params.colDef?.onSelect === 'function') {
           try { this.params.colDef.onSelect({ userid: val, groupid: null }, this.params); } catch {}
         }
-        this.commitSelection(val);
+        this.postGroupAndUser({ p_groupid: null, p_responsibleuserid: val });
+        const selected = this.options.find(u => String(u.id || u.value) === String(val));
+        this.commitSelection({ userid: val, groupid: null }, {
+          userName: selected?.name || selected?.label || '',
+          groupName: null,
+        });
       });
     });
   }
@@ -371,7 +376,11 @@ export default class FixedListCellEditor {
         if (typeof this.params.colDef?.onSelect === 'function') {
           try { this.params.colDef.onSelect(payload, this.params); } catch {}
         }
-        this.commitSelection(null);
+        this.postGroupAndUser({ p_groupid: this.currentGroup.id, p_responsibleuserid: null });
+        this.commitSelection({ userid: null, groupid: this.currentGroup.id }, {
+          userName: null,
+          groupName: this.currentGroup?.name || '',
+        });
       });
     });
 
@@ -382,7 +391,12 @@ export default class FixedListCellEditor {
         if (typeof this.params.colDef?.onSelect === 'function') {
           try { this.params.colDef.onSelect(payload, this.params); } catch {}
         }
-        this.commitSelection(userId);
+        this.postGroupAndUser({ p_groupid: this.currentGroup.id, p_responsibleuserid: userId });
+        const member = (this.currentGroup.groupUsers || []).find(m => String(m.id || m.UserID || m.value) === String(userId));
+        this.commitSelection({ userid: userId, groupid: this.currentGroup.id }, {
+          userName: member?.name || member?.DisplayName || member?.label || '',
+          groupName: this.currentGroup?.name || '',
+        });
       });
     });
   }
@@ -424,12 +438,41 @@ export default class FixedListCellEditor {
   }
 
   // Commit & AG Grid hooks
-  commitSelection(val) {
-    this.value = val; // normalmente userid (ou null se "assign to team")
+  commitSelection(val, meta = {}) {
+    this.value = val; // objeto { userid, groupid }
+    if (this.params.data) {
+      if (Object.prototype.hasOwnProperty.call(meta, 'userName')) {
+        this.params.data.ResponsibleUser = meta.userName;
+      }
+      if (Object.prototype.hasOwnProperty.call(meta, 'groupName')) {
+        this.params.data.AssignedGroupName = meta.groupName;
+      }
+    }
     if (this.params.api && this.params.api.stopEditing) {
       this.params.api.stopEditing();
     } else if (this.params.stopEditing) {
       this.params.stopEditing();
+    }
+  }
+
+  async postGroupAndUser({ p_groupid, p_responsibleuserid }) {
+    try {
+      const p_ticketid = this.params?.data?.TicketID;
+      const p_loggeduserid = window?.wwLib?.wwVariable?.getValue?.('fc54ab80-1a04-4cfe-a504-793bdcfce5dd');
+      const sb = window?.wwLib?.wwPlugins?.supabase;
+      if (sb?.callPostgresFunction) {
+        await sb.callPostgresFunction({
+          functionName: 'postGroupAndUser',
+          params: {
+            p_ticketid,
+            p_groupid,
+            p_responsibleuserid,
+            p_loggeduserid,
+          },
+        });
+      }
+    } catch (e) {
+      console.warn('postGroupAndUser failed', e);
     }
   }
 
