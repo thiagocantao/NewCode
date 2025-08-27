@@ -313,6 +313,7 @@ export default class FixedListCellEditor {
           userName: selected?.name || selected?.label || '',
           groupName: null,
         });
+
       });
     });
   }
@@ -381,6 +382,7 @@ export default class FixedListCellEditor {
           userName: null,
           groupName: this.currentGroup?.name || '',
         });
+
       });
     });
 
@@ -392,11 +394,13 @@ export default class FixedListCellEditor {
           try { this.params.colDef.onSelect(payload, this.params); } catch {}
         }
         this.postGroupAndUser({ p_groupid: this.currentGroup.id, p_responsibleuserid: userId });
+
         const member = (this.currentGroup.groupUsers || []).find(m => String(m.id || m.UserID || m.value) === String(userId));
         this.commitSelection({ userid: userId, groupid: this.currentGroup.id }, {
           userName: member?.name || member?.DisplayName || member?.label || '',
           groupName: this.currentGroup?.name || '',
         });
+
       });
     });
   }
@@ -453,6 +457,7 @@ export default class FixedListCellEditor {
       }
     }
 
+
     if (this.params.data) {
       if (Object.prototype.hasOwnProperty.call(meta, 'userName')) {
         this.params.data.ResponsibleUser = meta.userName;
@@ -470,6 +475,7 @@ export default class FixedListCellEditor {
         force: true,
       });
     }
+
 
     if (this.params.api && this.params.api.stopEditing) {
       this.params.api.stopEditing();
