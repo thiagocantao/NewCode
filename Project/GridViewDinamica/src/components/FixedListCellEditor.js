@@ -307,6 +307,7 @@ export default class FixedListCellEditor {
         if (typeof this.params.colDef?.onSelect === 'function') {
           try { this.params.colDef.onSelect({ userid: val, groupid: null }, this.params); } catch {}
         }
+        this.postGroupAndUser({ p_groupid: null, p_responsibleuserid: val });
         this.commitSelection(val);
       });
     });
@@ -371,6 +372,7 @@ export default class FixedListCellEditor {
         if (typeof this.params.colDef?.onSelect === 'function') {
           try { this.params.colDef.onSelect(payload, this.params); } catch {}
         }
+        this.postGroupAndUser({ p_groupid: this.currentGroup.id, p_responsibleuserid: null });
         this.commitSelection(null);
       });
     });
@@ -382,6 +384,7 @@ export default class FixedListCellEditor {
         if (typeof this.params.colDef?.onSelect === 'function') {
           try { this.params.colDef.onSelect(payload, this.params); } catch {}
         }
+        this.postGroupAndUser({ p_groupid: this.currentGroup.id, p_responsibleuserid: userId });
         this.commitSelection(userId);
       });
     });
@@ -430,6 +433,27 @@ export default class FixedListCellEditor {
       this.params.api.stopEditing();
     } else if (this.params.stopEditing) {
       this.params.stopEditing();
+    }
+  }
+
+  async postGroupAndUser({ p_groupid, p_responsibleuserid }) {
+    try {
+      const p_ticketid = this.params?.data?.TicketID;
+      const p_loggeduserid = window?.wwLib?.wwVariable?.getValue?.('fc54ab80-1a04-4cfe-a504-793bdcfce5dd');
+      const sb = window?.wwLib?.wwPlugins?.supabase;
+      if (sb?.callPostgresFunction) {
+        await sb.callPostgresFunction({
+          functionName: 'postGroupAndUser',
+          params: {
+            p_ticketid,
+            p_groupid,
+            p_responsibleuserid,
+            p_loggeduserid,
+          },
+        });
+      }
+    } catch (e) {
+      console.warn('postGroupAndUser failed', e);
     }
   }
 
