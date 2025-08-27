@@ -308,7 +308,12 @@ export default class FixedListCellEditor {
           try { this.params.colDef.onSelect({ userid: val, groupid: null }, this.params); } catch {}
         }
         this.postGroupAndUser({ p_groupid: null, p_responsibleuserid: val });
-        this.commitSelection(val);
+        const selected = this.options.find(u => String(u.id || u.value) === String(val));
+        this.commitSelection({ userid: val, groupid: null }, {
+          userName: selected?.name || selected?.label || '',
+          groupName: null,
+        });
+
       });
     });
   }
@@ -373,7 +378,11 @@ export default class FixedListCellEditor {
           try { this.params.colDef.onSelect(payload, this.params); } catch {}
         }
         this.postGroupAndUser({ p_groupid: this.currentGroup.id, p_responsibleuserid: null });
-        this.commitSelection(null);
+        this.commitSelection({ userid: null, groupid: this.currentGroup.id }, {
+          userName: null,
+          groupName: this.currentGroup?.name || '',
+        });
+
       });
     });
 
@@ -385,7 +394,13 @@ export default class FixedListCellEditor {
           try { this.params.colDef.onSelect(payload, this.params); } catch {}
         }
         this.postGroupAndUser({ p_groupid: this.currentGroup.id, p_responsibleuserid: userId });
-        this.commitSelection(userId);
+
+        const member = (this.currentGroup.groupUsers || []).find(m => String(m.id || m.UserID || m.value) === String(userId));
+        this.commitSelection({ userid: userId, groupid: this.currentGroup.id }, {
+          userName: member?.name || member?.DisplayName || member?.label || '',
+          groupName: this.currentGroup?.name || '',
+        });
+
       });
     });
   }
@@ -427,8 +442,16 @@ export default class FixedListCellEditor {
   }
 
   // Commit & AG Grid hooks
-  commitSelection(val) {
-    this.value = val; // normalmente userid (ou null se "assign to team")
+  commitSelection(val, meta = {}) {
+    this.value = val; // objeto { userid, groupid }
+    if (this.params.data) {
+      if (Object.prototype.hasOwnProperty.call(meta, 'userName')) {
+        this.params.data.ResponsibleUser = meta.userName;
+      }
+      if (Object.prototype.hasOwnProperty.call(meta, 'groupName')) {
+        this.params.data.AssignedGroupName = meta.groupName;
+      }
+    }
     if (this.params.api && this.params.api.stopEditing) {
       this.params.api.stopEditing();
     } else if (this.params.stopEditing) {
