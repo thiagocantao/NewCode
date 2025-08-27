@@ -951,17 +951,37 @@
               // options will be added below when available
             }
           };
+          const isResponsible = tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
+          const optionsArr = Array.isArray(colCopy.options)
+            ? colCopy.options
+            : Array.isArray(colCopy.listOptions)
+              ? colCopy.listOptions
+              : null;
+          if (isResponsible) {
+            if (colCopy.editable) {
+              result.editable = true;
+              if (optionsArr && optionsArr.length) {
+                result.cellEditor = ResponsibleUserCellEditor;
+                result.cellEditorParams = { options: optionsArr };
+              } else {
+                result.cellEditor = ResponsibleUserCellEditor;
+                result.cellEditorParams = params => ({ options: getDsOptions(params) });
+              }
+            }
+            const baseRendererParams = result.cellRendererParams;
+            result.cellRendererParams = params => ({
+              ...(typeof baseRendererParams === 'function'
+                ? baseRendererParams(params)
+                : baseRendererParams),
+              options: optionsArr || getDsOptions(params),
+            });
+            return result;
+          }
           // getDsOptions already defined above
-
           if (
             colCopy.cellDataType === 'list' ||
             (tagControl && tagControl.toUpperCase() === 'LIST')
           ) {
-            const optionsArr = Array.isArray(colCopy.options)
-              ? colCopy.options
-              : Array.isArray(colCopy.listOptions)
-              ? colCopy.listOptions
-              : null;
             if (colCopy.editable) {
               result.editable = true;
               if (optionsArr && optionsArr.length) {
