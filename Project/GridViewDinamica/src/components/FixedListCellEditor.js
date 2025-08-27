@@ -345,7 +345,7 @@ export default class FixedListCellEditor {
     // ResponsibleUser: avatar/inicial/ícone de grupo
     const photo = user.PhotoURL || user.PhotoUrl || user.photo || user.image || user.img || '';
     const avatarHTML = isGroupType
-      ? `<span class="material-symbols-outlined user-selector__group-icon">groups</span>`
+      ? `<span style="font-size: 19px; padding-left:3px; padding-top:3px" class="material-symbols-outlined user-selector__group-icon">groups</span>`
       : (photo
           ? `<img src="${photo}" alt="User Photo" />`
           : `<span class="user-selector__initial">${this.getInitial(user.name || plain)}</span>`);
@@ -424,7 +424,7 @@ export default class FixedListCellEditor {
     // ResponsibleUser: avatar/inicial/ícone de grupo
     const photo = isAssign ? '' : (member.PhotoURL || member.PhotoUrl || member.photo || member.image || member.img || '');
     const avatarHTML = isAssign
-      ? `<span class="material-symbols-outlined user-selector__group-icon">groups</span>`
+      ? `<span style="font-size: 19px; padding-left:3px; padding-top:3px" class="material-symbols-outlined user-selector__group-icon">groups</span>`
       : (photo
           ? `<img src="${photo}" alt="User Photo" />`
           : `<span class="user-selector__initial">${this.getInitial(name)}</span>`);
@@ -733,14 +733,17 @@ export default class FixedListCellEditor {
   background: transparent; color: #fff; border-radius: 50%; letter-spacing: .5px;
 }
 
-/* Ícone de grupo (12px) */
 .user-selector__group-icon {
-  width: 100%; height: 100%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 12px;            /* 12px */
-  font-weight: 400;           /* sem bold */
+  /* tamanho do glifo: mude 14px ↔ 12px se quiser menor/maior */
+  font-size: 20px;
+  /* centralização vertical sem “saltar” por causa da linha */
+  line-height: 1;
+  /* evita comportamento de baseline dentro do flex do avatar */
+  display: inline-block;
+
   color: #fff;
-  font-variation-settings: "wght" 400, "GRAD" 0, "opsz" 24, "FILL" 0;
+  /* Material Symbols: peso regular, sem fill, opsz padrão */
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
 }
 
 /* Chevron direita */
