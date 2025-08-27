@@ -52,9 +52,20 @@ export default class FixedListCellEditor {
         .map(o => o.trim());
     }
 
-    this.options = optionsArr.map(opt =>
-      typeof opt === 'object' ? opt : { value: opt, label: String(opt) }
-    );
+    const normalize = (opt) => {
+      if (typeof opt === 'object') {
+        const findKey = key => Object.keys(opt).find(k => k.toLowerCase() === key);
+        const labelKey = findKey('label') || findKey('name');
+        const valueKey = findKey('value') || findKey('id');
+        return {
+          ...opt,
+          value: valueKey ? opt[valueKey] : opt.value,
+          label: labelKey ? opt[labelKey] : opt.label || opt.name
+        };
+      }
+      return { value: opt, label: String(opt) };
+    };
+    this.options = optionsArr.map(normalize);
     this.filteredOptions = [...this.options];
 
     this.value = params.value;

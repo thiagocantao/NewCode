@@ -26,17 +26,31 @@ export default {
     const value = ref(props.params.value || null);
     const selector = ref(null);
 
+    const getProp = (obj, ...keys) => {
+      for (const key of keys) {
+        const match = Object.keys(obj || {}).find(
+          k => k.toLowerCase() === String(key).toLowerCase()
+        );
+        if (match) return obj[match];
+      }
+      return undefined;
+    };
+
     const mapOptions = list =>
-      (list || []).map(item => ({
-        ...item,
-        id: item.id ?? item.value,
-        name: item.name ?? item.label,
-        value: item.value ?? item.id,
-        label: item.label ?? item.name,
-        ...(Array.isArray(item.groupUsers) && item.groupUsers.length
-          ? { groupUsers: mapOptions(item.groupUsers) }
-          : {})
-      }));
+      (list || []).map(item => {
+        const children = getProp(item, 'groupUsers');
+        return {
+          ...item,
+          id: getProp(item, 'id', 'value'),
+          name: getProp(item, 'name', 'label'),
+          value: getProp(item, 'value', 'id'),
+          label: getProp(item, 'label', 'name'),
+          ...(Array.isArray(children) && children.length
+            ? { groupUsers: mapOptions(children) }
+            : {})
+        };
+      });
+
 
     const loadOptions = async () => {
       if (props.params.options && props.params.options.length) {

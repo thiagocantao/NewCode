@@ -91,13 +91,15 @@ export default {
     };
   },
   async created() {
-    if (!this.params.options || !this.params.options.length) {
-      this.optionsCache = await this.fetchOptions();
+    if (this.params.options && this.params.options.length) {
+      this.optionsCache = this.mapOptions(this.params.options);
+    } else {
+      this.optionsCache = this.mapOptions(await this.fetchOptions());
     }
   },
   computed: {
     options() {
-      return (this.params.options && this.params.options.length) ? this.params.options : this.optionsCache;
+      return this.optionsCache;
     },
     selectedGroup() {
       const val = this.params.value;
@@ -161,6 +163,30 @@ export default {
     }
   },
   methods: {
+    mapOptions(list) {
+      const getProp = (obj, ...keys) => {
+        for (const key of keys) {
+          const match = Object.keys(obj || {}).find(
+            k => k.toLowerCase() === String(key).toLowerCase()
+          );
+          if (match) return obj[match];
+        }
+        return undefined;
+      };
+      return (list || []).map(item => {
+        const children = getProp(item, 'groupUsers');
+        return {
+          ...item,
+          id: getProp(item, 'id', 'value'),
+          name: getProp(item, 'name', 'label'),
+          value: getProp(item, 'value', 'id'),
+          label: getProp(item, 'label', 'name'),
+          ...(Array.isArray(children) && children.length
+            ? { groupUsers: this.mapOptions(children) }
+            : {})
+        };
+      });
+    },
     onGroupMouseEnter() {
       this.showGroupTooltip = true;
       this.updateRowZIndex(true);
