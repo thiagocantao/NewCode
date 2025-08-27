@@ -38,10 +38,10 @@
   import UserCellRenderer from "./components/UserCellRenderer.vue";
   import ListFilterRenderer from "./components/ListFilterRenderer.js";
   import DateTimeCellEditor from "./components/DateTimeCellEditor.js";
-import FixedListCellEditor from "./components/FixedListCellEditor.js";
-import ResponsibleUserCellEditor from "./components/ResponsibleUserCellEditor.vue";
-// Editor customizado inline para listas
-class ListCellEditor {
+  import FixedListCellEditor from "./components/FixedListCellEditor.js";
+  import ResponsibleUserCellEditor from "./components/ResponsibleUserCellEditor.vue";
+  // Editor customizado inline para listas
+  class ListCellEditor {
     init(params) {
       this.params = params;
       const colDef = params.colDef || {};
@@ -141,60 +141,8 @@ class ListCellEditor {
         return `${datePart}`;
       } catch (error) {
         return dateValue;
-  }
-}
-
-  const mapResponsibleOptions = list => {
-    const arr = Array.isArray(list) ? list : [];
-    // Detect if data already contains nested groupUsers
-    const hasNested = arr.some(it => Array.isArray(it.groupUsers) && it.groupUsers.length);
-    if (hasNested) {
-      return arr.map(item => ({
-        ...item,
-        value: item.id,
-        label: item.name,
-        ...(Array.isArray(item.groupUsers) && item.groupUsers.length
-          ? { groupUsers: mapResponsibleOptions(item.groupUsers) }
-          : {})
-      }));
-    }
-
-    const groups = {};
-    const users = [];
-
-    for (const raw of arr) {
-      const id = raw.id;
-      const name = raw.name;
-      const type = String(raw.type || '').toLowerCase();
-      if (type === 'group') {
-        groups[id] = { ...raw, value: id, label: name, groupUsers: [] };
-      } else {
-        const gid =
-          raw.groupId || raw.groupid || raw.groupID || raw.GroupId || raw.GroupID || raw.group;
-        users.push({ ...raw, value: id, label: name, groupId: gid });
       }
     }
-
-    const result = Object.values(groups);
-    for (const usr of users) {
-      const gid = usr.groupId;
-      delete usr.groupId;
-      if (gid != null && groups[gid]) groups[gid].groupUsers.push(usr);
-      else result.push(usr);
-    }
-    return result;
-  };
-
-  const findResponsibleOption = (list, id) => {
-    for (const item of list || []) {
-      if (String(item.value) === String(id)) return item;
-      if (Array.isArray(item.groupUsers) && item.groupUsers.length) {
-        const found = findResponsibleOption(item.groupUsers, id);
-        if (found) return found;
-      }
-    }
-    return null;
-  };
     formatOption(opt) {
       const value = opt.label != null ? opt.label : opt.value;
       const colDef = this.params.colDef || {};
@@ -425,8 +373,7 @@ class ListCellEditor {
       const baseUrl = apiUrl.endsWith('/') ? apiUrl : apiUrl + '/';
       const response = await fetch(baseUrl + 'getLookupGroupsAndUsers', fetchOptions);
       const data = await response.json();
-      const arr = Array.isArray(data)
-
+      return Array.isArray(data)
         ? data
         : Array.isArray(data?.data)
           ? data.data
@@ -435,8 +382,6 @@ class ListCellEditor {
             : Array.isArray(data?.results)
               ? data.results
               : [];
-      return mapResponsibleOptions(arr);
-
     } catch (e) {
       return [];
     }
@@ -1572,18 +1517,17 @@ class ListCellEditor {
     const colOpts = this.columnOptions[fieldKey] || {};
     const ticketId = event.data?.TicketID;
     const opts = ticketId != null ? colOpts[ticketId] || [] : [];
-    let match;
-    if (event.newValue && typeof event.newValue === 'object') {
-      const id = event.newValue.userid || event.newValue.groupid;
-      match = findResponsibleOption(opts, id);
-    } else {
-      match = findResponsibleOption(opts, event.newValue);
-    }
+    const match = opts.find(o => String(o.value) === String(event.newValue));
     if (match) {
       if (event.data) {
-        event.data.ResponsibleUser = match.label || match.name || event.data.ResponsibleUser;
-        const photo = match.photo || match.PhotoURL || match.PhotoUrl || match.image || match.img;
-        event.data.PhotoUrl = photo || '';
+        event.data.ResponsibleUser = match.label || event.data.ResponsibleUser;
+        if (match.photo || match.image || match.img) {
+          event.data.PhotoUrl = match.photo || match.image || match.img;
+        } else {
+          // When the selected user has no photo, clear any existing one so the
+          // avatar with the initial is displayed
+          event.data.PhotoUrl = '';
+        }
       }
       if (this.gridApi && event.node) {
         this.gridApi.refreshCells({
