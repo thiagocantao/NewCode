@@ -144,15 +144,46 @@ class ListCellEditor {
   }
 }
 
-  const mapResponsibleOptions = list =>
-    (list || []).map(item => ({
-      ...item,
-      value: item.id,
-      label: item.name,
-      ...(Array.isArray(item.groupUsers) && item.groupUsers.length
-        ? { groupUsers: mapResponsibleOptions(item.groupUsers) }
-        : {})
-    }));
+  const mapResponsibleOptions = list => {
+    const arr = Array.isArray(list) ? list : [];
+    // Detect if data already contains nested groupUsers
+    const hasNested = arr.some(it => Array.isArray(it.groupUsers) && it.groupUsers.length);
+    if (hasNested) {
+      return arr.map(item => ({
+        ...item,
+        value: item.id,
+        label: item.name,
+        ...(Array.isArray(item.groupUsers) && item.groupUsers.length
+          ? { groupUsers: mapResponsibleOptions(item.groupUsers) }
+          : {})
+      }));
+    }
+
+    const groups = {};
+    const users = [];
+
+    for (const raw of arr) {
+      const id = raw.id;
+      const name = raw.name;
+      const type = String(raw.type || '').toLowerCase();
+      if (type === 'group') {
+        groups[id] = { ...raw, value: id, label: name, groupUsers: [] };
+      } else {
+        const gid =
+          raw.groupId || raw.groupid || raw.groupID || raw.GroupId || raw.GroupID || raw.group;
+        users.push({ ...raw, value: id, label: name, groupId: gid });
+      }
+    }
+
+    const result = Object.values(groups);
+    for (const usr of users) {
+      const gid = usr.groupId;
+      delete usr.groupId;
+      if (gid != null && groups[gid]) groups[gid].groupUsers.push(usr);
+      else result.push(usr);
+    }
+    return result;
+  };
 
   const findResponsibleOption = (list, id) => {
     for (const item of list || []) {
