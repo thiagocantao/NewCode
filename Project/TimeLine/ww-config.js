@@ -318,5 +318,20 @@ export default {
       label: { en: "On marker click" },
       event: { value: null },
     },
+    {
+      name: "timeline:commentDeleted",
+      label: { en: "On comment deleted" },
+      event: { value: { TicketCommentID: null } },
+    },
+    {
+      name: "timeline:attachmentDeleted",
+      label: { en: "On attachment deleted" },
+      event: { value: { attachmentId: null } },
+    },
+    {
+      name: "timeline:deleted",
+      label: { en: "On deletion" },
+      event: { value: { type: null, id: null, filename: null } },
+    },
   ],
 };

@@ -1370,6 +1370,11 @@ export default {
           event: { value: { TicketCommentID } },
         });
 
+        emit("trigger-event", {
+          name: "timeline:deleted",
+          event: { value: { type: "comment", id: TicketCommentID } },
+        });
+
         cancelCmtDelete();
       } catch (e) {
         cmtError.value = e?.message || String(e);
@@ -1435,6 +1440,21 @@ export default {
 
         attCache.value = { ...attCache.value, [key]: { ...f, deleted: true } };
         if (attModalOpen.value) closeAttModal();
+
+        emit("trigger-event", {
+          name: "timeline:attachmentDeleted",
+          event: { value: { attachmentId: item?.PKTableModified ?? null } },
+        });
+        emit("trigger-event", {
+          name: "timeline:deleted",
+          event: {
+            value: {
+              type: "attachment",
+              id: item?.PKTableModified ?? null,
+              filename: f.file?.name ?? null,
+            },
+          },
+        });
       } catch (e) {
         console.warn("[TimeLine] Falha ao excluir anexo:", e);
       }
