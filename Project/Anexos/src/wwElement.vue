@@ -373,6 +373,7 @@ export default {
       (ds) => {
         if (!ds) {
           dsLoadVersion++;
+
           files.value = [];
           return;
         }
@@ -384,6 +385,7 @@ export default {
             data = JSON.parse(data);
           } catch (_) {
             dsLoadVersion++;
+
             files.value = [];
             return;
           }
@@ -391,6 +393,7 @@ export default {
 
         if (!Array.isArray(data)) {
           dsLoadVersion++;
+
           files.value = [];
           return;
         }
