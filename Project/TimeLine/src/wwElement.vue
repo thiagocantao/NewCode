@@ -63,33 +63,51 @@
             </template>
 
             <!-- FieldUpdated -->
-            <template v-else-if="(item.TagControl || item.tagControl) === 'FieldUpdated'">
-              <div class="activity-added-card">
-                <div class="activity-added-card__left">
-                  <div class="activity-added-card__title">{{ item.Title }} - {{ item.NameFieldModified }}</div>
+<template v-else-if="(item.TagControl || item.tagControl) === 'FieldUpdated'">
+  <!-- CASO ESPECIAL: FORMATED_TEXT -->
+  <template v-if="isFormattedText(item)">
+    <div class="activity-added-card">
+      <div class="activity-added-card__left">
+        <div class="activity-added-card__title title-row">
+          <div class="activity-added-card__title">{{ item.Title }} - {{ item.NameFieldModified }}</div>
+          <button class="details-link" @click.stop="openFtModal(item)">Details</button>
+        </div>
+      </div>
+      <div class="activity-added-card__right">
+        <div class="activity-added-card__created-by">{{ item.CreatedByName }}</div>
+        <div class="activity-added-card__created-date">{{ formatDateDash(item.CreatedDate) }}</div>
+      </div>
+    </div>
+  </template>
 
-                  <dl class="activity-added-card__list">
-                    <div class="row value-change">
-                      <dt></dt>
-                      <dd class="value-change__values">
-                        <span class="value-chip old" :style="getSideStyles(item, 'old')">
-                          {{ getOldValue(item) }}
-                        </span>
-                        <i class="material-symbols-outlined arrow">arrow_forward</i>
-                        <span class="value-chip new" :style="getSideStyles(item, 'new')">
-                          {{ getNewValue(item) }}
-                        </span>
-                      </dd>
-                    </div>
-                  </dl>
-                </div>
+  <!-- CASO PADRÃO (mantém seu layout atual) -->
+  <template v-else>
+    <div class="activity-added-card">
+      <div class="activity-added-card__left">
+        <div class="activity-added-card__title">{{ item.Title }} - {{ item.NameFieldModified }}</div>
+        <dl class="activity-added-card__list">
+          <div class="row value-change">
+            <dt></dt>
+            <dd class="value-change__values">
+              <span class="value-chip old" :style="getSideStyles(item, 'old')">
+                {{ getOldValue(item) }}
+              </span>
+              <i class="material-symbols-outlined arrow">arrow_forward</i>
+              <span class="value-chip new" :style="getSideStyles(item, 'new')">
+                {{ getNewValue(item) }}
+              </span>
+            </dd>
+          </div>
+        </dl>
+      </div>
+      <div class="activity-added-card__right">
+        <div class="activity-added-card__created-by">{{ item.CreatedByName }}</div>
+        <div class="activity-added-card__created-date">{{ formatDateDash(item.CreatedDate) }}</div>
+      </div>
+    </div>
+  </template>
+</template>
 
-                <div class="activity-added-card__right">
-                  <div class="activity-added-card__created-by">{{ item.CreatedByName }}</div>
-                  <div class="activity-added-card__created-date">{{ formatDateDash(item.CreatedDate) }}</div>
-                </div>
-              </div>
-            </template>
 
             <!-- ActivityUpdated (Activity old -> new) -->
             <template v-else-if="(item.TagControl || item.tagControl) === 'ActivityUpdated'">
@@ -527,6 +545,64 @@
       </div>
 </template>
 
+<!-- TicketLinked -->
+<template v-else-if="(item.TagControl || item.tagControl) === 'TicketLinked'">
+  <div class="activity-added-card">
+    <div class="activity-added-card__left">
+      <div class="activity-added-card__title title-row">
+        <span>{{ item.Title }}</span>
+        <span class="link-badge" v-if="getTicketLinkedLabel(item)">
+          {{ getTicketLinkedLabel(item) }}
+        </span>
+      </div>
+    </div>
+
+    <div class="activity-added-card__right">
+      <div class="activity-added-card__created-by">{{ item.CreatedByName }}</div>
+      <div class="activity-added-card__created-date">{{ formatDateDash(item.CreatedDate) }}</div>
+    </div>
+  </div>
+</template>
+
+<!-- TicketUnlinked -->
+<template v-else-if="(item.TagControl || item.tagControl) === 'TicketUnlinked'">
+  <div class="activity-added-card">
+    <div class="activity-added-card__left">
+      <div class="activity-added-card__title title-row">
+        <span>{{ item.Title }}</span>
+        <span class="link-badge" v-if="getTicketLinkedLabel(item)">
+          {{ getTicketLinkedLabel(item) }}
+        </span>
+      </div>
+    </div>
+
+    <div class="activity-added-card__right">
+      <div class="activity-added-card__created-by">{{ item.CreatedByName }}</div>
+      <div class="activity-added-card__created-date">{{ formatDateDash(item.CreatedDate) }}</div>
+    </div>
+  </div>
+</template>
+
+<!-- TicketCreated -->
+<template v-else-if="(item.TagControl || item.tagControl) === 'TicketCreated'">
+  <div class="activity-added-card">
+    <div class="activity-added-card__left">
+      <div class="activity-added-card__title title-row">
+        <span>{{ item.Title }}</span>
+        <span class="link-badge" v-if="getTicketCreatedTitle(item)">
+          {{ getTicketCreatedTitle(item) }}
+        </span>
+      </div>
+    </div>
+
+    <div class="activity-added-card__right">
+      <div class="activity-added-card__created-by">{{ item.CreatedByName }}</div>
+      <div class="activity-added-card__created-date">{{ formatDateDash(item.CreatedDate) }}</div>
+    </div>
+  </div>
+</template>
+
+
 <!-- MessageSent -->
 <template v-else-if="(item.TagControl || item.tagControl) === 'MessageSent'">
   <div class="activity-added-card">
@@ -562,6 +638,37 @@
 </wwLayoutItemContext>
 </div>
 </div>
+
+<!-- Modal FieldUpdated FORMATED_TEXT -->
+<div v-if="ftModalOpen" class="ft-modal-overlay" @click.self="closeFtModal">
+  <div class="ft-modal">
+    <div class="ft-modal__header">
+      <div class="ft-modal__title">
+        {{ ftModalItem?.NameFieldModified || 'Details' }}
+      </div>
+      <button class="ft-modal__close" @click="closeFtModal">
+        <i class="material-symbols-outlined">close</i>
+      </button>
+    </div>
+
+    <div class="ft-modal__body">
+      <div class="ft-col">
+        <div class="ft-col__label"></div>
+        <div class="ft-col__content" v-html="getFormattedHtml(ftModalItem, 'old')"></div>
+      </div>
+
+      <div class="ft-arrow">
+        <i class="material-symbols-outlined">arrow_forward</i>
+      </div>
+
+      <div class="ft-col">
+        <div class="ft-col__label"></div>
+        <div class="ft-col__content" v-html="getFormattedHtml(ftModalItem, 'new')"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 <!-- Modal AttachmentAdded -->
 <div v-if="attModalOpen" class="tl-modal-overlay" @click.self="closeAttModal">
@@ -669,6 +776,77 @@ export default {
       if (typeof val === "string") { try { return JSON.parse(val); } catch { return null; } }
       return val && typeof val === "object" ? val : null;
     };
+
+    /* ========= TicketLinked ========= */
+    const getTicketLinkedObj = (item) => {
+      if (item?.FieldNewValue && typeof item.FieldNewValue === "object") return item.FieldNewValue;
+      const parsed = parseMaybeJSON(item?.NewValueTitle);
+      return parsed || {};
+    };
+
+  /* ========= TicketUnlinked ========= */
+    const getTicketUnlinkedObj = (item) => {
+      if (item?.FieldOldValue && typeof item.FieldOldValue === "object") return item.FieldOldValue;
+      const parsed = parseMaybeJSON(item?.OldValueTitle);
+      return parsed || {};
+    };
+
+    const getTicketLinkedLabel = (item) => {
+      const o = item.tagControl == "TicketLinked" || item.TagControl == "TicketLinked" ? getTicketLinkedObj(item) : getTicketUnlinkedObj(item);
+      const type =
+        o?.TicketType ?? o?.ticketType ?? o?.Type ?? o?.type ?? "";
+      const number =
+        o?.TicketNumber ?? o?.ticketNumber ?? o?.Number ?? o?.number ?? "";
+      if (!type && !number) return "";
+      return `${type}${number ? ` #${number}` : ""}`;
+    };
+
+    /* ========= TicketCreated ========= */
+    const getTicketCreatedObj = (item) => {
+      if (item?.FieldNewValue && typeof item.FieldNewValue === "object") return item.FieldNewValue;
+      const parsed = parseMaybeJSON(item?.NewValueTitle);
+      return parsed || {};
+    };
+    const getTicketCreatedTitle = (item) => {
+      const o = getTicketCreatedObj(item);
+      return o?.Title ?? o?.title ?? "";
+    };
+
+// --- FieldUpdated FORMATED_TEXT helpers ---
+const ftModalOpen = ref(false);
+const ftModalItem = ref(null);
+
+function isFormattedText(item) {
+  return (item?.FieldTypeControl || item?.fieldTypeControl) === "FORMATED_TEXT";
+}
+
+function openFtModal(item) {
+  ftModalItem.value = item;
+  ftModalOpen.value = true;
+}
+
+function closeFtModal() {
+  ftModalOpen.value = false;
+  ftModalItem.value = null;
+}
+
+function getFormattedHtml(item, side) {
+  if (!item) return "";
+  const raw = side === "old"
+    ? (item.FieldOldValue ?? item.OldValueTitle ?? "")
+    : (item.FieldNewValue ?? item.NewValueTitle ?? "");
+
+  // Se vier JSON, tenta extrair string/html de dentro; senão usa o próprio valor
+  const parsed = parseMaybeJSON(raw);
+  const html = typeof parsed === "string"
+    ? parsed
+    : (parsed && typeof parsed.html === "string")
+      ? parsed.html
+      : (typeof raw === "string" ? raw : "");
+
+  return sanitizeHtml(html); // mantém HTML, mas remove JS/handlers perigosos
+}
+
 
     /* ========= ActivityAdded ========= */
     const getActivityObj = (item) => {
@@ -1133,6 +1311,12 @@ export default {
 
     function editComment(item) {
       // define as variáveis pedidas
+      setVar("774a34ff-ffde-414b-8e09-70a002854353", false);
+      setVar("2e18d504-5152-4f25-804b-9ec53a12f260", false);
+      setVar("1a931019-8209-484a-b172-73ef2c8f5675", false);
+      setVar("fbb7b2ff-0120-447c-bc51-af613bffc9c0", false);
+
+      setVar("7e74a253-7a6b-407b-95ed-14d3723a9d30", true);
       setVar("528fb0fb-dab3-41ae-8861-3e303bb217be", true);
       setVar("50a19476-dce1-4f00-a1f7-c09bdc99861c", getCommentPlain(item));
       setVar("58120ff9-9cfc-4f41-ad74-b8d0b3a11751", getCommentId(item));
@@ -1192,7 +1376,9 @@ export default {
       // MessageSent
       getFromEmails, getToEmails,
       // Icons
-      getFileIcon,
+      getFileIcon, getTicketLinkedLabel, getTicketCreatedTitle,
+      isFormattedText, openFtModal, closeFtModal,
+      ftModalOpen, ftModalItem, getFormattedHtml,
     };
   },
   methods: {
@@ -1944,6 +2130,106 @@ export default {
     color: #fff;
   }
 
+/* Link "Details" ao lado do título */
+.details-link {
+  border: none;
+  background: transparent;
+  color: #2563eb;
+  text-decoration: underline;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* Modal do FORMATED_TEXT */
+.ft-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+}
+
+/* Container do modal: limita pela viewport e cria um "frame" fixo */
+.ft-modal {
+  width: min(980px, 96vw);
+  /* limite por viewport (dvh melhora em mobile moderno) */
+  max-height: 80vh;
+  max-height: 80dvh; /* onde suportado, esta linha prevalece */
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 20px 48px rgba(16,24,40,.18);
+  padding: 14px;
+  background: #fff;
+  overflow: hidden; /* impede o container de “vazar”; o scroll fica no body */
+}
+
+/* Cabeçalho não encolhe */
+.ft-modal__header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  margin-bottom: 10px;
+  flex: 0 0 auto; /* importante */
+}
+
+/* Corpo ocupa o restante e rola quando necessário */
+.ft-modal__body {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 6px;
+
+  /* torna-se a área rolável */
+  flex: 1 1 auto;
+  min-height: 0;          /* crucial em flexbox para permitir encolher */
+  overflow: auto;
+  -webkit-overflow-scrolling: touch; /* rolagem suave no iOS */
+}
+
+
+.ft-arrow i.material-symbols-outlined {
+  font-size: 22px;
+  color: #9ca3af;
+  align-self: center;
+}
+
+.ft-col {
+  min-width: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  padding: 10px;
+}
+
+.ft-col__label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+/* antes você tinha max-height: 64vh e overflow: auto nas colunas */
+.ft-col__content {
+  /* deixe o body rolar, então não limite aqui */
+  max-height: none;
+  overflow: visible;
+  font-size: 13.5px;
+  color: #111827;
+}
+
+
+/* garantir que conteúdos HTML se ajustem */
+.ft-col__content :deep(img) { max-width: 100%; height: auto; }
+.ft-col__content :deep(table) { width: 100%; border-collapse: collapse; }
+.ft-col__content :deep(iframe) { max-width: 100%; }
+
+
   .tl-file-not-viewable {
     width: 600px;
     height: 400px;
@@ -2065,4 +2351,43 @@ export default {
   .btn-danger:hover {
     background: #b91c1c;
   }
+
+  /* 1) alinhar o centro do marcador à primeira linha do título */
+.ww-timeline--vertical .ww-timeline__marker {
+  top: 0; /* era 14px */
+}
+
+/* 2) garantir que o título tenha a mesma “altura de faixa” do marcador
+      (o texto fica centralizado verticalmente em 30px) */
+.activity-added-card__title {
+  min-height: 30px;            /* mesma altura do marcador */
+  display: inline-flex;
+  align-items: center;          /* centraliza o texto na faixa */
+  margin-bottom: 8px;           /* mantém o espaçamento existente */
+  margin-top: 5px;           /* mantém o espaçamento existente */
+}
+
+/* (opcional) se algum card estiver com botão/ícone no título,
+   mantenha tudo no mesmo eixo */
+.activity-added-card__title.title-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+
+  /* Chip do TicketLinked (ex.: "Incidente #250") */
+.link-badge{
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 6px;
+  background: #e5e7eb;   /* cinza claro */
+  color: #374151;        /* cinza escuro do texto */
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
 </style>
