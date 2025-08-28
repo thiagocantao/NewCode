@@ -369,13 +369,35 @@ export default {
 
     // Carrega anexos a partir da propriedade Data Source (gera signed URL)
     watch(
-      () => JSON.stringify(props.content.dataSource || []),
-      (json) => {
-        let data = [];
-        try { data = JSON.parse(json); } catch (_) {}
+      () => props.content.dataSource,
+      (ds) => {
+        if (!ds) {
+          dsLoadVersion++;
+          files.value = [];
+          return;
+        }
+
+        let data = ds;
+
+        if (typeof data === "string") {
+          try {
+            data = JSON.parse(data);
+          } catch (_) {
+            dsLoadVersion++;
+            files.value = [];
+            return;
+          }
+        }
+
+        if (!Array.isArray(data)) {
+          dsLoadVersion++;
+          files.value = [];
+          return;
+        }
+
         loadFromDataSource(data);
       },
-      { immediate: true }
+      { immediate: true, deep: true }
     );
 
     function triggerFileInput() {
