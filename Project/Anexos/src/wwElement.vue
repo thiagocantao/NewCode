@@ -407,6 +407,7 @@ export default {
     watch(
       [() => props.content, () => props.content.dataSource],
       ([, ds]) => handleDataSource(ds),
+
       { immediate: true, deep: true }
     );
 
