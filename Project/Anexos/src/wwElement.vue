@@ -367,39 +367,47 @@ export default {
       files.value = items;
     }
 
-    // Carrega anexos a partir da propriedade Data Source (gera signed URL)
+    function clearFiles() {
+      files.value = [];
+      attachmentsInfo.value = [];
+      if (setAttachmentsInfo) setAttachmentsInfo([]);
+      currentIndex.value = 0;
+      isModalOpen.value = false;
+    }
+
+    function handleDataSource(ds) {
+      if (!ds) {
+        dsLoadVersion++;
+        clearFiles();
+        return;
+      }
+
+      let data = ds;
+
+      if (typeof data === "string") {
+        try {
+          data = JSON.parse(data);
+        } catch (_) {
+          dsLoadVersion++;
+          clearFiles();
+          return;
+        }
+      }
+
+      if (!Array.isArray(data)) {
+        dsLoadVersion++;
+        clearFiles();
+        return;
+      }
+
+      loadFromDataSource(data);
+    }
+
+    // Reage às mudanças do Data Source e também do objeto content em si
     watch(
-      () => props.content.dataSource,
-      (ds) => {
-        if (!ds) {
-          dsLoadVersion++;
+      [() => props.content, () => props.content.dataSource],
+      ([, ds]) => handleDataSource(ds),
 
-          files.value = [];
-          return;
-        }
-
-        let data = ds;
-
-        if (typeof data === "string") {
-          try {
-            data = JSON.parse(data);
-          } catch (_) {
-            dsLoadVersion++;
-
-            files.value = [];
-            return;
-          }
-        }
-
-        if (!Array.isArray(data)) {
-          dsLoadVersion++;
-
-          files.value = [];
-          return;
-        }
-
-        loadFromDataSource(data);
-      },
       { immediate: true, deep: true }
     );
 
