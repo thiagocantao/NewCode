@@ -417,15 +417,7 @@ export default {
       const TicketID = getVar(ticketVarId);
       const bucket = "ticket";
 
-      // Checagens de plugin
-      if (!sb || !supabase || !auth) {
-        errorMessages.push(
-          "[Anexos] Plugins do Supabase não encontrados. Verifique a configuração (supabase e supabaseAuth)."
-        );
-        showError(errorMessages.join("\n"));
-        event.target.value = "";
-        return;
-      }
+     
 
       // Verifica usuário autenticado
       const { data: userData, error: authErr } = await auth.auth.getUser();
