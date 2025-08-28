@@ -318,10 +318,5 @@ export default {
       label: { en: "On marker click" },
       event: { value: null },
     },
-    {
-      name: "timeline:change",
-      label: { en: "On change" },
-      event: { value: null, oldValue: null },
-    },
   ],
 };
