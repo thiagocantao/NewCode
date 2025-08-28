@@ -166,6 +166,15 @@ export default {
             // If format changed
             if (value !== this.getContent()) this.setValue(this.getContent());
         },
+        'content.initialMentions': {
+            handler(value) {
+                this.setInitialMentions(value);
+            },
+            deep: true,
+        },
+        mentionList() {
+            this.setInitialMentions(this.content.initialMentions);
+        },
         /* wwEditor:start */
         editorConfig() {
             this.loadEditor();
@@ -535,6 +544,7 @@ export default {
                 onCreate: () => {
                     this.setValue(this.getContent());
                     this.setMentions(this.richEditor.getJSON().content.reduce(extractMentions, []));
+                    this.setInitialMentions(this.content.initialMentions);
                 },
                 onUpdate: this.handleOnUpdate,
                 editorProps: {
@@ -555,6 +565,39 @@ export default {
                 },
             });
             this.loading = false;
+        },
+        setInitialMentions(mentions) {
+            if (
+                !this.richEditor ||
+                !this.editorConfig.mention.enabled ||
+                !Array.isArray(mentions) ||
+                !mentions.length
+            )
+                return;
+
+            const nodes = [];
+            const validIds = [];
+            for (const id of mentions) {
+                const mention = this.mentionList.find(m => m.id === id);
+                if (mention) {
+                    validIds.push(mention.id);
+                    nodes.push({
+                        type: 'mention',
+                        attrs: { id: mention.id, label: mention.label, hint: mention.hint },
+                    });
+                    nodes.push({ type: 'text', text: ' ' });
+                }
+            }
+
+            if (!nodes.length) return;
+            if (nodes[nodes.length - 1].type === 'text') nodes.pop();
+
+            this.richEditor.commands.setContent({
+                type: 'doc',
+                content: [{ type: 'paragraph', content: nodes }],
+            });
+            this.setValue(this.getContent());
+            this.setMentions(validIds);
         },
         handleOnUpdate() {
             let htmlValue = this.getContent();

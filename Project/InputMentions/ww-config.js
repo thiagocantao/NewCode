@@ -61,6 +61,7 @@ export default {
                 'mentionAllowSpaces',
                 'mentionListLength',
                 'mentionList',
+                'initialMentions',
                 'mentionIdPath',
                 'mentionLabelPath',
                 'mentionHintPath'
@@ -337,6 +338,21 @@ export default {
                             },
                         },
                     },
+                },
+            },
+            defaultValue: [],
+            bindable: true,
+        },
+        initialMentions: {
+            section: 'settings',
+            label: {
+                en: 'Initial mentions',
+            },
+            hidden: content => !content.enableMention,
+            type: 'Array',
+            options: {
+                item: {
+                    type: 'Text',
                 },
             },
             defaultValue: [],
