@@ -372,6 +372,8 @@ export default {
       () => props.content.dataSource,
       (ds) => {
         if (!ds) {
+          dsLoadVersion++;
+
           files.value = [];
           return;
         }
@@ -382,12 +384,16 @@ export default {
           try {
             data = JSON.parse(data);
           } catch (_) {
+            dsLoadVersion++;
+
             files.value = [];
             return;
           }
         }
 
         if (!Array.isArray(data)) {
+          dsLoadVersion++;
+
           files.value = [];
           return;
         }
