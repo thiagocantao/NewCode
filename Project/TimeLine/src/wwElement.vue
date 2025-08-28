@@ -607,8 +607,14 @@
 <template v-else-if="(item.TagControl || item.tagControl) === 'MessageSent'">
   <div class="activity-added-card">
     <div class="activity-added-card__left">
-      <!-- Title: do JSON (item.Title) -->
-      <div class="activity-added-card__title">{{ item.Title }}</div>
+      <!-- Title: do JSON (item.Title) + view link -->
+      <div class="activity-added-card__title title-row">
+        <div class="activity-added-card__title">{{ item.Title }}</div>
+        <div class="view-link" @click.stop="viewMessage(item)">
+          <i class="material-symbols-outlined">open_in_new</i>
+          <span>View</span>
+        </div>
+      </div>
 
       <dl class="activity-added-card__list">
         <div class="row">
@@ -1332,6 +1338,17 @@ function getFormattedHtml(item, side) {
       closeAllMenus();
     }
 
+    /* ========= MessageSent view ========= */
+    function viewMessage(item) {
+      setVar("7e74a253-7a6b-407b-95ed-14d3723a9d30", false);
+      setVar("774a34ff-ffde-414b-8e09-70a002854353", false);
+      setVar("2e18d504-5152-4f25-804b-9ec53a12f260", true);
+      setVar("528fb0fb-dab3-41ae-8861-3e303bb217be", false);
+      setVar("1a931019-8209-484a-b172-73ef2c8f5675", false);
+      setVar("fbb7b2ff-0120-447c-bc51-af613bffc9c0", false);
+      setVar("6c7b4f3b-7eb8-44c5-bad0-21d40809c902", item);
+    }
+
     /* ========= Ícones para arquivos ========= */
     function getFileIcon(name) {
       const ext = (name.split(".").pop() || "").toLowerCase();
@@ -1374,7 +1391,7 @@ function getFormattedHtml(item, side) {
       // AttachmentDeleted
       getDeletedAttachmentName,
       // MessageSent
-      getFromEmails, getToEmails,
+      getFromEmails, getToEmails, viewMessage,
       // Icons
       getFileIcon, getTicketLinkedLabel, getTicketCreatedTitle,
       isFormattedText, openFtModal, closeFtModal,
@@ -2139,6 +2156,20 @@ function getFormattedHtml(item, side) {
   font-size: 13px;
   cursor: pointer;
   padding: 0;
+}
+
+/* View link for MessageSent */
+.view-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: inherit;
+  cursor: pointer;
+}
+
+.view-link i.material-symbols-outlined {
+  font-size: 12px;
 }
 
 /* Modal do FORMATED_TEXT */
