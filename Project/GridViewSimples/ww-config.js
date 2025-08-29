@@ -131,6 +131,13 @@ export default {
       getTestEvent: "getRowClickedTestEvent",
     },
   ],
+  actions: [
+    {
+      action: "deselectAllRows",
+      label: { en: "Deselect All Rows" },
+      args: [],
+    },
+  ],
   properties: {
     headerTitle: {
       type: "Title",

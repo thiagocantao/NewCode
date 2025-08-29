@@ -601,6 +601,11 @@ export default {
         },
       });
     },
+    deselectAllRows() {
+      if (this.gridApi) {
+        this.gridApi.deselectAll();
+      }
+    },
     /* wwEditor:start */
     generateColumns() {
       this.$emit("update:content", {
