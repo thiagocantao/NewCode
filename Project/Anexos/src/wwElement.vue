@@ -439,6 +439,11 @@ export default {
       clearFiles();
     });
 
+    function remount() {
+      dsLoadVersion++;
+      handleDataSource(props.content?.dataSource);
+    }
+
     function triggerFileInput() {
       if (fileInput.value) fileInput.value.click();
     }
@@ -685,6 +690,7 @@ export default {
       getFileIcon,
       attachmentsInfo,
       popup, detailsOpen, closePopup, toggleDetails,
+      remount,
     };
   },
 };
