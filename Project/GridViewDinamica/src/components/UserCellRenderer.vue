@@ -86,13 +86,14 @@ export default {
   },
   data() {
     return {
+      currentParams: this.params,
       optionsCache: [],
       showGroupTooltip: false
     };
   },
   async created() {
-    if (this.params.options && this.params.options.length) {
-      this.optionsCache = this.mapOptions(this.params.options);
+    if (this.currentParams.options && this.currentParams.options.length) {
+      this.optionsCache = this.mapOptions(this.currentParams.options);
     } else {
       this.optionsCache = this.mapOptions(await this.fetchOptions());
     }
@@ -102,25 +103,25 @@ export default {
       return this.optionsCache;
     },
     selectedGroup() {
-      const val = this.params.value;
+      const val = this.currentParams.value;
       if (val && typeof val === 'object' && val.groupid) {
         return this.findGroupById(val.groupid);
       }
-      const name = this.params.data?.AssignedGroupName;
+      const name = this.currentParams.data?.AssignedGroupName;
       if (name) {
         const photo =
-          this.params.data?.AssignedGroupPhotoUrl ||
-          this.params.data?.AssignedGroupPhoto ||
-          this.params.data?.GroupPhotoURL ||
-          this.params.data?.GroupPhotoUrl ||
-          this.params.data?.photoUrl ||
-          this.params.data?.GroupPhoto;
+          this.currentParams.data?.AssignedGroupPhotoUrl ||
+          this.currentParams.data?.AssignedGroupPhoto ||
+          this.currentParams.data?.GroupPhotoURL ||
+          this.currentParams.data?.GroupPhotoUrl ||
+          this.currentParams.data?.photoUrl ||
+          this.currentParams.data?.GroupPhoto;
         return { name, photo };
       }
       return null;
     },
     selectedUser() {
-      const val = this.params.value;
+      const val = this.currentParams.value;
       if (val && typeof val === 'object') {
         if (val.userid && val.groupid) {
           const grp = this.findGroupById(val.groupid);
@@ -131,14 +132,14 @@ export default {
       } else if (val) {
         return this.findUserById(val);
       }
-      const name = this.params.data?.ResponsibleUser || this.params.data?.Username || this.params.data?.UserName;
+      const name = this.currentParams.data?.ResponsibleUser || this.currentParams.data?.Username || this.currentParams.data?.UserName;
       if (name) {
         const photo =
-          this.params.data?.photoUrl ||
-          this.params.data?.PhotoURL ||
-          this.params.data?.PhotoUrl ||
-          this.params.data?.UserPhoto ||
-          this.params.data?.UserPhotoUrl;
+          this.currentParams.data?.photoUrl ||
+          this.currentParams.data?.PhotoURL ||
+          this.currentParams.data?.PhotoUrl ||
+          this.currentParams.data?.UserPhoto ||
+          this.currentParams.data?.UserPhotoUrl;
         return { name, photo };
       }
       return null;
@@ -159,10 +160,10 @@ export default {
       return this.selectedUser ? this.getInitial(this.selectedUser.name) : '';
     },
     isEditable() {
-      const editable = this.params.colDef?.editable;
+      const editable = this.currentParams.colDef?.editable;
       if (typeof editable === 'function') {
         try {
-          return !!editable(this.params);
+          return !!editable(this.currentParams);
         } catch (e) {
           return false;
         }
@@ -207,7 +208,7 @@ export default {
       this.updateRowZIndex(false);
     },
     updateRowZIndex(raise) {
-      const cell = this.params?.eGridCell;
+      const cell = this.currentParams?.eGridCell;
       if (cell) {
         cell.style.overflow = raise ? 'visible' : '';
         const row = cell.parentElement;
@@ -282,7 +283,7 @@ export default {
       return name ? String(name).trim().charAt(0).toUpperCase() : '';
     },
     refresh(params) {
-      this.params = params;
+      this.currentParams = params;
       return true;
     }
   }
