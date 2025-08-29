@@ -733,7 +733,7 @@
   };
   
   /* wwEditor:start */
-  const { createElement } = wwLib.useCreateElement();
+  const { createElement } = wwLib.wwElement.useCreate();
   /* wwEditor:end */
   
   function updateColumnsPosition() {
@@ -1591,7 +1591,6 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
 },
   onCellClicked(event) {
   const colId = event.column?.getColId?.();
-  console.log('colId:', colId, 'columns:', this.content.columns);
 
   let fieldDB = null;
   let fieldID = null;
