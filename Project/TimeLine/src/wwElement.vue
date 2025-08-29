@@ -1118,7 +1118,6 @@ export default {
           else if (ds && typeof ds === "object") data = [ds];
           else data = [];
         } catch (e) {
-          console.error("Failed to parse dataSource", e);
           data = [];
         }
         events.value = data;
@@ -1190,7 +1189,6 @@ export default {
 
       const { data, error } = await supabase.storage.from(file.bucket).createSignedUrl(file.storagePath, 60 * 60, options);
       if (error) {
-        console.warn("[TimeLine] createSignedUrl falhou:", error);
         return null;
       }
       return data?.signedUrl || null;
@@ -1207,7 +1205,6 @@ export default {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         file.textContent = await res.text();
       } catch (e) {
-        console.warn("[TimeLine] Falha ao carregar TXT:", e);
         file.textContent = "(Não foi possível carregar este texto)";
       }
     }
@@ -1253,7 +1250,6 @@ export default {
         if (fileInfo.isTxt) await loadTxtIfNeeded(fileInfo);
         attCache.value = { ...attCache.value, [key]: fileInfo };
       } catch (e) {
-        console.warn("[TimeLine] prepareAttachment error:", e);
       } finally {
         fetching.delete(key);
       }
@@ -1320,7 +1316,6 @@ export default {
         a.remove();
         URL.revokeObjectURL(blobUrl);
       } catch (e) {
-        console.warn("[TimeLine] Download falhou:", e);
       }
     }
 
@@ -1409,7 +1404,6 @@ export default {
 
         if (sb?.instance && f.bucket && f.storagePath) {
           const { error: storageErr } = await sb.instance.storage.from(f.bucket).remove([f.storagePath]);
-          if (storageErr) console.warn("[TimeLine] Erro ao remover do storage:", storageErr);
         }
 
         if (sb?.callPostgresFunction) {
@@ -1435,7 +1429,6 @@ export default {
             functionName: "postticketattachment",
             params: rpcBody,
           });
-          if (rpcError) console.warn("[TimeLine] postticketattachment delete:", rpcError);
         }
 
         attCache.value = { ...attCache.value, [key]: { ...f, deleted: true } };
@@ -1456,7 +1449,6 @@ export default {
           },
         });
       } catch (e) {
-        console.warn("[TimeLine] Falha ao excluir anexo:", e);
       }
     }
 
