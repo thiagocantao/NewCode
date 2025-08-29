@@ -443,6 +443,7 @@ export default {
       sb = window?.wwLib?.wwPlugins?.supabase;
       supabase = sb?.instance || null;
       auth = window?.wwLib?.wwPlugins?.supabaseAuth?.publicInstance || null;
+
       dsLoadVersion++;
       handleDataSource(props.content?.dataSource);
     }
