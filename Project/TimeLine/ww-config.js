@@ -334,4 +334,6 @@ export default {
       event: { value: { type: null, id: null, filename: null } },
     },
   ],
+  actions: [{ label: { en: "Remount component" }, action: "remount" }],
 };
+
