@@ -25,8 +25,8 @@
         >
           <div class="avatar-middle">
             <div class="user-selector__avatar">
-              <template v-if="selectedGroup.PhotoURL || selectedGroup.PhotoUrl">
-                <img :src="selectedGroup.PhotoURL || selectedGroup.PhotoUrl" alt="Group Photo" />
+              <template v-if="selectedGroup.photoUrl || selectedGroup.PhotoURL || selectedGroup.PhotoUrl">
+                <img :src="selectedGroup.photoUrl || selectedGroup.PhotoURL || selectedGroup.PhotoUrl" alt="Group Photo" />
               </template>
               <template v-else>
                 <span class="material-symbols-outlined user-selector__group-icon">groups</span>
@@ -45,8 +45,8 @@
         <div class="avatar-outer selected-user-avatar">
           <div class="avatar-middle">
             <div class="user-selector__avatar">
-              <template v-if="selectedUser.PhotoURL || selectedUser.PhotoUrl">
-                <img :src="selectedUser.PhotoURL || selectedUser.PhotoUrl" alt="User Photo" />
+              <template v-if="selectedUser.photoUrl || selectedUser.PhotoURL || selectedUser.PhotoUrl">
+                <img :src="selectedUser.photoUrl || selectedUser.PhotoURL || selectedUser.PhotoUrl" alt="User Photo" />
               </template>
               <template v-else>
                 <span class="user-selector__initial" :style="initialStyle">{{ getInitial(selectedUser.name) }}</span>
@@ -66,8 +66,8 @@
         >
           <div class="avatar-middle">
             <div class="user-selector__avatar">
-              <template v-if="selectedGroup.PhotoURL || selectedGroup.PhotoUrl">
-                <img :src="selectedGroup.PhotoURL || selectedGroup.PhotoUrl" alt="Group Photo" />
+              <template v-if="selectedGroup.photoUrl || selectedGroup.PhotoURL || selectedGroup.PhotoUrl">
+                <img :src="selectedGroup.photoUrl || selectedGroup.PhotoURL || selectedGroup.PhotoUrl" alt="Group Photo" />
               </template>
               <template v-else>
                 <span class="material-symbols-outlined user-selector__group-icon">groups</span>
@@ -86,8 +86,8 @@
         <div class="avatar-outer" v-else>
           <div class="avatar-middle">
             <div class="user-selector__avatar">
-              <template v-if="selectedUser && (selectedUser.PhotoURL || selectedUser.PhotoUrl)">
-                <img :src="selectedUser.PhotoURL || selectedUser.PhotoUrl" alt="User Photo" />
+              <template v-if="selectedUser && (selectedUser.photoUrl || selectedUser.PhotoURL || selectedUser.PhotoUrl)">
+                <img :src="selectedUser.photoUrl || selectedUser.PhotoURL || selectedUser.PhotoUrl" alt="User Photo" />
               </template>
               <template v-else>
                 <span class="user-selector__initial" :style="initialStyle">{{ selectedUser ? getInitial(selectedUser.name) : '' }}</span>
@@ -141,8 +141,8 @@
                 <div class="avatar-outer">
                   <div class="avatar-middle">
                     <div class="user-selector__avatar">
-                      <template v-if="user.PhotoURL || user.PhotoUrl">
-                        <img :src="user.PhotoURL || user.PhotoUrl" alt="User Photo" />
+                      <template v-if="user.photoUrl || user.PhotoURL || user.PhotoUrl">
+                        <img :src="user.photoUrl || user.PhotoURL || user.PhotoUrl" alt="User Photo" />
                       </template>
                       <template v-else>
                         <span v-if="isGroupLabel(group.label)" class="material-symbols-outlined user-selector__group-icon">groups</span>
@@ -167,8 +167,8 @@
             <div class="avatar-outer">
               <div class="avatar-middle">
                 <div class="user-selector__avatar">
-                  <template v-if="user.PhotoURL || user.PhotoUrl">
-                    <img :src="user.PhotoURL || user.PhotoUrl" alt="User Photo" />
+                  <template v-if="user.photoUrl || user.PhotoURL || user.PhotoUrl">
+                    <img :src="user.photoUrl || user.PhotoURL || user.PhotoUrl" alt="User Photo" />
                   </template>
                   <template v-else>
                     <span class="user-selector__initial" :style="initialStyle">{{ getInitial(user.name) }}</span>
@@ -192,8 +192,8 @@
             <div class="avatar-outer">
               <div class="avatar-middle">
                 <div class="user-selector__avatar">
-                  <template v-if="user.PhotoURL || user.PhotoUrl">
-                    <img :src="user.PhotoURL || user.PhotoUrl" alt="User Photo" />
+                  <template v-if="user.photoUrl || user.PhotoURL || user.PhotoUrl">
+                    <img :src="user.photoUrl || user.PhotoURL || user.PhotoUrl" alt="User Photo" />
                   </template>
                   <template v-else>
                     <span v-if="user.isAssignToTeam" class="material-symbols-outlined user-selector__group-icon">groups</span>
