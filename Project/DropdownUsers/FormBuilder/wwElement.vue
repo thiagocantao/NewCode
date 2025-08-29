@@ -727,7 +727,6 @@ fieldModalVisible.value = true;
 };
 
 const removeFormField = (field) => {
-console.log('Starting field removal with field:', field);
 
 // Função auxiliar para normalizar os IDs do campo
 const normalizeFieldIds = (f) => {
@@ -741,26 +740,19 @@ const normalizeFieldIds = (f) => {
 // Encontrar a seção que contém o campo
 const section = formSections.value.find(section => {
   const targetIds = normalizeFieldIds(field);
-  console.log('Looking for field with IDs:', targetIds);
   
   return section.fields.some(f => {
     const currentIds = normalizeFieldIds(f);
-    console.log('Comparing with field IDs:', currentIds);
     
     const matches = 
       currentIds.id === targetIds.id ||
       currentIds.field_id === targetIds.field_id ||
       currentIds.ID === targetIds.ID;
-    
-    if (matches) {
-      console.log('Found matching field:', f);
-    }
-    
+
     return matches;
   });
 });
 
-console.log('Found section:', section);
 
 if (!section) {
   console.error('Section not found for field:', field);
@@ -779,7 +771,6 @@ const fieldIndex = section.fields.findIndex(f => {
   );
 });
 
-console.log('Field index:', fieldIndex);
 
 if (fieldIndex === -1) {
   console.error('Field not found in section');
@@ -788,7 +779,6 @@ if (fieldIndex === -1) {
 
 // Remover o campo da seção
 const removedField = section.fields.splice(fieldIndex, 1)[0];
-console.log('Removed field:', removedField);
 
 // Adicionar o campo de volta à lista de campos disponíveis
 const fieldToAdd = {
@@ -801,21 +791,17 @@ const fieldToAdd = {
   is_hide_legend: Boolean(removedField.is_hide_legend)
 };
 
-console.log('Field to add back:', fieldToAdd);
 
 // Verificar se o campo já existe na lista de campos disponíveis
 const existingFieldIndex = availableFields.value.findIndex(f => f.ID === fieldToAdd.ID);
-console.log('Existing field index:', existingFieldIndex);
 
 if (existingFieldIndex === -1) {
   availableFields.value.push(fieldToAdd);
-  console.log('Added field back to available fields');
   updateFieldsState();
 }
 
 // Atualizar o estado do formulário
 updateFormState();
-console.log('Form state updated');
 };
 
 // Função auxiliar para normalizar valores booleanos
@@ -949,7 +935,6 @@ return false;
 
 // Field properties management
 const selectFieldForProperties = (field, sectionId) => {
-  console.log('Selecting field for properties:', field);
   
   // Garantir que o campo tenha todas as propriedades necessárias
   selectedFieldForProperties.value = {
@@ -964,11 +949,9 @@ const selectFieldForProperties = (field, sectionId) => {
     is_hide_legend: Boolean(field.is_hide_legend)
   };
   
-  console.log('Selected field after normalization:', selectedFieldForProperties.value);
 };
 
 const updateFieldProperties = (updatedField) => {
-  console.log('Updating field properties:', updatedField);
   
   if (!updatedField) return;
 
@@ -985,7 +968,6 @@ const updateFieldProperties = (updatedField) => {
     is_hide_legend: Boolean(updatedField.is_hide_legend)
   };
 
-  console.log('Normalized field:', normalizedField);
 
   // Find the section containing this field
   const sectionIndex = formSections.value.findIndex(section => 
@@ -1023,7 +1005,6 @@ const updateFieldProperties = (updatedField) => {
         ...normalizedField
       };
 
-      console.log('Updated field in section:', section.fields[fieldIndex]);
 
       // Update the form state
       updateFormState();
@@ -1032,7 +1013,6 @@ const updateFieldProperties = (updatedField) => {
 };
 
 const handleRemoveSection = (section) => {
-  console.log('Removing section:', section);
   
   // Encontrar a seção
   const sectionIndex = formSections.value.findIndex(s => s.id === section.id);
@@ -1062,7 +1042,6 @@ const handleRemoveSection = (section) => {
         is_hide_legend: Boolean(field.is_hide_legend)
       };
 
-      console.log('Adding field back to available fields:', normalizedField);
       allAvailableFields.value.push(normalizedField);
     }
   });
@@ -1145,7 +1124,6 @@ loadFormData();
 }, { immediate: true, deep: true });
 
 const onRemoveField = ({ sectionId, field }) => {
-  console.log('wwElement: onRemoveField called with:', { sectionId, field }); // Debug log
   removeFormField({ sectionId, field });
 };
 
