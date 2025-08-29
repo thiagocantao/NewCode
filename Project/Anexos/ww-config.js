@@ -12,7 +12,7 @@ export default {
             'inline-block',
             'inline-grid',
         ],
-        linkable: true,
+        linkable: true, 
     },
     inherit: [{ type: 'ww-layout' }, { type: 'ww-background-video' }],
     editor: {
