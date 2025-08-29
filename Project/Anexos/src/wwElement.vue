@@ -243,9 +243,9 @@ export default {
     }
 
     // ---- Supabase ----
-    const sb = window?.wwLib?.wwPlugins?.supabase;
-    const supabase = sb?.instance || null; // pode ser null na 1ª render
-    const auth = window?.wwLib?.wwPlugins?.supabaseAuth?.publicInstance || null;
+    let sb = window?.wwLib?.wwPlugins?.supabase;
+    let supabase = sb?.instance || null; // pode ser null na 1ª render
+    let auth = window?.wwLib?.wwPlugins?.supabaseAuth?.publicInstance || null;
 
     // Helpers
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -440,6 +440,10 @@ export default {
     });
 
     function remount() {
+      sb = window?.wwLib?.wwPlugins?.supabase;
+      supabase = sb?.instance || null;
+      auth = window?.wwLib?.wwPlugins?.supabaseAuth?.publicInstance || null;
+
       dsLoadVersion++;
       handleDataSource(props.content?.dataSource);
     }
