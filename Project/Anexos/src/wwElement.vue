@@ -37,7 +37,7 @@
         <button
           type="button"
           class="action-button"
-          @click="removeFile(index)"
+          @click="requestDelete(index)"
         >
           <i class="material-symbols-outlined">delete</i>
         </button>
@@ -45,10 +45,11 @@
     </div>
   </div>
 
+  <!-- Toast -->
   <div v-if="popup.visible" class="popup" :class="popup.type">
     <div class="popup-header">
       <span class="popup-title">
-        {{ popup.type === 'error' ? 'Error saving data' : 'Data saved successfully' }}
+        {{ popup.type === 'error' ? 'Error saving data' : (popup.details || 'Data saved successfully') }}
       </span>
       <button class="popup-close" @click="closePopup">
         <i class="material-symbols-outlined">close</i>
@@ -65,6 +66,7 @@
     </div>
   </div>
 
+  <!-- Preview Modal -->
   <div v-if="isModalOpen" class="modal-overlay" @click.self="closeModal">
     <div class="modal-content" :class="{ 'pdf-viewer': currentFile && currentFile.isPdf }">
       <div class="modal-top-actions">
@@ -138,10 +140,39 @@
       </button>
     </div>
   </div>
+
+  <!-- Delete Confirmation (styled to match your screenshot) -->
+  <div v-if="confirm.visible" class="confirm-overlay" @click.self="cancelDelete">
+    <div class="confirm-card">
+      <div class="confirm-card__header">
+        <div class="confirm-card__title">
+          <i class="material-symbols-outlined confirm-card__icon">close</i>
+          <span>Delete</span>
+        </div>
+        <button class="confirm-card__close" @click="cancelDelete" aria-label="Close">
+          <i class="material-symbols-outlined">close</i>
+        </button>
+      </div>
+
+      <div class="confirm-card__body">
+        <p>Do you want to delete this data?</p>
+      </div>
+
+      <div class="confirm-card__footer">
+        <button class="btn btn-text" :disabled="confirm.loading" @click="cancelDelete">
+          Cancel
+        </button>
+        <button class="btn btn-primary" :disabled="confirm.loading" @click="confirmDelete">
+          <span v-if="confirm.loading" class="spinner"></span>
+          Ok
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 
 export default {
   name: "Anexos",
@@ -164,14 +195,36 @@ export default {
     const popup = ref({ visible: false, type: "", details: "" });
     const detailsOpen = ref(false);
 
-    // ---- WeWeb Vars (ajuste os IDs conforme seu projeto) ----
+    // --- Confirm dialog state ---
+    const confirm = ref({ visible: false, index: null, loading: false });
+    function requestDelete(index) {
+      confirm.value = { visible: true, index, loading: false };
+    }
+    function cancelDelete() {
+      confirm.value.visible = false;
+      confirm.value.index = null;
+      confirm.value.loading = false;
+    }
+    async function confirmDelete() {
+      if (confirm.value.index == null) return;
+      confirm.value.loading = true;
+      try {
+        await performDelete(confirm.value.index);
+        cancelDelete();
+      } catch (e) {
+        cancelDelete();
+        showError(e?.message || String(e));
+      }
+    }
+
+    // ---- WeWeb Vars ----
     const getVar = (id) => window?.wwLib?.wwVariable?.getValue?.(id);
     const languageVarId = "aa44dc4c-476b-45e9-a094-16687e063342";
     const workspaceVarId = "744511f1-3309-41da-a9fd-0721e7dd2f99";
     const loggedUserVarId = "fc54ab80-1a04-4cfe-a504-793bdcfce5dd";
     const ticketVarId = "7bebd888-f31e-49e7-bef2-4052c8cb6cf5";
 
-    // ---- Component Variable para expor metadados dos anexos ----
+    // ---- Component Variable ----
     const attachmentsInfo = ref([]);
     let setAttachmentsInfo;
     if (
@@ -189,13 +242,15 @@ export default {
       setAttachmentsInfo = setValue;
     }
 
-    // ---- Supabase via plugins do WeWeb ----
-    const sb = window?.wwLib?.wwPlugins?.supabase; // helpers
-    const supabase = sb?.instance; // cliente supabase-js
-    const auth = window?.wwLib?.wwPlugins?.supabaseAuth?.publicInstance; // auth
+    // ---- Supabase ----
+    const sb = window?.wwLib?.wwPlugins?.supabase;
+    const supabase = sb?.instance || null; // pode ser null na 1ª render
+    const auth = window?.wwLib?.wwPlugins?.supabaseAuth?.publicInstance || null;
 
     // Helpers
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+    // Aguarda auth ficar pronto (se existir)
     async function ensureAuthReady(maxMs = 4000) {
       try {
         if (!auth?.auth?.getUser) return true;
@@ -207,6 +262,17 @@ export default {
         }
       } catch (_) {}
       return true;
+    }
+
+    // Aguarda supabase.storage ficar disponível para evitar "Cannot read properties of null (reading 'storage')"
+    async function waitForStorage(maxMs = 4000) {
+      const start = Date.now();
+      while (Date.now() - start < maxMs) {
+        if (supabase && supabase.storage) return true;
+        await sleep(100);
+      }
+      // se não estiver disponível, seguimos sem quebrar (usaremos fallbacks)
+      return false;
     }
 
     function extOf(name = "") {
@@ -236,20 +302,16 @@ export default {
       return fallback;
     }
 
-    // Gera/renova signed URLs e carrega TXT quando preciso
     async function getFreshSignedUrl(file, { forceDownloadName, transformImage } = {}) {
-      if (!file?.bucket || !file?.storagePath || !supabase) return null;
+      if (!file?.bucket || !file?.storagePath || !supabase?.storage) return null;
       await ensureAuthReady();
-
       const options = {};
       if (transformImage && file.isImage) options.transform = transformImage;
-      if (forceDownloadName) options.download = forceDownloadName; // força Content-Disposition
-
+      if (forceDownloadName) options.download = forceDownloadName;
       const { data, error } = await supabase
         .storage
         .from(file.bucket)
-        .createSignedUrl(file.storagePath, 60 * 60, options); // 1h
-
+        .createSignedUrl(file.storagePath, 60 * 60, options);
       if (error) {
         console.warn("[Anexos] createSignedUrl falhou:", error);
         return null;
@@ -259,46 +321,30 @@ export default {
 
     async function loadTxtIfNeeded(file) {
       if (!file || file.textContent) return;
-
-      // TXT local (ainda não enviado)
       if (file.file instanceof File && file.isTxt) {
-        try {
-          file.textContent = await file.file.text();
-          return;
-        } catch (e) {
-          console.warn("[Anexos] Falha ao ler TXT local:", e);
-        }
+        try { file.textContent = await file.file.text(); return; } catch (e) { console.warn(e); }
       }
-
-      // Garante URL assinada
       if (!file.url) {
         file.url = file.signedUrl = await getFreshSignedUrl(file);
         if (!file.url) return;
       }
-
       try {
         const res = await fetch(file.url);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         file.textContent = await res.text();
       } catch (e) {
-        console.warn("[Anexos] Falha ao carregar conteúdo TXT:", e);
+        console.warn(e);
         file.textContent = "(Não foi possível carregar este texto)";
       }
     }
 
-    // Mantém a variável de anexos sincronizada
     watch(
       files,
       () => {
         const info = files.value.map((f) => ({
-          name: f.file.name,
-          size: f.file.size,
-          type: f.file.type,
-          url: f.url,
-          storagePath: f.storagePath || null,
-          bucket: f.bucket || null,
-          signedUrl: f.signedUrl || null,
-          attachmentId: f.attachmentId || null,
+          name: f.file.name, size: f.file.size, type: f.file.type,
+          url: f.url, storagePath: f.storagePath || null, bucket: f.bucket || null,
+          signedUrl: f.signedUrl || null, attachmentId: f.attachmentId || null,
         }));
         attachmentsInfo.value = info;
         if (setAttachmentsInfo) setAttachmentsInfo(info);
@@ -306,68 +352,47 @@ export default {
       { deep: true, immediate: true }
     );
 
-    // controla concorrência entre mudanças de Data Source
+    // --- Data source load & clear ---
     let dsLoadVersion = 0;
 
     async function loadFromDataSource(data) {
       const myVersion = ++dsLoadVersion;
-
-      if (!Array.isArray(data)) {
-        files.value = [];
-        return;
-      }
-
+      if (!Array.isArray(data)) { files.value = []; return; }
       await ensureAuthReady();
+      // IMPORTANTE: não assumir que supabase.storage já existe na 1ª carga
+      const storageReady = await waitForStorage(1500); // tenta rapidamente; se não, segue sem assinar URLs
 
       const items = await Promise.all(
         data.map(async (item) => {
           const kind = detectFileKind(item.filename, item.mimetype);
           const info = {
-            file: {
-              name: item.filename,
-              size: item.filesizebytes,
-              type: item.mimetype,
-            },
-            url: null,
-            isImage: kind.isImage,
-            isPdf: kind.isPdf,
-            isTxt: kind.isTxt,
-            isUploaded: true,
-            bucket: "ticket",
-            storagePath: item.objectpath,
-            signedUrl: null,
-            attachmentId: item.id,
-            createdBy: item.createdby,
-            createdDate: item.createddate,
-            textContent: null,
+            file: { name: item.filename, size: item.filesizebytes, type: item.mimetype },
+            url: null, isImage: kind.isImage, isPdf: kind.isPdf, isTxt: kind.isTxt,
+            isUploaded: true, bucket: "ticket", storagePath: item.objectpath, signedUrl: null,
+            attachmentId: item.id, createdBy: item.createdby, createdDate: item.createddate, textContent: null,
           };
-
           try {
-            const options = info.isImage
-              ? { transform: { width: 1200, resize: "contain" } }
-              : undefined;
-
-            const { data: signed, error } = await supabase
-              .storage
-              .from(info.bucket)
-              .createSignedUrl(info.storagePath, 60 * 60, options);
-
-            if (!error) info.url = info.signedUrl = signed?.signedUrl || null;
-          } catch (e) {
-            console.warn("[Anexos] Exceção ao criar signed URL:", e);
-          }
-
+            if (storageReady && supabase?.storage) {
+              const options = info.isImage ? { transform: { width: 1200, resize: "contain" } } : undefined;
+              const { data: signed, error } = await supabase
+                .storage.from(info.bucket)
+                .createSignedUrl(info.storagePath, 60 * 60, options);
+              if (!error) info.url = info.signedUrl = signed?.signedUrl || null;
+            }
+          } catch (e) { console.warn(e); }
           return info;
         })
       );
-
-      // se outra execução iniciou no meio do caminho, aborta aplicar este resultado
       if (myVersion !== dsLoadVersion) return;
-
       files.value = items;
     }
 
     function clearFiles() {
+      for (const f of files.value) {
+        if (f?.url && typeof f.url === "string" && f.url.startsWith("blob:")) {
+          try { URL.revokeObjectURL(f.url); } catch {}
+        }
+      }
       files.value = [];
       attachmentsInfo.value = [];
       if (setAttachmentsInfo) setAttachmentsInfo([]);
@@ -376,40 +401,43 @@ export default {
     }
 
     function handleDataSource(ds) {
-      if (!ds) {
-        dsLoadVersion++;
-        clearFiles();
-        return;
-      }
-
+      if (!ds) { dsLoadVersion++; clearFiles(); return; }
       let data = ds;
-
       if (typeof data === "string") {
-        try {
-          data = JSON.parse(data);
-        } catch (_) {
-          dsLoadVersion++;
-          clearFiles();
-          return;
-        }
+        try { data = JSON.parse(data); } catch { dsLoadVersion++; clearFiles(); return; }
       }
-
-      if (!Array.isArray(data)) {
-        dsLoadVersion++;
-        clearFiles();
-        return;
-      }
-
+      if (!Array.isArray(data)) { dsLoadVersion++; clearFiles(); return; }
       loadFromDataSource(data);
     }
 
-    // Reage às mudanças do Data Source e também do objeto content em si
-    watch(
-      [() => props.content, () => props.content.dataSource],
-      ([, ds]) => handleDataSource(ds),
+    watch(() => props.content?.dataSource, (ds) => handleDataSource(ds), { immediate: true });
 
-      { immediate: true, deep: true }
-    );
+    // --- Clear on context change even when dataSource stays null ---
+    const contextKey = ref("");
+    const buildContextKey = () => {
+      const ws = getVar(workspaceVarId) || "no-ws";
+      const tk = getVar(ticketVarId) || "no-ticket";
+      return `${ws}|${tk}`;
+    };
+    let contextPollId = null;
+
+    onMounted(() => {
+      contextKey.value = buildContextKey();
+      contextPollId = window.setInterval(() => {
+        const k = buildContextKey();
+        if (k !== contextKey.value) {
+          contextKey.value = k;
+          const ds = props.content?.dataSource;
+          const isEmpty = !ds || (Array.isArray(ds) && ds.length === 0) || (typeof ds === "string" && ds.trim() === "");
+          if (isEmpty) { dsLoadVersion++; clearFiles(); }
+        }
+      }, 500);
+    });
+
+    onBeforeUnmount(() => {
+      if (contextPollId) { clearInterval(contextPollId); contextPollId = null; }
+      clearFiles();
+    });
 
     function triggerFileInput() {
       if (fileInput.value) fileInput.value.click();
@@ -421,97 +449,57 @@ export default {
 
       const errorMessages = [];
 
-      // Pré-visualização local instantânea
       const selected = picked.map((file) => {
         const kind = detectFileKind(file.name, file.type);
         return {
           file,
-          url:
-            file.type?.startsWith("image/") || kind.isImage || file.type === "application/pdf"
-              ? URL.createObjectURL(file)
-              : null,
-          isImage: kind.isImage,
-          isPdf: kind.isPdf,
-          isTxt: kind.isTxt,
-          isUploaded: false,
-          bucket: "ticket",
-          storagePath: null,
-          signedUrl: null,
-          attachmentId: null,
-          textContent: null,
+          url: (file.type?.startsWith("image/") || kind.isImage || file.type === "application/pdf")
+            ? URL.createObjectURL(file) : null,
+          isImage: kind.isImage, isPdf: kind.isPdf, isTxt: kind.isTxt,
+          isUploaded: false, bucket: "ticket", storagePath: null,
+          signedUrl: null, attachmentId: null, textContent: null,
         };
       });
       files.value.push(...selected);
 
-      // Variáveis de contexto
       const language = getVar(languageVarId);
       const WorkspaceID = getVar(workspaceVarId);
       const LoggedUserID = getVar(loggedUserVarId);
       const TicketID = getVar(ticketVarId);
       const bucket = "ticket";
 
-     
-
-      // Verifica usuário autenticado
-      const { data: userData, error: authErr } = await auth.auth.getUser();
-      if (authErr) {
-        errorMessages.push(`Erro ao obter usuário do Supabase Auth: ${authErr.message || authErr}`);
-        showError(errorMessages.join("\n"));
-        event.target.value = "";
-        return;
+      const { data: userData, error: authErr } = await auth?.auth?.getUser ? await auth.auth.getUser() : { data: { user: null }, error: null };
+      if (auth && (authErr || !userData?.user)) {
+        errorMessages.push(authErr ? `Erro ao obter usuário do Supabase Auth: ${authErr.message || authErr}` : "Usuário não autenticado no Supabase.");
+        showError(errorMessages.join("\n")); event.target.value = ""; return;
       }
-      if (!userData?.user) {
-        errorMessages.push("Usuário não autenticado no Supabase.");
-        showError(errorMessages.join("\n"));
-        event.target.value = "";
+
+      // Garante que storage está pronto antes do upload
+      const okStorage = await waitForStorage(4000);
+      if (!okStorage || !supabase?.storage) {
+        showError("Supabase Storage não está pronto. Tente novamente em alguns segundos.");
         return;
       }
 
-      // Faz upload 1 a 1
       for (const item of selected) {
         const { file } = item;
         const extension = (file.name.split(".").pop() || "").toLowerCase();
-        const unique =
-          (window.crypto?.randomUUID ? window.crypto.randomUUID() : Date.now().toString(36)) +
-          (extension ? `.${extension}` : "");
-
+        const unique = (window.crypto?.randomUUID ? window.crypto.randomUUID() : Date.now().toString(36)) + (extension ? `.${extension}` : "");
         const pathObject = `${WorkspaceID || "no-workspace"}/${TicketID || "no-ticket"}/${unique}`;
 
         try {
-          // (Opcional) valida membership RLS por RPC
           try {
-            const { data: allowed, error: rpcCheckErr } = await supabase.rpc(
-              "rls_user_in_path_workspace",
-              { obj_name: pathObject }
-            );
-            if (rpcCheckErr) {
-              console.warn("[Anexos] RPC rls_user_in_path_workspace falhou:", rpcCheckErr);
-            } else if (allowed === false) {
-              console.error("[Anexos] RLS: usuário sem acesso ao workspace.");
-              continue;
-            }
-          } catch (e) {
-            console.warn("[Anexos] Não foi possível validar membership via RPC:", e);
-          }
+            const { data: allowed, error: rpcCheckErr } = await sb?.callPostgresFunction ? await supabase.rpc("rls_user_in_path_workspace", { obj_name: pathObject }) : { data: true, error: null };
+            if (rpcCheckErr) { console.warn(rpcCheckErr); } else if (allowed === false) { console.error("RLS: sem acesso."); continue; }
+          } catch (e) { console.warn(e); }
 
-          // Content-Type consistente (garante text/plain para .txt etc.)
           const contentType = guessContentType(file.name, file.type || "application/octet-stream");
 
-          // Upload direto via cliente do Supabase
-          const { error: upErr } = await supabase
-            .storage
-            .from(bucket)
-            .upload(pathObject, file, {
-              cacheControl: "3600",
-              upsert: false,
-              contentType,
-            });
-          if (upErr) {
-            errorMessages.push(`Erro no upload para Supabase Storage: ${upErr.message || upErr}`);
-            continue;
-          }
+          const { error: upErr } = await supabase.storage.from(bucket).upload(pathObject, file, {
+            cacheControl: "3600", upsert: false, contentType,
+          });
+          if (upErr) { errorMessages.push(`Erro no upload para Supabase Storage: ${upErr.message || upErr}`); continue; }
 
-          // Chama sua função para registrar metadados do anexo
           const rpcBody = {
             p_action: "insert",
             p_workspace_id: WorkspaceID ?? null,
@@ -526,65 +514,45 @@ export default {
             p_attachment_id: null,
           };
 
-          const { data: rpcData, error: rpcError } = await sb.callPostgresFunction({
-            functionName: "postticketattachment",
-            params: rpcBody,
-          });
+          const { data: rpcData, error: rpcError } = sb?.callPostgresFunction
+            ? await sb.callPostgresFunction({ functionName: "postticketattachment", params: rpcBody })
+            : { data: null, error: null };
 
           let attachmentId = null;
           if (rpcError) {
-            errorMessages.push(
-              `Erro ao chamar postticketattachment: ${rpcError.message || rpcError}`
-            );
+            errorMessages.push(`Erro ao chamar postticketattachment: ${rpcError.message || rpcError}`);
           } else {
             attachmentId = Array.isArray(rpcData)
               ? rpcData[0]?.p_attachment_id || rpcData[0]?.attachment_id
               : rpcData?.p_attachment_id || rpcData?.attachment_id || null;
           }
 
-          // URL assinada para visualização
-          let signedUrl = await getFreshSignedUrl(
-            { bucket, storagePath: pathObject, isImage: item.isImage },
-            { transformImage: { width: 1200, resize: "contain" } }
-          );
+          const signedUrl = await getFreshSignedUrl({ bucket, storagePath: pathObject, isImage: item.isImage }, { transformImage: { width: 1200, resize: "contain" } });
 
-          // Atualiza o item na lista com infos persistidas
           item.isUploaded = true;
           item.bucket = bucket;
           item.storagePath = pathObject;
           item.signedUrl = signedUrl || null;
-          item.url = signedUrl || item.url; // garante preview imediato
+          item.url = signedUrl || item.url;
           item.attachmentId = attachmentId;
-
-          // Dispara evento para o fluxo do WeWeb
-          const payload = {
-            ...rpcBody,
-            p_attachment_id: attachmentId,
-            language,
-            file, // arquivo original
-            signedUrl,
-          };
 
           emit("trigger-event", {
             name: "onUpload",
-            event: { value: payload },
+            event: { value: { ...rpcBody, p_attachment_id: attachmentId, language, file, signedUrl } },
           });
         } catch (err) {
           errorMessages.push(`Falha geral no upload: ${err.message || err}`);
         }
       }
 
-      // limpa input
       event.target.value = "";
 
-      if (errorMessages.length) {
-        showError(errorMessages.join("\n"));
-      } else {
-        showSuccess();
-      }
+      if (errorMessages.length) showError(errorMessages.join("\n"));
+      else showSuccess(); // "Data saved successfully"
     }
 
-    async function removeFile(index) {
+    // real delete (after confirmation)
+    async function performDelete(index) {
       const removed = files.value.splice(index, 1)[0];
       if (removed && removed.url && removed.url.startsWith("blob:")) {
         URL.revokeObjectURL(removed.url);
@@ -592,24 +560,14 @@ export default {
 
       const errorMessages = [];
 
-      // remove da API/Storage apenas se já estiver enviado
-      if (removed?.attachmentId && sb) {
+      if (removed?.attachmentId && (sb || supabase)) {
         const WorkspaceID = getVar(workspaceVarId);
         const LoggedUserID = getVar(loggedUserVarId);
         const TicketID = getVar(ticketVarId);
-
         try {
-          // exclui do storage quando possível
-          if (supabase && removed.bucket && removed.storagePath) {
-            const { error: storageErr } = await supabase
-              .storage
-              .from(removed.bucket)
-              .remove([removed.storagePath]);
-            if (storageErr) {
-              errorMessages.push(
-                `Erro ao remover arquivo do storage: ${storageErr.message || storageErr}`
-              );
-            }
+          if (supabase?.storage && removed.bucket && removed.storagePath) {
+            const { error: storageErr } = await supabase.storage.from(removed.bucket).remove([removed.storagePath]);
+            if (storageErr) errorMessages.push(`Erro ao remover arquivo do storage: ${storageErr.message || storageErr}`);
           }
 
           const rpcBody = {
@@ -626,65 +584,40 @@ export default {
             p_attachment_id: removed.attachmentId ?? null,
           };
 
-          const { error: rpcError } = await sb.callPostgresFunction({
-            functionName: "postticketattachment",
-            params: rpcBody,
-          });
-
-          if (rpcError) {
-            errorMessages.push(
-              `Erro ao chamar postticketattachment: ${rpcError.message || rpcError}`
-            );
+          if (sb?.callPostgresFunction) {
+            const { error: rpcError } = await sb.callPostgresFunction({
+              functionName: "postticketattachment", params: rpcBody,
+            });
+            if (rpcError) errorMessages.push(`Erro ao chamar postticketattachment: ${rpcError.message || rpcError}`);
           }
         } catch (err) {
           errorMessages.push(`Falha ao excluir anexo: ${err.message || err}`);
         }
       }
 
-      if (errorMessages.length) {
-        showError(errorMessages.join("\n"));
-      } else if (removed?.attachmentId) {
-        showSuccess();
-      }
+      if (errorMessages.length) showError(errorMessages.join("\n"));
+      else showSuccess("Data deleted successfully");
     }
 
     async function downloadFile(file) {
       try {
-        // Sempre gere uma signed URL "forçada para download" (Content-Disposition)
-        let signed = await getFreshSignedUrl(file, {
-          forceDownloadName: file.file?.name || "download"
-        });
-
-        // Fallback para arquivo local (ainda não enviado)
+        let signed = await getFreshSignedUrl(file, { forceDownloadName: file.file?.name || "download" });
         if (!signed && file.file instanceof File) {
           const blobUrl = URL.createObjectURL(file.file);
           const a = document.createElement("a");
-          a.href = blobUrl;
-          a.download = file.file?.name || "download";
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
+          a.href = blobUrl; a.download = file.file?.name || "download";
+          document.body.appendChild(a); a.click(); a.remove();
           URL.revokeObjectURL(blobUrl);
           return;
         }
-
-        if (!signed) {
-          showError("Não foi possível gerar a URL para download.");
-          return;
-        }
-
-        // Baixa como blob para impedir abertura no navegador
+        if (!signed) { showError("Não foi possível gerar a URL para download."); return; }
         const res = await fetch(signed);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const blob = await res.blob();
         const blobUrl = URL.createObjectURL(blob);
-
         const a = document.createElement("a");
-        a.href = blobUrl;
-        a.download = file.file?.name || "download";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+        a.href = blobUrl; a.download = file.file?.name || "download";
+        document.body.appendChild(a); a.click(); a.remove();
         URL.revokeObjectURL(blobUrl);
       } catch (e) {
         console.warn("[Anexos] Download falhou:", e);
@@ -695,105 +628,63 @@ export default {
     function getFileIcon(name) {
       const ext = (name.split(".").pop() || "").toLowerCase();
       switch (ext) {
-        case "pdf":
-          return "fa-solid fa-file-pdf";
+        case "pdf": return "fa-solid fa-file-pdf";
         case "doc":
-        case "docx":
-          return "fa-solid fa-file-word";
+        case "docx": return "fa-solid fa-file-word";
         case "xls":
-        case "xlsx":
-          return "fa-solid fa-file-excel";
+        case "xlsx": return "fa-solid fa-file-excel";
         case "ppt":
-        case "pptx":
-          return "fa-solid fa-file-powerpoint";
+        case "pptx": return "fa-solid fa-file-powerpoint";
         case "txt":
-        case "log":
-          return "fa-solid fa-file-lines";
-        default:
-          return "fa-solid fa-file";
+        case "log": return "fa-solid fa-file-lines";
+        default: return "fa-solid fa-file";
       }
     }
 
     async function openModal(index) {
       currentIndex.value = index;
       const f = files.value[index];
-      // Garante URL assinada quando precisar
+      // tenta resolver URL se ainda não houver (pode acontecer se storage não estava pronto na 1ª carga)
       if (f && !f.url && (f.bucket && f.storagePath)) {
-        f.url = f.signedUrl = await getFreshSignedUrl(f, {
-          transformImage: { width: 1200, resize: "contain" }
-        });
+        f.url = f.signedUrl = await getFreshSignedUrl(f, { transformImage: { width: 1200, resize: "contain" } });
       }
-      // Se for TXT, carrega o conteúdo
-      if (f?.isTxt) {
-        await loadTxtIfNeeded(f);
-      }
+      if (f?.isTxt) await loadTxtIfNeeded(f);
       isModalOpen.value = true;
     }
 
-    function closeModal() {
-      isModalOpen.value = false;
-    }
+    function closeModal() { isModalOpen.value = false; }
+    function nextFile() { if (currentIndex.value < files.value.length - 1) currentIndex.value++; }
+    function prevFile() { if (currentIndex.value > 0) currentIndex.value--; }
+    function zoomIn() { zoom.value += 0.1; }
+    function zoomOut() { zoom.value = Math.max(0.1, zoom.value - 0.1); }
 
-    function nextFile() {
-      if (currentIndex.value < files.value.length - 1) currentIndex.value++;
-    }
-
-    function prevFile() {
-      if (currentIndex.value > 0) currentIndex.value--;
-    }
-
-    function zoomIn() {
-      zoom.value += 0.1;
-    }
-
-    function zoomOut() {
-      zoom.value = Math.max(0.1, zoom.value - 0.1);
-    }
-
-    function showSuccess() {
-      popup.value = { visible: true, type: "success", details: "" };
+    function showSuccess(message = "Data saved successfully") {
+      popup.value = { visible: true, type: "success", details: message };
       detailsOpen.value = false;
-      setTimeout(() => {
-        popup.value.visible = false;
-      }, 1000);
+      setTimeout(() => { popup.value.visible = false; }, 1000);
     }
-
     function showError(details) {
       popup.value = { visible: true, type: "error", details };
       detailsOpen.value = false;
     }
-
-    function closePopup() {
-      popup.value.visible = false;
-    }
-
-    function toggleDetails() {
-      detailsOpen.value = !detailsOpen.value;
-    }
+    function closePopup() { popup.value.visible = false; }
+    function toggleDetails() { detailsOpen.value = !detailsOpen.value; }
 
     return {
       files,
       fileInput,
       triggerFileInput,
       onFilesSelected,
-      removeFile,
+      // delete flow
+      requestDelete, cancelDelete, confirmDelete, performDelete,
+      confirm,
+
       downloadFile,
-      isModalOpen,
-      currentIndex,
-      currentFile,
-      openModal,
-      closeModal,
-      nextFile,
-      prevFile,
-      zoom,
-      zoomIn,
-      zoomOut,
+      isModalOpen, currentIndex, currentFile, openModal, closeModal, nextFile, prevFile,
+      zoom, zoomIn, zoomOut,
       getFileIcon,
       attachmentsInfo,
-      popup,
-      detailsOpen,
-      closePopup,
-      toggleDetails,
+      popup, detailsOpen, closePopup, toggleDetails,
     };
   },
 };
@@ -803,391 +694,111 @@ export default {
 @import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined");
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css");
 
-.attachments {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
+/* ---------- Attachments grid ---------- */
+.attachments { display: flex; flex-wrap: wrap; gap: 12px; }
 .upload-button {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 140px;
-  height: 130px;
-  padding: 12px;
-  border: 2px dashed #ccc;
-  border-radius: 6px;
-  background: #ffffff;
-  color: #555;
-  cursor: pointer;
-  gap: 8px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  width: 140px; height: 130px; padding: 12px; border: 2px dashed #ccc; border-radius: 6px;
+  background: #ffffff; color: #555; cursor: pointer; gap: 8px;
 }
-
-.upload-icon {
-  font-size: 55px;
-  line-height: 1;
-  font-weight: 300;
-}
-
-.upload-text {
-  font-size: 12px;
-}
-
-.hidden-input {
-  display: none;
-}
+.upload-icon { font-size: 55px; line-height: 1; font-weight: 300; }
+.hidden-input { display: none; }
 
 .file-item {
-  position: relative;
-  width: 140px;
-  height: 130px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 10px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 12px;
-  background: #fff;
+  position: relative; width: 140px; height: 130px; border: 1px solid #ddd; border-radius: 4px;
+  padding: 10px; text-align: center; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 8px; font-size: 12px; background: #fff;
 }
-
-.file-icon {
-  font-size: 85px;
-  cursor: pointer;
-}
-
-.fa-file-pdf {
-  color: #e53935;
-}
-
-.fa-file-word {
-  color: #3b73b9;
-}
-
-.fa-file-excel {
-  color: #2e7d32;
-}
-
-.fa-file-powerpoint {
-  color: #d84315;
-}
-
-.fa-file-lines {
-  color: #546e7a;
-}
-
-.file-preview {
-  width: 100%;
-  height: 85px;
-  object-fit: contain;
-  background-color: rgb(245, 246, 250);
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.file-name {
-  width: 100%;
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.file-actions {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  display: flex;
-  gap: 4px;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.file-item:hover .file-actions {
-  opacity: 1;
-}
-
+.file-icon { font-size: 85px; cursor: pointer; }
+.fa-file-pdf { color: #e53935; } .fa-file-word { color: #3b73b9; } .fa-file-excel { color: #2e7d32; }
+.fa-file-powerpoint { color: #d84315; } .fa-file-lines { color: #546e7a; }
+.file-preview { width: 100%; height: 85px; object-fit: contain; background: #f5f6fa; border-radius: 6px; cursor: pointer; }
+.file-name { width: 100%; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-actions { position: absolute; top: 4px; right: 4px; display: flex; gap: 4px; opacity: 0; transition: opacity .2s; }
+.file-item:hover .file-actions { opacity: 1; }
 .action-button {
-  width: 24px;
-  height: 24px;
-  border: none;
-  background: rgba(0, 0, 0, 0.6);
-  color: #fff;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
+  width: 24px; height: 24px; border: none; background: rgba(0,0,0,.6); color: #fff; border-radius: 4px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;
 }
 
-.material-symbols-outlined {
-  font-size: 16px;
-  line-height: 1;
-  vertical-align: middle;
-}
-
+.material-symbols-outlined { font-size: 16px; line-height: 1; vertical-align: middle; }
 i.material-symbols-outlined {
-  font-family: "Material Symbols Outlined";
-  font-weight: normal;
-  font-style: normal;
-  font-size: 18px;
-  line-height: 1;
-  letter-spacing: normal;
-  text-transform: none;
-  display: inline-block;
-  white-space: nowrap;
-  word-wrap: normal;
-  direction: ltr;
-  -webkit-font-feature-settings: "liga";
-  -webkit-font-smoothing: antialiased;
-  vertical-align: middle;
-  color: #e0e0e0;
+  font-family: "Material Symbols Outlined"; font-weight: normal; font-style: normal; font-size: 18px; line-height: 1;
+  letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap; direction: ltr;
+  -webkit-font-feature-settings: "liga"; -webkit-font-smoothing: antialiased; color: #e0e0e0;
 }
 
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: transparent;
-  padding: 0;
-  border-radius: 0;
-  max-width: 80%;
-  max-height: 80%;
-  display: flex;
-  align-items: center;
-  position: relative;
-}
-
-.modal-content.pdf-viewer {
-  max-width: none;
-  max-height: none;
-  width: 95vw;
-  height: 95vh;
-}
-
-.modal-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  max-height: 100%;
-  margin: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.modal-image {
-  width: 600px;
-  height: 400px;
-  object-fit: contain;
-  position: relative;
-  z-index: 1;
-}
-
-.modal-pdf {
-  width: 100%;
-  height: 100%;
-  flex: 1;
-  border: none;
-  position: relative;
-  z-index: 1;
-}
+/* ---------- Preview Modal ---------- */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.modal-content { background: transparent; padding: 0; border-radius: 0; max-width: 80%; max-height: 80%; display: flex; align-items: center; position: relative; }
+.modal-content.pdf-viewer { max-width: none; max-height: none; width: 95vw; height: 95vh; }
+.modal-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; max-height: 100%; width: 100%; height: 100%; }
+.modal-image { width: 600px; height: 400px; object-fit: contain; position: relative; z-index: 1; }
+.modal-pdf { width: 100%; height: 100%; flex: 1; border: none; position: relative; z-index: 1; }
 
 .modal-txt {
-  max-width: 80vw;
-  max-height: 65vh;
-  overflow: auto;
-  background: #0b0b0b;
-  color: #eaeaea;
-  padding: 12px 14px;
-  border-radius: 6px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-  font-size: 12px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-word;
+  max-width: 80vw; max-height: 65vh; overflow: auto; background: #0b0b0b; color: #eaeaea;
+  padding: 12px 14px; border-radius: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 12px; line-height: 1.5; white-space: pre-wrap; word-break: break-word;
+}
+.modal-file-name { margin-top: 8px; color: #fff; position: relative; z-index: 2; }
+.zoom-controls { margin-top: 8px; display: flex; gap: 8px; background: rgba(0,0,0,.6); border-radius: 4px; padding: 5px; }
+.zoom-button { border: none; color: #fff; cursor: pointer; font-size: 22px !important; }
+.modal-top-actions { position: absolute; top: 10px; right: 10px; display: flex; gap: 8px; z-index: 2; }
+.modal-action-button { width: 40px; height: 40px; background: #3c3c3c; color: #fff; border: none; border-radius: 4px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+.modal-action-button i.material-symbols-outlined { font-size: 22px; color: #fff; }
+
+.nav-button { background: rgba(0,0,0,.6); color:#fff; border:none; width:40px; height:40px; cursor:pointer; font-size:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; position:absolute; top:50%; transform:translateY(-50%); z-index:2; }
+.nav-button.prev { left: 35px; } .nav-button.next { right: 35px; }
+.nav-button:disabled { opacity:.3; cursor:not-allowed; }
+.nav-button i.material-symbols-outlined { color:#fff; }
+.file-not-viewable { width:600px; height:400px; background:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:4px; }
+.modal-file-icon { font-size: 120px; margin-bottom: 16px; }
+.no-preview { font-size: 14px; color: #333; }
+
+/* ---------- Toast ---------- */
+.popup { position: fixed; top: 20px; right: 20px; background:#fff; border-left:4px solid; border-radius:4px; box-shadow:0 2px 6px rgba(0,0,0,.2); padding:16px; min-width:250px; z-index:1100; }
+.popup.success { border-left-color:#4caf50; } .popup.error { border-left-color:#f44336; }
+.popup-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.popup-title { font-weight:600; }
+.popup-close { background:none; border:none; cursor:pointer; padding:0; color:#555; }
+.popup-details .details-toggle { background:none; border:none; color:#007bff; display:flex; align-items:center; gap:4px; cursor:pointer; padding:0; }
+.details-text { margin-top:8px; white-space:pre-wrap; }
+
+/* ---------- Delete Confirmation (match screenshot) ---------- */
+:root { /* fallback if needed */ }
+.confirm-overlay { position: fixed; inset: 0; background: rgba(15,15,15,.6); display:flex; align-items:center; justify-content:center; z-index: 1200; }
+.confirm-card {
+  width: 430px; max-width: 90vw; background: #fff; border-radius: 10px; box-shadow: 0 12px 30px rgba(0,0,0,.25); overflow: hidden;
+}
+.confirm-card__header {
+  display:flex; align-items:center; justify-content:space-between; padding: 12px 14px; border-bottom: 1px solid #eee;
+}
+.confirm-card__title { display:flex; align-items:center; gap: 8px; font-weight:600; color:#111; }
+.confirm-card__icon { font-size: 18px; color: #e53935; } /* red X on the left of "Delete" */
+.confirm-card__close { background:none; border:none; cursor:pointer; color:#666; }
+.confirm-card__body { padding: 16px 16px 4px 16px; color:#333; }
+.confirm-card__body p { margin: 0 0 8px 0; }
+.confirm-card__footer {
+  display:flex; justify-content:flex-end; gap: 10px; padding: 12px 16px 16px 16px;
 }
 
-.modal-file-name {
-  margin-top: 8px;
-  color: #fff;
-  position: relative;
-  z-index: 2;
+.btn {
+  min-width: 96px; height: 36px; padding: 0 18px; border-radius: 18px; /* pill look like screenshot */
+  border: none; cursor: pointer; font-weight: 600; display:inline-flex; align-items:center; justify-content:center;
 }
+.btn-text {
+  background: transparent; color: #4f9d8f; /* green text like screenshot */
+}
+.btn-text:hover { background: #f2f7f6; }
+.btn-primary {
+  background: #4f9d8f; color:#fff;  /* green filled like screenshot */
+}
+.btn-primary:hover { background: #418b7f; }
 
-.zoom-controls {
-  margin-top: 8px;
-  display: flex;
-  gap: 8px;
-  background: rgba(0, 0, 0, 0.6);
-  border-radius: 4px;
-  padding: 5px;
-  align-items: center;
-  text-align: center;
-  z-index: 100;
-  position: relative;
+.spinner {
+  width: 16px; height: 16px; border: 2px solid #fff; border-bottom-color: transparent; border-radius: 50%;
+  display:inline-block; box-sizing:border-box; animation: spin .8s linear infinite; margin-right: 6px;
 }
-
-.zoom-button {
-  border: none;
-  color: #fff;
-  cursor: pointer;
-  font-size: 22px !important;
-}
-
-.modal-top-actions {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  display: flex;
-  gap: 8px;
-  z-index: 2;
-}
-
-.modal-action-button {
-  width: 40px;
-  height: 40px;
-  background: #3c3c3c;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.modal-action-button i.material-symbols-outlined {
-  font-size: 22px;
-  color: #fff;
-}
-
-.nav-button {
-  background: rgba(0, 0, 0, 0.6);
-  color: #fff;
-  border: none;
-  width: 40px;
-  height: 40px;
-  cursor: pointer;
-  font-size: 24px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 2;
-}
-
-.nav-button.prev {
-  left: 35px;
-}
-
-.nav-button.next {
-  right: 35px;
-}
-
-.nav-button:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-.nav-button i.material-symbols-outlined {
-  color: #fff;
-}
-
-.file-not-viewable {
-  width: 600px;
-  height: 400px;
-  background: #fff;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-}
-
-.modal-file-icon {
-  font-size: 120px;
-  margin-bottom: 16px;
-}
-
-.no-preview {
-  font-size: 14px;
-  color: #333;
-}
-
-.popup {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  background: #fff;
-  border-left: 4px solid;
-  border-radius: 4px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-  padding: 16px;
-  min-width: 250px;
-  z-index: 1100;
-}
-
-.popup.success {
-  border-left-color: #4caf50;
-}
-
-.popup.error {
-  border-left-color: #f44336;
-}
-
-.popup-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.popup-title {
-  font-weight: 600;
-}
-
-.popup-close {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  color: #555;
-}
-
-.popup-details .details-toggle {
-  background: none;
-  border: none;
-  color: #007bff;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  cursor: pointer;
-  padding: 0;
-}
-
-.details-text {
-  margin-top: 8px;
-  white-space: pre-wrap;
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
