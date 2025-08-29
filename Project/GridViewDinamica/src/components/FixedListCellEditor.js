@@ -372,7 +372,7 @@ export default class FixedListCellEditor {
     }
 
     // ResponsibleUser: avatar/inicial/ícone de grupo
-    const photo = user.PhotoURL || user.PhotoUrl || user.photo || user.image || user.img || '';
+    const photo = user.photoUrl || user.PhotoURL || user.PhotoUrl || user.photo || user.image || user.img || '';
     const avatarHTML = isGroupType
       ? `<span style="font-size: 19px; " class="material-symbols-outlined user-selector__group-icon">groups</span>`
       : (photo
@@ -449,7 +449,7 @@ export default class FixedListCellEditor {
     }
 
     // ResponsibleUser: avatar/inicial/ícone de grupo
-    const photo = isAssign ? '' : (member.PhotoURL || member.PhotoUrl || member.photo || member.image || member.img || '');
+    const photo = isAssign ? '' : (member.photoUrl || member.PhotoURL || member.PhotoUrl || member.photo || member.image || member.img || '');
     const avatarHTML = isAssign
       ? `<span style="font-size: 19px; " class="material-symbols-outlined user-selector__group-icon">groups</span>`
       : (photo

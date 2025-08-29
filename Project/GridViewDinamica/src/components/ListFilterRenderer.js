@@ -139,7 +139,7 @@ export default class ListFilterRenderer {
           this.allValues.push(value);
           if (this.isResponsibleUser) {
             const name = node.data.ResponsibleUser || node.data.Username || node.data.UserName || '';
-            const photo = node.data.PhotoUrl || node.data.PhotoURL || node.data.UserPhoto || '';
+            const photo = node.data.photoUrl || node.data.PhotoUrl || node.data.PhotoURL || node.data.UserPhoto || '';
             this.userInfo[value] = { name, photo };
             this.formattedValues.push(name || formatted);
           } else {
