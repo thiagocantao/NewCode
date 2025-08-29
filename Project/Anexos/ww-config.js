@@ -102,4 +102,7 @@ export default {
             },
         },
     ],
+    actions: [
+        { label: { en: 'Remount component' }, action: 'remount' },
+    ],
 };

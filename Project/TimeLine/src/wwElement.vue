@@ -1105,24 +1105,26 @@ export default {
     };
 
     /* ========= Data source ========= */
+    function handleDataSource() {
+      let data = [];
+      const ds = props.dataSource ?? props.content?.dataSource ?? props.content?.data;
+      try {
+        if (typeof ds === "string" && ds.trim()) {
+          const parsed = JSON.parse(ds);
+          data = Array.isArray(parsed) ? parsed : parsed ? [parsed] : [];
+        } else if (Array.isArray(ds)) data = ds;
+        else if (ds && typeof ds === "object") data = [ds];
+        else data = [];
+      } catch (e) {
+        console.error("Failed to parse dataSource", e);
+        data = [];
+      }
+      events.value = data;
+    }
+
     watch(
       [() => props.content.dataSource, () => props.dataSource, () => props.content.data],
-      ([contentDS, propDS, contentData]) => {
-        let data = [];
-        const ds = propDS ?? contentDS ?? contentData;
-        try {
-          if (typeof ds === "string" && ds.trim()) {
-            const parsed = JSON.parse(ds);
-            data = Array.isArray(parsed) ? parsed : parsed ? [parsed] : [];
-          } else if (Array.isArray(ds)) data = ds;
-          else if (ds && typeof ds === "object") data = [ds];
-          else data = [];
-        } catch (e) {
-          console.error("Failed to parse dataSource", e);
-          data = [];
-        }
-        events.value = data;
-      },
+      handleDataSource,
       { immediate: true, deep: true }
     );
 
@@ -1146,9 +1148,16 @@ export default {
     });
 
     /* ========= Attachment ========= */
-    const sb = window?.wwLib?.wwPlugins?.supabase;
-    const supabase = sb?.instance;
-    const auth = window?.wwLib?.wwPlugins?.supabaseAuth?.publicInstance;
+    let sb = window?.wwLib?.wwPlugins?.supabase;
+    let supabase = sb?.instance || null;
+    let auth = window?.wwLib?.wwPlugins?.supabaseAuth?.publicInstance || null;
+
+    function remount() {
+      sb = window?.wwLib?.wwPlugins?.supabase;
+      supabase = sb?.instance || null;
+      auth = window?.wwLib?.wwPlugins?.supabaseAuth?.publicInstance || null;
+      handleDataSource();
+    }
 
     const getVar = (id) => window?.wwLib?.wwVariable?.getValue?.(id);
     const setVar = (id, val, opts = {}) => window?.wwLib?.wwVariable?.updateValue?.(id, val, opts);
@@ -1607,10 +1616,11 @@ export default {
       isFormattedText,
       openFtModal,
       closeFtModal,
-      ftModalOpen,
-      ftModalItem,
-      getFormattedHtml,
-    };
+        ftModalOpen,
+        ftModalItem,
+        getFormattedHtml,
+        remount,
+      };
   },
   methods: {
     onClick(item) {
