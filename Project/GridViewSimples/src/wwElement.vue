@@ -33,7 +33,6 @@ import WewebCellRenderer from "./components/WewebCellRenderer.vue";
 import ListFilterRenderer from "./components/ListFilterRenderer.js";
 import './components/list-filter.css';
 
-console.log("AG Grid version:", AG_GRID_LOCALE_FR);
 
 // TODO: maybe register less modules
 // TODO: maybe register modules per grid instead of globally
@@ -194,7 +193,7 @@ export default {
     };
 
     /* wwEditor:start */
-    const { createElement } = wwLib.useCreateElement();
+    const { createElement } = wwLib.wwElement.useCreate();
     /* wwEditor:end */
 
     const gridKey = ref(0);
@@ -252,7 +251,7 @@ export default {
     },
     columnDefs() {
       return this.content.columns.map((col) => {
-        console.log('colDef', col);
+        
         // Forçar cellDataType para 'dateString' se for 'date' ou 'dateString'
         if (col.cellDataType === 'date') col.cellDataType = 'dateString';
         const minWidth =
@@ -431,7 +430,6 @@ export default {
             }
             // Garante filtro customizado de lista para campos do tipo List
             if (col.cellDataType === 'list') {
-              console.log('Configurando filtro customizado para coluna:', col.headerName);
               result.filter = ListFilterRenderer;
             }
 
@@ -464,11 +462,9 @@ export default {
             expr = expr.replace(/([^=!<>])=([^=])/g, '$1===$2');
             // Não faz mais conversão de datas, pois o JSON já está em ISO
             try {
-              // Para debug:
-              // console.log('Expr:', expr, rowNode.data);
               return !eval(expr);
             } catch (e) {
-              console.error('Erro ao avaliar expressão:', expr, e, rowNode.data);
+              
               return true;
             }
           }
