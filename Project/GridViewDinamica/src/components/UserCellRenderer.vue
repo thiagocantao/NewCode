@@ -108,7 +108,13 @@ export default {
       }
       const name = this.params.data?.AssignedGroupName;
       if (name) {
-        const photo = this.params.data?.AssignedGroupPhoto || this.params.data?.GroupPhotoURL || this.params.data?.GroupPhotoUrl;
+        const photo =
+          this.params.data?.AssignedGroupPhotoUrl ||
+          this.params.data?.AssignedGroupPhoto ||
+          this.params.data?.GroupPhotoURL ||
+          this.params.data?.GroupPhotoUrl ||
+          this.params.data?.photoUrl ||
+          this.params.data?.GroupPhoto;
         return { name, photo };
       }
       return null;
@@ -127,7 +133,12 @@ export default {
       }
       const name = this.params.data?.ResponsibleUser || this.params.data?.Username || this.params.data?.UserName;
       if (name) {
-        const photo = this.params.data?.PhotoURL || this.params.data?.PhotoUrl || this.params.data?.UserPhoto;
+        const photo =
+          this.params.data?.photoUrl ||
+          this.params.data?.PhotoURL ||
+          this.params.data?.PhotoUrl ||
+          this.params.data?.UserPhoto ||
+          this.params.data?.UserPhotoUrl;
         return { name, photo };
       }
       return null;
@@ -138,10 +149,10 @@ export default {
       return this.selectedUser ? this.selectedUser.name : '';
     },
     userPhoto() {
-      return this.selectedUser?.PhotoURL || this.selectedUser?.PhotoUrl || this.selectedUser?.photo || '';
+      return this.selectedUser?.photoUrl || this.selectedUser?.PhotoURL || this.selectedUser?.PhotoUrl || this.selectedUser?.photo || '';
     },
     groupPhoto() {
-      return this.selectedGroup?.PhotoURL || this.selectedGroup?.PhotoUrl || this.selectedGroup?.photo || '';
+      return this.selectedGroup?.photoUrl || this.selectedGroup?.PhotoURL || this.selectedGroup?.PhotoUrl || this.selectedGroup?.photo || '';
     },
 
     userInitial() {
