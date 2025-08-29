@@ -113,7 +113,7 @@ export default {
         });
 
         /* wwEditor:start */
-        const { createElement } = wwLib.useCreateElement();
+        const { createElement } = wwLib.wwElement.useCreate();
         /* wwEditor:end */
 
         const randomUid = wwLib.wwUtils.getUid();
@@ -274,7 +274,7 @@ export default {
             else return this.content[Object.keys(TAGS_MAP).find(key => TAGS_MAP[key] === this.currentTextType)]?.color;
         },
         mentionList() {
-            const data = wwLib.wwCollection.getCollectionData(this.content.mentionList);
+            const data = wwLib.wwUtils.getDataFromCollection(this.content.mentionList);
             if (!Array.isArray(data)) return [];
             return data.map(mention => ({
                 id: wwLib.resolveObjectPropertyPath(mention, this.content.mentionIdPath || 'id') || '',
