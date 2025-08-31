@@ -14,11 +14,10 @@
     <!-- Campos de entrada baseados no tipo -->
     <div class="field-input-container">
       <template v-if="field.fieldType === 'DATE'">
-        <input
-          type="date"
+        <CustomDatePicker
           v-model="localValue"
           :disabled="field.is_readonly"
-          @blur="updateValue"
+          @update:modelValue="val => updateValue({ target: { value: val } })"
           :class="['field-input', 'date-input', { error: error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
         />
       </template>
@@ -199,10 +198,11 @@
 
 <script>
 import CustomAlert from './CustomAlert.vue';
+import CustomDatePicker from '../../../CustomDatePicker/CustomDatePicker.vue';
 
 export default {
   name: 'FieldComponent',
-  components: { CustomAlert },
+  components: { CustomAlert, CustomDatePicker },
   props: {
     field: { type: Object, required: true },
     apiUrl: { type: String, required: false },
