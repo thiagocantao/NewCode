@@ -11,12 +11,11 @@
     <!-- Campos de entrada baseados no tipo -->
     <div class="field-input-container">
       <!-- DATE -->
-      <input
+      <CustomDatePicker
         v-if="field.fieldType === 'DATE'"
-        type="date"
-        :value="field.value"
+        :model-value="field.value"
         :disabled="field.is_readonly"
-        @input="updateValue"
+        @update:modelValue="val => updateValue({ target: { value: val } })"
         class="field-input date-input"
       />
 
@@ -114,8 +113,10 @@
 </template>
 
 <script>
+import CustomDatePicker from '../../../CustomDatePicker/CustomDatePicker.vue';
 export default {
   name: 'FieldComponent',
+  components: { CustomDatePicker },
   props: {
     field: {
       type: Object,
