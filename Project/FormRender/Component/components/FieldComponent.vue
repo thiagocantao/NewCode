@@ -37,16 +37,22 @@
             @click="openDeadlinePicker"
             style="cursor:pointer;"
           />
-          <input
-            v-if="showDeadlinePicker"
-            ref="visibleDeadlineInput"
-            type="datetime-local"
-            v-model="deadlineValue"
-            @change="updateValue"
-            @blur="closeDeadlinePicker"
-            class="field-input date-input deadline-picker-popup"
-            style="margin-top: 6px; width: 220px; display: block; z-index: 10;"
-          />
+          <div v-if="showDeadlinePicker" class="deadline-picker-popup" style="z-index:10;">
+            <CustomDatePicker
+              ref="deadlineDatePicker"
+              v-model="deadlineDatePart"
+              @update:modelValue="onDeadlineDateChange"
+              :disabled="field.is_readonly"
+              style="position:absolute;top:0;left:0;width:100%;height:0;opacity:0;pointer-events:none;" />
+            <input
+              ref="deadlineTimeInput"
+              type="time"
+              v-model="deadlineTimePart"
+              @change="onDeadlineTimeChange"
+              @blur="closeDeadlinePicker"
+              class="field-input date-input"
+              style="margin-top:6px;width:220px;display:block;" />
+          </div>
         </div>
       </template>
       <template v-else-if="field.fieldType === 'DECIMAL'">
@@ -239,6 +245,8 @@ export default {
       deadlineTimer: null,
       dataNow: new Date(),
       showDeadlinePicker: false,
+      deadlineDatePart: '',
+      deadlineTimePart: '',
       currentColor: '#699d8c',
       isUserInput: false,
     }
@@ -398,9 +406,22 @@ export default {
       } else if (/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\+\d{2}/.test(val)) {
         dateStr = val.replace(' ', 'T').replace(/([\+\-]\d{2})$/, '$1:00');
       }
+      const lang = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342') || navigator.language;
+      try {
+        const fn =
+          window?.wwLib?.wwFunction?.get?.('95a5a105-48b6-48d4-95c5-7179a664451d') ||
+          window?.wwLib?.wwFunctions?.['95a5a105-48b6-48d4-95c5-7179a664451d'];
+        if (typeof fn === 'function') {
+          return fn(dateStr, lang);
+        }
+        if (typeof window?.wwLib?.wwFunction?.execute === 'function') {
+          const res = window.wwLib.wwFunction.execute('95a5a105-48b6-48d4-95c5-7179a664451d', { date: dateStr, language: lang });
+          if (res) return res;
+        }
+      } catch (e) {}
       const deadline = new Date(dateStr);
       if (isNaN(deadline.getTime())) return val;
-      return deadline.toLocaleString();
+      return deadline.toLocaleString(lang);
     }
   },
   watch: {
@@ -608,16 +629,45 @@ export default {
       }
     },
     openDeadlinePicker() {
-      if (this.field.fieldType === 'DEADLINE') {
+      if (this.field.fieldType === 'DEADLINE' && !this.field.is_readonly) {
+        const val = this.deadlineValue;
+        if (val) {
+          const [d, t] = val.split('T');
+          this.deadlineDatePart = d;
+          this.deadlineTimePart = t || '00:00';
+        } else {
+          const now = new Date();
+          const pad = n => String(n).padStart(2, '0');
+          this.deadlineDatePart = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+          this.deadlineTimePart = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+        }
         this.showDeadlinePicker = true;
         this.$nextTick(() => {
-          const input = this.$refs.visibleDeadlineInput;
+          const dp = this.$refs.deadlineDatePicker;
+          dp && dp.openDp && dp.openDp();
+          const input = this.$refs.deadlineTimeInput;
           if (input) input.focus();
         });
       }
     },
     closeDeadlinePicker() {
       this.showDeadlinePicker = false;
+      const dp = this.$refs.deadlineDatePicker;
+      dp && dp.closeDp && dp.closeDp();
+    },
+    onDeadlineDateChange(value) {
+      this.deadlineDatePart = value;
+      this.updateDeadline();
+    },
+    onDeadlineTimeChange(event) {
+      this.deadlineTimePart = event.target.value;
+      this.updateDeadline();
+    },
+    updateDeadline() {
+      if (this.deadlineDatePart && this.deadlineTimePart) {
+        const combined = `${this.deadlineDatePart}T${this.deadlineTimePart}`;
+        this.updateValue({ target: { value: combined } });
+      }
     },
     onContentEditableInput(event) {
       this.localValue = event.target.innerHTML;
