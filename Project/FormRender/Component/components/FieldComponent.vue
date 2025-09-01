@@ -432,10 +432,15 @@ export default {
       } else {
         value = event.target.value;
       }
+      let apiValue = value;
       // Validação específica por tipo de campo
       switch (this.field.fieldType) {
         case 'DATE':
           this.validateDate(value);
+          if (!this.error && value) {
+            const dt = new Date(value + 'T00:00:00');
+            apiValue = dt.toISOString();
+          }
           break;
         case 'DEADLINE':
           this.validateDeadline(value);
@@ -443,19 +448,22 @@ export default {
           if (!this.error && value) {
             // value: '2025-06-30T00:00'
             // backend: '2025-06-30 00:00:00+00'
-            value = value.replace('T', ' ') + ':00+00';
+            apiValue = value.replace('T', ' ') + ':00+00';
           }
           break;
         case 'DECIMAL':
           value = event.target.value === '' ? null : parseFloat(event.target.value);
+          apiValue = value;
           this.validateDecimal(value);
           break;
         case 'INTEGER':
           value = event.target.value === '' ? null : parseInt(event.target.value, 10);
+          apiValue = value;
           this.validateInteger(value);
           break;
         case 'YES_NO':
           value = event.target.value === 'true';
+          apiValue = value;
           break;
         case 'SIMPLE_LIST':
           value = value + '';
@@ -487,7 +495,7 @@ export default {
         if (isChanged) {
           this.localValue = value;
           this.$emit('update:value', value);
-          await this.saveFieldValueToApi(value);
+          await this.saveFieldValueToApi(apiValue);
           this.originalValue = value;
         }
       }
@@ -544,7 +552,7 @@ export default {
         this.error = this.field.is_mandatory ? '' : null;
         return;
       }
-      const date = new Date(value);
+      const date = new Date(value + 'T00:00:00');
       if (isNaN(date.getTime())) {
         this.error = 'Data inválida';
       } else {
