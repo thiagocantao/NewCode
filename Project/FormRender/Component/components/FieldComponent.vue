@@ -438,8 +438,8 @@ export default {
         case 'DATE':
           this.validateDate(value);
           if (!this.error && value) {
-            const dt = new Date(value + 'T00:00:00');
-            apiValue = dt.toISOString();
+            const dt = new Date(value);
+            apiValue = dt;
           }
           break;
         case 'DEADLINE':
@@ -448,7 +448,7 @@ export default {
           if (!this.error && value) {
             // value: '2025-06-30T00:00'
             // backend: '2025-06-30 00:00:00+00'
-            apiValue = value.replace('T', ' ') + ':00+00';
+            apiValue = value;
           }
           break;
         case 'DECIMAL':
