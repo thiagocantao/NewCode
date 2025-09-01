@@ -17,8 +17,6 @@
       v-if="!disabled"
       type="button"
       class="dp-icon"
-      title="Abrir calendário"
-      aria-label="Abrir calendário"
       @pointerdown.stop.prevent="openDp()"
       @mousedown.stop.prevent="openDp()"
       @click.stop.prevent="openDp()"
@@ -263,16 +261,20 @@ export default {
   font-family: 'Roboto', sans-serif;
   font-size: 14px;
 }
+
 .dp-input {
   display: block;
   width: 100%;
-  box-sizing: border-box;
+  padding-left: 5px;
   padding-right: 30px;
-  height: 28px;
+  height: 35px;
   cursor: pointer;
   font-family: 'Roboto', sans-serif;
-  font-size: 14px;
+  font-size: 13px;
+  border: 1px solid #ccc; /* borda fina e cinza escura */
+  border-radius: 4px;
 }
+
 .dp-icon {
   position: absolute;
   right: 6px;
@@ -287,9 +289,14 @@ export default {
   border: 0;
   padding: 0;
   cursor: pointer;
-  color: #666;
+  color: #ddd; /* ícone cinza escuro */
 }
-.dp-icon:hover { color: #333; }
+
+.dp-icon:hover {
+  color: #ccc; /* um tom mais escuro ao passar o mouse */
+}
+
+
 .datepicker-pop {
   position: fixed;
   background: #fff;
