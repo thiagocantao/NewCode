@@ -187,7 +187,7 @@
 
 <script>
 import CustomAlert from './CustomAlert.vue';
-import CustomDatePicker from '../../../CustomDatePicker/CustomDatePicker.vue';
+import CustomDatePicker from './CustomDatePicker.vue';
 
 export default {
   name: 'FieldComponent',
