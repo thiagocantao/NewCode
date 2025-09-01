@@ -257,7 +257,12 @@ export default {
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@400&display=swap');
 
-.dp-wrapper { position: relative; width: 100%; font-family: 'Roboto', sans-serif; }
+.dp-wrapper {
+  position: relative;
+  width: 100%;
+  font-family: 'Roboto', sans-serif;
+  font-size: 14px;
+}
 .dp-input {
   display: block;
   width: 100%;
@@ -265,6 +270,8 @@ export default {
   padding-right: 30px;
   height: 28px;
   cursor: pointer;
+  font-family: 'Roboto', sans-serif;
+  font-size: 14px;
 }
 .dp-icon {
   position: absolute;
