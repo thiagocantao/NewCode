@@ -178,6 +178,11 @@ export default {
         }
       ]
     },
+    {
+      action: 'remountComponent',
+      label: { en: 'Remount Component' },
+      args: []
+    },
   ],
   properties: {
   headerTitle: {
