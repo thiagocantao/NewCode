@@ -1570,8 +1570,17 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
     },
     setSort(sort) {
       if (this.gridApi) {
-        const sortModel = Array.isArray(sort) ? sort : sort ? [sort] : null;
-        this.gridApi.setSortModel(sortModel);
+        const sortModel = Array.isArray(sort) ? sort : sort ? [sort] : [];
+        if (typeof this.gridApi.setSortModel === 'function') {
+          this.gridApi.setSortModel(sortModel);
+        } else if (typeof this.gridApi.applyColumnState === 'function') {
+          this.gridApi.applyColumnState({
+            state: sortModel,
+            defaultState: { sort: null }
+          });
+          this.gridApi.refreshClientSideRowModel?.('sort');
+        }
+
       }
     },
     getRowId(params) {
@@ -1907,11 +1916,18 @@ forceClearSelection() {
     'content.rowData': {
       handler() {
         if (this.gridApi) {
-          // Reaplica o sortModel atual se existir
           try {
             const currentSort = this.gridApi.getSortModel?.() || [];
             if (currentSort.length) {
-              this.gridApi.setSortModel(currentSort);
+              if (typeof this.gridApi.setSortModel === 'function') {
+                this.gridApi.setSortModel(currentSort);
+              } else if (typeof this.gridApi.applyColumnState === 'function') {
+                this.gridApi.applyColumnState({
+                  state: currentSort,
+                  defaultState: { sort: null }
+                });
+                this.gridApi.refreshClientSideRowModel?.('sort');
+              }
             } else if (this.content.initialSort) {
               this.gridApi.applyColumnState({
                 state: this.content.initialSort,
@@ -1919,7 +1935,6 @@ forceClearSelection() {
               });
             }
           } catch (e) {
-            // Fallback para simplesmente atualizar o modelo de linhas
             this.gridApi.refreshClientSideRowModel?.('sort');
           }
         }
