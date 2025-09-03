@@ -281,6 +281,7 @@
 
   const columnOptions = ref({});
 
+  // ===================== Persistência de estado =====================
   const storageKey = `GridViewDinamicaState_${props.uid}`;
 
   function saveGridState() {
@@ -302,16 +303,25 @@
       const raw = localStorage.getItem(storageKey);
       if (!raw) return;
       const state = JSON.parse(raw);
-      if (state.filterModel) {
-        gridApi.value.setFilterModel(state.filterModel);
-      }
-      if (state.columnState) {
+      if (state.columnState && Array.isArray(state.columnState) && state.columnState.length) {
         columnApi.value.applyColumnState({ state: state.columnState, applyOrder: true });
+      }
+      if (state.filterModel && typeof state.filterModel === 'object') {
+        gridApi.value.setFilterModel(state.filterModel);
       }
     } catch (e) {
       console.warn('Failed to restore grid state', e);
     }
   }
+
+  function clearSavedGridState() {
+    try {
+      localStorage.removeItem(storageKey);
+    } catch {}
+    if (columnApi.value) columnApi.value.resetColumnState();
+    if (gridApi.value) gridApi.value.setFilterModel(null);
+  }
+  // ================================================================
 
   const parseStaticOptions = (opts) => {
     if (Array.isArray(opts)) {
@@ -460,8 +470,14 @@
     columnOptions.value = result;
   };
 
+  // Listener de unload para salvar estado (opcional, robustez extra)
+  let beforeUnloadHandler = null;
+
   onMounted(() => {
     loadAllColumnOptions();
+
+    beforeUnloadHandler = () => saveGridState();
+    window.addEventListener('beforeunload', beforeUnloadHandler);
   });
 
   watch(() => props.content?.columns, () => {
@@ -480,12 +496,22 @@
       clearInterval(deadlineTimer);
       deadlineTimer = null;
     }
+    // Salva estado ao desmontar (garante persistência ao navegar)
+    saveGridState();
+    if (beforeUnloadHandler) {
+      window.removeEventListener('beforeunload', beforeUnloadHandler);
+      beforeUnloadHandler = null;
+    }
   });
   
     const onGridReady = (params) => {
       gridApi.value = params.api;
       columnApi.value = params.columnApi;
+
+      // Restaura imediatamente e também em pequenos delays
       restoreGridState();
+      setTimeout(restoreGridState, 0);
+      setTimeout(restoreGridState, 150);
 
       // LOG: Tenta mostrar as colunas disponíveis e seus renderers
       if (typeof params.api.getAllColumns === 'function') {
@@ -507,6 +533,15 @@
       updateColumnsPosition();
       updateColumnsSort();
       params.api.addEventListener('columnMoved', updateColumnsPosition);
+
+      // Persistir estado em todos eventos relevantes
+      params.api.addEventListener('filterChanged', saveGridState);
+      params.api.addEventListener('sortChanged', saveGridState);
+      params.api.addEventListener('columnMoved', saveGridState);
+      params.api.addEventListener('columnPinned', saveGridState);
+      params.api.addEventListener('columnVisible', saveGridState);
+      params.api.addEventListener('columnResized', saveGridState);
+      params.api.addEventListener('columnEverythingChanged', saveGridState);
 
     // Impedir mover colunas para posição de pinned
     params.api.addEventListener('columnMoved', (event) => {
@@ -798,6 +833,11 @@
       updateColumnsPosition();
       updateColumnsSort();
       
+      // Reaplica o estado salvo após o primeiro render (garante consistência)
+      setTimeout(() => {
+        restoreGridState();
+      }, 0);
+
       // Garantir que a coluna de seleção esteja na primeira posição
       if (props.content.rowSelection === 'multiple' && !props.content.disableCheckboxes) {
         // Múltiplas tentativas para garantir que funcione
@@ -834,6 +874,7 @@
       forceSelectionColumnFirst,
       forceSelectionColumnFirstDOM,
       columnOptions,
+      clearSavedGridState,
       localeText: computed(() => {
         let lang = 'en-US';
         try {
@@ -2039,37 +2080,6 @@ forceClearSelection() {
     }
         // Inputs de edição compactos e centralizados (ajuste agressivo)
     :deep(.ag-cell.ag-cell-editing) {
-      padding: 0 !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      height: 100% !important;
-      min-height: 0 !important;
-      max-height: none !important;
-      box-sizing: border-box !important;
-    }
-
-    :deep(.ag-cell.ag-cell-editing input),
-    :deep(.ag-cell.ag-cell-editing select),
-    :deep(.ag-cell.ag-cell-editing textarea) {
-      height: 20px !important;
-      min-height: 20px !important;
-      max-height: 20px !important;
-      font-size: 13px !important;
-      padding: 0 8px !important;
-      border-radius: 6px !important;
-      box-sizing: border-box !important;
-      line-height: 1.2 !important;
-      margin: 0 !important;
-      align-self: center !important;
-      resize: none !important;
-      background: #fff !important;
-      vertical-align: middle !important;
-      outline: none !important;
-    }
-
-    // Inputs de edição compactos e centralizados (ajuste ultra-específico para AG-Grid)
-    :deep(.ag-cell.ag-cell-inline-editing) {
       padding: 0 !important;
       display: flex !important;
       align-items: center !important;
