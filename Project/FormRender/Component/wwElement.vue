@@ -91,7 +91,7 @@ export default {
   setup(props, { emit }) {
     
     const isEditing = computed(() => {
-      return props.wwEditorState.isEditing;
+      return props.wwEditorState?.isEditing || false;
     });
 
     const { value: formData, setValue: setFormData } = wwLib.wwVariable.useComponentVariable({
