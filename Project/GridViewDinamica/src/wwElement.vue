@@ -1,6 +1,6 @@
 <template>
     <div class="ww-datagrid" :class="{ editing: isEditing }" :style="cssVars">
-      <ag-grid-vue ref="agGridRef" :rowData="rowData" :columnDefs="finalColumnDefs" :defaultColDef="defaultColDef"
+      <ag-grid-vue :key="componentKey" ref="agGridRef" :rowData="rowData" :columnDefs="finalColumnDefs" :defaultColDef="defaultColDef"
         :domLayout="content.layout === 'auto' ? 'autoHeight' : 'normal'" :style="style" :rowSelection="rowSelection"
         :suppressMovableColumns="!content.movableColumns" :alwaysShowHorizontalScroll="false"
         :suppressColumnMoveAnimation="true" :suppressDragLeaveHidesColumns="true" :maintainColumnOrder="true"
@@ -280,6 +280,13 @@
   });
 
   const columnOptions = ref({});
+  const componentKey = ref(0);
+
+  const remountComponent = () => {
+    gridApi.value = null;
+    columnApi.value = null;
+    componentKey.value++;
+  };
 
   // ===================== Persistência de estado =====================
   const storageKey = `GridViewDinamicaState_${props.uid}`;
@@ -914,6 +921,8 @@
       forceSelectionColumnFirst,
       forceSelectionColumnFirstDOM,
       columnOptions,
+      componentKey,
+      remountComponent,
       clearSavedGridState,
       localeText: computed(() => {
         let lang = 'en-US';
