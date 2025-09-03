@@ -281,6 +281,38 @@
 
   const columnOptions = ref({});
 
+  const storageKey = `GridViewDinamicaState_${props.uid}`;
+
+  function saveGridState() {
+    if (!gridApi.value || !columnApi.value) return;
+    try {
+      const state = {
+        filterModel: gridApi.value.getFilterModel(),
+        columnState: columnApi.value.getColumnState(),
+      };
+      localStorage.setItem(storageKey, JSON.stringify(state));
+    } catch (e) {
+      console.warn('Failed to save grid state', e);
+    }
+  }
+
+  function restoreGridState() {
+    if (!gridApi.value || !columnApi.value) return;
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) return;
+      const state = JSON.parse(raw);
+      if (state.filterModel) {
+        gridApi.value.setFilterModel(state.filterModel);
+      }
+      if (state.columnState) {
+        columnApi.value.applyColumnState({ state: state.columnState, applyOrder: true });
+      }
+    } catch (e) {
+      console.warn('Failed to restore grid state', e);
+    }
+  }
+
   const parseStaticOptions = (opts) => {
     if (Array.isArray(opts)) {
       return opts.map(opt => (typeof opt === 'object' ? opt : { value: opt, label: String(opt) }));
@@ -453,6 +485,7 @@
     const onGridReady = (params) => {
       gridApi.value = params.api;
       columnApi.value = params.columnApi;
+      restoreGridState();
 
       // LOG: Tenta mostrar as colunas disponíveis e seus renderers
       if (typeof params.api.getAllColumns === 'function') {
@@ -714,6 +747,7 @@
   event: filterModel,
   });
   }
+  saveGridState();
   };
   
   const onSortChanged = (event) => {
@@ -730,6 +764,7 @@
   });
   }
   updateColumnsSort();
+  saveGridState();
   };
   
   /* wwEditor:start */
@@ -745,6 +780,7 @@
   IsDeleted: false
   })).filter(col => col.FieldID);
   setColumnsPosition(positions);
+  saveGridState();
   }
   
   function updateColumnsSort() {
