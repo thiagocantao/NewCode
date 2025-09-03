@@ -116,6 +116,10 @@ export default {
   label: { en: "On Sort Changed" },
   },
   {
+  name: "columnMoved",
+  label: { en: "On Column Moved" },
+  },
+  {
   name: "rowClicked",
   label: { en: "On Row Clicked" },
   event: {
