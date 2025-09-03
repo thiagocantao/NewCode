@@ -1155,7 +1155,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           const fieldKey = colCopy.id || colCopy.field;
           const getDsOptions = params => {
             const ticketId = params.data?.TicketID;
-            const colOpts = this.columnOptions[fieldKey] || {};
+            const colOpts = columnOptions.value[fieldKey] || {};
             return colOpts[ticketId] || [];
           };
 
@@ -1267,7 +1267,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               const fieldKey = colCopy.id || colCopy.field;
               const getDsOptions = params => {
                 const ticketId = params.data?.TicketID;
-                const colOpts = this.columnOptions[fieldKey] || {};
+                const colOpts = columnOptions.value[fieldKey] || {};
                 return colOpts[ticketId] || [];
               };
 
@@ -1545,7 +1545,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             const fieldKey = colCopy.id || colCopy.field;
             const getDsOptions = params => {
               const ticketId = params.data?.TicketID;
-              const colOpts = this.columnOptions[fieldKey] || {};
+              const colOpts = columnOptions.value[fieldKey] || {};
               return colOpts[ticketId] || [];
             };
             if (
@@ -1731,7 +1731,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
   const identifier = (colDef.FieldDB || '').toUpperCase();
   if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
     const fieldKey = colDef.colId || colDef.field;
-    const colOpts = this.columnOptions[fieldKey] || {};
+    const colOpts = (this.columnOptions?.[fieldKey] || this.columnOptions?.value?.[fieldKey]) || {};
     const ticketId = event.data?.TicketID;
     const opts = ticketId != null ? colOpts[ticketId] || [] : [];
     const match = opts.find(o => String(o.value) === String(event.newValue));
