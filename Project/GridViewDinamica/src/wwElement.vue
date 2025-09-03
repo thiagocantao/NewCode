@@ -300,18 +300,20 @@
 
   function persistColumnState() {
     try {
-      if (!columnApi.value) return;
+      if (!columnApi.value?.getColumnState) return;
+
       const state = columnApi.value.getColumnState();
       localStorage.setItem(`${STORAGE_KEY_BASE}_columnState`, JSON.stringify(state || []));
     } catch (e) {}
   }
 
   function checkStateChanged() {
-    if (!gridApi.value || !columnApi.value) return;
+    if (!gridApi.value) return;
     try {
-      const currentFilters = gridApi.value.getFilterModel() || {};
-      const currentSort = gridApi.value.getSortModel() || [];
-      const currentState = columnApi.value.getColumnState() || [];
+      const currentFilters = gridApi.value.getFilterModel?.() || {};
+      const currentSort = gridApi.value.getSortModel?.() || [];
+      const currentState = columnApi.value?.getColumnState?.() || [];
+
       const simplify = state => state.map(({ colId, pinned }) => ({ colId, pinned: pinned || null }));
       const changed =
         JSON.stringify(currentFilters) !== JSON.stringify(initialState.filters) ||
@@ -496,7 +498,28 @@
   
     const onGridReady = (params) => {
       gridApi.value = params.api;
-      columnApi.value = params.columnApi;
+      columnApi.value = params.columnApi || params.api;
+
+      initialState.columnState = columnApi.value?.getColumnState?.() || [];
+
+      try {
+        const storedState = localStorage.getItem(`${STORAGE_KEY_BASE}_columnState`);
+        if (storedState && columnApi.value?.applyColumnState) {
+          columnApi.value.applyColumnState({ state: JSON.parse(storedState), applyOrder: true });
+        }
+        const storedFilters = localStorage.getItem(`${STORAGE_KEY_BASE}_filters`);
+        if (storedFilters && gridApi.value?.setFilterModel) {
+          const parsedFilters = JSON.parse(storedFilters);
+          gridApi.value.setFilterModel(parsedFilters);
+          setFilters(parsedFilters);
+        }
+        const storedSort = localStorage.getItem(`${STORAGE_KEY_BASE}_sort`);
+        if (storedSort && gridApi.value?.setSortModel) {
+          const parsedSort = JSON.parse(storedSort);
+          gridApi.value.setSortModel(parsedSort);
+          setSort(parsedSort);
+        }
+      } catch (e) {}
 
       initialState.columnState = columnApi.value.getColumnState();
 
@@ -645,7 +668,7 @@
   };
   
   function restorePinnedColumns() {
-    if (!columnApi.value) return;
+    if (!columnApi.value?.getColumnState || !columnApi.value?.applyColumnState) return;
     const state = columnApi.value.getColumnState();
     // Restaurar pinned e ordem das colunas pinned
     const pinnedLeft = [];
@@ -671,6 +694,7 @@
     
     try {
       // Tentar reposicionar usando API do AG-Grid
+      if (!gridApi.value?.getColumnState) return;
       const columnState = gridApi.value.getColumnState();
       const selectionColumnIndex = columnState.findIndex(col => 
         col.colId === 'ag-Grid-SelectionColumn'
@@ -696,10 +720,12 @@
         });
         
         // Aplicar o novo estado
-        gridApi.value.applyColumnState({
-          state: columnState,
-          applyOrder: true
-        });
+        if (gridApi.value?.applyColumnState) {
+          gridApi.value.applyColumnState({
+            state: columnState,
+            applyOrder: true
+          });
+        }
       }
     } catch (error) {
       console.warn('Erro ao reposicionar coluna de seleção:', error);
@@ -748,7 +774,7 @@
   if (props.content.initialFilters) {
   gridApi.value.setFilterModel(props.content.initialFilters);
   }
-  if (props.content.initialSort) {
+  if (props.content.initialSort && gridApi.value?.applyColumnState) {
   gridApi.value.applyColumnState({
   state: props.content.initialSort || [],
   defaultState: { sort: null },
@@ -822,7 +848,7 @@
   }
 
   function updateColumnsSort() {
-  if (!columnApi.value) return;
+  if (!columnApi.value?.getColumnState) return;
   const sortArray = columnApi.value.getColumnState()
   .filter(col => col.sort)
   .map(col => ({
@@ -1905,7 +1931,7 @@ forceClearSelection() {
             const currentSort = this.gridApi.getSortModel?.() || [];
             if (currentSort.length) {
               this.gridApi.setSortModel(currentSort);
-            } else if (this.content.initialSort) {
+            } else if (this.content.initialSort && this.gridApi?.applyColumnState) {
               this.gridApi.applyColumnState({
                 state: this.content.initialSort,
                 defaultState: { sort: null }
