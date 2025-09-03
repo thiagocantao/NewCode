@@ -279,52 +279,6 @@
   readonly: false,
   });
 
-  const STORAGE_KEY_BASE = `GridViewDinamica_${props.uid}`;
-  const initialState = {
-    filters: {},
-    sort: [],
-    columnState: []
-  };
-
-  function persistFilters(filters) {
-    try {
-      localStorage.setItem(`${STORAGE_KEY_BASE}_filters`, JSON.stringify(filters || {}));
-    } catch (e) {}
-  }
-
-  function persistSort(sort) {
-    try {
-      localStorage.setItem(`${STORAGE_KEY_BASE}_sort`, JSON.stringify(sort || []));
-    } catch (e) {}
-  }
-
-  function persistColumnState() {
-    try {
-      if (!columnApi.value?.getColumnState) return;
-
-      const state = columnApi.value.getColumnState();
-      localStorage.setItem(`${STORAGE_KEY_BASE}_columnState`, JSON.stringify(state || []));
-    } catch (e) {}
-  }
-
-  function checkStateChanged() {
-    if (!gridApi.value) return;
-    try {
-      const currentFilters = gridApi.value.getFilterModel?.() || {};
-      const currentSort = gridApi.value.getSortModel?.() || [];
-      const currentState = columnApi.value?.getColumnState?.() || [];
-
-      const simplify = state => state.map(({ colId, pinned }) => ({ colId, pinned: pinned || null }));
-      const changed =
-        JSON.stringify(currentFilters) !== JSON.stringify(initialState.filters) ||
-        JSON.stringify(currentSort) !== JSON.stringify(initialState.sort) ||
-        JSON.stringify(simplify(currentState)) !== JSON.stringify(simplify(initialState.columnState));
-      if (window.wwLib?.wwVariable?.setValue) {
-        window.wwLib.wwVariable.setValue('09c5aacd-b697-4e04-9571-d5db1f671877', !changed);
-      }
-    } catch (e) {}
-  }
-
   const columnOptions = ref({});
 
   const parseStaticOptions = (opts) => {
@@ -498,49 +452,7 @@
   
     const onGridReady = (params) => {
       gridApi.value = params.api;
-      columnApi.value = params.columnApi || params.api;
-
-      initialState.columnState = columnApi.value?.getColumnState?.() || [];
-
-      try {
-        const storedState = localStorage.getItem(`${STORAGE_KEY_BASE}_columnState`);
-        if (storedState && columnApi.value?.applyColumnState) {
-          columnApi.value.applyColumnState({ state: JSON.parse(storedState), applyOrder: true });
-        }
-        const storedFilters = localStorage.getItem(`${STORAGE_KEY_BASE}_filters`);
-        if (storedFilters && gridApi.value?.setFilterModel) {
-          const parsedFilters = JSON.parse(storedFilters);
-          gridApi.value.setFilterModel(parsedFilters);
-          setFilters(parsedFilters);
-        }
-        const storedSort = localStorage.getItem(`${STORAGE_KEY_BASE}_sort`);
-        if (storedSort && gridApi.value?.setSortModel) {
-          const parsedSort = JSON.parse(storedSort);
-          gridApi.value.setSortModel(parsedSort);
-          setSort(parsedSort);
-        }
-      } catch (e) {}
-
-      initialState.columnState = columnApi.value.getColumnState();
-
-      try {
-        const storedState = localStorage.getItem(`${STORAGE_KEY_BASE}_columnState`);
-        if (storedState) {
-          columnApi.value.applyColumnState({ state: JSON.parse(storedState), applyOrder: true });
-        }
-        const storedFilters = localStorage.getItem(`${STORAGE_KEY_BASE}_filters`);
-        if (storedFilters) {
-          const parsedFilters = JSON.parse(storedFilters);
-          gridApi.value.setFilterModel(parsedFilters);
-          setFilters(parsedFilters);
-        }
-        const storedSort = localStorage.getItem(`${STORAGE_KEY_BASE}_sort`);
-        if (storedSort) {
-          const parsedSort = JSON.parse(storedSort);
-          gridApi.value.setSortModel(parsedSort);
-          setSort(parsedSort);
-        }
-      } catch (e) {}
+      columnApi.value = params.columnApi;
 
       // LOG: Tenta mostrar as colunas disponíveis e seus renderers
       if (typeof params.api.getAllColumns === 'function') {
@@ -550,22 +462,18 @@
           headerName: col.getColDef().headerName,
           cellRenderer: col.getColDef().cellRenderer
         }));
-
+        
       } else if (typeof params.api.getColumnDefs === 'function') {
         const colDefs = params.api.getColumnDefs();
-
+        
       } else if (typeof params.api.getColumnState === 'function') {
         const colState = params.api.getColumnState();
-
-      }
+        
+      } 
 
       updateColumnsPosition();
       updateColumnsSort();
-      checkStateChanged();
       params.api.addEventListener('columnMoved', updateColumnsPosition);
-      params.api.addEventListener('columnPinned', updateColumnsPosition);
-      params.api.addEventListener('columnVisible', updateColumnsPosition);
-      params.api.addEventListener('columnEverythingChanged', updateColumnsPosition);
 
     // Impedir mover colunas para posição de pinned
     params.api.addEventListener('columnMoved', (event) => {
@@ -668,7 +576,7 @@
   };
   
   function restorePinnedColumns() {
-    if (!columnApi.value?.getColumnState || !columnApi.value?.applyColumnState) return;
+    if (!columnApi.value) return;
     const state = columnApi.value.getColumnState();
     // Restaurar pinned e ordem das colunas pinned
     const pinnedLeft = [];
@@ -694,7 +602,6 @@
     
     try {
       // Tentar reposicionar usando API do AG-Grid
-      if (!gridApi.value?.getColumnState) return;
       const columnState = gridApi.value.getColumnState();
       const selectionColumnIndex = columnState.findIndex(col => 
         col.colId === 'ag-Grid-SelectionColumn'
@@ -720,12 +627,10 @@
         });
         
         // Aplicar o novo estado
-        if (gridApi.value?.applyColumnState) {
-          gridApi.value.applyColumnState({
-            state: columnState,
-            applyOrder: true
-          });
-        }
+        gridApi.value.applyColumnState({
+          state: columnState,
+          applyOrder: true
+        });
       }
     } catch (error) {
       console.warn('Erro ao reposicionar coluna de seleção:', error);
@@ -774,7 +679,7 @@
   if (props.content.initialFilters) {
   gridApi.value.setFilterModel(props.content.initialFilters);
   }
-  if (props.content.initialSort && gridApi.value?.applyColumnState) {
+  if (props.content.initialSort) {
   gridApi.value.applyColumnState({
   state: props.content.initialSort || [],
   defaultState: { sort: null },
@@ -804,12 +709,10 @@
   JSON.stringify(filterValue.value || {})
   ) {
   setFilters(filterModel);
-  persistFilters(filterModel);
   ctx.emit("trigger-event", {
   name: "filterChanged",
   event: filterModel,
   });
-  checkStateChanged();
   }
   };
   
@@ -821,7 +724,6 @@
   JSON.stringify(sortValue.value || [])
   ) {
   setSort(state.sort?.sortModel || []);
-  persistSort(state.sort?.sortModel || []);
   ctx.emit("trigger-event", {
   name: "sortChanged",
   event: state.sort?.sortModel || [],
@@ -843,12 +745,10 @@
   IsDeleted: false
   })).filter(col => col.FieldID);
   setColumnsPosition(positions);
-  persistColumnState();
-  checkStateChanged();
   }
-
+  
   function updateColumnsSort() {
-  if (!columnApi.value?.getColumnState) return;
+  if (!columnApi.value) return;
   const sortArray = columnApi.value.getColumnState()
   .filter(col => col.sort)
   .map(col => ({
@@ -856,8 +756,6 @@
   isASC: col.sort === 'asc'
   }));
   setColumnsSort(sortArray);
-  persistColumnState();
-  checkStateChanged();
   }
   
       const onFirstDataRendered = () => {
@@ -1931,7 +1829,7 @@ forceClearSelection() {
             const currentSort = this.gridApi.getSortModel?.() || [];
             if (currentSort.length) {
               this.gridApi.setSortModel(currentSort);
-            } else if (this.content.initialSort && this.gridApi?.applyColumnState) {
+            } else if (this.content.initialSort) {
               this.gridApi.applyColumnState({
                 state: this.content.initialSort,
                 defaultState: { sort: null }
