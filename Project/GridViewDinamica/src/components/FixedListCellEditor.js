@@ -16,7 +16,7 @@ export default class FixedListCellEditor {
     this.currentGroupUsers = [];      // membros do grupo atual
     this.groupStack = [];
     this.groupBy = 'type';            // igual ao componente fornecido
-    this.searchPlaceholder = 'Search user...';
+    this.searchPlaceholder = 'Search...';
 
     const tag =
       (colDef.TagControl || colDef.tagControl || colDef.tagcontrol || '').toUpperCase();
