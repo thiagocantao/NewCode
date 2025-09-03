@@ -17,7 +17,7 @@
 </template>
   
 <script>
-  import { shallowRef, watchEffect, computed, ref, onMounted, onUnmounted, watch, h } from "vue";
+  import { shallowRef, computed, ref, onMounted, onUnmounted, watch, h } from "vue";
   import { AgGridVue } from "ag-grid-vue3";
   import {
   AllCommunityModule,
@@ -760,18 +760,26 @@
     }
   };
   
-  watchEffect(() => {
-  if (!gridApi.value) return;
-  if (props.content.initialFilters) {
-  gridApi.value.setFilterModel(props.content.initialFilters);
-  }
-  if (props.content.initialSort) {
-  gridApi.value.applyColumnState({
-  state: props.content.initialSort || [],
-  defaultState: { sort: null },
-  });
-  }
-  });
+  watch(
+    [() => props.content.initialFilters, () => gridApi.value],
+    ([filters]) => {
+      if (!gridApi.value) return;
+      gridApi.value.setFilterModel(filters || null);
+    },
+    { deep: true, immediate: true }
+  );
+
+  watch(
+    [() => props.content.initialSort, () => gridApi.value],
+    ([sort]) => {
+      if (!gridApi.value) return;
+      gridApi.value.applyColumnState({
+        state: sort || [],
+        defaultState: { sort: null },
+      });
+    },
+    { deep: true, immediate: true }
+  );
   
   const onRowSelected = (event) => {
   const name = event.node.isSelected() ? "rowSelected" : "rowDeselected";
