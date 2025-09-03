@@ -10,10 +10,10 @@
         :components="editorComponents"
         :singleClickEdit="true" @grid-ready="onGridReady" @row-selected="onRowSelected"
         @selection-changed="onSelectionChanged" @cell-value-changed="onCellValueChanged" @filter-changed="onFilterChanged"
-        @sort-changed="onSortChanged" @row-clicked="onRowClicked" @first-data-rendered="onFirstDataRendered"
-        @cell-clicked="onCellClicked">  
-      </ag-grid-vue> 
-    </div> 
+        @sort-changed="onSortChanged" @column-moved="onColumnMoved" @row-clicked="onRowClicked" @first-data-rendered="onFirstDataRendered"
+        @cell-clicked="onCellClicked">
+      </ag-grid-vue>
+    </div>
 </template>
   
 <script>
@@ -264,7 +264,7 @@
   defaultValue: {},
   readonly: true,
   });
-  const { setValue: setColumnsPosition } = wwLib.wwVariable.useComponentVariable({
+  const { value: columnsPositionValue, setValue: setColumnsPosition } = wwLib.wwVariable.useComponentVariable({
   uid: props.uid,
   name: "columnsPosition",
   type: "array",
@@ -532,12 +532,10 @@
 
       updateColumnsPosition();
       updateColumnsSort();
-      params.api.addEventListener('columnMoved', updateColumnsPosition);
 
       // Persistir estado em todos eventos relevantes
       params.api.addEventListener('filterChanged', saveGridState);
       params.api.addEventListener('sortChanged', saveGridState);
-      params.api.addEventListener('columnMoved', saveGridState);
       params.api.addEventListener('columnPinned', saveGridState);
       params.api.addEventListener('columnVisible', saveGridState);
       params.api.addEventListener('columnResized', saveGridState);
@@ -801,7 +799,20 @@
   updateColumnsSort();
   saveGridState();
   };
-  
+
+  const onColumnMoved = (event) => {
+  if (!gridApi.value || !event?.finished) return;
+  const prev = JSON.stringify(columnsPositionValue.value || []);
+  updateColumnsPosition();
+  const current = JSON.stringify(columnsPositionValue.value || []);
+  if (prev !== current) {
+  ctx.emit("trigger-event", {
+  name: "columnMoved",
+  event: columnsPositionValue.value,
+  });
+  }
+  };
+
   /* wwEditor:start */
   const { createElement } = wwLib.wwElement.useCreate();
   /* wwEditor:end */
@@ -871,6 +882,7 @@
       gridApi,
       onFilterChanged,
       onSortChanged,
+      onColumnMoved,
       forceSelectionColumnFirst,
       forceSelectionColumnFirstDOM,
       columnOptions,
