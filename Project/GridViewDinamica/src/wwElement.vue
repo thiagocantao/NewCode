@@ -1580,6 +1580,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           });
           this.gridApi.refreshClientSideRowModel?.('sort');
         }
+
       }
     },
     getRowId(params) {
