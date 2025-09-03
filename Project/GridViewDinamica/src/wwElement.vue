@@ -470,6 +470,24 @@
     columnOptions.value = result;
   };
 
+  // Reaplica a ordem das colunas baseada na propriedade PositionInGrid
+  const applyColumnOrderFromPosition = () => {
+    if (!columnApi.value || !props.content || !Array.isArray(props.content.columns)) return;
+    const ordered = [...props.content.columns].sort((a, b) => {
+      const aPos = a.PositionInGrid ?? a.positionInGrid ?? a.PositionField ?? 0;
+      const bPos = b.PositionInGrid ?? b.positionInGrid ?? b.PositionField ?? 0;
+      return aPos - bPos;
+    });
+    const state = ordered
+      .map((col, idx) => ({ colId: col.id || col.field, order: idx }))
+      .filter(s => s.colId);
+    if (state.length) {
+      columnApi.value.applyColumnState({ state, applyOrder: true });
+      // Atualiza variáveis e persiste nova ordem
+      updateColumnsPosition();
+    }
+  };
+
   // Listener de unload para salvar estado (opcional, robustez extra)
   let beforeUnloadHandler = null;
 
@@ -482,10 +500,12 @@
 
   watch(() => props.content?.columns, () => {
     loadAllColumnOptions();
+    applyColumnOrderFromPosition();
   }, { deep: true });
 
   watch(() => props.content?.rowData, () => {
     loadAllColumnOptions();
+    applyColumnOrderFromPosition();
   }, { deep: true });
 
   // Interval para atualizar células DEADLINE
