@@ -282,11 +282,68 @@
   const columnOptions = ref({});
   const componentKey = ref(0);
 
-  const remountComponent = () => {
-    gridApi.value = null;
-    columnApi.value = null;
-    componentKey.value++;
-  };
+// Flag para aplicar sort externo (WW variable) no próximo mount
+const forceExternalSortNextMount = ref(false);
+
+// Normaliza o Sort vindo da variável WW para o formato do AG Grid
+function getExternalSortFromWW() {
+  try {
+    const raw = window.wwLib?.wwVariable?.getValue('74a13796-f64f-47d6-8e5f-4fb4700fd94b');
+    const sortArr = Array.isArray(raw) ? raw?.[0]?.Sort : raw?.Sort ?? raw?.[0]?.Sort;
+    if (!Array.isArray(sortArr)) return [];
+    // sortArr esperado: [{ id: 'ColId', isASC: true/false }, ...]
+    return sortArr
+      .filter(s => s && s.id)
+      .map((s, idx) => ({
+        colId: String(s.id),
+        sort: s.isASC ? 'asc' : 'desc',
+        sortIndex: idx
+      }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Aplica a ordenação externa (WW variable) na grid e sincroniza variável local `sort`.
+ * - Atualiza columnState (applyColumnState)
+ * - Atualiza sortModel (setSortModel) para refletir no header e eventos
+ * - Atualiza variável local `sort` (setSort) no formato do getState().sort.sortModel
+ * - Persiste no localStorage via saveGridState()
+ */
+function applyExternalSortAndSync() {
+  if (!gridApi.value || !columnApi.value) return;
+  const external = getExternalSortFromWW();
+  if (!external.length) return;
+
+  // 1) Aplicar columnState de sort (reseta sort nas demais colunas)
+  columnApi.value.applyColumnState({
+    state: external.map(e => ({ colId: e.colId, sort: e.sort, sortIndex: e.sortIndex })),
+    defaultState: { sort: null },
+    applyOrder: false
+  });
+
+  // 2) Aplicar sortModel (garante sincronismo visual/eventos)
+  const sortModel = external.map(e => ({ colId: e.colId, sort: e.sort }));
+  gridApi.value.setSortModel(sortModel);
+
+  // 3) Atualizar variável local `sort`
+  setSort(sortModel);
+
+  // 4) Persistir
+  saveGridState();
+}
+
+
+const remountComponent = () => {
+  gridApi.value = null;
+  columnApi.value = null;
+  // Força reaplicar a ordenação externa no próximo ciclo
+  forceExternalSortNextMount.value = true;
+
+  componentKey.value++;
+  // Não chame updateColumnsPosition/Sort aqui; eles dependem do grid já montado
+};
 
   // ===================== Persistência de estado =====================
   const storageKey = `GridViewDinamicaState_${props.uid}`;
@@ -508,12 +565,27 @@
   watch(() => props.content?.columns, () => {
     loadAllColumnOptions();
     applyColumnOrderFromPosition();
+    // Se estamos num ciclo de remount que deve respeitar a WW variable, reaplique
+setTimeout(() => {
+  if (forceExternalSortNextMount.value) {
+    applyExternalSortAndSync();
+  }
+}, 0);
   }, { deep: true });
 
   watch(() => props.content?.rowData, () => {
     loadAllColumnOptions();
     applyColumnOrderFromPosition();
+    // Se estamos num ciclo de remount que deve respeitar a WW variable, reaplique
+setTimeout(() => {
+  if (forceExternalSortNextMount.value) {
+    applyExternalSortAndSync();
+  }
+}, 0);
   }, { deep: true });
+
+
+
 
   // Interval para atualizar células DEADLINE
   let deadlineTimer = null;
@@ -539,6 +611,16 @@
       restoreGridState();
       setTimeout(restoreGridState, 0);
       setTimeout(restoreGridState, 150);
+
+      // Se for um remount "forçado", a ordenação da WW variable deve prevalecer
+if (forceExternalSortNextMount.value) {
+  // Pequenos delays garantem que colunas/sorters já existam
+  setTimeout(() => applyExternalSortAndSync(), 0);
+  setTimeout(() => applyExternalSortAndSync(), 120);
+  // Limpa o flag depois de aplicar
+  setTimeout(() => { forceExternalSortNextMount.value = false; }, 150);
+}
+
 
       // LOG: Tenta mostrar as colunas disponíveis e seus renderers
       if (typeof params.api.getAllColumns === 'function') {
@@ -883,6 +965,15 @@
       setTimeout(() => {
         restoreGridState();
       }, 0);
+
+      // Garantia extra: se ainda não aplicou, faça aqui também
+setTimeout(() => {
+  if (forceExternalSortNextMount.value) {
+    applyExternalSortAndSync();
+    forceExternalSortNextMount.value = false;
+  }
+}, 0);
+
 
       // Garantir que a coluna de seleção esteja na primeira posição
       if (props.content.rowSelection === 'multiple' && !props.content.disableCheckboxes) {
