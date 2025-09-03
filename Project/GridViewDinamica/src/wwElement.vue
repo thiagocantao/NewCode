@@ -301,6 +301,7 @@
   function persistColumnState() {
     try {
       if (!columnApi.value?.getColumnState) return;
+
       const state = columnApi.value.getColumnState();
       localStorage.setItem(`${STORAGE_KEY_BASE}_columnState`, JSON.stringify(state || []));
     } catch (e) {}
@@ -312,6 +313,7 @@
       const currentFilters = gridApi.value.getFilterModel?.() || {};
       const currentSort = gridApi.value.getSortModel?.() || [];
       const currentState = columnApi.value?.getColumnState?.() || [];
+
       const simplify = state => state.map(({ colId, pinned }) => ({ colId, pinned: pinned || null }));
       const changed =
         JSON.stringify(currentFilters) !== JSON.stringify(initialState.filters) ||
@@ -513,6 +515,27 @@
         }
         const storedSort = localStorage.getItem(`${STORAGE_KEY_BASE}_sort`);
         if (storedSort && gridApi.value?.setSortModel) {
+          const parsedSort = JSON.parse(storedSort);
+          gridApi.value.setSortModel(parsedSort);
+          setSort(parsedSort);
+        }
+      } catch (e) {}
+
+      initialState.columnState = columnApi.value.getColumnState();
+
+      try {
+        const storedState = localStorage.getItem(`${STORAGE_KEY_BASE}_columnState`);
+        if (storedState) {
+          columnApi.value.applyColumnState({ state: JSON.parse(storedState), applyOrder: true });
+        }
+        const storedFilters = localStorage.getItem(`${STORAGE_KEY_BASE}_filters`);
+        if (storedFilters) {
+          const parsedFilters = JSON.parse(storedFilters);
+          gridApi.value.setFilterModel(parsedFilters);
+          setFilters(parsedFilters);
+        }
+        const storedSort = localStorage.getItem(`${STORAGE_KEY_BASE}_sort`);
+        if (storedSort) {
           const parsedSort = JSON.parse(storedSort);
           gridApi.value.setSortModel(parsedSort);
           setSort(parsedSort);
