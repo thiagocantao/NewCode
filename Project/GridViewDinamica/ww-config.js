@@ -152,17 +152,28 @@ export default {
     label: { en: 'Reset Filters' },
     args: []
   },
-  {
-    action: 'setFilters',
-    label: { en: 'Set Filters' },
-    args: [
-      {
-        name: 'filters',
-        type: 'object',
-        label: { en: 'Filters JSON' }
-      }
-    ]
-  },
+    {
+      action: 'setFilters',
+      label: { en: 'Set Filters' },
+      args: [
+        {
+          name: 'filters',
+          type: 'object',
+          label: { en: 'Filters JSON' }
+        }
+      ]
+    },
+    {
+      action: 'setSort',
+      label: { en: 'Set Sort' },
+      args: [
+        {
+          name: 'sort',
+          type: 'object',
+          label: { en: 'Sort JSON' }
+        }
+      ]
+    },
   ],
   properties: {
   headerTitle: {

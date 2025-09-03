@@ -1558,19 +1558,25 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
       this.gridApi.deselectAll();
     }
   },
-  resetFilters() {
-    if (this.gridApi) {
-      this.gridApi.setFilterModel(null);
-    }
-  },
-  setFilters(filters) {
-    if (this.gridApi) {
-      this.gridApi.setFilterModel(filters || null);
-    }
-  },
-  getRowId(params) {
-  return this.resolveMappingFormula(this.content.idFormula, params.data);
-  },
+    resetFilters() {
+      if (this.gridApi) {
+        this.gridApi.setFilterModel(null);
+      }
+    },
+    setFilters(filters) {
+      if (this.gridApi) {
+        this.gridApi.setFilterModel(filters || null);
+      }
+    },
+    setSort(sort) {
+      if (this.gridApi) {
+        const sortModel = Array.isArray(sort) ? sort : sort ? [sort] : null;
+        this.gridApi.setSortModel(sortModel);
+      }
+    },
+    getRowId(params) {
+    return this.resolveMappingFormula(this.content.idFormula, params.data);
+    },
   onActionTrigger(event) {
   if (!event) return;
   
