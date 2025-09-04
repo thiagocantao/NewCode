@@ -16,7 +16,7 @@ export default class ResponsibleUserCellEditor {
     this.currentGroupUsers = [];      // membros do grupo atual
     this.groupStack = [];
     this.groupBy = 'type';            // igual ao componente fornecido
-    this.searchPlaceholder = 'Search...';
+    this.searchPlaceholder = 'Search user or group...';
 
     const tag =
       (colDef.TagControl || colDef.tagControl || colDef.tagcontrol || '').toUpperCase();
