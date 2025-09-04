@@ -386,7 +386,7 @@ export default class ResponsibleUserCellEditor {
     // ResponsibleUser: avatar/inicial/ícone de grupo
     const photo = user.photoUrl || user.PhotoURL || user.PhotoUrl || user.photo || user.image || user.img || '';
     const avatarHTML = isGroupType
-      ? `<span style="font-size: 19px; padding-left: 3px; padding-top:3px" class="material-symbols-outlined user-selector__group-icon">groups</span>`
+      ? `<span style="font-size: 19px; padding-top:3px; padding-left:3px" class="material-symbols-outlined user-selector__group-icon">groups</span>`
       : (photo
           ? `<img src="${photo}" alt="User Photo" />`
           : `<span class="user-selector__initial">${this.getInitial(user.name || plain)}</span>`);
@@ -794,7 +794,7 @@ export default class ResponsibleUserCellEditor {
 .user-selector__initial {
   width: 100%; height: 100%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 14px;            /* 14px */
+  font-size: 15px;            /* 14px */
   font-weight: 400;           /* sem bold */
   background: transparent; color: #fff; border-radius: 50%; letter-spacing: .5px;
 }
