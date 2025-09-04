@@ -1197,12 +1197,13 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             const colOpts = this.columnOptions[fieldKey] || {};
             const cached = colOpts[key];
             if (cached) return cached;
-            this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
-
-              if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
-              this.columnOptions[fieldKey][key] = opts;
-              params.api?.refreshCells?.({ force: true });
-            });
+            if (tagControl === 'RESPONSIBLEUSERID') {
+              this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
+                if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
+                this.columnOptions[fieldKey][key] = opts;
+                params.api?.refreshCells?.({ columns: [fieldKey], force: true });
+              });
+            }
             return [];
           };
           const getDsOptionsAsync = params => {
@@ -1212,9 +1213,9 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             const cached = colOpts[key];
             if (cached) return Promise.resolve(cached);
             return this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
-
               if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
               this.columnOptions[fieldKey][key] = opts;
+              params.api?.refreshCells?.({ columns: [fieldKey], force: true });
               return opts;
             });
           };
