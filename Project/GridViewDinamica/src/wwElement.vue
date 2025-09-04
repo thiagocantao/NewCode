@@ -1891,6 +1891,18 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
     }
   }
 
+  // Always ensure editable cells enter edit mode when clicked
+  const editable =
+    typeof event.colDef?.editable === "function"
+      ? event.colDef.editable(event)
+      : !!event.colDef?.editable;
+  if (editable) {
+    event.api?.startEditingCell({
+      rowIndex: event.rowIndex,
+      colKey: colId,
+    });
+  }
+
   this.$emit("trigger-event", {
     name: "cellClicked",
     event: {
