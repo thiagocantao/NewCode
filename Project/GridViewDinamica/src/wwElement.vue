@@ -37,6 +37,7 @@
   import FormatterCellRenderer from "./components/FormatterCellRenderer.vue";
   import UserCellRenderer from "./components/UserCellRenderer.vue";
   import ListFilterRenderer from "./components/ListFilterRenderer.js";
+  import ResponsibleUserFilterRenderer from "./components/ResponsibleUserFilterRenderer.js";
   import DateTimeCellEditor from "./components/DateTimeCellEditor.js";
   import FixedListCellEditor from "./components/FixedListCellEditor.js";
   import ResponsibleUserCellEditor from "./components/ResponsibleUserCellEditor.js";
@@ -1132,6 +1133,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
 
         // Se o filtro for agListColumnFilter, usar o filtro customizado
         if (colCopy.filter === 'agListColumnFilter') {
+          const isResponsible = tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
           const result = {
             ...commonProperties,
             id: colCopy.id,
@@ -1139,10 +1141,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             headerName: colCopy.headerName,
             field: colCopy.field,
             sortable: colCopy.sortable,
-            filter: ListFilterRenderer,
-            cellRenderer: (tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID')
-              ? 'UserCellRenderer'
-              : 'FormatterCellRenderer',
+            filter: isResponsible ? ResponsibleUserFilterRenderer : ListFilterRenderer,
+            cellRenderer: isResponsible ? 'UserCellRenderer' : 'FormatterCellRenderer',
             cellRendererParams: {
               useCustomFormatter: colCopy.useCustomFormatter,
               formatter: colCopy.formatter,
@@ -1274,6 +1274,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                 ? colCopy.listOptions
                 : null;
 
+              const isResponsible = tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
               const result = {
                 ...commonProperties,
                 id: colCopy.id,
@@ -1281,8 +1282,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                 headerName: colCopy.headerName,
                 field: colCopy.field,
                 sortable: colCopy.sortable,
-                filter: ListFilterRenderer,
-                cellRenderer: 'FormatterCellRenderer',
+                filter: isResponsible ? ResponsibleUserFilterRenderer : ListFilterRenderer,
+                cellRenderer: isResponsible ? 'UserCellRenderer' : 'FormatterCellRenderer',
                 cellRendererParams: {
                   useCustomFormatter: colCopy.useCustomFormatter,
                   formatter: colCopy.formatter,
@@ -1351,7 +1352,9 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             };
             // Filtro de lista dinâmico
             if (colCopy.filter === 'agListColumnFilter') {
-              result.filter = ListFilterRenderer;
+              result.filter = (tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID')
+                ? ResponsibleUserFilterRenderer
+                : ListFilterRenderer;
             }
             // Apply custom formatter if enabled
             if (colCopy.useCustomFormatter) {
