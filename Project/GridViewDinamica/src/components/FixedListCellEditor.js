@@ -21,6 +21,9 @@ export default class FixedListCellEditor {
     this.listEl = this.eGui.querySelector('.filter-list');
     this.closeBtn = this.eGui.querySelector('.editor-close');
 
+    // log API calls triggered while loading list options
+    this.restoreApiLogger = this.setupApiLogger();
+
 
     const tag =
       (params.colDef.TagControl ||
@@ -159,6 +162,42 @@ export default class FixedListCellEditor {
     }
   }
 
+  setupApiLogger() {
+    const origFetch = window.fetch;
+    const origAxiosReq = window.axios && window.axios.request;
+    if (origFetch) {
+      window.fetch = (input, init = {}) => {
+        console.log('FixedListCellEditor fetch called with:', input, init);
+        if (init && init.body) {
+          try {
+            console.log('FixedListCellEditor fetch body:', init.body);
+          } catch (e) {
+            console.error('FixedListCellEditor fetch body log error', e);
+          }
+        }
+        return origFetch(input, init);
+      };
+    }
+    if (origAxiosReq) {
+      window.axios.request = function (config) {
+        console.log('FixedListCellEditor axios request config:', config);
+        if (config && config.data) {
+          try {
+            console.log('FixedListCellEditor axios request body:', config.data);
+          } catch (e) {
+            console.error('FixedListCellEditor axios body log error', e);
+          }
+        }
+        return origAxiosReq.apply(this, arguments);
+      };
+    }
+    return () => {
+      if (origFetch) window.fetch = origFetch;
+      if (origAxiosReq) window.axios.request = origAxiosReq;
+    };
+
+  }
+
   filterOptions(text) {
     const t = text.toLowerCase();
     this.filteredOptions = this.options.filter(opt => {
@@ -283,7 +322,15 @@ export default class FixedListCellEditor {
     return this.value;
   }
 
-  destroy() { }
+  destroy() {
+    if (this.restoreApiLogger) {
+      try {
+        this.restoreApiLogger();
+      } finally {
+        this.restoreApiLogger = null;
+      }
+    }
+  }
 
   isPopup() {
     return true;
