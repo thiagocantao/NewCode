@@ -99,41 +99,80 @@ export default class ListFilterRenderer {
     const column = this.params.column;
     const colDef = column.getColDef();
     const field = colDef.field || column.getColId();
-    const cellRendererParams = colDef.cellRendererParams || {};
+
+    const normalize = (opt) => {
+      if (typeof opt === 'object') {
+        const findKey = key => Object.keys(opt).find(k => k.toLowerCase() === key);
+        const labelKey = findKey('label') || findKey('name');
+        const valueKey = findKey('value') || findKey('id');
+        return {
+          ...opt,
+          value: valueKey ? opt[valueKey] : opt.value,
+          label: labelKey ? opt[labelKey] : opt.label || opt.name
+        };
+      }
+      return { value: opt, label: String(opt) };
+    };
 
     this.allValues = [];
     this.formattedValues = [];
     api.forEachNode(node => {
-      if (node.data) {
-        let value = this.getNestedValue(node.data, field);
-        let formatted = value;
-        // Aplica o formatter se necessário, igual ao FormatterCellRenderer
-        if (cellRendererParams.useCustomFormatter && typeof cellRendererParams.formatter === 'string') {
-          try {
-            const formatterFn = new Function(
-              'value',
-              'row',
-              'colDef',
-              'getRoundedSpanColor',
-              'dateFormatter',
-              cellRendererParams.formatter
-            );
-            formatted = formatterFn(
-              value,
-              node.data,
-              colDef,
-              this.getRoundedSpanColor,
-              this.dateFormatter
-            );
-          } catch (e) {
-            // Se der erro, mantém o valor original
-          }
-        }
-        if (value !== undefined && value !== null) {
-          this.allValues.push(value);
-          this.formattedValues.push(formatted);
-        }
+      if (!node.data) return;
+      const rawValue = this.getNestedValue(node.data, field);
+      if (rawValue === undefined || rawValue === null) return;
+
+      // Resolve renderer params (pode ser função)
+      const rendererParams = typeof colDef.cellRendererParams === 'function'
+        ? colDef.cellRendererParams({ data: node.data, value: rawValue, colDef })
+        : colDef.cellRendererParams || {};
+
+      // Obtém opções para mapear valor -> label
+      let optionsArr = [];
+      if (Array.isArray(rendererParams.options)) {
+        optionsArr = rendererParams.options;
+      } else if (Array.isArray(colDef.options)) {
+        optionsArr = colDef.options;
+      } else if (Array.isArray(colDef.listOptions)) {
+        optionsArr = colDef.listOptions;
+      } else if (typeof colDef.listOptions === 'string' && colDef.listOptions.trim() !== '') {
+        optionsArr = colDef.listOptions.split(',').map(o => o.trim());
+      } else if (colDef.dataSource && typeof colDef.dataSource.list_options === 'string' && colDef.dataSource.list_options.trim() !== '') {
+        optionsArr = colDef.dataSource.list_options.split(',').map(o => o.trim());
       }
+
+      const options = (optionsArr || []).map(normalize);
+      const match = options.find(o => o.value == rawValue);
+      const display = match ? (match.label != null ? match.label : match.value) : rawValue;
+
+      // Aplica formatter ou style array conforme editor
+      let formatted = display;
+      try {
+        if (rendererParams.useCustomFormatter && typeof rendererParams.formatter === 'string') {
+          const formatterFn = new Function(
+            'value',
+            'row',
+            'colDef',
+            'getRoundedSpanColor',
+            'dateFormatter',
+            rendererParams.formatter
+          );
+          formatted = formatterFn(
+            display,
+            node.data,
+            colDef,
+            this.getRoundedSpanColor,
+            this.dateFormatter
+          );
+        } else if (rendererParams.useStyleArray && Array.isArray(rendererParams.styleArray)) {
+          const styled = this.getRoundedSpanColor(display, rendererParams.styleArray, colDef.FieldDB);
+          if (styled) formatted = styled;
+        }
+      } catch (e) {
+        // se der erro, mantém valor calculado
+      }
+
+      this.allValues.push(rawValue);
+      this.formattedValues.push(formatted);
     });
     // Remover duplicatas mantendo o mapeamento
     const seen = new Set();
