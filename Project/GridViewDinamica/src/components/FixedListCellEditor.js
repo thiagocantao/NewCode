@@ -37,6 +37,7 @@ export default class FixedListCellEditor {
 
     const resolveOptions = arr => {
       console.log('FixedListCellEditor resolved options:', arr);
+
       this.options = (arr || []).map(normalize);
       this.filteredOptions = [...this.options];
       this.renderOptions();
@@ -54,12 +55,14 @@ export default class FixedListCellEditor {
       optionsPromise = Promise.resolve(params.colDef.options);
     } else if (Array.isArray(params.colDef.listOptions)) {
       console.log('FixedListCellEditor using colDef.listOptions array', params.colDef.listOptions);
+
       optionsPromise = Promise.resolve(params.colDef.listOptions);
     } else if (
       typeof params.colDef.listOptions === 'string' &&
       params.colDef.listOptions.trim() !== ''
     ) {
       console.log('FixedListCellEditor using colDef.listOptions string', params.colDef.listOptions);
+
       optionsPromise = Promise.resolve(
         params.colDef.listOptions.split(',').map(o => o.trim())
       );
@@ -68,10 +71,12 @@ export default class FixedListCellEditor {
       typeof params.colDef.dataSource.list_options === 'string' &&
       params.colDef.dataSource.list_options.trim() !== ''
     ) {
+
       console.log(
         'FixedListCellEditor using params.colDef.dataSource.list_options',
         params.colDef.dataSource.list_options
       );
+
       optionsPromise = Promise.resolve(
         params.colDef.dataSource.list_options
           .split(',')
@@ -79,6 +84,7 @@ export default class FixedListCellEditor {
       );
     } else {
       console.log('FixedListCellEditor no options source found');
+
       optionsPromise = Promise.resolve([]);
     }
 
