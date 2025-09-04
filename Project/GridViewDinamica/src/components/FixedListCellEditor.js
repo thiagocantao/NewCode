@@ -38,6 +38,7 @@ export default class FixedListCellEditor {
 
     const resolveOptions = arr => {
       console.log('FixedListCellEditor resolved options:', arr);
+
       this.options = (arr || []).map(normalize);
       this.filteredOptions = [...this.options];
       this.renderOptions();
@@ -58,6 +59,7 @@ export default class FixedListCellEditor {
         optionsPromise = Promise.resolve([]);
       }
     } else if (params.options && typeof params.options.then === 'function') {
+
       console.log('FixedListCellEditor using params.options promise', params.options);
       optionsPromise = params.options;
     } else if (Array.isArray(params.options)) {
@@ -76,6 +78,7 @@ export default class FixedListCellEditor {
         console.error('FixedListCellEditor colDef.options function error', err);
         optionsPromise = Promise.resolve([]);
       }
+
     } else if (Array.isArray(params.colDef.options)) {
       console.log('FixedListCellEditor using colDef.options', params.colDef.options);
       optionsPromise = Promise.resolve(params.colDef.options);
@@ -97,11 +100,13 @@ export default class FixedListCellEditor {
         console.error('FixedListCellEditor colDef.listOptions function error', err);
         optionsPromise = Promise.resolve([]);
       }
+
     } else if (
       typeof params.colDef.listOptions === 'string' &&
       params.colDef.listOptions.trim() !== ''
     ) {
       console.log('FixedListCellEditor using colDef.listOptions string', params.colDef.listOptions);
+
       optionsPromise = Promise.resolve(
         params.colDef.listOptions.split(',').map(o => o.trim())
       );
@@ -110,10 +115,12 @@ export default class FixedListCellEditor {
       typeof params.colDef.dataSource.list_options === 'string' &&
       params.colDef.dataSource.list_options.trim() !== ''
     ) {
+
       console.log(
         'FixedListCellEditor using params.colDef.dataSource.list_options',
         params.colDef.dataSource.list_options
       );
+
       optionsPromise = Promise.resolve(
         params.colDef.dataSource.list_options
           .split(',')
@@ -133,6 +140,7 @@ export default class FixedListCellEditor {
         console.error('FixedListCellEditor optionsPromise rejected', err);
         resolveOptions([]);
       });
+
 
     this.value = params.value;
 
