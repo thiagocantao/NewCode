@@ -48,7 +48,7 @@ function dateFormatter(dateValue, lang) {
 
     return new Intl.DateTimeFormat(lang || 'en', dateOptions).format(date);
   } catch (error) {
-    console.error('Error formatting date:', error);
+    
     return dateValue;
   }
 }
@@ -163,7 +163,7 @@ export default {
             textColor = '#b71c1c';
             debugLabel += ' (vermelho)';
           }
-          console.log('DEADLINE BAR:', { percent, cor, label: debugLabel, value, diffDays });
+          
           // Barra HTML
           return `
             <div class="deadline-bar-bg" style="width:100%;height:22px;position:relative;background:#f5f5f5;border-radius:8px;overflow:hidden;display:block;">
@@ -215,7 +215,7 @@ export default {
           dateFormatter
         );
       } catch (error) {
-        console.error('Error in custom formatter:', error);
+        
         return `Error: ${error.message}`;
       }
     },

@@ -1493,7 +1493,6 @@ export default {
   }); 
   return formatter.format(new Date(dateValue));
   } catch (error) {
-  console.error('Error formatting date:', error);
   return dateValue;
   }
   }
