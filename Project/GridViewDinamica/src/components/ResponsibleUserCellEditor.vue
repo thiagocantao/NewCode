@@ -1,184 +1,247 @@
-<template>
-  <div class="responsible-user-editor">
-    <UserSelector
-      ref="selector"
-      :datasource="options"
-      group-by="type"
-      :selected-user-id="params.value"
-      @user-selected="onSelected"
-    />
-  </div>
-</template>
+// ===== ResponsibleUserCellRenderer.js =====
+export default class ResponsibleUserCellRenderer {
+  init(params) {
+    this.params = params;
+    this.eGui = document.createElement('div');
+    this.eGui.className = 'ru-cell';
 
-<script>
-import { ref, onMounted, nextTick } from 'vue';
-import UserSelector from './UserSelector.vue';
-
-
-export default {
-  name: 'ResponsibleUserCellEditor',
-  components: { UserSelector },
-  props: {
-    params: { type: Object, required: true }
-  },
-  setup(props) {
-    const options = ref([]);
-    const value = ref(props.params.value || null);
-    const selector = ref(null);
-
-    const getProp = (obj, ...keys) => {
-      for (const key of keys) {
-        const match = Object.keys(obj || {}).find(
-          k => k.toLowerCase() === String(key).toLowerCase()
-        );
-        if (match) return obj[match];
-      }
-      return undefined;
-    };
-
-    const mapOptions = list => {
-      const arr = Array.isArray(list) ? list : [];
-      const hasNested = arr.some(it => Array.isArray(getProp(it, 'groupUsers')) && getProp(it, 'groupUsers').length);
-      if (hasNested) {
-        return arr.map(item => {
-          const children = getProp(item, 'groupUsers');
-          return {
-            ...item,
-            id: getProp(item, 'id', 'value'),
-            name: getProp(item, 'name', 'label'),
-            value: getProp(item, 'value', 'id'),
-            label: getProp(item, 'label', 'name'),
-            ...(Array.isArray(children) && children.length ? { groupUsers: mapOptions(children) } : {})
-          };
-        });
-      }
-
-      const groups = {};
-      const users = [];
-      for (const raw of arr) {
-        const id = getProp(raw, 'id', 'value');
-        const name = getProp(raw, 'name', 'label');
-        const type = String(getProp(raw, 'type') || '').toLowerCase();
-        if (type === 'group') {
-          groups[id] = { ...raw, id, name, value: id, label: name, groupUsers: [] };
-        } else {
-          const gid = getProp(raw, 'groupId', 'groupid', 'group_id', 'group');
-          users.push({ ...raw, id, name, value: id, label: name, groupId: gid });
-        }
-      }
-
-      const result = Object.values(groups);
-      for (const usr of users) {
-        const gid = usr.groupId;
-        delete usr.groupId;
-        if (gid != null && groups[gid]) groups[gid].groupUsers.push(usr);
-        else result.push(usr);
-      }
-      return result;
-    };
-
-
-    const loadOptions = async () => {
-      if (props.params.options && props.params.options.length) {
-        options.value = mapOptions(props.params.options);
-        return;
-      }
-      try {
-        const lang = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
-        const companyId = window.wwLib?.wwVariable?.getValue('5d099f04-cd42-41fd-94ad-22d4de368c3a');
-        const apiUrl = window.wwLib?.wwVariable?.getValue('1195995b-34c3-42a5-b436-693f0f4f8825');
-        const apiKey = window.wwLib?.wwVariable?.getValue('d180be98-8926-47a7-b7f1-6375fbb95fa3');
-        const apiAuth = window.wwLib?.wwVariable?.getValue('dfcde09f-42f3-4b5c-b2e8-4314650655db');
-
-
-        if (!apiUrl) {
-          options.value = [];
-          return;
-        }
-
-
-        const fetchOptions = {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...(companyId ? { p_idcompany: companyId } : {}),
-            ...(lang ? { p_language: lang } : {})
-          })
-        };
-        if (apiKey) fetchOptions.headers['apikey'] = apiKey;
-        if (apiAuth) fetchOptions.headers['Authorization'] = apiAuth;
-
-        const baseUrl = apiUrl.endsWith('/') ? apiUrl : apiUrl + '/';
-        const response = await fetch(baseUrl + 'getLookupGroupsAndUsers', fetchOptions);
-        const data = await response.json();
-        const raw = Array.isArray(data)
-          ? data
-          : Array.isArray(data?.data)
-            ? data.data
-            : Array.isArray(data?.result)
-              ? data.result
-              : Array.isArray(data?.results)
-                ? data.results
-                : [];
-        options.value = mapOptions(raw);
-
-      } catch (e) {
-        options.value = [];
-      }
-    };
-
-    const onSelected = (val) => {
-      value.value = val;
-
-      const meta = selector.value;
-      const colId = props.params.column?.getColId
-        ? props.params.column.getColId()
-        : props.params.column?.colId;
-
-      if (props.params.node?.setDataValue) {
-        props.params.node.setDataValue(colId, val);
-      } else if (props.params.data && colId != null) {
-        props.params.data[colId] = val;
-      }
-
-      if (props.params.data && meta) {
-        props.params.data.ResponsibleUser = meta.selectedUser?.name || null;
-        props.params.data.AssignedGroupName = meta.selectedGroup?.name || null;
-      }
-
-      if (props.params.api?.refreshCells) {
-        props.params.api.refreshCells({
-          rowNodes: props.params.node ? [props.params.node] : undefined,
-          columns: colId ? [colId] : undefined,
-          force: true
-        });
-      }
-
-      if (props.params.api && props.params.api.stopEditing) {
-        props.params.api.stopEditing();
-      } else if (props.params.stopEditing) {
-        props.params.stopEditing();
-      }
-    };
-
-    const getValue = () => value.value;
-    const isPopup = () => true;
-
-    onMounted(async () => {
-      await loadOptions();
-      nextTick(() => {
-        selector.value && selector.value.toggleDropdown && selector.value.toggleDropdown();
-      });
-    });
-
-    return { options, onSelected, getValue, isPopup, selector };
+    this.injectCSSOnce();
+    this.render();
   }
-};
-</script>
 
-<style scoped>
-.responsible-user-editor {
-  min-width: 220px;
+  // ---- Helpers base ----
+  get row() {
+    return this.params?.data || {};
+  }
+  get colDef() {
+    return this.params?.colDef || {};
+  }
+  isResponsibleCol() {
+    const tag = (this.colDef.TagControl || this.colDef.tagControl || this.colDef.tagcontrol || '').toUpperCase();
+    const fieldDb = (this.colDef.FieldDB || '').toUpperCase();
+    const field = (this.colDef.field || '').toUpperCase();
+    return tag === 'RESPONSIBLEUSERID' || fieldDb === 'RESPONSIBLEUSERID' || field === 'RESPONSIBLEUSERID';
+  }
+
+  getIds() {
+    const val = this.params.value;
+    let userId = this.row.ResponsibleUserID ?? null;
+    let groupId = this.row.AssignedGroupID ?? null;
+
+    if (val && typeof val === 'object') {
+      userId = val.userid ?? userId;
+      groupId = val.groupid ?? groupId;
+    } else if (val != null && userId == null) {
+      userId = val;
+    }
+    return { userId, groupId };
+  }
+
+  // ---- Options / listOptions normalization ----
+  getOptionsArray() {
+    const cd = this.colDef;
+    let options = [];
+
+    if (Array.isArray(this.params.options)) options = this.params.options;
+    else if (Array.isArray(cd.listOptions)) options = cd.listOptions;
+    else if (typeof cd.listOptions === 'string' && cd.listOptions.trim()) {
+      options = cd.listOptions.split(',').map(s => s.trim());
+    } else if (cd.dataSource && typeof cd.dataSource.list_options === 'string' && cd.dataSource.list_options.trim()) {
+      options = cd.dataSource.list_options.split(',').map(s => s.trim());
+    }
+
+    const normalize = (opt) => {
+      if (typeof opt === 'object') {
+        const findKey = key => Object.keys(opt).find(k => k.toLowerCase() === key);
+        const labelKey = findKey('label') || findKey('name');
+        const valueKey = findKey('value') || findKey('id');
+        return {
+          ...opt,
+          id: opt.id ?? opt.value ?? (valueKey ? opt[valueKey] : undefined),
+          name: opt.name ?? opt.label ?? (labelKey ? opt[labelKey] : undefined),
+        };
+      }
+      return { id: opt, name: String(opt) };
+    };
+
+    return (options || []).map(normalize);
+  }
+
+  resolveUserMeta(userId) {
+    if (userId == null) return { name: null, photo: null };
+    const sid = String(userId);
+    const options = this.getOptionsArray();
+
+    // 1) procurar como usuário “raiz”
+    let fromOptions =
+      options.find(o => String(o.id) === sid && String(o?.type || '').toLowerCase() !== 'group');
+
+    // 2) procurar dentro de grupos
+    if (!fromOptions) {
+      for (const g of options) {
+        if (String(g?.type || '').toLowerCase() === 'group' && Array.isArray(g.groupUsers)) {
+          const m = g.groupUsers.find(x => String(x.id ?? x.value ?? x.UserID) === sid);
+          if (m) {
+            fromOptions = {
+              id: m.id ?? m.value ?? m.UserID,
+              name: m.name ?? m.DisplayName ?? m.label,
+              photoUrl: m.photoUrl ?? m.PhotoURL ?? m.PhotoUrl ?? m.photo ?? m.image ?? m.img
+            };
+            break;
+          }
+        }
+      }
+    }
+
+    // 3) fallback a partir da própria linha
+    const nameFromRow = this.row.ResponsibleUser || this.row.Username || this.row.UserName || this.row.User || null;
+    const photoFromRow = this.row.photoUrl || this.row.PhotoUrl || this.row.PhotoURL || this.row.UserPhoto || null;
+
+    return {
+      name: fromOptions?.name ?? nameFromRow,
+      photo: fromOptions?.photoUrl ?? photoFromRow
+    };
+  }
+
+  resolveGroupMeta(groupId) {
+    if (groupId == null) return { name: null, photo: null };
+    const sid = String(groupId);
+    const options = this.getOptionsArray();
+
+    const g = options.find(o => String(o.id ?? o.value) === sid && String(o?.type || '').toLowerCase() === 'group');
+
+    const nameFromRow = this.row.AssignedGroupName || this.row.GroupName || this.row.Group || null;
+    const photoFromRow = this.row.groupPhoto || this.row.GroupPhoto || this.row.GroupImage || null;
+
+    return {
+      name: g?.name ?? nameFromRow,
+      photo: g?.photoUrl ?? g?.PhotoURL ?? g?.PhotoUrl ?? g?.photo ?? g?.image ?? g?.img ?? photoFromRow
+    };
+  }
+
+  // ---- Render ----
+  render() {
+    const isResp = this.isResponsibleCol();
+    const { userId, groupId } = this.getIds();
+    const user = this.resolveUserMeta(userId);
+    const group = this.resolveGroupMeta(groupId);
+
+    if (!isResp) {
+      const plain = user?.name || this.params.value || '';
+      this.eGui.innerHTML = `<div class="ru-text">${this.escape(plain ?? '')}</div>`;
+      return;
+    }
+
+    const groupAvatar = group?.name
+      ? this.renderAvatar(group.photo, group.name, true)
+      : '';
+
+    const userAvatar = user?.name
+      ? this.renderAvatar(user.photo, user.name, false)
+      : '';
+
+    const textLabel = (group?.name && user?.name)
+      ? `${group.name} • ${user.name}`
+      : (user?.name || group?.name || '');
+
+    if (groupAvatar && userAvatar) {
+      this.eGui.innerHTML = `
+        <div class="ru-duo" title="${this.escape(textLabel)}">
+          <div class="ru-avatar ru-group">${groupAvatar}</div>
+          <div class="ru-avatar ru-user">${userAvatar}</div>
+          <div class="ru-label">${this.escape(textLabel)}</div>
+        </div>
+      `;
+      return;
+    }
+
+    const single = userAvatar || groupAvatar;
+    this.eGui.innerHTML = `
+      <div class="ru-single" title="${this.escape(textLabel)}">
+        <div class="ru-avatar">${single}</div>
+        <div class="ru-label">${this.escape(textLabel)}</div>
+      </div>
+    `;
+  }
+
+  renderAvatar(photo, name, isGroup) {
+    if (isGroup) {
+      return `
+        <span class="avatar-outer">
+          <span class="avatar-middle">
+            <span class="ru-ava ru-ava--group">
+              <span style="font-size: 14px" class="material-symbols-outlined ru-group-icon">groups</span>
+            </span>
+          </span>
+        </span>
+      `;
+    }
+    const inner = photo
+      ? `<img src="${photo}" alt="${this.escape(name || '')}" />`
+      : `<span class="ru-initial">${this.escape((name || '').trim().charAt(0).toUpperCase())}</span>`;
+    return `
+      <span class="avatar-outer">
+        <span class="avatar-middle">
+          <span class="ru-ava">${inner}</span>
+        </span>
+      </span>
+    `;
+  }
+
+  escape(s) {
+    return String(s ?? '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  getGui() {
+    return this.eGui;
+  }
+  refresh(params) {
+    this.params = params;
+    this.render();
+    return true;
+  }
+
+  // ---- CSS com look “anel” para avatares ----
+  injectCSSOnce() {
+    const id = '__ru_cell_renderer_css__';
+    if (typeof document === 'undefined' || document.getElementById(id)) return;
+    const style = document.createElement('style');
+    style.id = id;
+    style.textContent = `
+.ru-cell { display:flex; align-items:center; height:100%; }
+.ru-text { font-size:13px; color:#374151; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ru-label { margin-left: 8px; font-size: 13px; color: #374151; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ru-single { display:flex; align-items:center; }
+.ru-duo { display:flex; align-items:center; position: relative; }
+.ru-avatar { display:inline-flex; }
+.ru-avatar + .ru-avatar { margin-left: -10px; }
+
+.avatar-outer {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 1px solid #3A4663; display:flex; align-items:center; justify-content:center; background:#fff;
 }
-</style>
+.avatar-middle {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 2px solid #fff; display:flex; align-items:center; justify-content:center; background:#fff;
+}
+.ru-ava {
+  width: 26px; height: 26px; border-radius:50%;
+  background: #4B6CB7; display:flex; align-items:center; justify-content:center; overflow:hidden;
+}
+.ru-ava img {  object-fit:cover; border-radius:50%; }
+.ru-initial {  display:flex; align-items:center; justify-content:center; color:#fff; font-size:14px; }
 
+.ru-ava--group { background: #4B6CB7; }
+.ru-group-icon {
+  font-size: 14px; line-height:1; color:#fff;
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+
+.ru-group { z-index: 1; }
+.ru-user  { z-index: 2; }
+`;
+    document.head.appendChild(style);
+  }
+}
