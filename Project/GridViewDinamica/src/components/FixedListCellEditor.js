@@ -165,6 +165,9 @@ export default class FixedListCellEditor {
   setupApiLogger() {
     const origFetch = window.fetch;
     const origAxiosReq = window.axios && window.axios.request;
+    const XHR = window.XMLHttpRequest;
+    const origXHROpen = XHR && XHR.prototype.open;
+    const origXHRSend = XHR && XHR.prototype.send;
     if (origFetch) {
       window.fetch = (input, init = {}) => {
         console.log('FixedListCellEditor fetch called with:', input, init);
@@ -191,9 +194,31 @@ export default class FixedListCellEditor {
         return origAxiosReq.apply(this, arguments);
       };
     }
+    if (origXHROpen && origXHRSend) {
+      XHR.prototype.open = function (method, url) {
+        this.__flcMethod = method;
+        this.__flcUrl = url;
+        return origXHROpen.apply(this, arguments);
+      };
+      XHR.prototype.send = function (body) {
+        try {
+          console.log(
+            'FixedListCellEditor xhr request:',
+            this.__flcMethod,
+            this.__flcUrl,
+            body
+          );
+        } catch (e) {
+          console.error('FixedListCellEditor xhr body log error', e);
+        }
+        return origXHRSend.call(this, body);
+      };
+    }
     return () => {
       if (origFetch) window.fetch = origFetch;
       if (origAxiosReq) window.axios.request = origAxiosReq;
+       if (origXHROpen) XHR.prototype.open = origXHROpen;
+       if (origXHRSend) XHR.prototype.send = origXHRSend;
     };
 
   }
