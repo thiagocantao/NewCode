@@ -1094,6 +1094,7 @@ setTimeout(() => {
 
       return orderedColumns.map((col) => {
         const colCopy = { ...col };
+        const colId = colCopy.id || colCopy.field;
         // Forçar configuração correta para a coluna Deadline        
 
         if (colCopy.field === 'Deadline') {
@@ -1141,8 +1142,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           const isResponsible = tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
           const result = {
             ...commonProperties,
-            id: colCopy.id,
-            colId: colCopy.id,
+            id: colId,
+            colId,
             headerName: colCopy.headerName,
             field: colCopy.field,
             sortable: colCopy.sortable,
@@ -1240,8 +1241,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           case "action": {
             return {
               ...commonProperties,
-              id: colCopy.id,
-              colId: colCopy.id,
+              id: colId,
+              colId,
               headerName: colCopy.headerName,
               cellRenderer: "ActionCellRenderer",
               cellRendererParams: {
@@ -1257,8 +1258,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           case "custom":
             return {
               ...commonProperties,
-              id: colCopy.id,
-              colId: colCopy.id,
+              id: colId,
+              colId,
               headerName: colCopy.headerName,
               field: colCopy.field,
               cellRenderer: "WewebCellRenderer",
@@ -1271,8 +1272,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           case "image": {
             return {
               ...commonProperties,
-              id: colCopy.id,
-              colId: colCopy.id,
+              id: colId,
+              colId,
               headerName: colCopy.headerName,
               field: colCopy.field,
               cellRenderer: "ImageCellRenderer",
@@ -1318,8 +1319,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               const isResponsible = tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
               const result = {
                 ...commonProperties,
-                id: colCopy.id,
-                colId: colCopy.id,
+                id: colId,
+                colId,
                 headerName: colCopy.headerName,
                 field: colCopy.field,
                 sortable: colCopy.sortable,
@@ -1384,8 +1385,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           default: {
             const result = {
               ...commonProperties,
-              id: colCopy.id,
-              colId: colCopy.id,
+              id: colId,
+              colId,
               headerName: colCopy.headerName,
               field: colCopy.field,
               sortable: colCopy.sortable,
