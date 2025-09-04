@@ -497,10 +497,11 @@ const remountComponent = () => {
     }
   };
 
-  const getColumnOptions = async (col, ticketId) => {
+  let responsibleUserCache = null;
+
+  async function getColumnOptions(col, ticketId) {
     const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
     const identifier = (col.FieldDB || '').toUpperCase();
-    let responsibleUserCache = null;
     if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
       if (!responsibleUserCache) {
         responsibleUserCache = await loadResponsibleUserOptions();
@@ -523,20 +524,25 @@ const remountComponent = () => {
     }
 
     return opts;
-  };
+  }
 
   const loadAllColumnOptions = async () => {
     if (!props.content || !Array.isArray(props.content.columns)) return;
     const rows = wwLib.wwUtils.getDataFromCollection(props.content.rowData) || [];
     const result = {};
+    const promises = [];
     for (const col of props.content.columns) {
       const colId = col.id || col.field;
       result[colId] = {};
       for (const row of rows) {
         const ticketId = row?.TicketID;
-        result[colId][ticketId] = await getColumnOptions(col, ticketId);
+        const p = getColumnOptions(col, ticketId).then(opts => {
+          result[colId][ticketId] = opts;
+        });
+        promises.push(p);
       }
     }
+    await Promise.all(promises);
     columnOptions.value = result;
   };
 
@@ -1009,6 +1015,7 @@ setTimeout(() => {
       forceSelectionColumnFirst,
       forceSelectionColumnFirstDOM,
       columnOptions,
+      getColumnOptions,
       componentKey,
       remountComponent,
       clearSavedGridState,
@@ -1089,6 +1096,7 @@ setTimeout(() => {
 
       return orderedColumns.map((col) => {
         const colCopy = { ...col };
+        const colId = colCopy.id || colCopy.field;
         // Forçar configuração correta para a coluna Deadline        
 
         if (colCopy.field === 'Deadline') {
@@ -1136,8 +1144,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           const isResponsible = tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
           const result = {
             ...commonProperties,
-            id: colCopy.id,
-            colId: colCopy.id,
+            id: colId,
+            colId,
             headerName: colCopy.headerName,
             field: colCopy.field,
             sortable: colCopy.sortable,
@@ -1150,10 +1158,28 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             }
           };
           const fieldKey = colCopy.id || colCopy.field;
-          const getDsOptions = params => {
+          const getDsOptionsSync = params => {
             const ticketId = params.data?.TicketID;
             const colOpts = this.columnOptions[fieldKey] || {};
-            return colOpts[ticketId] || [];
+            const cached = colOpts[ticketId];
+            if (cached) return cached;
+            this.getColumnOptions(colCopy, ticketId).then(opts => {
+              if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
+              this.columnOptions[fieldKey][ticketId] = opts;
+              params.api?.refreshCells?.({ force: true });
+            });
+            return [];
+          };
+          const getDsOptionsAsync = params => {
+            const ticketId = params.data?.TicketID;
+            const colOpts = this.columnOptions[fieldKey] || {};
+            const cached = colOpts[ticketId];
+            if (cached) return Promise.resolve(cached);
+            return this.getColumnOptions(colCopy, ticketId).then(opts => {
+              if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
+              this.columnOptions[fieldKey][ticketId] = opts;
+              return opts;
+            });
           };
 
           if (
@@ -1179,13 +1205,13 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                 });
               } else {
                 result.cellEditor = tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor : FixedListCellEditor;
-                result.cellEditorParams = params => ({ options: getDsOptions(params) });
+                result.cellEditorParams = params => ({ options: getDsOptionsAsync(params) });
                 const baseRendererParams = result.cellRendererParams;
                 result.cellRendererParams = params => ({
                   ...(typeof baseRendererParams === 'function'
                     ? baseRendererParams(params)
                     : baseRendererParams),
-                  options: getDsOptions(params),
+                  options: getDsOptionsSync(params),
                 });
               }
             } else {
@@ -1194,20 +1220,20 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                 ...(typeof baseRendererParams === 'function'
                   ? baseRendererParams(params)
                   : baseRendererParams),
-                options: optionsArr || getDsOptions(params),
+                options: optionsArr || getDsOptionsSync(params),
               });
             }
           }
           if (colCopy.dataSource && colCopy.editable) {
             result.editable = true;
             result.cellEditor = tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor : FixedListCellEditor;
-            result.cellEditorParams = params => ({ options: getDsOptions(params) });
+            result.cellEditorParams = params => ({ options: getDsOptionsAsync(params) });
             const baseRendererParams = result.cellRendererParams;
             result.cellRendererParams = params => ({
               ...(typeof baseRendererParams === 'function'
                 ? baseRendererParams(params)
                 : baseRendererParams),
-              options: getDsOptions(params),
+              options: getDsOptionsSync(params),
             });
           }
           return result;
@@ -1217,8 +1243,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           case "action": {
             return {
               ...commonProperties,
-              id: colCopy.id,
-              colId: colCopy.id,
+              id: colId,
+              colId,
               headerName: colCopy.headerName,
               cellRenderer: "ActionCellRenderer",
               cellRendererParams: {
@@ -1234,8 +1260,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           case "custom":
             return {
               ...commonProperties,
-              id: colCopy.id,
-              colId: colCopy.id,
+              id: colId,
+              colId,
               headerName: colCopy.headerName,
               field: colCopy.field,
               cellRenderer: "WewebCellRenderer",
@@ -1248,8 +1274,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           case "image": {
             return {
               ...commonProperties,
-              id: colCopy.id,
-              colId: colCopy.id,
+              id: colId,
+              colId,
               headerName: colCopy.headerName,
               field: colCopy.field,
               cellRenderer: "ImageCellRenderer",
@@ -1262,10 +1288,28 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           case "list":
             {
               const fieldKey = colCopy.id || colCopy.field;
-              const getDsOptions = params => {
+              const getDsOptionsSync = params => {
                 const ticketId = params.data?.TicketID;
                 const colOpts = this.columnOptions[fieldKey] || {};
-                return colOpts[ticketId] || [];
+                const cached = colOpts[ticketId];
+                if (cached) return cached;
+                this.getColumnOptions(colCopy, ticketId).then(opts => {
+                  if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
+                  this.columnOptions[fieldKey][ticketId] = opts;
+                  params.api?.refreshCells?.({ force: true });
+                });
+                return [];
+              };
+              const getDsOptionsAsync = params => {
+                const ticketId = params.data?.TicketID;
+                const colOpts = this.columnOptions[fieldKey] || {};
+                const cached = colOpts[ticketId];
+                if (cached) return Promise.resolve(cached);
+                return this.getColumnOptions(colCopy, ticketId).then(opts => {
+                  if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
+                  this.columnOptions[fieldKey][ticketId] = opts;
+                  return opts;
+                });
               };
 
               const staticOptions = Array.isArray(colCopy.options)
@@ -1277,8 +1321,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               const isResponsible = tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
               const result = {
                 ...commonProperties,
-                id: colCopy.id,
-                colId: colCopy.id,
+                id: colId,
+                colId,
                 headerName: colCopy.headerName,
                 field: colCopy.field,
                 sortable: colCopy.sortable,
@@ -1299,13 +1343,13 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                   options: staticOptions,
                 };
               } else {
-                result.cellEditorParams = params => ({ options: getDsOptions(params) });
+                result.cellEditorParams = params => ({ options: getDsOptionsAsync(params) });
                 const baseRendererParams = result.cellRendererParams;
                 result.cellRendererParams = params => ({
                   ...(typeof baseRendererParams === 'function'
                     ? baseRendererParams(params)
                     : baseRendererParams),
-                  options: getDsOptions(params),
+                  options: getDsOptionsSync(params),
                 });
               }
               if (colCopy.editable) {
@@ -1343,8 +1387,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           default: {
             const result = {
               ...commonProperties,
-              id: colCopy.id,
-              colId: colCopy.id,
+              id: colId,
+              colId,
               headerName: colCopy.headerName,
               field: colCopy.field,
               sortable: colCopy.sortable,
@@ -1543,10 +1587,28 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               };
             }
             const fieldKey = colCopy.id || colCopy.field;
-            const getDsOptions = params => {
+            const getDsOptionsSync = params => {
               const ticketId = params.data?.TicketID;
               const colOpts = this.columnOptions[fieldKey] || {};
-              return colOpts[ticketId] || [];
+              const cached = colOpts[ticketId];
+              if (cached) return cached;
+              this.getColumnOptions(colCopy, ticketId).then(opts => {
+                if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
+                this.columnOptions[fieldKey][ticketId] = opts;
+                params.api?.refreshCells?.({ force: true });
+              });
+              return [];
+            };
+            const getDsOptionsAsync = params => {
+              const ticketId = params.data?.TicketID;
+              const colOpts = this.columnOptions[fieldKey] || {};
+              const cached = colOpts[ticketId];
+              if (cached) return Promise.resolve(cached);
+              return this.getColumnOptions(colCopy, ticketId).then(opts => {
+                if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
+                this.columnOptions[fieldKey][ticketId] = opts;
+                return opts;
+              });
             };
             if (
               colCopy.cellDataType === 'list' ||
@@ -1568,13 +1630,13 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                   };
                 } else {
                   result.cellEditor = tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor :  FixedListCellEditor;
-                  result.cellEditorParams = params => ({ options: getDsOptions(params) });
+                  result.cellEditorParams = params => ({ options: getDsOptionsAsync(params) });
                   const baseRendererParams = result.cellRendererParams;
                   result.cellRendererParams = params => ({
                     ...(typeof baseRendererParams === 'function'
                       ? baseRendererParams(params)
                       : baseRendererParams),
-                    options: getDsOptions(params),
+                    options: getDsOptionsSync(params),
                   });
                 }
               } else {
@@ -1583,7 +1645,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                   ...(typeof baseRendererParams === 'function'
                     ? baseRendererParams(params)
                     : baseRendererParams),
-                  options: optionsArr || getDsOptions(params),
+                  options: optionsArr || getDsOptionsSync(params),
                 });
               }
               // O cellRenderer já aplica a formatação visual
@@ -1591,13 +1653,13 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             if (colCopy.dataSource && colCopy.editable) {
               result.editable = true;
               result.cellEditor = tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor : FixedListCellEditor;
-              result.cellEditorParams = params => ({ options: getDsOptions(params) });
+              result.cellEditorParams = params => ({ options: getDsOptionsAsync(params) });
               const baseRendererParams = result.cellRendererParams;
               result.cellRendererParams = params => ({
                 ...(typeof baseRendererParams === 'function'
                   ? baseRendererParams(params)
                   : baseRendererParams),
-                options: getDsOptions(params),
+                options: getDsOptionsSync(params),
               });
             }
             return result;
