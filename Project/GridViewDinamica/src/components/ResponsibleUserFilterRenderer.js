@@ -1,18 +1,163 @@
+let responsibleUserCache = null;
+
+async function loadResponsibleUserOptions() {
+  if (responsibleUserCache) return responsibleUserCache;
+  try {
+    const lang = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
+    const loggeduserid = window?.wwLib?.wwVariable?.getValue?.('fc54ab80-1a04-4cfe-a504-793bdcfce5dd');
+    const companyId = window.wwLib?.wwVariable?.getValue('5d099f04-cd42-41fd-94ad-22d4de368c3a');
+    const apiUrl = window.wwLib?.wwVariable?.getValue('1195995b-34c3-42a5-b436-693f0f4f8825');
+    const apiKey = window.wwLib?.wwVariable?.getValue('d180be98-8926-47a7-b7f1-6375fbb95fa3');
+    const apiAuth = window.wwLib?.wwVariable?.getValue('dfcde09f-42f3-4b5c-b2e8-4314650655db');
+    if (!apiUrl) return [];
+
+    const fetchOptions = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...(companyId ? { p_idcompany: companyId } : {}),
+        ...(lang ? { p_language: lang } : {}),
+        ...(loggeduserid ? { p_loggeduserid: loggeduserid } : {}),
+      }),
+    };
+    if (apiKey) fetchOptions.headers['apikey'] = apiKey;
+    if (apiAuth) fetchOptions.headers['Authorization'] = apiAuth;
+
+    const baseUrl = apiUrl.endsWith('/') ? apiUrl : apiUrl + '/';
+    const response = await fetch(baseUrl + 'getLookupGroupsAndUsers', fetchOptions);
+    const data = await response.json();
+    responsibleUserCache = Array.isArray(data)
+      ? data
+      : Array.isArray(data?.data)
+        ? data.data
+        : Array.isArray(data?.result)
+          ? data.result
+          : Array.isArray(data?.results)
+            ? data.results
+            : [];
+    return responsibleUserCache;
+  } catch {
+    return [];
+  }
+}
+
+const getProp = (obj, ...keys) => {
+  for (const key of keys) {
+    const match = Object.keys(obj || {}).find(
+      k => k.toLowerCase() === String(key).toLowerCase()
+    );
+    if (match) return obj[match];
+  }
+  return undefined;
+};
+
+function mapOptions(list) {
+  const arr = Array.isArray(list) ? list : [];
+  const hasNested = arr.some(it => Array.isArray(getProp(it, 'groupUsers')) && getProp(it, 'groupUsers').length);
+  if (hasNested) {
+    return arr.map(item => {
+      const children = getProp(item, 'groupUsers');
+      return {
+        ...item,
+        id: getProp(item, 'id', 'value'),
+        name: getProp(item, 'name', 'label'),
+        value: getProp(item, 'value', 'id'),
+        label: getProp(item, 'label', 'name'),
+        ...(Array.isArray(children) && children.length ? { groupUsers: mapOptions(children) } : {})
+      };
+    });
+  }
+
+  const groups = {};
+  const users = [];
+  for (const raw of arr) {
+    const id = getProp(raw, 'id', 'value');
+    const name = getProp(raw, 'name', 'label');
+    const type = String(getProp(raw, 'type') || '').toLowerCase();
+    if (type === 'group') {
+      groups[id] = { ...raw, id, name, value: id, label: name, groupUsers: [] };
+    } else {
+      const gid = getProp(raw, 'groupId', 'groupid', 'group_id', 'group');
+      users.push({ ...raw, id, name, value: id, label: name, groupId: gid });
+    }
+  }
+
+  const result = Object.values(groups);
+  for (const usr of users) {
+    const gid = usr.groupId;
+    delete usr.groupId;
+    if (gid != null && groups[gid]) groups[gid].groupUsers.push(usr);
+    else result.push(usr);
+  }
+  return result;
+}
+
 export default class ResponsibleUserFilterRenderer {
   constructor() {
     this.searchText = '';
-    this.selectedValues = [];
-    this.allValues = [];
-    this.filteredValues = [];
-    this.selectAll = false;
-    this.userInfo = {};
-    this.formattedValues = [];
+    this.selectedUsers = [];
+    this.selectedGroups = [];
+    this.users = [];
+    this.groups = [];
+    this.filteredUsers = [];
+    this.filteredGroups = [];
+    this.userToGroups = {};
+    this.groupToUsers = {};
   }
 
   init(params) {
     this.params = params;
-    this.loadValues();
     this.createGui();
+    this.loadOptions().then(() => this.filterValues());
+  }
+
+  async loadOptions() {
+    try {
+      const raw = await loadResponsibleUserOptions();
+      const mapped = mapOptions(raw);
+      const userMap = {};
+      const groupMap = {};
+      this.userToGroups = {};
+      this.groupToUsers = {};
+
+      const processItem = (item, parentGroupId) => {
+        const id = String(getProp(item, 'id', 'value'));
+        const name = getProp(item, 'name', 'label') || '';
+        const photo = item.photoUrl || item.PhotoUrl || item.PhotoURL || item.photo || item.image || item.img || '';
+        if (Array.isArray(item.groupUsers) && item.groupUsers.length) {
+          if (!groupMap[id]) groupMap[id] = { id, name };
+          const memberIds = [];
+          for (const u of item.groupUsers) {
+            const uid = String(getProp(u, 'id', 'value'));
+            memberIds.push(uid);
+            processItem(u, id);
+            if (!this.userToGroups[uid]) this.userToGroups[uid] = [];
+            if (!this.userToGroups[uid].includes(id)) this.userToGroups[uid].push(id);
+          }
+          this.groupToUsers[id] = memberIds;
+        } else {
+          if (!userMap[id]) userMap[id] = { id, name, photo };
+          if (parentGroupId) {
+            if (!this.groupToUsers[parentGroupId]) this.groupToUsers[parentGroupId] = [];
+            if (!this.groupToUsers[parentGroupId].includes(id)) this.groupToUsers[parentGroupId].push(id);
+            if (!this.userToGroups[id]) this.userToGroups[id] = [];
+            if (!this.userToGroups[id].includes(parentGroupId)) this.userToGroups[id].push(parentGroupId);
+          }
+        }
+      };
+
+      mapped.forEach(item => processItem(item, null));
+
+      this.users = Object.values(userMap);
+      this.groups = Object.values(groupMap);
+      this.filteredUsers = [...this.users];
+      this.filteredGroups = [...this.groups];
+    } catch {
+      this.users = [];
+      this.groups = [];
+      this.filteredUsers = [];
+      this.filteredGroups = [];
+    }
   }
 
   createGui() {
@@ -50,180 +195,96 @@ export default class ResponsibleUserFilterRenderer {
 
     this.selectAllCheckbox.addEventListener('change', (e) => {
       if (e.target.checked) {
-        this.selectedValues = [...this.filteredValues];
+        this.selectedUsers = this.filteredUsers.map(u => u.id);
+        this.selectedGroups = this.filteredGroups.map(g => g.id);
       } else {
-        this.selectedValues = [];
+        this.selectedUsers = [];
+        this.selectedGroups = [];
       }
       this.renderFilterList();
       this.applyFilter();
     });
   }
 
-  // Função utilitária para acessar campos aninhados
-  getNestedValue(obj, path) {
-    return path.split('.').reduce((o, p) => (o && o[p] !== undefined ? o[p] : undefined), obj);
-  }
-
-  // Função auxiliar igual ao FormatterCellRenderer
-  getRoundedSpanColor(value, colorArray, fieldName) {
-    if (!colorArray || !Array.isArray(colorArray) || !value) return value;
-    const matchingStyle = colorArray.find(item => item.Valor === value);
-    if (!matchingStyle) return value;
-    const borderRadius = fieldName === 'StatusID' ? '4px' : '12px';
-    const fontweight = "font-weight:bold;";
-    return `<span style="height:25px; color: ${matchingStyle.CorFonte}; background:${matchingStyle.CorFundo}; border: 1px solid ${matchingStyle.CorFundo}; border-radius: ${borderRadius}; ${fontweight} display: inline-flex; align-items: center; padding: 0 12px;">${value}</span>`;
-  }
-
-  dateFormatter(dateValue, lang) {
-    try {
-      if (!dateValue) return '';
-      const dateOptions = {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      };
-      const timeOptions = {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      };
-      const datePart = new Intl.DateTimeFormat(lang || 'en', dateOptions).format(new Date(dateValue));
-      const timePart = new Intl.DateTimeFormat(lang || 'en', timeOptions).format(new Date(dateValue));
-      return `${datePart} ${timePart}`;
-    } catch (error) {
-      return dateValue;
-    }
-  }
-
-  loadValues() {
-    const api = this.params.api;
-    const column = this.params.column;
-    const colDef = column.getColDef();
-    const field = colDef.field || column.getColId();
-    const cellRendererParams = colDef.cellRendererParams || {};
-
-    this.allValues = [];
-    this.formattedValues = [];
-    this.userInfo = {};
-    api.forEachNode(node => {
-      if (node.data) {
-        let value = this.getNestedValue(node.data, field);
-        let formatted = value;
-        // Aplica o formatter se necessário, igual ao FormatterCellRenderer
-        if (cellRendererParams.useCustomFormatter && typeof cellRendererParams.formatter === 'string') {
-          try {
-            const formatterFn = new Function(
-              'value',
-              'row',
-              'colDef',
-              'getRoundedSpanColor',
-              'dateFormatter',
-              cellRendererParams.formatter
-            );
-            formatted = formatterFn(
-              value,
-              node.data,
-              colDef,
-              this.getRoundedSpanColor,
-              this.dateFormatter
-            );
-          } catch (e) {
-            // Se der erro, mantém o valor original
-          }
-        }
-        if (value !== undefined && value !== null) {
-          this.allValues.push(value);
-          const name = node.data.ResponsibleUser || node.data.Username || node.data.UserName || '';
-          const photo = node.data.photoUrl || node.data.PhotoUrl || node.data.PhotoURL || node.data.UserPhoto || '';
-          this.userInfo[value] = { name, photo };
-          this.formattedValues.push(name || formatted);
-        }
-      }
-    });
-    // Remover duplicatas mantendo o mapeamento
-    const seen = new Set();
-    const uniqueRaw = [];
-    const uniqueFormatted = [];
-    this.allValues.forEach((raw, idx) => {
-      if (!seen.has(raw)) {
-        seen.add(raw);
-        uniqueRaw.push(raw);
-        uniqueFormatted.push(this.formattedValues[idx]);
-      }
-    });
-    // Função utilitária para extrair texto puro de HTML
-    function stripHtml(html) {
-      const tmp = document.createElement('div');
-      tmp.innerHTML = html;
-      return tmp.textContent || tmp.innerText || '';
-    }
-    // Ordena os valores alfabeticamente pelo texto visível formatado
-    const zipped = uniqueRaw.map((raw, idx) => ({ raw, formatted: uniqueFormatted[idx] }));
-    zipped.sort((a, b) => {
-      const textA = stripHtml(String(a.formatted)).toLowerCase();
-      const textB = stripHtml(String(b.formatted)).toLowerCase();
-      return textA.localeCompare(textB, undefined, { sensitivity: 'base' });
-    });
-    this.allValues = zipped.map(z => z.raw);
-    this.formattedValues = zipped.map(z => z.formatted);
-    const newInfo = {};
-    this.allValues.forEach(v => { if (this.userInfo[v]) newInfo[v] = this.userInfo[v]; });
-    this.userInfo = newInfo;
-    this.filteredValues = [...this.allValues];
-  }
-
   filterValues() {
-    if (!this.searchText) {
-      this.filteredValues = [...this.allValues];
+    const term = (this.searchText || '').toLowerCase();
+    if (!term) {
+      this.filteredUsers = [...this.users];
+      this.filteredGroups = [...this.groups];
     } else {
-      this.filteredValues = this.allValues.filter((raw, idx) => {
-        const formatted = this.formattedValues[idx];
-        return String(formatted).toLowerCase().includes(this.searchText.toLowerCase());
-      });
+      this.filteredUsers = this.users.filter(u => (u.name || '').toLowerCase().includes(term));
+      this.filteredGroups = this.groups.filter(g => (g.name || '').toLowerCase().includes(term));
     }
     this.renderFilterList();
   }
 
   renderFilterList() {
+    const allIds = [...this.filteredUsers.map(u => u.id), ...this.filteredGroups.map(g => g.id)];
     this.selectAllCheckbox.checked =
-      this.filteredValues.length > 0 &&
-      this.filteredValues.every(v => this.selectedValues.includes(v));
+      allIds.length > 0 &&
+      allIds.every(id => this.selectedUsers.includes(id) || this.selectedGroups.includes(id));
 
-    this.filterList.innerHTML = this.filteredValues.map((rawValue) => {
-      const idx = this.allValues.indexOf(rawValue);
-      const formattedValue = this.formattedValues[idx] || rawValue;
-      const checked = this.selectedValues.includes(rawValue) ? 'checked' : '';
-      const info = this.userInfo[rawValue] || { name: formattedValue, photo: '' };
-      const name = info.name || formattedValue;
-      const photo = info.photo;
-      const initial = name ? name.trim().charAt(0).toUpperCase() : '';
-      const avatar = photo
-        ? `<img src="${photo}" alt="" />`
-        : `<span class="user-initial">${initial}</span>`;
-      return `
-        <label class="filter-item${this.selectedValues.includes(rawValue) ? ' selected' : ''}">
-          <input type="checkbox" value="${rawValue}" ${checked} />
-          <span class="user-option">
-            <span class="avatar-outer"><span class="avatar-middle"><span class="user-avatar">${avatar}</span></span></span>
-            <span class="filter-label">${name}</span>
-          </span>
-        </label>
-      `;
-    }).join('');
+    let html = '';
+
+    if (this.filteredGroups.length) {
+      html += `<div class="filter-section"><div class="section-label">Groups</div>` +
+        this.filteredGroups.map(g => {
+          const checked = this.selectedGroups.includes(g.id) ? 'checked' : '';
+          const avatar = `<span style="font-size:19px;" class="material-symbols-outlined user-selector__group-icon">groups</span>`;
+          return `
+            <label class="filter-item${checked ? ' selected' : ''}">
+              <input type="checkbox" data-type="group" value="${g.id}" ${checked} />
+              <span class="user-option">
+                <span class="avatar-outer"><span class="avatar-middle"><span class="user-avatar">${avatar}</span></span></span>
+                <span class="filter-label">${g.name}</span>
+              </span>
+            </label>
+          `;
+        }).join('') + `</div>`;
+    }
+
+    if (this.filteredUsers.length) {
+      html += `<div class="filter-section"><div class="section-label">Responsibles</div>` +
+        this.filteredUsers.map(u => {
+          const checked = this.selectedUsers.includes(u.id) ? 'checked' : '';
+          const initial = u.name ? u.name.trim().charAt(0).toUpperCase() : '';
+          const avatar = u.photo
+            ? `<img src="${u.photo}" alt="" />`
+            : `<span class="user-initial">${initial}</span>`;
+          return `
+            <label class="filter-item${checked ? ' selected' : ''}">
+              <input type="checkbox" data-type="user" value="${u.id}" ${checked} />
+              <span class="user-option">
+                <span class="avatar-outer"><span class="avatar-middle"><span class="user-avatar">${avatar}</span></span></span>
+                <span class="filter-label">${u.name}</span>
+              </span>
+            </label>
+          `;
+        }).join('') + `</div>`;
+    }
+
+    this.filterList.innerHTML = html;
 
     this.filterList.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
       checkbox.addEventListener('change', (e) => {
-        const value = e.target.value;
+        const id = e.target.value;
+        const type = e.target.getAttribute('data-type');
         if (e.target.checked) {
-          if (!this.selectedValues.includes(value)) {
-            this.selectedValues.push(value);
+          if (type === 'user') {
+            if (!this.selectedUsers.includes(id)) this.selectedUsers.push(id);
+          } else {
+            if (!this.selectedGroups.includes(id)) this.selectedGroups.push(id);
           }
         } else {
-          this.selectedValues = this.selectedValues.filter(v => v !== value);
+          if (type === 'user') {
+            this.selectedUsers = this.selectedUsers.filter(v => v !== id);
+          } else {
+            this.selectedGroups = this.selectedGroups.filter(v => v !== id);
+          }
         }
+        const ids = [...this.filteredUsers.map(u => u.id), ...this.filteredGroups.map(g => g.id)];
         this.selectAllCheckbox.checked =
-          this.filteredValues.length > 0 &&
-          this.filteredValues.every(v => this.selectedValues.includes(v));
+          ids.length > 0 && ids.every(v => this.selectedUsers.includes(v) || this.selectedGroups.includes(v));
         this.applyFilter();
       });
     });
@@ -234,40 +295,52 @@ export default class ResponsibleUserFilterRenderer {
   }
 
   clearFilter() {
-    this.selectedValues = [];
+    this.selectedUsers = [];
+    this.selectedGroups = [];
     this.searchText = '';
-    this.searchInput.value = '';
-    this.filteredValues = [...this.allValues];
-    this.renderFilterList();
+    if (this.searchInput) this.searchInput.value = '';
+    this.filterValues();
     this.params.filterChangedCallback();
   }
 
   isFilterActive() {
-    return this.selectedValues.length > 0;
+    return this.selectedUsers.length > 0 || this.selectedGroups.length > 0;
   }
 
   doesFilterPass(params) {
-    if (this.selectedValues.length === 0) return true;
+    if (!this.isFilterActive()) return true;
     const field = this.params.column.getColDef().field || this.params.column.getColId();
     const value = this.getNestedValue(params.data, field);
-    return this.selectedValues.includes(value);
+    const allowed = new Set();
+    this.selectedUsers.forEach(uid => {
+      allowed.add(String(uid));
+      (this.userToGroups[uid] || []).forEach(gid => allowed.add(String(gid)));
+    });
+    this.selectedGroups.forEach(gid => {
+      allowed.add(String(gid));
+      (this.groupToUsers[gid] || []).forEach(uid => allowed.add(String(uid)));
+    });
+    return allowed.has(String(value));
   }
 
   getModel() {
-    if (this.selectedValues.length === 0) return null;
-    return {
-      type: 'list',
-      values: this.selectedValues
-    };
+    if (!this.isFilterActive()) return null;
+    return { users: this.selectedUsers, groups: this.selectedGroups };
   }
 
   setModel(model) {
-    if (model && model.values) {
-      this.selectedValues = model.values;
+    if (model) {
+      this.selectedUsers = Array.isArray(model.users) ? [...model.users] : [];
+      this.selectedGroups = Array.isArray(model.groups) ? [...model.groups] : [];
     } else {
-      this.selectedValues = [];
+      this.selectedUsers = [];
+      this.selectedGroups = [];
     }
     this.renderFilterList();
+  }
+
+  getNestedValue(obj, path) {
+    return path.split('.').reduce((o, p) => (o && o[p] !== undefined ? o[p] : undefined), obj);
   }
 
   getGui() {
@@ -275,7 +348,7 @@ export default class ResponsibleUserFilterRenderer {
   }
 
   onNewRowsLoaded() {
-    this.loadValues();
     this.filterValues();
   }
-} 
+}
+
