@@ -26,14 +26,20 @@ export default class ResponsibleUserCellEditor {
     // Normalização das opções (mantém chaves extras intactas)
     const normalize = (opt) => {
       if (typeof opt === 'object') {
-        const findKey = key => Object.keys(opt).find(k => k.toLowerCase() === key);
-        const labelKey = findKey('label') || findKey('name');
-        const valueKey = findKey('value') || findKey('id');
-        return {
+        const findKey = keys =>
+          Object.keys(opt).find(k => keys.includes(k.toLowerCase()));
+        const labelKey = findKey(['label', 'name', 'displayname', 'display_name']);
+        const valueKey = findKey(['value', 'id', 'userid', 'user_id']);
+        const groupUsersKey = findKey(['groupusers', 'group_users']);
+        const normalized = {
           ...opt,
           value: valueKey ? opt[valueKey] : opt.value,
           label: labelKey ? opt[labelKey] : opt.label || opt.name
         };
+        if (groupUsersKey && Array.isArray(opt[groupUsersKey])) {
+          normalized.groupUsers = opt[groupUsersKey].map(normalize);
+        }
+        return normalized;
       }
       return { value: opt, label: String(opt) };
     };
