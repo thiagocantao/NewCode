@@ -1,23 +1,23 @@
 <template>
     <div class="ww-datagrid" :class="{ editing: isEditing }" :style="cssVars">
-      <ag-grid-vue :key="componentKey" ref="agGridRef" :rowData="rowData" :columnDefs="finalColumnDefs" :defaultColDef="defaultColDef"
+      <ag-grid-vue ref="agGridRef" :rowData="rowData" :columnDefs="finalColumnDefs" :defaultColDef="defaultColDef"
         :domLayout="content.layout === 'auto' ? 'autoHeight' : 'normal'" :style="style" :rowSelection="rowSelection"
         :suppressMovableColumns="!content.movableColumns" :alwaysShowHorizontalScroll="false"
         :suppressColumnMoveAnimation="true" :suppressDragLeaveHidesColumns="true" :maintainColumnOrder="true"
         :getMainMenuItems="getMainMenuItems" :isColumnMovable="isColumnMovable" :theme="theme" :getRowId="getRowId"
         :pagination="content.pagination" :paginationPageSize="content.paginationPageSize || 10"
         :paginationPageSizeSelector="false" :columnHoverHighlight="content.columnHoverHighlight" :locale-text="localeText"
-        :components="editorComponents"
+        :components="gridComponents"
         :singleClickEdit="true" @grid-ready="onGridReady" @row-selected="onRowSelected"
         @selection-changed="onSelectionChanged" @cell-value-changed="onCellValueChanged" @filter-changed="onFilterChanged"
-        @sort-changed="onSortChanged" @column-moved="onColumnMoved" @row-clicked="onRowClicked" @first-data-rendered="onFirstDataRendered"
-        @cell-clicked="onCellClicked">
-      </ag-grid-vue>
-    </div>
+        @sort-changed="onSortChanged" @row-clicked="onRowClicked" @first-data-rendered="onFirstDataRendered"
+        @cell-clicked="onCellClicked">  
+      </ag-grid-vue> 
+    </div> 
 </template>
-  
+
 <script>
-  import { shallowRef, computed, ref, onMounted, onUnmounted, watch, h } from "vue";
+  import { shallowRef, watchEffect, computed, ref, onMounted, onUnmounted, watch, h } from "vue";
   import { AgGridVue } from "ag-grid-vue3";
   import {
   AllCommunityModule,
@@ -37,10 +37,10 @@
   import FormatterCellRenderer from "./components/FormatterCellRenderer.vue";
   import UserCellRenderer from "./components/UserCellRenderer.vue";
   import ListFilterRenderer from "./components/ListFilterRenderer.js";
-  import ResponsibleUserFilterRenderer from "./components/ResponsibleUserFilterRenderer.js";
   import DateTimeCellEditor from "./components/DateTimeCellEditor.js";
   import FixedListCellEditor from "./components/FixedListCellEditor.js";
   import ResponsibleUserCellEditor from "./components/ResponsibleUserCellEditor.js";
+  import ResponsibleUserCellRenderer from "./components/ResponsibleUserCellRenderer.js";
   // Editor customizado inline para listas
   class ListCellEditor {
     init(params) {
@@ -64,46 +64,31 @@
       this.listEl = this.eGui.querySelector('.filter-list');
       this.closeBtn = this.eGui.querySelector('.editor-close');
 
-      // Build option array (supports promises)
-      const normalize = opt =>
-        typeof opt === 'object' ? opt : { value: opt, label: String(opt) };
-
-      const resolveOptions = arr => {
-        this.options = (arr || []).map(normalize);
-        this.filteredOptions = [...this.options];
-        this.renderOptions();
-      };
-
-      let optionsPromise;
-      if (params.options && typeof params.options.then === 'function') {
-        optionsPromise = params.options;
-      } else if (Array.isArray(params.options)) {
-        optionsPromise = Promise.resolve(params.options);
+      let optionsArr = [];
+      if (Array.isArray(params.options)) {
+        optionsArr = params.options;
       } else if (Array.isArray(params.colDef.options)) {
-        optionsPromise = Promise.resolve(params.colDef.options);
+        optionsArr = params.colDef.options;
       } else if (Array.isArray(params.colDef.listOptions)) {
-        optionsPromise = Promise.resolve(params.colDef.listOptions);
+        optionsArr = params.colDef.listOptions;
       } else if (
         typeof params.colDef.listOptions === 'string' &&
         params.colDef.listOptions.trim() !== ''
       ) {
-        optionsPromise = Promise.resolve(
-          params.colDef.listOptions.split(',').map(o => o.trim())
-        );
+        optionsArr = params.colDef.listOptions.split(',').map(o => o.trim());
       } else if (
         params.colDef.dataSource &&
         typeof params.colDef.dataSource.list_options === 'string' &&
         params.colDef.dataSource.list_options.trim() !== ''
       ) {
-        optionsPromise = Promise.resolve(
-          params.colDef.dataSource.list_options.split(',').map(o => o.trim())
-        );
-      } else {
-        optionsPromise = Promise.resolve([]);
+        optionsArr = params.colDef.dataSource.list_options
+          .split(',')
+          .map(o => o.trim());
       }
-
-      optionsPromise.then(resolveOptions);
-
+      this.options = optionsArr.map(opt =>
+        typeof opt === 'object' ? opt : { value: opt, label: String(opt) }
+      );
+      this.filteredOptions = [...this.options];
       this.value = params.value;
 
       this.searchInput.addEventListener('input', e => {
@@ -119,6 +104,8 @@
           }
         });
       }
+
+      this.renderOptions();
     }
     filterOptions(text) {
       const t = text.toLowerCase();
@@ -232,8 +219,8 @@
   UserCellRenderer,
   ListCellEditor, // registrar editor customizado
   FixedListCellEditor,
-  ResponsibleUserCellEditor,
   DateTimeCellEditor,
+  ResponsibleUserCellEditor,
   },
   props: {
   content: {
@@ -255,8 +242,6 @@
   const gridApi = shallowRef(null);
   const columnApi = shallowRef(null);
   const agGridRef = ref(null);
- 
-
   const { value: selectedRows, setValue: setSelectedRows } =
   wwLib.wwVariable.useComponentVariable({
   uid: props.uid,
@@ -281,7 +266,7 @@
   defaultValue: {},
   readonly: true,
   });
-  const { value: columnsPositionValue, setValue: setColumnsPosition } = wwLib.wwVariable.useComponentVariable({
+  const { setValue: setColumnsPosition } = wwLib.wwVariable.useComponentVariable({
   uid: props.uid,
   name: "columnsPosition",
   type: "array",
@@ -297,147 +282,19 @@
   });
 
   const columnOptions = ref({});
-  const componentKey = ref(0);
-
-  const GLOBAL_OPTIONS_KEY = '__all__';
-  function usesTicketId(col) {
-    const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
-    const identifier = (col.FieldDB || '').toUpperCase();
-    if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') return false;
-    return col?.dataSource?.useTicketId === true;
-    }
-  function getOptionsCacheKey(col, ticketId) {
-    return usesTicketId(col) && ticketId != null ? String(ticketId) : GLOBAL_OPTIONS_KEY;
-  }
-
-// Flag para aplicar sort externo (WW variable) no próximo mount
-const forceExternalSortNextMount = ref(false);
-
-// Normaliza o Sort vindo da variável WW para o formato do AG Grid
-function getExternalSortFromWW() {
-  try {
-    const raw = window.wwLib?.wwVariable?.getValue('74a13796-f64f-47d6-8e5f-4fb4700fd94b');
-    const sortArr = Array.isArray(raw) ? raw?.[0]?.Sort : raw?.Sort ?? raw?.[0]?.Sort;
-    if (!Array.isArray(sortArr)) return [];
-    // sortArr esperado: [{ id: 'ColId', isASC: true/false }, ...]
-    return sortArr
-      .filter(s => s && s.id)
-      .map((s, idx) => ({
-        colId: String(s.id),
-        sort: s.isASC ? 'asc' : 'desc',
-        sortIndex: idx
-      }));
-  } catch {
-    return [];
-  }
-}
-
-/**
- * Aplica a ordenação externa (WW variable) na grid e sincroniza variável local `sort`.
- * - Atualiza columnState (applyColumnState)
- * - Atualiza sortModel (setSortModel) para refletir no header e eventos
- * - Atualiza variável local `sort` (setSort) no formato do getState().sort.sortModel
- * - Persiste no localStorage via saveGridState()
- */
-function applyExternalSortAndSync() {
-  if (!gridApi.value || !columnApi.value) return;
-  const external = getExternalSortFromWW();
-  if (!external.length) return;
-
-  // 1) Aplicar columnState de sort (reseta sort nas demais colunas)
-  columnApi.value.applyColumnState({
-    state: external.map(e => ({ colId: e.colId, sort: e.sort, sortIndex: e.sortIndex })),
-    defaultState: { sort: null },
-    applyOrder: false
-  });
-
-  // 2) Aplicar sortModel (garante sincronismo visual/eventos)
-  const sortModel = external.map(e => ({ colId: e.colId, sort: e.sort }));
-  gridApi.value.setSortModel(sortModel);
-
-  // 3) Atualizar variável local `sort`
-  setSort(sortModel);
-
-  // 4) Persistir
-  saveGridState();
-}
-
-
-const remountComponent = () => {
-  gridApi.value = null;
-  columnApi.value = null;
-  // Força reaplicar a ordenação externa no próximo ciclo
-  forceExternalSortNextMount.value = true;
-
-  componentKey.value++;
-  // Não chame updateColumnsPosition/Sort aqui; eles dependem do grid já montado
-};
-
-  // ===================== Persistência de estado =====================
-  const storageKey = `GridViewDinamicaState_${props.uid}`;
-
-  function saveGridState() {
-    if (!gridApi.value || !columnApi.value) return;
-    try {
-      const state = {
-        filterModel: gridApi.value.getFilterModel(),
-        columnState: columnApi.value.getColumnState(),
-      };
-      localStorage.setItem(storageKey, JSON.stringify(state));
-    } catch (e) {
-      console.warn('Failed to save grid state', e);
-    }
-  }
-
-  function restoreGridState() {
-    if (!gridApi.value || !columnApi.value) return;
-    try {
-      const raw = localStorage.getItem(storageKey);
-      if (!raw) return;
-      const state = JSON.parse(raw);
-      if (state.columnState && Array.isArray(state.columnState) && state.columnState.length) {
-        columnApi.value.applyColumnState({ state: state.columnState, applyOrder: true });
-      }
-      if (state.filterModel && typeof state.filterModel === 'object') {
-        gridApi.value.setFilterModel(state.filterModel);
-      }
-    } catch (e) {
-      console.warn('Failed to restore grid state', e);
-    }
-  }
-
-  function clearSavedGridState() {
-    try {
-      localStorage.removeItem(storageKey);
-    } catch {}
-    if (columnApi.value) columnApi.value.resetColumnState();
-    if (gridApi.value) gridApi.value.setFilterModel(null);
-  }
-  // ================================================================
+  let responsibleUserCache = null;
 
   const parseStaticOptions = (opts) => {
-    const normalize = (opt) => {
-      if (typeof opt === 'object') {
-        const findKey = key => Object.keys(opt).find(k => k.toLowerCase() === key);
-        const labelKey = findKey('label') || findKey('name');
-        const valueKey = findKey('value') || findKey('id');
-        return {
-          ...opt,
-          value: valueKey ? opt[valueKey] : opt.value,
-          label: labelKey ? opt[labelKey] : opt.label || opt.name,
-        };
-      }
-      const str = String(opt);
-      return { value: str, label: str };
-    };
     if (Array.isArray(opts)) {
-      return opts.map(normalize);
+      return opts.map(opt => (typeof opt === 'object' ? opt : { value: opt, label: String(opt) }));
     }
     if (typeof opts === 'string' && opts.trim() !== '') {
-      return opts.split(',').map(o => {
-        const trimmed = o.trim();
-        return { value: trimmed, label: trimmed };
-      });
+      return opts
+        .split(',')
+        .map(o => {
+          const trimmed = o.trim();
+          return { value: trimmed, label: trimmed };
+        });
     }
     return [];
   };
@@ -449,7 +306,7 @@ const remountComponent = () => {
       const apiUrl = window.wwLib?.wwVariable?.getValue('1195995b-34c3-42a5-b436-693f0f4f8825');
       const apiKey = window.wwLib?.wwVariable?.getValue('d180be98-8926-47a7-b7f1-6375fbb95fa3');
       const apiAuth = window.wwLib?.wwVariable?.getValue('dfcde09f-42f3-4b5c-b2e8-4314650655db');
- const isResponsible = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase() == "RESPONSIBLEUSERID";
+
       const ds = col.dataSource?.dataSource || col.dataSource;
       if (!apiUrl || !ds?.functionName) return [];
 
@@ -499,7 +356,6 @@ const remountComponent = () => {
   const loadResponsibleUserOptions = async () => {
     try {
       const lang = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
-      const loggeduserid = window?.wwLib?.wwVariable?.getValue?.('fc54ab80-1a04-4cfe-a504-793bdcfce5dd');
       const companyId = window.wwLib?.wwVariable?.getValue('5d099f04-cd42-41fd-94ad-22d4de368c3a');
       const apiUrl = window.wwLib?.wwVariable?.getValue('1195995b-34c3-42a5-b436-693f0f4f8825');
       const apiKey = window.wwLib?.wwVariable?.getValue('d180be98-8926-47a7-b7f1-6375fbb95fa3');
@@ -511,7 +367,6 @@ const remountComponent = () => {
         body: JSON.stringify({
           ...(companyId ? { p_idcompany: companyId } : {}),
           ...(lang ? { p_language: lang } : {}),
-          ...(loggeduserid ? { p_loggeduserid: loggeduserid } : {}),
         }),
       };
       if (apiKey) fetchOptions.headers['apikey'] = apiKey;
@@ -533,9 +388,7 @@ const remountComponent = () => {
     }
   };
 
-  let responsibleUserCache = null;
-
-  async function getColumnOptions(col, ticketId) {
+  const getColumnOptions = async (col, ticketId) => {
     const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
     const identifier = (col.FieldDB || '').toUpperCase();
     if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
@@ -556,91 +409,38 @@ const remountComponent = () => {
 
     const hasFn = col.dataSource?.functionName || col.dataSource?.dataSource?.functionName;
     if (!opts.length && hasFn) {
-      const useTicket = usesTicketId(col);
-      opts = await loadApiOptions(col, useTicket ? ticketId : undefined);
+      opts = await loadApiOptions(col, ticketId);
     }
 
     return opts;
-  }
+  };
 
   const loadAllColumnOptions = async () => {
     if (!props.content || !Array.isArray(props.content.columns)) return;
     const rows = wwLib.wwUtils.getDataFromCollection(props.content.rowData) || [];
     const result = {};
-    const promises = [];
     for (const col of props.content.columns) {
-      const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
-      const identifier = (col.FieldDB || '').toUpperCase();
-      const isResponsible = tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
-      if (!isResponsible) continue;
       const colId = col.id || col.field;
       result[colId] = {};
       for (const row of rows) {
         const ticketId = row?.TicketID;
-        const cacheKey = getOptionsCacheKey(col, ticketId);
-        if (result[colId][cacheKey]) continue;
-        const p = getColumnOptions(col, usesTicketId(col) ? ticketId : undefined).then(opts => {
-          result[colId][cacheKey] = opts;
-        });
-        promises.push(p);
+        result[colId][ticketId] = await getColumnOptions(col, ticketId);
       }
     }
-    await Promise.all(promises);
     columnOptions.value = result;
   };
 
-  // Reaplica a ordem das colunas baseada na propriedade PositionInGrid
-  const applyColumnOrderFromPosition = () => {
-    if (!columnApi.value || !props.content || !Array.isArray(props.content.columns)) return;
-    const ordered = [...props.content.columns].sort((a, b) => {
-      const aPos = a.PositionInGrid ?? a.positionInGrid ?? a.PositionField ?? 0;
-      const bPos = b.PositionInGrid ?? b.positionInGrid ?? b.PositionField ?? 0;
-      return aPos - bPos;
-    });
-    const state = ordered
-      .map((col, idx) => ({ colId: col.id || col.field, order: idx }))
-      .filter(s => s.colId);
-    if (state.length) {
-      columnApi.value.applyColumnState({ state, applyOrder: true });
-      // Atualiza variáveis e persiste nova ordem
-      updateColumnsPosition();
-    }
-  };
-
-  // Listener de unload para salvar estado (opcional, robustez extra)
-  let beforeUnloadHandler = null;
-
   onMounted(() => {
     loadAllColumnOptions();
-
-    beforeUnloadHandler = () => saveGridState();
-    window.addEventListener('beforeunload', beforeUnloadHandler);
   });
 
   watch(() => props.content?.columns, () => {
     loadAllColumnOptions();
-    applyColumnOrderFromPosition();
-    // Se estamos num ciclo de remount que deve respeitar a WW variable, reaplique
-setTimeout(() => {
-  if (forceExternalSortNextMount.value) {
-    applyExternalSortAndSync();
-  }
-}, 0);
   }, { deep: true });
 
   watch(() => props.content?.rowData, () => {
     loadAllColumnOptions();
-    applyColumnOrderFromPosition();
-    // Se estamos num ciclo de remount que deve respeitar a WW variable, reaplique
-setTimeout(() => {
-  if (forceExternalSortNextMount.value) {
-    applyExternalSortAndSync();
-  }
-}, 0);
   }, { deep: true });
-
-
-
 
   // Interval para atualizar células DEADLINE
   let deadlineTimer = null;
@@ -650,24 +450,11 @@ setTimeout(() => {
       clearInterval(deadlineTimer);
       deadlineTimer = null;
     }
-    // Salva estado ao desmontar (garante persistência ao navegar)
-    saveGridState();
-    if (beforeUnloadHandler) {
-      window.removeEventListener('beforeunload', beforeUnloadHandler);
-      beforeUnloadHandler = null;
-    }
   });
   
     const onGridReady = (params) => {
       gridApi.value = params.api;
       columnApi.value = params.columnApi;
-
-      // Restaura imediatamente e também em pequenos delays
-      restoreGridState();
-      setTimeout(restoreGridState, 0);
-      setTimeout(restoreGridState, 150);
-
-
 
       // LOG: Tenta mostrar as colunas disponíveis e seus renderers
       if (typeof params.api.getAllColumns === 'function') {
@@ -688,14 +475,7 @@ setTimeout(() => {
 
       updateColumnsPosition();
       updateColumnsSort();
-
-      // Persistir estado em todos eventos relevantes
-      params.api.addEventListener('filterChanged', saveGridState);
-      params.api.addEventListener('sortChanged', saveGridState);
-      params.api.addEventListener('columnPinned', saveGridState);
-      params.api.addEventListener('columnVisible', saveGridState);
-      params.api.addEventListener('columnResized', saveGridState);
-      params.api.addEventListener('columnEverythingChanged', saveGridState);
+      params.api.addEventListener('columnMoved', updateColumnsPosition);
 
     // Impedir mover colunas para posição de pinned
     params.api.addEventListener('columnMoved', (event) => {
@@ -748,6 +528,7 @@ setTimeout(() => {
       // Múltiplas tentativas para garantir que funcione
       setTimeout(() => forceSelectionColumnFirst(), 50);
       setTimeout(() => forceSelectionColumnFirst(), 200);
+      setTimeout(() => forceSelectionColumnFirst(), 500);
       
       // Observer para detectar mudanças no DOM e reposicionar automaticamente
       setTimeout(() => {
@@ -895,26 +676,18 @@ setTimeout(() => {
     }
   };
   
-  watch(
-    [() => props.content.initialFilters, () => gridApi.value],
-    ([filters]) => {
-      if (!gridApi.value) return;
-      gridApi.value.setFilterModel(filters || null);
-    },
-    { deep: true, immediate: true }
-  );
-
-  watch(
-    [() => props.content.initialSort, () => gridApi.value],
-    ([sort]) => {
-      if (!gridApi.value) return;
-      gridApi.value.applyColumnState({
-        state: sort || [],
-        defaultState: { sort: null },
-      });
-    },
-    { deep: true, immediate: true }
-  );
+  watchEffect(() => {
+  if (!gridApi.value) return;
+  if (props.content.initialFilters) {
+  gridApi.value.setFilterModel(props.content.initialFilters);
+  }
+  if (props.content.initialSort) {
+  gridApi.value.applyColumnState({
+  state: props.content.initialSort || [],
+  defaultState: { sort: null },
+  });
+  }
+  });
   
   const onRowSelected = (event) => {
   const name = event.node.isSelected() ? "rowSelected" : "rowDeselected";
@@ -943,7 +716,6 @@ setTimeout(() => {
   event: filterModel,
   });
   }
-  saveGridState();
   };
   
   const onSortChanged = (event) => {
@@ -960,24 +732,23 @@ setTimeout(() => {
   });
   }
   updateColumnsSort();
-  saveGridState();
   };
-
-  const onColumnMoved = (event) => {
-  if (!gridApi.value || !event?.finished) return;
-  const prev = JSON.stringify(columnsPositionValue.value || []);
-  updateColumnsPosition();
-  const current = JSON.stringify(columnsPositionValue.value || []);
-  if (prev !== current) {
-  ctx.emit("trigger-event", {
-  name: "columnMoved",
-  event: columnsPositionValue.value,
-  });
-  }
-  };
-
+  
   /* wwEditor:start */
-  const { createElement } = wwLib.wwElement.useCreate();
+  const { createElement } = wwLib.useCreateElement();
+
+  const gridComponents = {
+    ActionCellRenderer,
+    ImageCellRenderer,
+    WewebCellRenderer,
+    FormatterCellRenderer,
+    UserCellRenderer,
+    ListCellEditor,
+    FixedListCellEditor,
+    DateTimeCellEditor,
+    ResponsibleUserCellEditor,
+    ResponsibleUserCellRenderer,
+  };
   /* wwEditor:end */
   
   function updateColumnsPosition() {
@@ -989,7 +760,6 @@ setTimeout(() => {
   IsDeleted: false
   })).filter(col => col.FieldID);
   setColumnsPosition(positions);
-  saveGridState();
   }
   
   function updateColumnsSort() {
@@ -1007,20 +777,6 @@ setTimeout(() => {
       updateColumnsPosition();
       updateColumnsSort();
       
-      // Reaplica o estado salvo após o primeiro render (garante consistência)
-      setTimeout(() => {
-        restoreGridState();
-      }, 0);
-
-      // Garantia extra: se ainda não aplicou, faça aqui também
-setTimeout(() => {
-  if (forceExternalSortNextMount.value) {
-    applyExternalSortAndSync();
-    forceExternalSortNextMount.value = false;
-  }
-}, 0);
-
-
       // Garantir que a coluna de seleção esteja na primeira posição
       if (props.content.rowSelection === 'multiple' && !props.content.disableCheckboxes) {
         // Múltiplas tentativas para garantir que funcione
@@ -1054,16 +810,9 @@ setTimeout(() => {
       gridApi,
       onFilterChanged,
       onSortChanged,
-      onColumnMoved,
       forceSelectionColumnFirst,
       forceSelectionColumnFirstDOM,
       columnOptions,
-      getColumnOptions,
-      getOptionsCacheKey,
-      usesTicketId,
-      componentKey,
-      remountComponent,
-      clearSavedGridState,
       localeText: computed(() => {
         let lang = 'en-US';
         try {
@@ -1094,12 +843,8 @@ setTimeout(() => {
       createElement,
       /* wwEditor:end */
       onFirstDataRendered,
-      editorComponents: {
-        ListCellEditor,
-        FixedListCellEditor,
-        ResponsibleUserCellEditor,
-        DateTimeCellEditor,
-      },
+      gridComponents,
+
     };
   },
     computed: {
@@ -1141,7 +886,6 @@ setTimeout(() => {
 
       return orderedColumns.map((col) => {
         const colCopy = { ...col };
-        const colId = colCopy.id || colCopy.field;
         // Forçar configuração correta para a coluna Deadline        
 
         if (colCopy.field === 'Deadline') {
@@ -1181,69 +925,65 @@ setTimeout(() => {
           ...(colCopy.pinned === 'left' ? { lockPinned: true, lockPosition: true } : {}),
         };
 
-const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
-              const identifier = (colCopy.FieldDB || '').toUpperCase();
+        const fieldKey = colCopy.id || colCopy.field;
+        const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
+        const identifier = (colCopy.FieldDB || '').toUpperCase();
+        const getDsOptions = params => {
+          const ticketId = params.data?.TicketID;
+          const colOpts = this.columnOptions[fieldKey] || {};
+          return colOpts[ticketId] || [];
+        };
 
         // Se o filtro for agListColumnFilter, usar o filtro customizado
         if (colCopy.filter === 'agListColumnFilter') {
-          const isResponsible = tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
           const result = {
             ...commonProperties,
-            id: colId,
-            colId,
+            id: colCopy.id,
+            colId: colCopy.id,
             headerName: colCopy.headerName,
             field: colCopy.field,
             sortable: colCopy.sortable,
-            filter: isResponsible ? ResponsibleUserFilterRenderer : ListFilterRenderer,
-            cellRenderer: isResponsible ? 'UserCellRenderer' : 'FormatterCellRenderer',
+            filter: ListFilterRenderer,
+            cellRenderer: (tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID')
+              ? 'ResponsibleUserCellRenderer'
+              : 'FormatterCellRenderer',
             cellRendererParams: {
               useCustomFormatter: colCopy.useCustomFormatter,
               formatter: colCopy.formatter,
               // options will be added below when available
             }
           };
-          const fieldKey = colCopy.id || colCopy.field;
-          const useTicket = this.usesTicketId(colCopy);
-          const getDsOptionsSync = params => {
-            const ticketId = params.data?.TicketID;
-            const key = this.getOptionsCacheKey(colCopy, ticketId);
-            const colOpts = this.columnOptions[fieldKey] || {};
-            const cached = colOpts[key];
-            if (cached) return cached;
-            if (tagControl === 'RESPONSIBLEUSERID') {
-              this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
-                if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
-                this.columnOptions[fieldKey][key] = opts;
-                params.api?.refreshCells?.({ columns: [fieldKey], force: true });
-              });
+          const isResponsible = tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
+          const optionsArr = Array.isArray(colCopy.options)
+            ? colCopy.options
+            : Array.isArray(colCopy.listOptions)
+              ? colCopy.listOptions
+              : null;
+          if (isResponsible) {
+            if (colCopy.editable) {
+              result.editable = true;
+              if (optionsArr && optionsArr.length) {
+                result.cellEditor = ResponsibleUserCellEditor;
+                result.cellEditorParams = { options: optionsArr };
+              } else {
+                result.cellEditor = ResponsibleUserCellEditor;
+                result.cellEditorParams = params => ({ options: getDsOptions(params) });
+              }
             }
-            return [];
-          };
-          const getDsOptionsAsync = params => {
-            const ticketId = params.data?.TicketID;
-            const key = this.getOptionsCacheKey(colCopy, ticketId);
-            const colOpts = this.columnOptions[fieldKey] || {};
-            const cached = colOpts[key];
-            if (cached) return Promise.resolve(cached);
-            return this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
-              if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
-              this.columnOptions[fieldKey][key] = opts;
-              params.api?.refreshCells?.({ columns: [fieldKey], force: true });
-              return opts;
+            const baseRendererParams = result.cellRendererParams;
+            result.cellRendererParams = params => ({
+              ...(typeof baseRendererParams === 'function'
+                ? baseRendererParams(params)
+                : baseRendererParams),
+              options: optionsArr || getDsOptions(params),
             });
-          };
-
+            return result;
+          }
+          // getDsOptions already defined above
           if (
             colCopy.cellDataType === 'list' ||
             (tagControl && tagControl.toUpperCase() === 'LIST')
           ) {
-            const optionsArr = Array.isArray(colCopy.options)
-              ? parseStaticOptions(colCopy.options)
-              : Array.isArray(colCopy.listOptions)
-              ? parseStaticOptions(colCopy.listOptions)
-              : (colCopy.useStyleArray && Array.isArray(this.content.cellStyleArray))
-              ? this.content.cellStyleArray.map(opt => ({ value: opt.Valor, label: opt.Valor }))
-              : null;
             if (colCopy.editable) {
               result.editable = true;
               if (optionsArr && optionsArr.length) {
@@ -1258,13 +998,13 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                 });
               } else {
                 result.cellEditor = tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor : FixedListCellEditor;
-                result.cellEditorParams = params => ({ options: getDsOptionsAsync(params) });
+                result.cellEditorParams = params => ({ options: getDsOptions(params) });
                 const baseRendererParams = result.cellRendererParams;
                 result.cellRendererParams = params => ({
                   ...(typeof baseRendererParams === 'function'
                     ? baseRendererParams(params)
                     : baseRendererParams),
-                  options: getDsOptionsSync(params),
+                  options: getDsOptions(params),
                 });
               }
             } else {
@@ -1273,20 +1013,20 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                 ...(typeof baseRendererParams === 'function'
                   ? baseRendererParams(params)
                   : baseRendererParams),
-                options: optionsArr || getDsOptionsSync(params),
+                options: optionsArr || getDsOptions(params),
               });
             }
           }
           if (colCopy.dataSource && colCopy.editable) {
             result.editable = true;
             result.cellEditor = tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor : FixedListCellEditor;
-            result.cellEditorParams = params => ({ options: getDsOptionsAsync(params) });
+            result.cellEditorParams = params => ({ options: getDsOptions(params) });
             const baseRendererParams = result.cellRendererParams;
             result.cellRendererParams = params => ({
               ...(typeof baseRendererParams === 'function'
                 ? baseRendererParams(params)
                 : baseRendererParams),
-              options: getDsOptionsSync(params),
+              options: getDsOptions(params),
             });
           }
           return result;
@@ -1296,8 +1036,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           case "action": {
             return {
               ...commonProperties,
-              id: colId,
-              colId,
+              id: colCopy.id,
+              colId: colCopy.id,
               headerName: colCopy.headerName,
               cellRenderer: "ActionCellRenderer",
               cellRendererParams: {
@@ -1313,8 +1053,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           case "custom":
             return {
               ...commonProperties,
-              id: colId,
-              colId,
+              id: colCopy.id,
+              colId: colCopy.id,
               headerName: colCopy.headerName,
               field: colCopy.field,
               cellRenderer: "WewebCellRenderer",
@@ -1327,8 +1067,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           case "image": {
             return {
               ...commonProperties,
-              id: colId,
-              colId,
+              id: colCopy.id,
+              colId: colCopy.id,
               headerName: colCopy.headerName,
               field: colCopy.field,
               cellRenderer: "ImageCellRenderer",
@@ -1340,33 +1080,10 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           }
           case "list":
             {
-              const fieldKey = colCopy.id || colCopy.field;
-              const useTicket = this.usesTicketId(colCopy);
-              const getDsOptionsSync = params => {
+              const getDsOptions = params => {
                 const ticketId = params.data?.TicketID;
-                const key = this.getOptionsCacheKey(colCopy, ticketId);
                 const colOpts = this.columnOptions[fieldKey] || {};
-                const cached = colOpts[key];
-                if (cached) return cached;
-                this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
-                  if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
-                  this.columnOptions[fieldKey][key] = opts;
-                  params.api?.refreshCells?.({ force: true });
-                });
-                return [];
-              };
-              const getDsOptionsAsync = params => {
-                const ticketId = params.data?.TicketID;
-                const key = this.getOptionsCacheKey(colCopy, ticketId);
-                const colOpts = this.columnOptions[fieldKey] || {};
-                const cached = colOpts[key];
-                if (cached) return Promise.resolve(cached);
-                return this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
-
-                  if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
-                  this.columnOptions[fieldKey][key] = opts;
-                  return opts;
-                });
+                return colOpts[ticketId] || [];
               };
 
               const staticOptions = Array.isArray(colCopy.options)
@@ -1375,16 +1092,15 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                 ? colCopy.listOptions
                 : null;
 
-              const isResponsible = tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
               const result = {
                 ...commonProperties,
-                id: colId,
-                colId,
+                id: colCopy.id,
+                colId: colCopy.id,
                 headerName: colCopy.headerName,
                 field: colCopy.field,
                 sortable: colCopy.sortable,
-                filter: isResponsible ? ResponsibleUserFilterRenderer : ListFilterRenderer,
-                cellRenderer: isResponsible ? 'UserCellRenderer' : 'FormatterCellRenderer',
+                filter: ListFilterRenderer,
+                cellRenderer: tagControl === 'RESPONSIBLEUSERID' ? "ResponsibleUserCellRenderer" : 'FormatterCellRenderer',
                 cellRendererParams: {
                   useCustomFormatter: colCopy.useCustomFormatter,
                   formatter: colCopy.formatter,
@@ -1400,13 +1116,13 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                   options: staticOptions,
                 };
               } else {
-                result.cellEditorParams = params => ({ options: getDsOptionsAsync(params) });
+                result.cellEditorParams = params => ({ options: getDsOptions(params) });
                 const baseRendererParams = result.cellRendererParams;
                 result.cellRendererParams = params => ({
                   ...(typeof baseRendererParams === 'function'
                     ? baseRendererParams(params)
                     : baseRendererParams),
-                  options: getDsOptionsSync(params),
+                  options: getDsOptions(params),
                 });
               }
               if (colCopy.editable) {
@@ -1444,8 +1160,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           default: {
             const result = {
               ...commonProperties,
-              id: colId,
-              colId,
+              id: colCopy.id,
+              colId: colCopy.id,
               headerName: colCopy.headerName,
               field: colCopy.field,
               sortable: colCopy.sortable,
@@ -1453,13 +1169,11 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             };
             // Filtro de lista dinâmico
             if (colCopy.filter === 'agListColumnFilter') {
-              result.filter = (tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID')
-                ? ResponsibleUserFilterRenderer
-                : ListFilterRenderer;
+              result.filter = ListFilterRenderer;
             }
             // Apply custom formatter if enabled
             if (colCopy.useCustomFormatter) {
-              result.cellRenderer = 'FormatterCellRenderer';
+              result.cellRenderer = tagControl === 'RESPONSIBLEUSERID' ? "ResponsibleUserCellRenderer" : 'FormatterCellRenderer';
               result.cellRendererParams = {
                 useCustomFormatter: true,
                 formatter: colCopy.formatter
@@ -1467,7 +1181,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             }
             // Apply style array if provided
             else if (colCopy.useStyleArray) {
-              result.cellRenderer = 'FormatterCellRenderer';
+              result.cellRenderer = tagControl === 'RESPONSIBLEUSERID' ? "ResponsibleUserCellRenderer" : 'FormatterCellRenderer';
               result.cellRendererParams = {
                 useCustomFormatter: false,
                 useStyleArray: true,
@@ -1508,24 +1222,19 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               result.headerClass = `ag-header-align-${colCopy.headerAlign}`;
             }
             // Formatação especial para DEADLINE
-            const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
-            const identifier = (colCopy.FieldDB || '').toUpperCase();
-
 
 
             if (tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
               result.cellRenderer = 'UserCellRenderer';
-              const opts = Array.isArray(colCopy.options)
-                ? colCopy.options
-                : Array.isArray(colCopy.listOptions)
-                ? colCopy.listOptions
-                : dsOptions;
-              if (opts.length) {
-                result.cellRendererParams = {
-                  ...(result.cellRendererParams || {}),
-                  options: opts
-                };
+              if (colCopy.editable) {
+                result.cellEditor = ResponsibleUserCellEditor;
+                result.cellEditorParams = params => ({ options: getDsOptions(params) });
               }
+              const baseRendererParams = result.cellRendererParams;
+              result.cellRendererParams = params => ({
+                ...(typeof baseRendererParams === 'function' ? baseRendererParams(params) : baseRendererParams),
+                options: getDsOptions(params),
+              });
             }
             if (tagControl === 'DEADLINE') {
               result.filter = 'agDateColumnFilter';
@@ -1643,34 +1352,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                 return `<span class="deadline-visual ${colorClass}" title="${tooltip}">${diff}</span>`;
               };
             }
-            const fieldKey = colCopy.id || colCopy.field;
-            const useTicket = this.usesTicketId(colCopy);
-            const getDsOptionsSync = params => {
-              const ticketId = params.data?.TicketID;
-              const key = this.getOptionsCacheKey(colCopy, ticketId);
-              const colOpts = this.columnOptions[fieldKey] || {};
-              const cached = colOpts[key];
-              if (cached) return cached;
-              this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
-                if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
-                this.columnOptions[fieldKey][key] = opts;
-                params.api?.refreshCells?.({ force: true });
-              });
-              return [];
-            };
-            const getDsOptionsAsync = params => {
-              const ticketId = params.data?.TicketID;
-              const key = this.getOptionsCacheKey(colCopy, ticketId);
-              const colOpts = this.columnOptions[fieldKey] || {};
-              const cached = colOpts[key];
-              if (cached) return Promise.resolve(cached);
-              return this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
-
-                if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
-                this.columnOptions[fieldKey][key] = opts;
-                return opts;
-              });
-            };
+            // fieldKey and getDsOptions are defined above
             if (
               colCopy.cellDataType === 'list' ||
               (tagControl && tagControl.toUpperCase() === 'LIST')
@@ -1690,14 +1372,14 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                     options: optionsArr,
                   };
                 } else {
-                  result.cellEditor = tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor :  FixedListCellEditor;
-                  result.cellEditorParams = params => ({ options: getDsOptionsAsync(params) });
+                  result.cellEditor = tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor : FixedListCellEditor;
+                  result.cellEditorParams = params => ({ options: getDsOptions(params) });
                   const baseRendererParams = result.cellRendererParams;
                   result.cellRendererParams = params => ({
                     ...(typeof baseRendererParams === 'function'
                       ? baseRendererParams(params)
                       : baseRendererParams),
-                    options: getDsOptionsSync(params),
+                    options: getDsOptions(params),
                   });
                 }
               } else {
@@ -1706,7 +1388,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                   ...(typeof baseRendererParams === 'function'
                     ? baseRendererParams(params)
                     : baseRendererParams),
-                  options: optionsArr || getDsOptionsSync(params),
+                  options: optionsArr || getDsOptions(params),
                 });
               }
               // O cellRenderer já aplica a formatação visual
@@ -1714,13 +1396,13 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             if (colCopy.dataSource && colCopy.editable) {
               result.editable = true;
               result.cellEditor = tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor : FixedListCellEditor;
-              result.cellEditorParams = params => ({ options: getDsOptionsAsync(params) });
+              result.cellEditorParams = params => ({ options: getDsOptions(params) });
               const baseRendererParams = result.cellRendererParams;
               result.cellRendererParams = params => ({
                 ...(typeof baseRendererParams === 'function'
                   ? baseRendererParams(params)
                   : baseRendererParams),
-                options: getDsOptionsSync(params),
+                options: getDsOptions(params),
               });
             }
             return result;
@@ -1852,11 +1534,11 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
   const colDef = event.column.getColDef ? event.column.getColDef() : {};
   const tag = (colDef.TagControl || colDef.tagControl || colDef.tagcontrol || '').toUpperCase();
   const identifier = (colDef.FieldDB || '').toUpperCase();
+  const fieldKey = colDef.colId || colDef.field;
   if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
-    const fieldKey = colDef.colId || colDef.field;
     const colOpts = this.columnOptions[fieldKey] || {};
     const ticketId = event.data?.TicketID;
-    const opts = colOpts[this.getOptionsCacheKey(colDef, ticketId)] || [];
+    const opts = ticketId != null ? colOpts[ticketId] || [] : [];
     const match = opts.find(o => String(o.value) === String(event.newValue));
     if (match) {
       if (event.data) {
@@ -1879,7 +1561,6 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
     }
   }
   if (tag === 'DEADLINE') {
-    const fieldKey = colDef.colId || colDef.field;
     if (event.node && fieldKey) {
       // Accept the value returned by the editor without conversion
       const v = event.newValue;
@@ -1931,6 +1612,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
 },
   onCellClicked(event) {
   const colId = event.column?.getColId?.();
+  console.log('colId:', colId, 'columns:', this.content.columns);
 
   let fieldDB = null;
   let fieldID = null;
@@ -1942,18 +1624,6 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
       fieldDB = colConfig.FieldDB;
       fieldID = colConfig.id;
     }
-  }
-
-  // Always ensure editable cells enter edit mode when clicked
-  const editable =
-    typeof event.colDef?.editable === "function"
-      ? event.colDef.editable(event)
-      : !!event.colDef?.editable;
-  if (editable) {
-    event.api?.startEditingCell({
-      rowIndex: event.rowIndex,
-      colKey: colId,
-    });
   }
 
   this.$emit("trigger-event", {
@@ -2355,6 +2025,37 @@ forceClearSelection() {
     }
         // Inputs de edição compactos e centralizados (ajuste agressivo)
     :deep(.ag-cell.ag-cell-editing) {
+      padding: 0 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      height: 100% !important;
+      min-height: 0 !important;
+      max-height: none !important;
+      box-sizing: border-box !important;
+    }
+
+    :deep(.ag-cell.ag-cell-editing input),
+    :deep(.ag-cell.ag-cell-editing select),
+    :deep(.ag-cell.ag-cell-editing textarea) {
+      height: 20px !important;
+      min-height: 20px !important;
+      max-height: 20px !important;
+      font-size: 13px !important;
+      padding: 0 8px !important;
+      border-radius: 6px !important;
+      box-sizing: border-box !important;
+      line-height: 1.2 !important;
+      margin: 0 !important;
+      align-self: center !important;
+      resize: none !important;
+      background: #fff !important;
+      vertical-align: middle !important;
+      outline: none !important;
+    }
+
+    // Inputs de edição compactos e centralizados (ajuste ultra-específico para AG-Grid)
+    :deep(.ag-cell.ag-cell-inline-editing) {
       padding: 0 !important;
       display: flex !important;
       align-items: center !important;
