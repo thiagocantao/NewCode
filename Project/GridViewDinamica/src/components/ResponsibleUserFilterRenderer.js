@@ -1,354 +1,247 @@
-let responsibleUserCache = null;
-
-async function loadResponsibleUserOptions() {
-  if (responsibleUserCache) return responsibleUserCache;
-  try {
-    const lang = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
-    const loggeduserid = window?.wwLib?.wwVariable?.getValue?.('fc54ab80-1a04-4cfe-a504-793bdcfce5dd');
-    const companyId = window.wwLib?.wwVariable?.getValue('5d099f04-cd42-41fd-94ad-22d4de368c3a');
-    const apiUrl = window.wwLib?.wwVariable?.getValue('1195995b-34c3-42a5-b436-693f0f4f8825');
-    const apiKey = window.wwLib?.wwVariable?.getValue('d180be98-8926-47a7-b7f1-6375fbb95fa3');
-    const apiAuth = window.wwLib?.wwVariable?.getValue('dfcde09f-42f3-4b5c-b2e8-4314650655db');
-    if (!apiUrl) return [];
-
-    const fetchOptions = {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...(companyId ? { p_idcompany: companyId } : {}),
-        ...(lang ? { p_language: lang } : {}),
-        ...(loggeduserid ? { p_loggeduserid: loggeduserid } : {}),
-      }),
-    };
-    if (apiKey) fetchOptions.headers['apikey'] = apiKey;
-    if (apiAuth) fetchOptions.headers['Authorization'] = apiAuth;
-
-    const baseUrl = apiUrl.endsWith('/') ? apiUrl : apiUrl + '/';
-    const response = await fetch(baseUrl + 'getLookupGroupsAndUsers', fetchOptions);
-    const data = await response.json();
-    responsibleUserCache = Array.isArray(data)
-      ? data
-      : Array.isArray(data?.data)
-        ? data.data
-        : Array.isArray(data?.result)
-          ? data.result
-          : Array.isArray(data?.results)
-            ? data.results
-            : [];
-    return responsibleUserCache;
-  } catch {
-    return [];
-  }
-}
-
-const getProp = (obj, ...keys) => {
-  for (const key of keys) {
-    const match = Object.keys(obj || {}).find(
-      k => k.toLowerCase() === String(key).toLowerCase()
-    );
-    if (match) return obj[match];
-  }
-  return undefined;
-};
-
-function mapOptions(list) {
-  const arr = Array.isArray(list) ? list : [];
-  const hasNested = arr.some(it => Array.isArray(getProp(it, 'groupUsers')) && getProp(it, 'groupUsers').length);
-  if (hasNested) {
-    return arr.map(item => {
-      const children = getProp(item, 'groupUsers');
-      return {
-        ...item,
-        id: getProp(item, 'id', 'value'),
-        name: getProp(item, 'name', 'label'),
-        value: getProp(item, 'value', 'id'),
-        label: getProp(item, 'label', 'name'),
-        ...(Array.isArray(children) && children.length ? { groupUsers: mapOptions(children) } : {})
-      };
-    });
-  }
-
-  const groups = {};
-  const users = [];
-  for (const raw of arr) {
-    const id = getProp(raw, 'id', 'value');
-    const name = getProp(raw, 'name', 'label');
-    const type = String(getProp(raw, 'type') || '').toLowerCase();
-    if (type === 'group') {
-      groups[id] = { ...raw, id, name, value: id, label: name, groupUsers: [] };
-    } else {
-      const gid = getProp(raw, 'groupId', 'groupid', 'group_id', 'group');
-      users.push({ ...raw, id, name, value: id, label: name, groupId: gid });
-    }
-  }
-
-  const result = Object.values(groups);
-  for (const usr of users) {
-    const gid = usr.groupId;
-    delete usr.groupId;
-    if (gid != null && groups[gid]) groups[gid].groupUsers.push(usr);
-    else result.push(usr);
-  }
-  return result;
-}
-
-export default class ResponsibleUserFilterRenderer {
-  constructor() {
-    this.searchText = '';
-    this.selectedUsers = [];
-    this.selectedGroups = [];
-    this.users = [];
-    this.groups = [];
-    this.filteredUsers = [];
-    this.filteredGroups = [];
-    this.userToGroups = {};
-    this.groupToUsers = {};
-  }
-
+// ===== ResponsibleUserCellRenderer.js =====
+export default class ResponsibleUserCellRenderer {
   init(params) {
     this.params = params;
-    this.createGui();
-    this.loadOptions().then(() => this.filterValues());
-  }
-
-  async loadOptions() {
-    try {
-      const raw = await loadResponsibleUserOptions();
-      const mapped = mapOptions(raw);
-      const userMap = {};
-      const groupMap = {};
-      this.userToGroups = {};
-      this.groupToUsers = {};
-
-      const processItem = (item, parentGroupId) => {
-        const id = String(getProp(item, 'id', 'value'));
-        const name = getProp(item, 'name', 'label') || '';
-        const photo = item.photoUrl || item.PhotoUrl || item.PhotoURL || item.photo || item.image || item.img || '';
-        if (Array.isArray(item.groupUsers) && item.groupUsers.length) {
-          if (!groupMap[id]) groupMap[id] = { id, name };
-          const memberIds = [];
-          for (const u of item.groupUsers) {
-            const uid = String(getProp(u, 'id', 'value'));
-            memberIds.push(uid);
-            processItem(u, id);
-            if (!this.userToGroups[uid]) this.userToGroups[uid] = [];
-            if (!this.userToGroups[uid].includes(id)) this.userToGroups[uid].push(id);
-          }
-          this.groupToUsers[id] = memberIds;
-        } else {
-          if (!userMap[id]) userMap[id] = { id, name, photo };
-          if (parentGroupId) {
-            if (!this.groupToUsers[parentGroupId]) this.groupToUsers[parentGroupId] = [];
-            if (!this.groupToUsers[parentGroupId].includes(id)) this.groupToUsers[parentGroupId].push(id);
-            if (!this.userToGroups[id]) this.userToGroups[id] = [];
-            if (!this.userToGroups[id].includes(parentGroupId)) this.userToGroups[id].push(parentGroupId);
-          }
-        }
-      };
-
-      mapped.forEach(item => processItem(item, null));
-
-      this.users = Object.values(userMap);
-      this.groups = Object.values(groupMap);
-      this.filteredUsers = [...this.users];
-      this.filteredGroups = [...this.groups];
-    } catch {
-      this.users = [];
-      this.groups = [];
-      this.filteredUsers = [];
-      this.filteredGroups = [];
-    }
-  }
-
-  createGui() {
     this.eGui = document.createElement('div');
-    this.eGui.className = 'list-filter';
-    this.eGui.innerHTML = `
-      <div class="field-search">
-        <input type="text" placeholder="Search..." class="search-input" />
-        <span class="search-icon">
-          <i class="material-symbols-outlined-search">search</i>
-        </span>
-      </div>
-      <div class="select-all-row">
-        <label>
-          <input type="checkbox" class="select-all-checkbox" />
-          <span>Select all</span>
-        </label>
-      </div>
-      <div class="filter-list"></div>
-    `;
+    this.eGui.className = 'ru-cell';
 
-    this.searchInput = this.eGui.querySelector('.search-input');
-    this.filterList = this.eGui.querySelector('.filter-list');
-    this.selectAllCheckbox = this.eGui.querySelector('.select-all-checkbox');
-
-    this.setupEventListeners();
-    this.renderFilterList();
+    this.injectCSSOnce();
+    this.render();
   }
 
-  setupEventListeners() {
-    this.searchInput.addEventListener('input', (e) => {
-      this.searchText = e.target.value;
-      this.filterValues();
-    });
+  // ---- Helpers base ----
+  get row() {
+    return this.params?.data || {};
+  }
+  get colDef() {
+    return this.params?.colDef || {};
+  }
+  isResponsibleCol() {
+    const tag = (this.colDef.TagControl || this.colDef.tagControl || this.colDef.tagcontrol || '').toUpperCase();
+    const fieldDb = (this.colDef.FieldDB || '').toUpperCase();
+    const field = (this.colDef.field || '').toUpperCase();
+    return tag === 'RESPONSIBLEUSERID' || fieldDb === 'RESPONSIBLEUSERID' || field === 'RESPONSIBLEUSERID';
+  }
 
-    this.selectAllCheckbox.addEventListener('change', (e) => {
-      if (e.target.checked) {
-        this.selectedUsers = this.filteredUsers.map(u => u.id);
-        this.selectedGroups = this.filteredGroups.map(g => g.id);
-      } else {
-        this.selectedUsers = [];
-        this.selectedGroups = [];
+  getIds() {
+    const val = this.params.value;
+    let userId = this.row.ResponsibleUserID ?? null;
+    let groupId = this.row.AssignedGroupID ?? null;
+
+    if (val && typeof val === 'object') {
+      userId = val.userid ?? userId;
+      groupId = val.groupid ?? groupId;
+    } else if (val != null && userId == null) {
+      userId = val;
+    }
+    return { userId, groupId };
+  }
+
+  // ---- Options / listOptions normalization ----
+  getOptionsArray() {
+    const cd = this.colDef;
+    let options = [];
+
+    if (Array.isArray(this.params.options)) options = this.params.options;
+    else if (Array.isArray(cd.listOptions)) options = cd.listOptions;
+    else if (typeof cd.listOptions === 'string' && cd.listOptions.trim()) {
+      options = cd.listOptions.split(',').map(s => s.trim());
+    } else if (cd.dataSource && typeof cd.dataSource.list_options === 'string' && cd.dataSource.list_options.trim()) {
+      options = cd.dataSource.list_options.split(',').map(s => s.trim());
+    }
+
+    const normalize = (opt) => {
+      if (typeof opt === 'object') {
+        const findKey = key => Object.keys(opt).find(k => k.toLowerCase() === key);
+        const labelKey = findKey('label') || findKey('name');
+        const valueKey = findKey('value') || findKey('id');
+        return {
+          ...opt,
+          id: opt.id ?? opt.value ?? (valueKey ? opt[valueKey] : undefined),
+          name: opt.name ?? opt.label ?? (labelKey ? opt[labelKey] : undefined),
+        };
       }
-      this.renderFilterList();
-      this.applyFilter();
-    });
+      return { id: opt, name: String(opt) };
+    };
+
+    return (options || []).map(normalize);
   }
 
-  filterValues() {
-    const term = (this.searchText || '').toLowerCase();
-    if (!term) {
-      this.filteredUsers = [...this.users];
-      this.filteredGroups = [...this.groups];
-    } else {
-      this.filteredUsers = this.users.filter(u => (u.name || '').toLowerCase().includes(term));
-      this.filteredGroups = this.groups.filter(g => (g.name || '').toLowerCase().includes(term));
-    }
-    this.renderFilterList();
-  }
+  resolveUserMeta(userId) {
+    if (userId == null) return { name: null, photo: null };
+    const sid = String(userId);
+    const options = this.getOptionsArray();
 
-  renderFilterList() {
-    const allIds = [...this.filteredUsers.map(u => u.id), ...this.filteredGroups.map(g => g.id)];
-    this.selectAllCheckbox.checked =
-      allIds.length > 0 &&
-      allIds.every(id => this.selectedUsers.includes(id) || this.selectedGroups.includes(id));
+    // 1) procurar como usuário “raiz”
+    let fromOptions =
+      options.find(o => String(o.id) === sid && String(o?.type || '').toLowerCase() !== 'group');
 
-    let html = '';
-
-    if (this.filteredGroups.length) {
-      html += `<div class="filter-section"><div class="section-label">Groups</div>` +
-        this.filteredGroups.map(g => {
-          const checked = this.selectedGroups.includes(g.id) ? 'checked' : '';
-          const avatar = `<span style="font-size:19px;" class="material-symbols-outlined user-selector__group-icon">groups</span>`;
-          return `
-            <label class="filter-item${checked ? ' selected' : ''}">
-              <input type="checkbox" data-type="group" value="${g.id}" ${checked} />
-              <span class="user-option">
-                <span class="avatar-outer"><span class="avatar-middle"><span class="user-avatar">${avatar}</span></span></span>
-                <span class="filter-label">${g.name}</span>
-              </span>
-            </label>
-          `;
-        }).join('') + `</div>`;
-    }
-
-    if (this.filteredUsers.length) {
-      html += `<div class="filter-section"><div class="section-label">Responsibles</div>` +
-        this.filteredUsers.map(u => {
-          const checked = this.selectedUsers.includes(u.id) ? 'checked' : '';
-          const initial = u.name ? u.name.trim().charAt(0).toUpperCase() : '';
-          const avatar = u.photo
-            ? `<img src="${u.photo}" alt="" />`
-            : `<span class="user-initial">${initial}</span>`;
-          return `
-            <label class="filter-item${checked ? ' selected' : ''}">
-              <input type="checkbox" data-type="user" value="${u.id}" ${checked} />
-              <span class="user-option">
-                <span class="avatar-outer"><span class="avatar-middle"><span class="user-avatar">${avatar}</span></span></span>
-                <span class="filter-label">${u.name}</span>
-              </span>
-            </label>
-          `;
-        }).join('') + `</div>`;
-    }
-
-    this.filterList.innerHTML = html;
-
-    this.filterList.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-      checkbox.addEventListener('change', (e) => {
-        const id = e.target.value;
-        const type = e.target.getAttribute('data-type');
-        if (e.target.checked) {
-          if (type === 'user') {
-            if (!this.selectedUsers.includes(id)) this.selectedUsers.push(id);
-          } else {
-            if (!this.selectedGroups.includes(id)) this.selectedGroups.push(id);
-          }
-        } else {
-          if (type === 'user') {
-            this.selectedUsers = this.selectedUsers.filter(v => v !== id);
-          } else {
-            this.selectedGroups = this.selectedGroups.filter(v => v !== id);
+    // 2) procurar dentro de grupos
+    if (!fromOptions) {
+      for (const g of options) {
+        if (String(g?.type || '').toLowerCase() === 'group' && Array.isArray(g.groupUsers)) {
+          const m = g.groupUsers.find(x => String(x.id ?? x.value ?? x.UserID) === sid);
+          if (m) {
+            fromOptions = {
+              id: m.id ?? m.value ?? m.UserID,
+              name: m.name ?? m.DisplayName ?? m.label,
+              photoUrl: m.photoUrl ?? m.PhotoURL ?? m.PhotoUrl ?? m.photo ?? m.image ?? m.img
+            };
+            break;
           }
         }
-        const ids = [...this.filteredUsers.map(u => u.id), ...this.filteredGroups.map(g => g.id)];
-        this.selectAllCheckbox.checked =
-          ids.length > 0 && ids.every(v => this.selectedUsers.includes(v) || this.selectedGroups.includes(v));
-        this.applyFilter();
-      });
-    });
-  }
-
-  applyFilter() {
-    this.params.filterChangedCallback();
-  }
-
-  clearFilter() {
-    this.selectedUsers = [];
-    this.selectedGroups = [];
-    this.searchText = '';
-    if (this.searchInput) this.searchInput.value = '';
-    this.filterValues();
-    this.params.filterChangedCallback();
-  }
-
-  isFilterActive() {
-    return this.selectedUsers.length > 0 || this.selectedGroups.length > 0;
-  }
-
-  doesFilterPass(params) {
-    if (!this.isFilterActive()) return true;
-    const field = this.params.column.getColDef().field || this.params.column.getColId();
-    const value = this.getNestedValue(params.data, field);
-    const allowed = new Set();
-    this.selectedUsers.forEach(uid => {
-      allowed.add(String(uid));
-      (this.userToGroups[uid] || []).forEach(gid => allowed.add(String(gid)));
-    });
-    this.selectedGroups.forEach(gid => {
-      allowed.add(String(gid));
-      (this.groupToUsers[gid] || []).forEach(uid => allowed.add(String(uid)));
-    });
-    return allowed.has(String(value));
-  }
-
-  getModel() {
-    if (!this.isFilterActive()) return null;
-    return { users: this.selectedUsers, groups: this.selectedGroups };
-  }
-
-  setModel(model) {
-    if (model) {
-      this.selectedUsers = Array.isArray(model.users) ? [...model.users] : [];
-      this.selectedGroups = Array.isArray(model.groups) ? [...model.groups] : [];
-    } else {
-      this.selectedUsers = [];
-      this.selectedGroups = [];
+      }
     }
-    this.renderFilterList();
+
+    // 3) fallback a partir da própria linha
+    const nameFromRow = this.row.ResponsibleUser || this.row.Username || this.row.UserName || this.row.User || null;
+    const photoFromRow = this.row.photoUrl || this.row.PhotoUrl || this.row.PhotoURL || this.row.UserPhoto || null;
+
+    return {
+      name: fromOptions?.name ?? nameFromRow,
+      photo: fromOptions?.photoUrl ?? photoFromRow
+    };
   }
 
-  getNestedValue(obj, path) {
-    return path.split('.').reduce((o, p) => (o && o[p] !== undefined ? o[p] : undefined), obj);
+  resolveGroupMeta(groupId) {
+    if (groupId == null) return { name: null, photo: null };
+    const sid = String(groupId);
+    const options = this.getOptionsArray();
+
+    const g = options.find(o => String(o.id ?? o.value) === sid && String(o?.type || '').toLowerCase() === 'group');
+
+    const nameFromRow = this.row.AssignedGroupName || this.row.GroupName || this.row.Group || null;
+    const photoFromRow = this.row.groupPhoto || this.row.GroupPhoto || this.row.GroupImage || null;
+
+    return {
+      name: g?.name ?? nameFromRow,
+      photo: g?.photoUrl ?? g?.PhotoURL ?? g?.PhotoUrl ?? g?.photo ?? g?.image ?? g?.img ?? photoFromRow
+    };
+  }
+
+  // ---- Render ----
+  render() {
+    const isResp = this.isResponsibleCol();
+    const { userId, groupId } = this.getIds();
+    const user = this.resolveUserMeta(userId);
+    const group = this.resolveGroupMeta(groupId);
+
+    if (!isResp) {
+      const plain = user?.name || this.params.value || '';
+      this.eGui.innerHTML = `<div class="ru-text">${this.escape(plain ?? '')}</div>`;
+      return;
+    }
+
+    const groupAvatar = group?.name
+      ? this.renderAvatar(group.photo, group.name, true)
+      : '';
+
+    const userAvatar = user?.name
+      ? this.renderAvatar(user.photo, user.name, false)
+      : '';
+
+    const textLabel = (group?.name && user?.name)
+      ? `${group.name} • ${user.name}`
+      : (user?.name || group?.name || '');
+
+    if (groupAvatar && userAvatar) {
+      this.eGui.innerHTML = `
+        <div class="ru-duo" title="${this.escape(textLabel)}">
+          <div class="ru-avatar ru-group">${groupAvatar}</div>
+          <div class="ru-avatar ru-user">${userAvatar}</div>
+          <div class="ru-label">${this.escape(textLabel)}</div>
+        </div>
+      `;
+      return;
+    }
+
+    const single = userAvatar || groupAvatar;
+    this.eGui.innerHTML = `
+      <div class="ru-single" title="${this.escape(textLabel)}">
+        <div class="ru-avatar">${single}</div>
+        <div class="ru-label">${this.escape(textLabel)}</div>
+      </div>
+    `;
+  }
+
+  renderAvatar(photo, name, isGroup) {
+    if (isGroup) {
+      return `
+        <span class="avatar-outer">
+          <span class="avatar-middle">
+            <span class="ru-ava ru-ava--group">
+              <span style="font-size: 14px" class="material-symbols-outlined ru-group-icon">groups</span>
+            </span>
+          </span>
+        </span>
+      `;
+    }
+    const inner = photo
+      ? `<img src="${photo}" alt="${this.escape(name || '')}" />`
+      : `<span class="ru-initial">${this.escape((name || '').trim().charAt(0).toUpperCase())}</span>`;
+    return `
+      <span class="avatar-outer">
+        <span class="avatar-middle">
+          <span class="ru-ava">${inner}</span>
+        </span>
+      </span>
+    `;
+  }
+
+  escape(s) {
+    return String(s ?? '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
   getGui() {
     return this.eGui;
   }
-
-  onNewRowsLoaded() {
-    this.filterValues();
+  refresh(params) {
+    this.params = params;
+    this.render();
+    return true;
   }
+
+  // ---- CSS com look “anel” para avatares ----
+  injectCSSOnce() {
+    const id = '__ru_cell_renderer_css__';
+    if (typeof document === 'undefined' || document.getElementById(id)) return;
+    const style = document.createElement('style');
+    style.id = id;
+    style.textContent = `
+.ru-cell { display:flex; align-items:center; height:100%; }
+.ru-text { font-size:13px; color:#374151; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ru-label { margin-left: 8px; font-size: 13px; color: #374151; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ru-single { display:flex; align-items:center; }
+.ru-duo { display:flex; align-items:center; position: relative; }
+.ru-avatar { display:inline-flex; }
+.ru-avatar + .ru-avatar { margin-left: -10px; }
+
+.avatar-outer {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 1px solid #3A4663; display:flex; align-items:center; justify-content:center; background:#fff;
+}
+.avatar-middle {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 2px solid #fff; display:flex; align-items:center; justify-content:center; background:#fff;
+}
+.ru-ava {
+  width: 26px; height: 26px; border-radius:50%;
+  background: #4B6CB7; display:flex; align-items:center; justify-content:center; overflow:hidden;
+}
+.ru-ava img {  object-fit:cover; border-radius:50%; }
+.ru-initial {  display:flex; align-items:center; justify-content:center; color:#fff; font-size:14px; }
+
+.ru-ava--group { background: #4B6CB7; }
+.ru-group-icon {
+  font-size: 14px; line-height:1; color:#fff;
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
 }
 
+.ru-group { z-index: 1; }
+.ru-user  { z-index: 2; }
+`;
+    document.head.appendChild(style);
+  }
+}
