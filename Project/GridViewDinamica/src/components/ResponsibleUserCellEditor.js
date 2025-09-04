@@ -24,17 +24,6 @@ export default class ResponsibleUserCellEditor {
     this.isResponsibleUser = tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
 
     // Normalização das opções (mantém chaves extras intactas)
-    let optionsArr = [];
-    if (Array.isArray(params.options)) {
-      optionsArr = params.options;
-    } else if (Array.isArray(colDef.listOptions)) {
-      optionsArr = colDef.listOptions;
-    } else if (typeof colDef.listOptions === 'string' && colDef.listOptions.trim() !== '') {
-      optionsArr = colDef.listOptions.split(',').map(o => o.trim());
-    } else if (colDef.dataSource && typeof colDef.dataSource.list_options === 'string' && colDef.dataSource.list_options.trim() !== '') {
-      optionsArr = colDef.dataSource.list_options.split(',').map(o => o.trim());
-    }
-
     const normalize = (opt) => {
       if (typeof opt === 'object') {
         const findKey = key => Object.keys(opt).find(k => k.toLowerCase() === key);
@@ -48,9 +37,32 @@ export default class ResponsibleUserCellEditor {
       }
       return { value: opt, label: String(opt) };
     };
+    const resolveOptions = (opts) => {
+      const arr = (opts || []).map(normalize);
+      this.options = arr;
+      this.filteredRoot = [...arr];
+      this.applyRootFilter();
+      this.render();
+    };
 
-    this.options = (optionsArr || []).map(normalize);
-    this.filteredRoot = [...this.options]; // lista raiz filtrada (quando não está num grupo)
+    let optionsPromise;
+    if (params.options && typeof params.options.then === 'function') {
+      optionsPromise = params.options;
+    } else if (Array.isArray(params.options)) {
+      optionsPromise = Promise.resolve(params.options);
+    } else if (Array.isArray(colDef.listOptions)) {
+      optionsPromise = Promise.resolve(colDef.listOptions);
+    } else if (typeof colDef.listOptions === 'string' && colDef.listOptions.trim() !== '') {
+      optionsPromise = Promise.resolve(colDef.listOptions.split(',').map(o => o.trim()));
+    } else if (colDef.dataSource && typeof colDef.dataSource.list_options === 'string' && colDef.dataSource.list_options.trim() !== '') {
+      optionsPromise = Promise.resolve(colDef.dataSource.list_options.split(',').map(o => o.trim()));
+    } else {
+      optionsPromise = Promise.resolve([]);
+    }
+
+    this.options = [];
+    this.filteredRoot = [];
+    optionsPromise.then(resolveOptions);
 
     // DOM
     this.eGui = document.createElement('div');
