@@ -1,6 +1,7 @@
 export default class FixedListCellEditor {
   init(params) {
     this.params = params;
+    console.log('FixedListCellEditor init params:', params);
     const colDef = params.colDef || {};
     this.rendererParams =
       typeof colDef.cellRendererParams === 'function'
@@ -44,19 +45,62 @@ export default class FixedListCellEditor {
     };
 
     let optionsPromise;
-    if (params.options && typeof params.options.then === 'function') {
+    if (typeof params.options === 'function') {
+      console.log('FixedListCellEditor calling params.options function with', params);
+      try {
+        const result = params.options(params);
+        console.log('FixedListCellEditor params.options function result', result);
+        optionsPromise =
+          result && typeof result.then === 'function'
+            ? result
+            : Promise.resolve(result);
+      } catch (err) {
+        console.error('FixedListCellEditor params.options function error', err);
+        optionsPromise = Promise.resolve([]);
+      }
+    } else if (params.options && typeof params.options.then === 'function') {
+
       console.log('FixedListCellEditor using params.options promise', params.options);
       optionsPromise = params.options;
     } else if (Array.isArray(params.options)) {
       console.log('FixedListCellEditor using params.options array', params.options);
       optionsPromise = Promise.resolve(params.options);
+    } else if (typeof params.colDef.options === 'function') {
+      console.log('FixedListCellEditor calling colDef.options function with', params);
+      try {
+        const result = params.colDef.options(params);
+        console.log('FixedListCellEditor colDef.options function result', result);
+        optionsPromise =
+          result && typeof result.then === 'function'
+            ? result
+            : Promise.resolve(result);
+      } catch (err) {
+        console.error('FixedListCellEditor colDef.options function error', err);
+        optionsPromise = Promise.resolve([]);
+      }
+
     } else if (Array.isArray(params.colDef.options)) {
       console.log('FixedListCellEditor using colDef.options', params.colDef.options);
       optionsPromise = Promise.resolve(params.colDef.options);
     } else if (Array.isArray(params.colDef.listOptions)) {
       console.log('FixedListCellEditor using colDef.listOptions array', params.colDef.listOptions);
-
       optionsPromise = Promise.resolve(params.colDef.listOptions);
+    } else if (
+      typeof params.colDef.listOptions === 'function'
+    ) {
+      console.log('FixedListCellEditor calling colDef.listOptions function with', params);
+      try {
+        const result = params.colDef.listOptions(params);
+        console.log('FixedListCellEditor colDef.listOptions function result', result);
+        optionsPromise =
+          result && typeof result.then === 'function'
+            ? result
+            : Promise.resolve(result);
+      } catch (err) {
+        console.error('FixedListCellEditor colDef.listOptions function error', err);
+        optionsPromise = Promise.resolve([]);
+      }
+
     } else if (
       typeof params.colDef.listOptions === 'string' &&
       params.colDef.listOptions.trim() !== ''
@@ -84,11 +128,19 @@ export default class FixedListCellEditor {
       );
     } else {
       console.log('FixedListCellEditor no options source found');
-
       optionsPromise = Promise.resolve([]);
     }
 
-    optionsPromise.then(resolveOptions);
+    optionsPromise
+      .then(res => {
+        console.log('FixedListCellEditor optionsPromise resolved', res);
+        resolveOptions(res);
+      })
+      .catch(err => {
+        console.error('FixedListCellEditor optionsPromise rejected', err);
+        resolveOptions([]);
+      });
+
 
     this.value = params.value;
 
