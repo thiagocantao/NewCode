@@ -286,6 +286,17 @@
   const columnOptions = ref({});
   const componentKey = ref(0);
 
+  const GLOBAL_OPTIONS_KEY = '__all__';
+  function usesTicketId(col) {
+    const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
+    const identifier = (col.FieldDB || '').toUpperCase();
+    if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') return false;
+    return col?.dataSource?.useTicketId === true;
+    }
+  function getOptionsCacheKey(col, ticketId) {
+    return usesTicketId(col) && ticketId != null ? String(ticketId) : GLOBAL_OPTIONS_KEY;
+  }
+
 // Flag para aplicar sort externo (WW variable) no próximo mount
 const forceExternalSortNextMount = ref(false);
 
@@ -520,7 +531,8 @@ const remountComponent = () => {
 
     const hasFn = col.dataSource?.functionName || col.dataSource?.dataSource?.functionName;
     if (!opts.length && hasFn) {
-      opts = await loadApiOptions(col, ticketId);
+      const useTicket = usesTicketId(col);
+      opts = await loadApiOptions(col, useTicket ? ticketId : undefined);
     }
 
     return opts;
@@ -540,8 +552,10 @@ const remountComponent = () => {
       result[colId] = {};
       for (const row of rows) {
         const ticketId = row?.TicketID;
-        const p = getColumnOptions(col, ticketId).then(opts => {
-          result[colId][ticketId] = opts;
+        const cacheKey = getOptionsCacheKey(col, ticketId);
+        if (result[colId][cacheKey]) continue;
+        const p = getColumnOptions(col, usesTicketId(col) ? ticketId : undefined).then(opts => {
+          result[colId][cacheKey] = opts;
         });
         promises.push(p);
       }
@@ -1020,6 +1034,8 @@ setTimeout(() => {
       forceSelectionColumnFirstDOM,
       columnOptions,
       getColumnOptions,
+      getOptionsCacheKey,
+      usesTicketId,
       componentKey,
       remountComponent,
       clearSavedGridState,
@@ -1162,28 +1178,31 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             }
           };
           const fieldKey = colCopy.id || colCopy.field;
+          const useTicket = this.usesTicketId(colCopy);
           const getDsOptionsSync = params => {
             const ticketId = params.data?.TicketID;
+            const key = this.getOptionsCacheKey(colCopy, ticketId);
             const colOpts = this.columnOptions[fieldKey] || {};
-            const cached = colOpts[ticketId];
+            const cached = colOpts[key];
             if (cached) return cached;
-            this.getColumnOptions(colCopy, ticketId).then(opts => {
+            this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
 
               if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
-              this.columnOptions[fieldKey][ticketId] = opts;
+              this.columnOptions[fieldKey][key] = opts;
               params.api?.refreshCells?.({ force: true });
             });
             return [];
           };
           const getDsOptionsAsync = params => {
             const ticketId = params.data?.TicketID;
+            const key = this.getOptionsCacheKey(colCopy, ticketId);
             const colOpts = this.columnOptions[fieldKey] || {};
-            const cached = colOpts[ticketId];
+            const cached = colOpts[key];
             if (cached) return Promise.resolve(cached);
-            return this.getColumnOptions(colCopy, ticketId).then(opts => {
+            return this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
 
               if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
-              this.columnOptions[fieldKey][ticketId] = opts;
+              this.columnOptions[fieldKey][key] = opts;
               return opts;
             });
           };
@@ -1294,27 +1313,30 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           case "list":
             {
               const fieldKey = colCopy.id || colCopy.field;
+              const useTicket = this.usesTicketId(colCopy);
               const getDsOptionsSync = params => {
                 const ticketId = params.data?.TicketID;
+                const key = this.getOptionsCacheKey(colCopy, ticketId);
                 const colOpts = this.columnOptions[fieldKey] || {};
-                const cached = colOpts[ticketId];
+                const cached = colOpts[key];
                 if (cached) return cached;
-                this.getColumnOptions(colCopy, ticketId).then(opts => {
+                this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
                   if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
-                  this.columnOptions[fieldKey][ticketId] = opts;
+                  this.columnOptions[fieldKey][key] = opts;
                   params.api?.refreshCells?.({ force: true });
                 });
                 return [];
               };
               const getDsOptionsAsync = params => {
                 const ticketId = params.data?.TicketID;
+                const key = this.getOptionsCacheKey(colCopy, ticketId);
                 const colOpts = this.columnOptions[fieldKey] || {};
-                const cached = colOpts[ticketId];
+                const cached = colOpts[key];
                 if (cached) return Promise.resolve(cached);
-                return this.getColumnOptions(colCopy, ticketId).then(opts => {
+                return this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
 
                   if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
-                  this.columnOptions[fieldKey][ticketId] = opts;
+                  this.columnOptions[fieldKey][key] = opts;
                   return opts;
                 });
               };
@@ -1594,27 +1616,30 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               };
             }
             const fieldKey = colCopy.id || colCopy.field;
+            const useTicket = this.usesTicketId(colCopy);
             const getDsOptionsSync = params => {
               const ticketId = params.data?.TicketID;
+              const key = this.getOptionsCacheKey(colCopy, ticketId);
               const colOpts = this.columnOptions[fieldKey] || {};
-              const cached = colOpts[ticketId];
+              const cached = colOpts[key];
               if (cached) return cached;
-              this.getColumnOptions(colCopy, ticketId).then(opts => {
+              this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
                 if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
-                this.columnOptions[fieldKey][ticketId] = opts;
+                this.columnOptions[fieldKey][key] = opts;
                 params.api?.refreshCells?.({ force: true });
               });
               return [];
             };
             const getDsOptionsAsync = params => {
               const ticketId = params.data?.TicketID;
+              const key = this.getOptionsCacheKey(colCopy, ticketId);
               const colOpts = this.columnOptions[fieldKey] || {};
-              const cached = colOpts[ticketId];
+              const cached = colOpts[key];
               if (cached) return Promise.resolve(cached);
-              return this.getColumnOptions(colCopy, ticketId).then(opts => {
+              return this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
 
                 if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
-                this.columnOptions[fieldKey][ticketId] = opts;
+                this.columnOptions[fieldKey][key] = opts;
                 return opts;
               });
             };
@@ -1803,7 +1828,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
     const fieldKey = colDef.colId || colDef.field;
     const colOpts = this.columnOptions[fieldKey] || {};
     const ticketId = event.data?.TicketID;
-    const opts = ticketId != null ? colOpts[ticketId] || [] : [];
+    const opts = colOpts[this.getOptionsCacheKey(colDef, ticketId)] || [];
     const match = opts.find(o => String(o.value) === String(event.newValue));
     if (match) {
       if (event.data) {
