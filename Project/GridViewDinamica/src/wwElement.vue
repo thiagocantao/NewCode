@@ -532,6 +532,10 @@ const remountComponent = () => {
     const result = {};
     const promises = [];
     for (const col of props.content.columns) {
+      const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
+      const identifier = (col.FieldDB || '').toUpperCase();
+      const isResponsible = tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
+      if (!isResponsible) continue;
       const colId = col.id || col.field;
       result[colId] = {};
       for (const row of rows) {
