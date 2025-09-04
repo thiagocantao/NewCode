@@ -31,31 +31,47 @@ export default class FixedListCellEditor {
       tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
 
 
-    // Fixed list options
-    let optionsArr = [];
-    if (Array.isArray(params.options)) {
-      optionsArr = params.options;
+    // Fixed list options (supports promises)
+    const normalize = opt =>
+      typeof opt === 'object' ? opt : { value: opt, label: String(opt) };
+
+    const resolveOptions = arr => {
+      this.options = (arr || []).map(normalize);
+      this.filteredOptions = [...this.options];
+      this.renderOptions();
+    };
+
+    let optionsPromise;
+    if (params.options && typeof params.options.then === 'function') {
+      optionsPromise = params.options;
+    } else if (Array.isArray(params.options)) {
+      optionsPromise = Promise.resolve(params.options);
+    } else if (Array.isArray(params.colDef.options)) {
+      optionsPromise = Promise.resolve(params.colDef.options);
     } else if (Array.isArray(params.colDef.listOptions)) {
-      optionsArr = params.colDef.listOptions;
+      optionsPromise = Promise.resolve(params.colDef.listOptions);
     } else if (
       typeof params.colDef.listOptions === 'string' &&
       params.colDef.listOptions.trim() !== ''
     ) {
-      optionsArr = params.colDef.listOptions.split(',').map(o => o.trim());
+      optionsPromise = Promise.resolve(
+        params.colDef.listOptions.split(',').map(o => o.trim())
+      );
     } else if (
       params.colDef.dataSource &&
       typeof params.colDef.dataSource.list_options === 'string' &&
       params.colDef.dataSource.list_options.trim() !== ''
     ) {
-      optionsArr = params.colDef.dataSource.list_options
-        .split(',')
-        .map(o => o.trim());
+      optionsPromise = Promise.resolve(
+        params.colDef.dataSource.list_options
+          .split(',')
+          .map(o => o.trim())
+      );
+    } else {
+      optionsPromise = Promise.resolve([]);
     }
 
-    this.options = optionsArr.map(opt =>
-      typeof opt === 'object' ? opt : { value: opt, label: String(opt) }
-    );
-    this.filteredOptions = [...this.options];
+    optionsPromise.then(resolveOptions);
 
     this.value = params.value;
 
@@ -72,8 +88,6 @@ export default class FixedListCellEditor {
         }
       });
     }
-
-    this.renderOptions();
   }
 
   filterOptions(text) {
