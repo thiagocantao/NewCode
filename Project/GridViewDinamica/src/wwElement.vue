@@ -403,16 +403,28 @@ const remountComponent = () => {
   // ================================================================
 
   const parseStaticOptions = (opts) => {
+    const normalize = (opt) => {
+      if (typeof opt === 'object') {
+        const findKey = key => Object.keys(opt).find(k => k.toLowerCase() === key);
+        const labelKey = findKey('label') || findKey('name');
+        const valueKey = findKey('value') || findKey('id');
+        return {
+          ...opt,
+          value: valueKey ? opt[valueKey] : opt.value,
+          label: labelKey ? opt[labelKey] : opt.label || opt.name,
+        };
+      }
+      const str = String(opt);
+      return { value: str, label: str };
+    };
     if (Array.isArray(opts)) {
-      return opts.map(opt => (typeof opt === 'object' ? opt : { value: opt, label: String(opt) }));
+      return opts.map(normalize);
     }
     if (typeof opts === 'string' && opts.trim() !== '') {
-      return opts
-        .split(',')
-        .map(o => {
-          const trimmed = o.trim();
-          return { value: trimmed, label: trimmed };
-        });
+      return opts.split(',').map(o => {
+        const trimmed = o.trim();
+        return { value: trimmed, label: trimmed };
+      });
     }
     return [];
   };
@@ -1212,9 +1224,11 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             (tagControl && tagControl.toUpperCase() === 'LIST')
           ) {
             const optionsArr = Array.isArray(colCopy.options)
-              ? colCopy.options
+              ? parseStaticOptions(colCopy.options)
               : Array.isArray(colCopy.listOptions)
-              ? colCopy.listOptions
+              ? parseStaticOptions(colCopy.listOptions)
+              : (colCopy.useStyleArray && Array.isArray(this.content.cellStyleArray))
+              ? this.content.cellStyleArray.map(opt => ({ value: opt.Valor, label: opt.Valor }))
               : null;
             if (colCopy.editable) {
               result.editable = true;
