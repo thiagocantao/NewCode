@@ -39,7 +39,7 @@
   import ListFilterRenderer from "./components/ListFilterRenderer.js";
   import DateTimeCellEditor from "./components/DateTimeCellEditor.js";
   import FixedListCellEditor from "./components/FixedListCellEditor.js";
-  import ResponsibleUserCellEditor from "./components/ResponsibleUserCellEditor.vue";
+  import ResponsibleUserCellEditor from "./components/ResponsibleUserCellEditor.js";
   // Editor customizado inline para listas
   class ListCellEditor {
     init(params) {
@@ -218,6 +218,7 @@
   UserCellRenderer,
   ListCellEditor, // registrar editor customizado
   FixedListCellEditor,
+  ResponsibleUserCellEditor,
   DateTimeCellEditor,
   },
   props: {
@@ -240,6 +241,8 @@
   const gridApi = shallowRef(null);
   const columnApi = shallowRef(null);
   const agGridRef = ref(null);
+ 
+
   const { value: selectedRows, setValue: setSelectedRows } =
   wwLib.wwVariable.useComponentVariable({
   uid: props.uid,
@@ -409,7 +412,7 @@ const remountComponent = () => {
       const apiUrl = window.wwLib?.wwVariable?.getValue('1195995b-34c3-42a5-b436-693f0f4f8825');
       const apiKey = window.wwLib?.wwVariable?.getValue('d180be98-8926-47a7-b7f1-6375fbb95fa3');
       const apiAuth = window.wwLib?.wwVariable?.getValue('dfcde09f-42f3-4b5c-b2e8-4314650655db');
-
+ const isResponsible = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase() == "RESPONSIBLEUSERID";
       const ds = col.dataSource?.dataSource || col.dataSource;
       if (!apiUrl || !ds?.functionName) return [];
 
@@ -459,6 +462,7 @@ const remountComponent = () => {
   const loadResponsibleUserOptions = async () => {
     try {
       const lang = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
+      const loggeduserid = window?.wwLib?.wwVariable?.getValue?.('fc54ab80-1a04-4cfe-a504-793bdcfce5dd');
       const companyId = window.wwLib?.wwVariable?.getValue('5d099f04-cd42-41fd-94ad-22d4de368c3a');
       const apiUrl = window.wwLib?.wwVariable?.getValue('1195995b-34c3-42a5-b436-693f0f4f8825');
       const apiKey = window.wwLib?.wwVariable?.getValue('d180be98-8926-47a7-b7f1-6375fbb95fa3');
@@ -470,6 +474,7 @@ const remountComponent = () => {
         body: JSON.stringify({
           ...(companyId ? { p_idcompany: companyId } : {}),
           ...(lang ? { p_language: lang } : {}),
+          ...(loggeduserid ? { p_loggeduserid: loggeduserid } : {}),
         }),
       };
       if (apiKey) fetchOptions.headers['apikey'] = apiKey;
@@ -612,14 +617,6 @@ setTimeout(() => {
       setTimeout(restoreGridState, 0);
       setTimeout(restoreGridState, 150);
 
-      // Se for um remount "forçado", a ordenação da WW variable deve prevalecer
-if (forceExternalSortNextMount.value) {
-  // Pequenos delays garantem que colunas/sorters já existam
-  setTimeout(() => applyExternalSortAndSync(), 0);
-  setTimeout(() => applyExternalSortAndSync(), 120);
-  // Limpa o flag depois de aplicar
-  setTimeout(() => { forceExternalSortNextMount.value = false; }, 150);
-}
 
 
       // LOG: Tenta mostrar as colunas disponíveis e seus renderers
@@ -701,7 +698,6 @@ if (forceExternalSortNextMount.value) {
       // Múltiplas tentativas para garantir que funcione
       setTimeout(() => forceSelectionColumnFirst(), 50);
       setTimeout(() => forceSelectionColumnFirst(), 200);
-      setTimeout(() => forceSelectionColumnFirst(), 500);
       
       // Observer para detectar mudanças no DOM e reposicionar automaticamente
       setTimeout(() => {
@@ -1048,6 +1044,7 @@ setTimeout(() => {
       editorComponents: {
         ListCellEditor,
         FixedListCellEditor,
+        ResponsibleUserCellEditor,
         DateTimeCellEditor,
       },
     };
@@ -1155,7 +1152,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           const fieldKey = colCopy.id || colCopy.field;
           const getDsOptions = params => {
             const ticketId = params.data?.TicketID;
-            const colOpts = columnOptions.value[fieldKey] || {};
+            const colOpts = this.columnOptions[fieldKey] || {};
             return colOpts[ticketId] || [];
           };
 
@@ -1181,7 +1178,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                   options: optionsArr,
                 });
               } else {
-                result.cellEditor = FixedListCellEditor;
+                result.cellEditor = tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor : FixedListCellEditor;
                 result.cellEditorParams = params => ({ options: getDsOptions(params) });
                 const baseRendererParams = result.cellRendererParams;
                 result.cellRendererParams = params => ({
@@ -1203,7 +1200,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
           }
           if (colCopy.dataSource && colCopy.editable) {
             result.editable = true;
-            result.cellEditor = FixedListCellEditor;
+            result.cellEditor = tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor : FixedListCellEditor;
             result.cellEditorParams = params => ({ options: getDsOptions(params) });
             const baseRendererParams = result.cellRendererParams;
             result.cellRendererParams = params => ({
@@ -1267,7 +1264,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               const fieldKey = colCopy.id || colCopy.field;
               const getDsOptions = params => {
                 const ticketId = params.data?.TicketID;
-                const colOpts = columnOptions.value[fieldKey] || {};
+                const colOpts = this.columnOptions[fieldKey] || {};
                 return colOpts[ticketId] || [];
               };
 
@@ -1291,7 +1288,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                   formatter: colCopy.formatter,
                 },
                 editable: false,
-                cellEditor: staticOptions && staticOptions.length ? ListCellEditor : FixedListCellEditor,
+                cellEditor: staticOptions && staticOptions.length ? ListCellEditor : (tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor : FixedListCellEditor),
               };
               if (staticOptions && staticOptions.length) {
                 result.options = staticOptions;
@@ -1545,7 +1542,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             const fieldKey = colCopy.id || colCopy.field;
             const getDsOptions = params => {
               const ticketId = params.data?.TicketID;
-              const colOpts = columnOptions.value[fieldKey] || {};
+              const colOpts = this.columnOptions[fieldKey] || {};
               return colOpts[ticketId] || [];
             };
             if (
@@ -1567,7 +1564,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                     options: optionsArr,
                   };
                 } else {
-                  result.cellEditor = FixedListCellEditor;
+                  result.cellEditor = tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor :  FixedListCellEditor;
                   result.cellEditorParams = params => ({ options: getDsOptions(params) });
                   const baseRendererParams = result.cellRendererParams;
                   result.cellRendererParams = params => ({
@@ -1590,7 +1587,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             }
             if (colCopy.dataSource && colCopy.editable) {
               result.editable = true;
-              result.cellEditor = FixedListCellEditor;
+              result.cellEditor = tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor : FixedListCellEditor;
               result.cellEditorParams = params => ({ options: getDsOptions(params) });
               const baseRendererParams = result.cellRendererParams;
               result.cellRendererParams = params => ({
@@ -1731,7 +1728,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
   const identifier = (colDef.FieldDB || '').toUpperCase();
   if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
     const fieldKey = colDef.colId || colDef.field;
-    const colOpts = (this.columnOptions?.[fieldKey] || this.columnOptions?.value?.[fieldKey]) || {};
+    const colOpts = this.columnOptions[fieldKey] || {};
     const ticketId = event.data?.TicketID;
     const opts = ticketId != null ? colOpts[ticketId] || [] : [];
     const match = opts.find(o => String(o.value) === String(event.newValue));
