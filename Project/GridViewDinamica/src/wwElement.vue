@@ -174,7 +174,6 @@
           if (styled) return styled;
         }
       } catch (e) {
-        console.error('Format option error', e);
       }
       return value;
     }
@@ -348,7 +347,7 @@
         })
         .filter(v => v);
     } catch (e) {
-      console.error('Failed to load options', e);
+      
       return [];
     }
   };
@@ -637,7 +636,7 @@
         });
       }
     } catch (error) {
-      console.warn('Erro ao reposicionar coluna de seleção:', error);
+      
     }
     
     // Fallback: reposicionamento direto no DOM
@@ -674,7 +673,7 @@
         }
       });
     } catch (error) {
-      console.warn('Erro ao reposicionar coluna de seleção no DOM:', error);
+      
     }
   };
   
@@ -1614,7 +1613,7 @@
 },
   onCellClicked(event) {
   const colId = event.column?.getColId?.();
-  console.log('colId:', colId, 'columns:', this.content.columns);
+  
 
   let fieldDB = null;
   let fieldID = null;

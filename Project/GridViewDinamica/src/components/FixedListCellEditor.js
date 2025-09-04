@@ -158,7 +158,7 @@ export default class FixedListCellEditor {
         if (styled) return styled;
       }
     } catch (e) {
-      console.error('Format option error', e);
+      
     }
     return value;
   }

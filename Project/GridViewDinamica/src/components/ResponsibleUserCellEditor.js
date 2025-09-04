@@ -261,7 +261,7 @@ export default class ResponsibleUserCellEditor {
         if (styled) return styled;
       }
     } catch (e) {
-      console.error('Format option error', e);
+      
     }
     return value;
   }
@@ -565,7 +565,7 @@ export default class ResponsibleUserCellEditor {
         });
       }
     } catch (e) {
-      console.warn('postGroupAndUser failed', e);
+      
     }
   }
 

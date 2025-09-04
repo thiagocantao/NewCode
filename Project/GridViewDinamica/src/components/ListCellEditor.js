@@ -168,7 +168,7 @@ export default class ListCellEditor {
         if (styled) return styled;
       }
     } catch (e) {
-      console.error('Format option error', e);
+      
     }
     return value;
   }
