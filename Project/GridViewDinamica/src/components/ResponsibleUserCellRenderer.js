@@ -141,7 +141,7 @@ export default class ResponsibleUserCellRenderer {
       : '';
 
     const textLabel = (group?.name && user?.name)
-      ? `${group.name} • ${user.name}`
+      ? `${user.name}`
       : (user?.name || group?.name || '');
 
     if (groupAvatar && userAvatar) {
