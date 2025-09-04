@@ -1,247 +1,281 @@
-// ===== ResponsibleUserCellRenderer.js =====
-export default class ResponsibleUserCellRenderer {
+export default class ResponsibleUserFilterRenderer {
+  constructor() {
+    this.searchText = '';
+    this.selectedValues = [];
+    this.allValues = [];
+    this.filteredValues = [];
+    this.selectAll = false;
+    this.userInfo = {};
+    this.formattedValues = [];
+  }
+
   init(params) {
     this.params = params;
+    this.loadValues();
+    this.createGui();
+  }
+
+  createGui() {
     this.eGui = document.createElement('div');
-    this.eGui.className = 'ru-cell';
+    this.eGui.className = 'list-filter';
+    this.eGui.innerHTML = `
+      <div class="field-search">
+        <input type="text" placeholder="Search..." class="search-input" />
+        <span class="search-icon">
+          <i class="material-symbols-outlined-search">search</i>
+        </span>
+      </div>
+      <div class="select-all-row">
+        <label>
+          <input type="checkbox" class="select-all-checkbox" />
+          <span>Select all</span>
+        </label>
+      </div>
+      <div class="filter-list"></div>
+    `;
 
-    this.injectCSSOnce();
-    this.render();
+    this.searchInput = this.eGui.querySelector('.search-input');
+    this.filterList = this.eGui.querySelector('.filter-list');
+    this.selectAllCheckbox = this.eGui.querySelector('.select-all-checkbox');
+
+    this.setupEventListeners();
+    this.renderFilterList();
   }
 
-  // ---- Helpers base ----
-  get row() {
-    return this.params?.data || {};
-  }
-  get colDef() {
-    return this.params?.colDef || {};
-  }
-  isResponsibleCol() {
-    const tag = (this.colDef.TagControl || this.colDef.tagControl || this.colDef.tagcontrol || '').toUpperCase();
-    const fieldDb = (this.colDef.FieldDB || '').toUpperCase();
-    const field = (this.colDef.field || '').toUpperCase();
-    return tag === 'RESPONSIBLEUSERID' || fieldDb === 'RESPONSIBLEUSERID' || field === 'RESPONSIBLEUSERID';
-  }
+  setupEventListeners() {
+    this.searchInput.addEventListener('input', (e) => {
+      this.searchText = e.target.value;
+      this.filterValues();
+    });
 
-  getIds() {
-    const val = this.params.value;
-    let userId = this.row.ResponsibleUserID ?? null;
-    let groupId = this.row.AssignedGroupID ?? null;
-
-    if (val && typeof val === 'object') {
-      userId = val.userid ?? userId;
-      groupId = val.groupid ?? groupId;
-    } else if (val != null && userId == null) {
-      userId = val;
-    }
-    return { userId, groupId };
-  }
-
-  // ---- Options / listOptions normalization ----
-  getOptionsArray() {
-    const cd = this.colDef;
-    let options = [];
-
-    if (Array.isArray(this.params.options)) options = this.params.options;
-    else if (Array.isArray(cd.listOptions)) options = cd.listOptions;
-    else if (typeof cd.listOptions === 'string' && cd.listOptions.trim()) {
-      options = cd.listOptions.split(',').map(s => s.trim());
-    } else if (cd.dataSource && typeof cd.dataSource.list_options === 'string' && cd.dataSource.list_options.trim()) {
-      options = cd.dataSource.list_options.split(',').map(s => s.trim());
-    }
-
-    const normalize = (opt) => {
-      if (typeof opt === 'object') {
-        const findKey = key => Object.keys(opt).find(k => k.toLowerCase() === key);
-        const labelKey = findKey('label') || findKey('name');
-        const valueKey = findKey('value') || findKey('id');
-        return {
-          ...opt,
-          id: opt.id ?? opt.value ?? (valueKey ? opt[valueKey] : undefined),
-          name: opt.name ?? opt.label ?? (labelKey ? opt[labelKey] : undefined),
-        };
+    this.selectAllCheckbox.addEventListener('change', (e) => {
+      if (e.target.checked) {
+        this.selectedValues = [...this.filteredValues];
+      } else {
+        this.selectedValues = [];
       }
-      return { id: opt, name: String(opt) };
-    };
-
-    return (options || []).map(normalize);
+      this.renderFilterList();
+      this.applyFilter();
+    });
   }
 
-  resolveUserMeta(userId) {
-    if (userId == null) return { name: null, photo: null };
-    const sid = String(userId);
-    const options = this.getOptionsArray();
+  // Função utilitária para acessar campos aninhados
+  getNestedValue(obj, path) {
+    return path.split('.').reduce((o, p) => (o && o[p] !== undefined ? o[p] : undefined), obj);
+  }
 
-    // 1) procurar como usuário “raiz”
-    let fromOptions =
-      options.find(o => String(o.id) === sid && String(o?.type || '').toLowerCase() !== 'group');
+  // Função auxiliar igual ao FormatterCellRenderer
+  getRoundedSpanColor(value, colorArray, fieldName) {
+    if (!colorArray || !Array.isArray(colorArray) || !value) return value;
+    const matchingStyle = colorArray.find(item => item.Valor === value);
+    if (!matchingStyle) return value;
+    const borderRadius = fieldName === 'StatusID' ? '4px' : '12px';
+    const fontweight = "font-weight:bold;";
+    return `<span style="height:25px; color: ${matchingStyle.CorFonte}; background:${matchingStyle.CorFundo}; border: 1px solid ${matchingStyle.CorFundo}; border-radius: ${borderRadius}; ${fontweight} display: inline-flex; align-items: center; padding: 0 12px;">${value}</span>`;
+  }
 
-    // 2) procurar dentro de grupos
-    if (!fromOptions) {
-      for (const g of options) {
-        if (String(g?.type || '').toLowerCase() === 'group' && Array.isArray(g.groupUsers)) {
-          const m = g.groupUsers.find(x => String(x.id ?? x.value ?? x.UserID) === sid);
-          if (m) {
-            fromOptions = {
-              id: m.id ?? m.value ?? m.UserID,
-              name: m.name ?? m.DisplayName ?? m.label,
-              photoUrl: m.photoUrl ?? m.PhotoURL ?? m.PhotoUrl ?? m.photo ?? m.image ?? m.img
-            };
-            break;
+  dateFormatter(dateValue, lang) {
+    try {
+      if (!dateValue) return '';
+      const dateOptions = {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      };
+      const timeOptions = {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      };
+      const datePart = new Intl.DateTimeFormat(lang || 'en', dateOptions).format(new Date(dateValue));
+      const timePart = new Intl.DateTimeFormat(lang || 'en', timeOptions).format(new Date(dateValue));
+      return `${datePart} ${timePart}`;
+    } catch (error) {
+      return dateValue;
+    }
+  }
+
+  loadValues() {
+    const api = this.params.api;
+    const column = this.params.column;
+    const colDef = column.getColDef();
+    const field = colDef.field || column.getColId();
+    const cellRendererParams = colDef.cellRendererParams || {};
+
+    this.allValues = [];
+    this.formattedValues = [];
+    this.userInfo = {};
+    api.forEachNode(node => {
+      if (node.data) {
+        let value = this.getNestedValue(node.data, field);
+        let formatted = value;
+        // Aplica o formatter se necessário, igual ao FormatterCellRenderer
+        if (cellRendererParams.useCustomFormatter && typeof cellRendererParams.formatter === 'string') {
+          try {
+            const formatterFn = new Function(
+              'value',
+              'row',
+              'colDef',
+              'getRoundedSpanColor',
+              'dateFormatter',
+              cellRendererParams.formatter
+            );
+            formatted = formatterFn(
+              value,
+              node.data,
+              colDef,
+              this.getRoundedSpanColor,
+              this.dateFormatter
+            );
+          } catch (e) {
+            // Se der erro, mantém o valor original
           }
         }
+        if (value !== undefined && value !== null) {
+          this.allValues.push(value);
+          const name = node.data.ResponsibleUser || node.data.Username || node.data.UserName || '';
+          const photo = node.data.photoUrl || node.data.PhotoUrl || node.data.PhotoURL || node.data.UserPhoto || '';
+          this.userInfo[value] = { name, photo };
+          this.formattedValues.push(name || formatted);
+        }
       }
+    });
+    // Remover duplicatas mantendo o mapeamento
+    const seen = new Set();
+    const uniqueRaw = [];
+    const uniqueFormatted = [];
+    this.allValues.forEach((raw, idx) => {
+      if (!seen.has(raw)) {
+        seen.add(raw);
+        uniqueRaw.push(raw);
+        uniqueFormatted.push(this.formattedValues[idx]);
+      }
+    });
+    // Função utilitária para extrair texto puro de HTML
+    function stripHtml(html) {
+      const tmp = document.createElement('div');
+      tmp.innerHTML = html;
+      return tmp.textContent || tmp.innerText || '';
     }
-
-    // 3) fallback a partir da própria linha
-    const nameFromRow = this.row.ResponsibleUser || this.row.Username || this.row.UserName || this.row.User || null;
-    const photoFromRow = this.row.photoUrl || this.row.PhotoUrl || this.row.PhotoURL || this.row.UserPhoto || null;
-
-    return {
-      name: fromOptions?.name ?? nameFromRow,
-      photo: fromOptions?.photoUrl ?? photoFromRow
-    };
+    // Ordena os valores alfabeticamente pelo texto visível formatado
+    const zipped = uniqueRaw.map((raw, idx) => ({ raw, formatted: uniqueFormatted[idx] }));
+    zipped.sort((a, b) => {
+      const textA = stripHtml(String(a.formatted)).toLowerCase();
+      const textB = stripHtml(String(b.formatted)).toLowerCase();
+      return textA.localeCompare(textB, undefined, { sensitivity: 'base' });
+    });
+    this.allValues = zipped.map(z => z.raw);
+    this.formattedValues = zipped.map(z => z.formatted);
+    const newInfo = {};
+    this.allValues.forEach(v => { if (this.userInfo[v]) newInfo[v] = this.userInfo[v]; });
+    this.userInfo = newInfo;
+    this.filteredValues = [...this.allValues];
   }
 
-  resolveGroupMeta(groupId) {
-    if (groupId == null) return { name: null, photo: null };
-    const sid = String(groupId);
-    const options = this.getOptionsArray();
-
-    const g = options.find(o => String(o.id ?? o.value) === sid && String(o?.type || '').toLowerCase() === 'group');
-
-    const nameFromRow = this.row.AssignedGroupName || this.row.GroupName || this.row.Group || null;
-    const photoFromRow = this.row.groupPhoto || this.row.GroupPhoto || this.row.GroupImage || null;
-
-    return {
-      name: g?.name ?? nameFromRow,
-      photo: g?.photoUrl ?? g?.PhotoURL ?? g?.PhotoUrl ?? g?.photo ?? g?.image ?? g?.img ?? photoFromRow
-    };
+  filterValues() {
+    if (!this.searchText) {
+      this.filteredValues = [...this.allValues];
+    } else {
+      this.filteredValues = this.allValues.filter((raw, idx) => {
+        const formatted = this.formattedValues[idx];
+        return String(formatted).toLowerCase().includes(this.searchText.toLowerCase());
+      });
+    }
+    this.renderFilterList();
   }
 
-  // ---- Render ----
-  render() {
-    const isResp = this.isResponsibleCol();
-    const { userId, groupId } = this.getIds();
-    const user = this.resolveUserMeta(userId);
-    const group = this.resolveGroupMeta(groupId);
+  renderFilterList() {
+    this.selectAllCheckbox.checked =
+      this.filteredValues.length > 0 &&
+      this.filteredValues.every(v => this.selectedValues.includes(v));
 
-    if (!isResp) {
-      const plain = user?.name || this.params.value || '';
-      this.eGui.innerHTML = `<div class="ru-text">${this.escape(plain ?? '')}</div>`;
-      return;
-    }
-
-    const groupAvatar = group?.name
-      ? this.renderAvatar(group.photo, group.name, true)
-      : '';
-
-    const userAvatar = user?.name
-      ? this.renderAvatar(user.photo, user.name, false)
-      : '';
-
-    const textLabel = (group?.name && user?.name)
-      ? `${group.name} • ${user.name}`
-      : (user?.name || group?.name || '');
-
-    if (groupAvatar && userAvatar) {
-      this.eGui.innerHTML = `
-        <div class="ru-duo" title="${this.escape(textLabel)}">
-          <div class="ru-avatar ru-group">${groupAvatar}</div>
-          <div class="ru-avatar ru-user">${userAvatar}</div>
-          <div class="ru-label">${this.escape(textLabel)}</div>
-        </div>
-      `;
-      return;
-    }
-
-    const single = userAvatar || groupAvatar;
-    this.eGui.innerHTML = `
-      <div class="ru-single" title="${this.escape(textLabel)}">
-        <div class="ru-avatar">${single}</div>
-        <div class="ru-label">${this.escape(textLabel)}</div>
-      </div>
-    `;
-  }
-
-  renderAvatar(photo, name, isGroup) {
-    if (isGroup) {
+    this.filterList.innerHTML = this.filteredValues.map((rawValue) => {
+      const idx = this.allValues.indexOf(rawValue);
+      const formattedValue = this.formattedValues[idx] || rawValue;
+      const checked = this.selectedValues.includes(rawValue) ? 'checked' : '';
+      const info = this.userInfo[rawValue] || { name: formattedValue, photo: '' };
+      const name = info.name || formattedValue;
+      const photo = info.photo;
+      const initial = name ? name.trim().charAt(0).toUpperCase() : '';
+      const avatar = photo
+        ? `<img src="${photo}" alt="" />`
+        : `<span class="user-initial">${initial}</span>`;
       return `
-        <span class="avatar-outer">
-          <span class="avatar-middle">
-            <span class="ru-ava ru-ava--group">
-              <span style="font-size: 14px" class="material-symbols-outlined ru-group-icon">groups</span>
-            </span>
+        <label class="filter-item${this.selectedValues.includes(rawValue) ? ' selected' : ''}">
+          <input type="checkbox" value="${rawValue}" ${checked} />
+          <span class="user-option">
+            <span class="avatar-outer"><span class="avatar-middle"><span class="user-avatar">${avatar}</span></span></span>
+            <span class="filter-label">${name}</span>
           </span>
-        </span>
+        </label>
       `;
-    }
-    const inner = photo
-      ? `<img src="${photo}" alt="${this.escape(name || '')}" />`
-      : `<span class="ru-initial">${this.escape((name || '').trim().charAt(0).toUpperCase())}</span>`;
-    return `
-      <span class="avatar-outer">
-        <span class="avatar-middle">
-          <span class="ru-ava">${inner}</span>
-        </span>
-      </span>
-    `;
+    }).join('');
+
+    this.filterList.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+      checkbox.addEventListener('change', (e) => {
+        const value = e.target.value;
+        if (e.target.checked) {
+          if (!this.selectedValues.includes(value)) {
+            this.selectedValues.push(value);
+          }
+        } else {
+          this.selectedValues = this.selectedValues.filter(v => v !== value);
+        }
+        this.selectAllCheckbox.checked =
+          this.filteredValues.length > 0 &&
+          this.filteredValues.every(v => this.selectedValues.includes(v));
+        this.applyFilter();
+      });
+    });
   }
 
-  escape(s) {
-    return String(s ?? '')
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  applyFilter() {
+    this.params.filterChangedCallback();
+  }
+
+  clearFilter() {
+    this.selectedValues = [];
+    this.searchText = '';
+    this.searchInput.value = '';
+    this.filteredValues = [...this.allValues];
+    this.renderFilterList();
+    this.params.filterChangedCallback();
+  }
+
+  isFilterActive() {
+    return this.selectedValues.length > 0;
+  }
+
+  doesFilterPass(params) {
+    if (this.selectedValues.length === 0) return true;
+    const field = this.params.column.getColDef().field || this.params.column.getColId();
+    const value = this.getNestedValue(params.data, field);
+    return this.selectedValues.includes(value);
+  }
+
+  getModel() {
+    if (this.selectedValues.length === 0) return null;
+    return {
+      type: 'list',
+      values: this.selectedValues
+    };
+  }
+
+  setModel(model) {
+    if (model && model.values) {
+      this.selectedValues = model.values;
+    } else {
+      this.selectedValues = [];
+    }
+    this.renderFilterList();
   }
 
   getGui() {
     return this.eGui;
   }
-  refresh(params) {
-    this.params = params;
-    this.render();
-    return true;
+
+  onNewRowsLoaded() {
+    this.loadValues();
+    this.filterValues();
   }
-
-  // ---- CSS com look “anel” para avatares ----
-  injectCSSOnce() {
-    const id = '__ru_cell_renderer_css__';
-    if (typeof document === 'undefined' || document.getElementById(id)) return;
-    const style = document.createElement('style');
-    style.id = id;
-    style.textContent = `
-.ru-cell { display:flex; align-items:center; height:100%; }
-.ru-text { font-size:13px; color:#374151; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.ru-label { margin-left: 8px; font-size: 13px; color: #374151; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ru-single { display:flex; align-items:center; }
-.ru-duo { display:flex; align-items:center; position: relative; }
-.ru-avatar { display:inline-flex; }
-.ru-avatar + .ru-avatar { margin-left: -10px; }
-
-.avatar-outer {
-  width: 32px; height: 32px; border-radius: 50%;
-  border: 1px solid #3A4663; display:flex; align-items:center; justify-content:center; background:#fff;
-}
-.avatar-middle {
-  width: 30px; height: 30px; border-radius: 50%;
-  border: 2px solid #fff; display:flex; align-items:center; justify-content:center; background:#fff;
-}
-.ru-ava {
-  width: 26px; height: 26px; border-radius:50%;
-  background: #4B6CB7; display:flex; align-items:center; justify-content:center; overflow:hidden;
-}
-.ru-ava img {  object-fit:cover; border-radius:50%; }
-.ru-initial {  display:flex; align-items:center; justify-content:center; color:#fff; font-size:14px; }
-
-.ru-ava--group { background: #4B6CB7; }
-.ru-group-icon {
-  font-size: 14px; line-height:1; color:#fff;
-  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
-}
-
-.ru-group { z-index: 1; }
-.ru-user  { z-index: 2; }
-`;
-    document.head.appendChild(style);
-  }
-}
+} 
