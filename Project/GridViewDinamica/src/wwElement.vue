@@ -357,6 +357,7 @@
     try {
       const lang = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
       const companyId = window.wwLib?.wwVariable?.getValue('5d099f04-cd42-41fd-94ad-22d4de368c3a');
+      const loggeduserid = window?.wwLib?.wwVariable?.getValue?.('fc54ab80-1a04-4cfe-a504-793bdcfce5dd');
       const apiUrl = window.wwLib?.wwVariable?.getValue('1195995b-34c3-42a5-b436-693f0f4f8825');
       const apiKey = window.wwLib?.wwVariable?.getValue('d180be98-8926-47a7-b7f1-6375fbb95fa3');
       const apiAuth = window.wwLib?.wwVariable?.getValue('dfcde09f-42f3-4b5c-b2e8-4314650655db');
@@ -367,6 +368,7 @@
         body: JSON.stringify({
           ...(companyId ? { p_idcompany: companyId } : {}),
           ...(lang ? { p_language: lang } : {}),
+          ...(loggeduserid ? {p_loggeduserid: loggeduserid} : {}),
         }),
       };
       if (apiKey) fetchOptions.headers['apikey'] = apiKey;
@@ -735,7 +737,7 @@
   };
   
   /* wwEditor:start */
-  const { createElement } = wwLib.useCreateElement();
+  const { createElement } = wwLib.wwElement.useCreate();
 
   const gridComponents = {
     ActionCellRenderer,
