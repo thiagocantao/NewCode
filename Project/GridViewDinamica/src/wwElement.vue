@@ -497,10 +497,11 @@ const remountComponent = () => {
     }
   };
 
-  const getColumnOptions = async (col, ticketId) => {
+  let responsibleUserCache = null;
+
+  async function getColumnOptions(col, ticketId) {
     const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
     const identifier = (col.FieldDB || '').toUpperCase();
-    let responsibleUserCache = null;
     if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
       if (!responsibleUserCache) {
         responsibleUserCache = await loadResponsibleUserOptions();
@@ -523,7 +524,7 @@ const remountComponent = () => {
     }
 
     return opts;
-  };
+  }
 
   const loadAllColumnOptions = async () => {
     if (!props.content || !Array.isArray(props.content.columns)) return;
@@ -1014,6 +1015,7 @@ setTimeout(() => {
       forceSelectionColumnFirst,
       forceSelectionColumnFirstDOM,
       columnOptions,
+      getColumnOptions,
       componentKey,
       remountComponent,
       clearSavedGridState,
@@ -1161,7 +1163,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             const colOpts = this.columnOptions[fieldKey] || {};
             const cached = colOpts[ticketId];
             if (cached) return cached;
-            getColumnOptions(colCopy, ticketId).then(opts => {
+            this.getColumnOptions(colCopy, ticketId).then(opts => {
+
               if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
               this.columnOptions[fieldKey][ticketId] = opts;
               params.api?.refreshCells?.({ force: true });
@@ -1173,7 +1176,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             const colOpts = this.columnOptions[fieldKey] || {};
             const cached = colOpts[ticketId];
             if (cached) return Promise.resolve(cached);
-            return getColumnOptions(colCopy, ticketId).then(opts => {
+            return this.getColumnOptions(colCopy, ticketId).then(opts => {
+
               if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
               this.columnOptions[fieldKey][ticketId] = opts;
               return opts;
@@ -1291,7 +1295,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                 const colOpts = this.columnOptions[fieldKey] || {};
                 const cached = colOpts[ticketId];
                 if (cached) return cached;
-                getColumnOptions(colCopy, ticketId).then(opts => {
+                this.getColumnOptions(colCopy, ticketId).then(opts => {
                   if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
                   this.columnOptions[fieldKey][ticketId] = opts;
                   params.api?.refreshCells?.({ force: true });
@@ -1303,7 +1307,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                 const colOpts = this.columnOptions[fieldKey] || {};
                 const cached = colOpts[ticketId];
                 if (cached) return Promise.resolve(cached);
-                return getColumnOptions(colCopy, ticketId).then(opts => {
+                return this.getColumnOptions(colCopy, ticketId).then(opts => {
+
                   if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
                   this.columnOptions[fieldKey][ticketId] = opts;
                   return opts;
@@ -1590,7 +1595,7 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               const colOpts = this.columnOptions[fieldKey] || {};
               const cached = colOpts[ticketId];
               if (cached) return cached;
-              getColumnOptions(colCopy, ticketId).then(opts => {
+              this.getColumnOptions(colCopy, ticketId).then(opts => {
                 if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
                 this.columnOptions[fieldKey][ticketId] = opts;
                 params.api?.refreshCells?.({ force: true });
@@ -1602,7 +1607,8 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               const colOpts = this.columnOptions[fieldKey] || {};
               const cached = colOpts[ticketId];
               if (cached) return Promise.resolve(cached);
-              return getColumnOptions(colCopy, ticketId).then(opts => {
+              return this.getColumnOptions(colCopy, ticketId).then(opts => {
+
                 if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
                 this.columnOptions[fieldKey][ticketId] = opts;
                 return opts;
