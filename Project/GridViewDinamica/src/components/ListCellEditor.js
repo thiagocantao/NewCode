@@ -29,28 +29,7 @@ export default class ListCellEditor {
     this.isResponsibleUser =
       tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
 
-    // Build option array
-    let optionsArr = [];
-    if (Array.isArray(params.options)) {
-      optionsArr = params.options;
-    } else if (Array.isArray(params.colDef.options)) {
-      optionsArr = params.colDef.options;
-    } else if (Array.isArray(params.colDef.listOptions)) {
-      optionsArr = params.colDef.listOptions;
-    } else if (
-      typeof params.colDef.listOptions === 'string' &&
-      params.colDef.listOptions.trim() !== ''
-    ) {
-      optionsArr = params.colDef.listOptions.split(',').map(o => o.trim());
-    } else if (
-      params.colDef.dataSource &&
-      typeof params.colDef.dataSource.list_options === 'string' &&
-      params.colDef.dataSource.list_options.trim() !== ''
-    ) {
-      optionsArr = params.colDef.dataSource.list_options
-        .split(',')
-        .map(o => o.trim());
-    }
+    // Build option array (supports promises)
     const normalize = (opt) => {
       if (typeof opt === 'object') {
         const findKey = key => Object.keys(opt).find(k => k.toLowerCase() === key);
@@ -64,8 +43,43 @@ export default class ListCellEditor {
       }
       return { value: opt, label: String(opt) };
     };
-    this.options = optionsArr.map(normalize);
-    this.filteredOptions = [...this.options];
+
+    const resolveOptions = (arr) => {
+      this.options = (arr || []).map(normalize);
+      this.filteredOptions = [...this.options];
+      this.renderOptions();
+    };
+
+    let optionsPromise;
+    if (params.options && typeof params.options.then === 'function') {
+      optionsPromise = params.options;
+    } else if (Array.isArray(params.options)) {
+      optionsPromise = Promise.resolve(params.options);
+    } else if (Array.isArray(params.colDef.options)) {
+      optionsPromise = Promise.resolve(params.colDef.options);
+    } else if (Array.isArray(params.colDef.listOptions)) {
+      optionsPromise = Promise.resolve(params.colDef.listOptions);
+    } else if (
+      typeof params.colDef.listOptions === 'string' &&
+      params.colDef.listOptions.trim() !== ''
+    ) {
+      optionsPromise = Promise.resolve(
+        params.colDef.listOptions.split(',').map(o => o.trim())
+      );
+    } else if (
+      params.colDef.dataSource &&
+      typeof params.colDef.dataSource.list_options === 'string' &&
+      params.colDef.dataSource.list_options.trim() !== ''
+    ) {
+      optionsPromise = Promise.resolve(
+        params.colDef.dataSource.list_options.split(',').map(o => o.trim())
+      );
+    } else {
+      optionsPromise = Promise.resolve([]);
+    }
+
+    optionsPromise.then(resolveOptions);
+
     this.value = params.value;
 
     this.searchInput.addEventListener('input', e => {
@@ -81,8 +95,6 @@ export default class ListCellEditor {
         }
       });
     }
-
-    this.renderOptions();
   }
 
   filterOptions(text) {
