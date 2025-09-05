@@ -5,6 +5,7 @@ export default class ResponsibleUserFilterRenderer {
     this.allValues = [];
     this.filteredValues = [];
     this.selectAll = false;
+    // key -> { type: 'responsible'|'group', id, name, photo }
 
     this.userInfo = {};
   }
@@ -149,6 +150,7 @@ export default class ResponsibleUserFilterRenderer {
         if (!this.userInfo[gKey]) {
           const photo = opt.photoUrl || opt.PhotoURL || opt.PhotoUrl || opt.photo || opt.image || opt.img || '';
           this.userInfo[gKey] = { type: 'group', id: groupId, name: opt.name || '', photo };
+
         }
         if (Array.isArray(opt.groupUsers)) {
           opt.groupUsers.forEach(u => {
@@ -160,20 +162,10 @@ export default class ResponsibleUserFilterRenderer {
               if (!this.userInfo[uKey]) {
                 this.userInfo[uKey] = { type: 'responsible', id: uid, name: userName, photo: userPhoto };
               }
-              const ugKey = `user-${uid}-group-${groupId}`;
-              if (!this.userInfo[ugKey]) {
-                this.userInfo[ugKey] = {
-                  type: 'userGroup',
-                  id: uid,
-                  groupId,
-                  name: userName,
-                  groupName: opt.name || '',
-                  photo: userPhoto
-                };
-              }
             }
           });
         }
+
       } else {
         const uid = opt.id;
         const uKey = `user-${uid}`;
@@ -184,9 +176,11 @@ export default class ResponsibleUserFilterRenderer {
       }
     });
 
+    const field = this.params.column.getColDef().field || this.params.column.getColId();
     api.forEachNode(node => {
       const data = node.data || {};
-      const userId = data.ResponsibleUserID ?? this.getNestedValue(data, 'ResponsibleUserID');
+      const userId = this.getNestedValue(data, field);
+
       const groupId = data.AssignedGroupID || data.GroupID || data.groupid;
 
       if (groupId !== undefined && groupId !== null) {
@@ -196,6 +190,7 @@ export default class ResponsibleUserFilterRenderer {
           const gPhoto = data.groupPhoto || data.GroupPhoto || data.GroupImage || '';
           this.userInfo[gKey] = { type: 'group', id: groupId, name: gName, photo: gPhoto };
         }
+
       }
 
       if (userId !== undefined && userId !== null) {
@@ -207,26 +202,9 @@ export default class ResponsibleUserFilterRenderer {
         }
       }
 
-      if (userId !== undefined && userId !== null && groupId !== undefined && groupId !== null) {
-        const ugKey = `user-${userId}-group-${groupId}`;
-        if (!this.userInfo[ugKey]) {
-          const uName = data.ResponsibleUser || data.Username || data.UserName || '';
-          const uPhoto = data.photoUrl || data.PhotoUrl || data.PhotoURL || data.UserPhoto || '';
-          const gName = data.AssignedGroupName || data.GroupName || data.Group || '';
-          this.userInfo[ugKey] = {
-            type: 'userGroup',
-            id: userId,
-            groupId,
-            name: uName,
-            groupName: gName,
-            photo: uPhoto
-          };
-        }
-      }
     });
 
     const respKeys = Object.keys(this.userInfo).filter(k => this.userInfo[k].type === 'responsible');
-    const userGroupKeys = Object.keys(this.userInfo).filter(k => this.userInfo[k].type === 'userGroup');
 
     const groupKeys = Object.keys(this.userInfo).filter(k => this.userInfo[k].type === 'group');
 
@@ -237,10 +215,9 @@ export default class ResponsibleUserFilterRenderer {
     };
 
     respKeys.sort(sortByName);
-    userGroupKeys.sort(sortByName);
     groupKeys.sort(sortByName);
 
-    this.allValues = [...respKeys, ...userGroupKeys, ...groupKeys];
+    this.allValues = [...respKeys, ...groupKeys];
 
     this.filteredValues = [...this.allValues];
   }
@@ -252,7 +229,7 @@ export default class ResponsibleUserFilterRenderer {
       const q = this.searchText.toLowerCase();
       this.filteredValues = this.allValues.filter(key => {
         const info = this.userInfo[key] || {};
-        const target = `${info.name || ''} ${info.groupName || ''}`.toLowerCase();
+        const target = (info.name || '').toLowerCase();
         return target.includes(q);
 
       });
@@ -267,27 +244,21 @@ export default class ResponsibleUserFilterRenderer {
       this.filteredValues.every(v => selected.has(v));
 
     const respHtml = [];
-    const userGroupHtml = [];
 
     const groupHtml = [];
 
     this.filteredValues.forEach(key => {
       const info = this.userInfo[key] || {};
       const checked = selected.has(key) ? 'checked' : '';
-      const name = info.type === 'userGroup'
-        ? `${info.name || ''} (${info.groupName || ''})`
-        : (info.name || '');
-
+      const name = info.name || '';
       const photo = info.photo;
-      const initial = (info.name || '').trim().charAt(0).toUpperCase();
-      let avatar = photo
+      const initial = name.trim().charAt(0).toUpperCase();
+      const avatar = photo
+
         ? `<img src="${photo}" alt="" />`
         : info.type === 'group'
           ? `<span class="user-initial material-symbols-outlined">groups</span>`
           : `<span class="user-initial">${initial}</span>`;
-      if (info.type === 'userGroup') {
-        avatar += `<span class="group-badge material-symbols-outlined">groups</span>`;
-      }
 
 
       const item = `
@@ -300,7 +271,6 @@ export default class ResponsibleUserFilterRenderer {
         </label>
       `;
       if (info.type === 'group') groupHtml.push(item);
-      else if (info.type === 'userGroup') userGroupHtml.push(item);
       else respHtml.push(item);
 
     });
@@ -308,9 +278,6 @@ export default class ResponsibleUserFilterRenderer {
     const sections = [];
     if (respHtml.length) {
       sections.push(`<div class="filter-section"><div class="filter-section-title">Responsibles</div>${respHtml.join('')}</div>`);
-    }
-    if (userGroupHtml.length) {
-      sections.push(`<div class="filter-section"><div class="filter-section-title">Responsibles with Groups</div>${userGroupHtml.join('')}</div>`);
     }
 
     if (groupHtml.length) {
@@ -364,15 +331,9 @@ export default class ResponsibleUserFilterRenderer {
         const gid = row.AssignedGroupID || row.GroupID || row.groupid;
         return String(gid) === String(info.id);
       }
-      if (info.type === 'userGroup') {
-        const gid = row.AssignedGroupID || row.GroupID || row.groupid;
-        const field = this.params.column.getColDef().field || this.params.column.getColId();
-        const uid = this.getNestedValue(row, field);
-        return String(uid) === String(info.id) && String(gid) === String(info.groupId);
-      }
+      const fieldName = this.params.column.getColDef().field || this.params.column.getColId();
+      const val = this.getNestedValue(row, fieldName);
 
-      const field = this.params.column.getColDef().field || this.params.column.getColId();
-      const val = this.getNestedValue(row, field);
       return String(val) === String(info.id);
     });
   }
