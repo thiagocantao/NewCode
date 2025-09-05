@@ -29,6 +29,7 @@
               :company-id="companyId"
               :language="language"
               :read-only="formReadOnly"
+              :auto-save="autoSave"
               @update-section="updateFormState"
               @edit-section="editSection"
               @edit-field="editFormField"

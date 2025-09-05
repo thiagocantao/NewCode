@@ -1,5 +1,5 @@
 <template>
-  <CustomAlert :message="error" :visible="!!error && showAlert" @close="showAlert = false" />
+  <CustomAlert v-if="autoSave" :message="error" :visible="!!error && showAlert" @close="showAlert = false" />
   <div class="field-component"
     :class="[`field-type-${field.fieldType.toLowerCase()}`, { 'is-mandatory': field.is_mandatory }]">
     <!-- Label do campo -->
@@ -206,6 +206,10 @@ export default {
     userId: {
       type: String,
       required: false
+    },
+    autoSave: {
+      type: Boolean,
+      default: true
     }
   },
   data() {
@@ -431,7 +435,7 @@ export default {
       immediate: true
     },
     error(val) {
-      this.showAlert = !!val;
+      this.showAlert = this.autoSave && !!val;
     },
     localValue(newVal) {
       if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte && this.$refs.rte.innerHTML !== newVal) {
@@ -513,7 +517,9 @@ export default {
         if (isChanged) {
           this.localValue = value;
           this.$emit('update:value', value);
-          await this.saveFieldValueToApi(apiValue);
+          if (this.autoSave) {
+            await this.saveFieldValueToApi(apiValue);
+          }
           this.originalValue = value;
         }
       }
