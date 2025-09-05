@@ -5,7 +5,7 @@ export default class ResponsibleUserFilterRenderer {
     this.allValues = [];
     this.filteredValues = [];
     this.selectAll = false;
-    // key -> { type: 'responsible'|'group', id, name, photo }
+
     this.userInfo = {};
   }
 
@@ -95,35 +95,139 @@ export default class ResponsibleUserFilterRenderer {
     }
   }
 
+  getOptionsArray() {
+    const params = this.params || {};
+    const colDef = params.colDef || params.column?.getColDef?.() || {};
+    let options = [];
+
+    if (Array.isArray(params.options)) options = params.options;
+    else if (Array.isArray(colDef.listOptions)) options = colDef.listOptions;
+    else if (typeof colDef.listOptions === 'string' && colDef.listOptions.trim()) {
+      options = colDef.listOptions.split(',').map(o => o.trim());
+    } else if (
+      colDef.dataSource &&
+      typeof colDef.dataSource.list_options === 'string' &&
+      colDef.dataSource.list_options.trim()
+    ) {
+      options = colDef.dataSource.list_options.split(',').map(o => o.trim());
+    }
+
+    const normalize = (opt) => {
+      if (typeof opt === 'object') {
+        const findKey = keys => Object.keys(opt).find(k => keys.includes(k.toLowerCase()));
+        const labelKey = findKey(['label', 'name', 'displayname', 'display_name']);
+        const valueKey = findKey(['value', 'id', 'userid', 'user_id']);
+        const typeKey = findKey(['type']);
+        const groupUsersKey = findKey(['groupusers', 'group_users']);
+        const normalized = {
+          ...opt,
+          id: opt.id ?? opt.value ?? (valueKey ? opt[valueKey] : undefined),
+          name: opt.name ?? opt.label ?? (labelKey ? opt[labelKey] : undefined),
+          type: opt.type ?? (typeKey ? opt[typeKey] : undefined)
+        };
+        if (groupUsersKey && Array.isArray(opt[groupUsersKey])) {
+          normalized.groupUsers = opt[groupUsersKey].map(normalize);
+        }
+        return normalized;
+      }
+      return { id: opt, name: String(opt) };
+    };
+
+    return (options || []).map(normalize);
+  }
+
   loadValues() {
     const api = this.params.api;
     this.userInfo = {};
 
-    api.forEachNode(node => {
-      const data = node.data || {};
-
-      const userId = data.ResponsibleUserID ?? this.getNestedValue(data, 'ResponsibleUserID');
-      if (userId !== undefined && userId !== null) {
-        const key = `user-${userId}`;
-        if (!this.userInfo[key]) {
-          const name = data.ResponsibleUser || data.Username || data.UserName || '';
-          const photo = data.photoUrl || data.PhotoUrl || data.PhotoURL || data.UserPhoto || '';
-          this.userInfo[key] = { type: 'responsible', id: userId, name, photo };
+    const options = this.getOptionsArray();
+    options.forEach(opt => {
+      const type = String(opt.type || '').toLowerCase();
+      if (type === 'group') {
+        const groupId = opt.id;
+        const gKey = `group-${groupId}`;
+        if (!this.userInfo[gKey]) {
+          const photo = opt.photoUrl || opt.PhotoURL || opt.PhotoUrl || opt.photo || opt.image || opt.img || '';
+          this.userInfo[gKey] = { type: 'group', id: groupId, name: opt.name || '', photo };
         }
-      }
-
-      const groupId = data.AssignedGroupID || data.GroupID || data.groupid;
-      if (groupId !== undefined && groupId !== null) {
-        const key = `group-${groupId}`;
-        if (!this.userInfo[key]) {
-          const name = data.AssignedGroupName || data.GroupName || data.Group || '';
-          const photo = data.groupPhoto || data.GroupPhoto || data.GroupImage || '';
-          this.userInfo[key] = { type: 'group', id: groupId, name, photo };
+        if (Array.isArray(opt.groupUsers)) {
+          opt.groupUsers.forEach(u => {
+            const uid = u.id ?? u.value ?? u.UserID;
+            if (uid !== undefined && uid !== null) {
+              const userName = u.name ?? u.label ?? u.DisplayName ?? '';
+              const userPhoto = u.photoUrl || u.PhotoURL || u.PhotoUrl || u.photo || u.image || u.img || '';
+              const uKey = `user-${uid}`;
+              if (!this.userInfo[uKey]) {
+                this.userInfo[uKey] = { type: 'responsible', id: uid, name: userName, photo: userPhoto };
+              }
+              const ugKey = `user-${uid}-group-${groupId}`;
+              if (!this.userInfo[ugKey]) {
+                this.userInfo[ugKey] = {
+                  type: 'userGroup',
+                  id: uid,
+                  groupId,
+                  name: userName,
+                  groupName: opt.name || '',
+                  photo: userPhoto
+                };
+              }
+            }
+          });
+        }
+      } else {
+        const uid = opt.id;
+        const uKey = `user-${uid}`;
+        if (!this.userInfo[uKey]) {
+          const photo = opt.photoUrl || opt.PhotoURL || opt.PhotoUrl || opt.photo || opt.image || opt.img || '';
+          this.userInfo[uKey] = { type: 'responsible', id: uid, name: opt.name || '', photo };
         }
       }
     });
 
-    const respKeys = Object.keys(this.userInfo).filter(k => this.userInfo[k].type !== 'group');
+    api.forEachNode(node => {
+      const data = node.data || {};
+      const userId = data.ResponsibleUserID ?? this.getNestedValue(data, 'ResponsibleUserID');
+      const groupId = data.AssignedGroupID || data.GroupID || data.groupid;
+
+      if (groupId !== undefined && groupId !== null) {
+        const gKey = `group-${groupId}`;
+        if (!this.userInfo[gKey]) {
+          const gName = data.AssignedGroupName || data.GroupName || data.Group || '';
+          const gPhoto = data.groupPhoto || data.GroupPhoto || data.GroupImage || '';
+          this.userInfo[gKey] = { type: 'group', id: groupId, name: gName, photo: gPhoto };
+        }
+      }
+
+      if (userId !== undefined && userId !== null) {
+        const uKey = `user-${userId}`;
+        if (!this.userInfo[uKey]) {
+          const uName = data.ResponsibleUser || data.Username || data.UserName || '';
+          const uPhoto = data.photoUrl || data.PhotoUrl || data.PhotoURL || data.UserPhoto || '';
+          this.userInfo[uKey] = { type: 'responsible', id: userId, name: uName, photo: uPhoto };
+        }
+      }
+
+      if (userId !== undefined && userId !== null && groupId !== undefined && groupId !== null) {
+        const ugKey = `user-${userId}-group-${groupId}`;
+        if (!this.userInfo[ugKey]) {
+          const uName = data.ResponsibleUser || data.Username || data.UserName || '';
+          const uPhoto = data.photoUrl || data.PhotoUrl || data.PhotoURL || data.UserPhoto || '';
+          const gName = data.AssignedGroupName || data.GroupName || data.Group || '';
+          this.userInfo[ugKey] = {
+            type: 'userGroup',
+            id: userId,
+            groupId,
+            name: uName,
+            groupName: gName,
+            photo: uPhoto
+          };
+        }
+      }
+    });
+
+    const respKeys = Object.keys(this.userInfo).filter(k => this.userInfo[k].type === 'responsible');
+    const userGroupKeys = Object.keys(this.userInfo).filter(k => this.userInfo[k].type === 'userGroup');
+
     const groupKeys = Object.keys(this.userInfo).filter(k => this.userInfo[k].type === 'group');
 
     const sortByName = (a, b) => {
@@ -133,9 +237,11 @@ export default class ResponsibleUserFilterRenderer {
     };
 
     respKeys.sort(sortByName);
+    userGroupKeys.sort(sortByName);
     groupKeys.sort(sortByName);
 
-    this.allValues = [...respKeys, ...groupKeys];
+    this.allValues = [...respKeys, ...userGroupKeys, ...groupKeys];
+
     this.filteredValues = [...this.allValues];
   }
 
@@ -146,7 +252,9 @@ export default class ResponsibleUserFilterRenderer {
       const q = this.searchText.toLowerCase();
       this.filteredValues = this.allValues.filter(key => {
         const info = this.userInfo[key] || {};
-        return String(info.name || '').toLowerCase().includes(q);
+        const target = `${info.name || ''} ${info.groupName || ''}`.toLowerCase();
+        return target.includes(q);
+
       });
     }
     this.renderFilterList();
@@ -159,36 +267,52 @@ export default class ResponsibleUserFilterRenderer {
       this.filteredValues.every(v => selected.has(v));
 
     const respHtml = [];
+    const userGroupHtml = [];
+
     const groupHtml = [];
 
     this.filteredValues.forEach(key => {
       const info = this.userInfo[key] || {};
       const checked = selected.has(key) ? 'checked' : '';
-      const name = info.name || '';
+      const name = info.type === 'userGroup'
+        ? `${info.name || ''} (${info.groupName || ''})`
+        : (info.name || '');
+
       const photo = info.photo;
-      const initial = name ? name.trim().charAt(0).toUpperCase() : '';
-      const avatar = photo
+      const initial = (info.name || '').trim().charAt(0).toUpperCase();
+      let avatar = photo
         ? `<img src="${photo}" alt="" />`
         : info.type === 'group'
           ? `<span class="user-initial material-symbols-outlined">groups</span>`
           : `<span class="user-initial">${initial}</span>`;
+      if (info.type === 'userGroup') {
+        avatar += `<span class="group-badge material-symbols-outlined">groups</span>`;
+      }
+
 
       const item = `
         <label class="filter-item${selected.has(key) ? ' selected' : ''}">
           <input type="checkbox" value="${key}" ${checked} />
           <span class="user-option">
-            <span class="avatar-outer"><span class="avatar-middle"><span class="user-avatar">${avatar}</span></span></span>
+            <span class="avatar-outer"><span class="avatar-middle"><span class="user-avatar${info.type === 'userGroup' ? ' user-group' : ''}">${avatar}</span></span></span>
             <span class="filter-label">${name}</span>
           </span>
         </label>
       `;
-      if (info.type === 'group') groupHtml.push(item); else respHtml.push(item);
+      if (info.type === 'group') groupHtml.push(item);
+      else if (info.type === 'userGroup') userGroupHtml.push(item);
+      else respHtml.push(item);
+
     });
 
     const sections = [];
     if (respHtml.length) {
       sections.push(`<div class="filter-section"><div class="filter-section-title">Responsibles</div>${respHtml.join('')}</div>`);
     }
+    if (userGroupHtml.length) {
+      sections.push(`<div class="filter-section"><div class="filter-section-title">Responsibles with Groups</div>${userGroupHtml.join('')}</div>`);
+    }
+
     if (groupHtml.length) {
       sections.push(`<div class="filter-section"><div class="filter-section-title">Groups</div>${groupHtml.join('')}</div>`);
     }
@@ -240,6 +364,13 @@ export default class ResponsibleUserFilterRenderer {
         const gid = row.AssignedGroupID || row.GroupID || row.groupid;
         return String(gid) === String(info.id);
       }
+      if (info.type === 'userGroup') {
+        const gid = row.AssignedGroupID || row.GroupID || row.groupid;
+        const field = this.params.column.getColDef().field || this.params.column.getColId();
+        const uid = this.getNestedValue(row, field);
+        return String(uid) === String(info.id) && String(gid) === String(info.groupId);
+      }
+
       const field = this.params.column.getColDef().field || this.params.column.getColId();
       const val = this.getNestedValue(row, field);
       return String(val) === String(info.id);
