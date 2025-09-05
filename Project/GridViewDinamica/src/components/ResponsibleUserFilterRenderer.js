@@ -5,7 +5,7 @@ export default class ResponsibleUserFilterRenderer {
     this.allValues = [];
     this.filteredValues = [];
     this.selectAll = false;
-    // key -> { type: 'responsible'|'group'|'userGroup', id, name, photo, groupId?, groupName? }
+
     this.userInfo = {};
   }
 
@@ -227,6 +227,7 @@ export default class ResponsibleUserFilterRenderer {
 
     const respKeys = Object.keys(this.userInfo).filter(k => this.userInfo[k].type === 'responsible');
     const userGroupKeys = Object.keys(this.userInfo).filter(k => this.userInfo[k].type === 'userGroup');
+
     const groupKeys = Object.keys(this.userInfo).filter(k => this.userInfo[k].type === 'group');
 
     const sortByName = (a, b) => {
@@ -240,6 +241,7 @@ export default class ResponsibleUserFilterRenderer {
     groupKeys.sort(sortByName);
 
     this.allValues = [...respKeys, ...userGroupKeys, ...groupKeys];
+
     this.filteredValues = [...this.allValues];
   }
 
@@ -252,6 +254,7 @@ export default class ResponsibleUserFilterRenderer {
         const info = this.userInfo[key] || {};
         const target = `${info.name || ''} ${info.groupName || ''}`.toLowerCase();
         return target.includes(q);
+
       });
     }
     this.renderFilterList();
@@ -265,6 +268,7 @@ export default class ResponsibleUserFilterRenderer {
 
     const respHtml = [];
     const userGroupHtml = [];
+
     const groupHtml = [];
 
     this.filteredValues.forEach(key => {
@@ -273,6 +277,7 @@ export default class ResponsibleUserFilterRenderer {
       const name = info.type === 'userGroup'
         ? `${info.name || ''} (${info.groupName || ''})`
         : (info.name || '');
+
       const photo = info.photo;
       const initial = (info.name || '').trim().charAt(0).toUpperCase();
       let avatar = photo
@@ -283,6 +288,7 @@ export default class ResponsibleUserFilterRenderer {
       if (info.type === 'userGroup') {
         avatar += `<span class="group-badge material-symbols-outlined">groups</span>`;
       }
+
 
       const item = `
         <label class="filter-item${selected.has(key) ? ' selected' : ''}">
@@ -296,6 +302,7 @@ export default class ResponsibleUserFilterRenderer {
       if (info.type === 'group') groupHtml.push(item);
       else if (info.type === 'userGroup') userGroupHtml.push(item);
       else respHtml.push(item);
+
     });
 
     const sections = [];
@@ -305,6 +312,7 @@ export default class ResponsibleUserFilterRenderer {
     if (userGroupHtml.length) {
       sections.push(`<div class="filter-section"><div class="filter-section-title">Responsibles with Groups</div>${userGroupHtml.join('')}</div>`);
     }
+
     if (groupHtml.length) {
       sections.push(`<div class="filter-section"><div class="filter-section-title">Groups</div>${groupHtml.join('')}</div>`);
     }
@@ -362,6 +370,7 @@ export default class ResponsibleUserFilterRenderer {
         const uid = this.getNestedValue(row, field);
         return String(uid) === String(info.id) && String(gid) === String(info.groupId);
       }
+
       const field = this.params.column.getColDef().field || this.params.column.getColId();
       const val = this.getNestedValue(row, field);
       return String(val) === String(info.id);
