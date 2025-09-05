@@ -1,5 +1,5 @@
 <template>
-  <CustomAlert v-if="autoSave" :message="error" :visible="!!error && showAlert" @close="showAlert = false" />
+  <CustomAlert v-if="autoSaveEnabled" :message="error" :visible="!!error && showAlert" @close="showAlert = false" />
   <div class="field-component"
     :class="[`field-type-${field.fieldType.toLowerCase()}`, { 'is-mandatory': field.is_mandatory }]">
     <!-- Label do campo -->
@@ -208,7 +208,7 @@ export default {
       required: false
     },
     autoSave: {
-      type: Boolean,
+      type: [Boolean, String],
       default: true
     }
   },
@@ -233,6 +233,12 @@ export default {
     }
   },
   computed: {
+    autoSaveEnabled() {
+      if (typeof this.autoSave === 'string') {
+        return this.autoSave.toLowerCase() === 'true';
+      }
+      return this.autoSave;
+    },
     listOptions() {
       // Se temos opções passadas via prop (da API), usa essas
       if (this.options && this.options.length > 0) {
@@ -435,7 +441,7 @@ export default {
       immediate: true
     },
     error(val) {
-      this.showAlert = this.autoSave && !!val;
+      this.showAlert = this.autoSaveEnabled && !!val;
     },
     localValue(newVal) {
       if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte && this.$refs.rte.innerHTML !== newVal) {
@@ -517,7 +523,7 @@ export default {
         if (isChanged) {
           this.localValue = value;
           this.$emit('update:value', value);
-          if (this.autoSave) {
+          if (this.autoSaveEnabled) {
             await this.saveFieldValueToApi(apiValue);
           }
           this.originalValue = value;

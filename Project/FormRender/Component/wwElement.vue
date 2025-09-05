@@ -89,8 +89,8 @@ export default {
       required: false
     },
     autoSave: {
-      type: Boolean,
-      default: true
+      type: [Boolean, String],
+      default: undefined
     }
   },
   setup(props, { emit }) {
@@ -121,9 +121,20 @@ export default {
     const companyId = computed(() => props.content.companyId);
     const language = computed(() => props.content.language);
     const formReadOnly = computed(() => props.content.readOnly);
+
+    const parseAutoSave = val => {
+      if (typeof val === 'boolean') return val;
+      if (typeof val === 'string') return val.toLowerCase() === 'true';
+      return undefined;
+    };
+
     const autoSave = computed(() => {
-      if (typeof props.autoSave === 'boolean') return props.autoSave;
-      if (typeof props.content.autoSave === 'boolean') return props.content.autoSave;
+      const propVal = parseAutoSave(props.autoSave);
+      if (propVal !== undefined) return propVal;
+
+      const contentVal = parseAutoSave(props.content.autoSave);
+      if (contentVal !== undefined) return contentVal;
+
       return true;
     });
 
@@ -418,7 +429,8 @@ export default {
       formReadOnly,
       isLoading,
       renderKey,
-      onFieldValueChange
+      onFieldValueChange,
+      autoSave
     };
   }
 };
