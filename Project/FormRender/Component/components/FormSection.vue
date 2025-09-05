@@ -80,8 +80,8 @@ export default {
       default: false
     },
     autoSave: {
-      type: Boolean,
-      default: true
+      type: [Boolean, String],
+      default: undefined
     }
   },
   emits: ['update:value'],
@@ -96,6 +96,12 @@ export default {
     const hasAddedListener = ref(false);
     const fieldValues = ref({});
     const autoSave = toRef(props, 'autoSave');
+
+    const autoSave = computed(() => {
+      if (typeof props.autoSave === 'string') return props.autoSave.toLowerCase() === 'true';
+      if (typeof props.autoSave === 'boolean') return props.autoSave;
+      return true;
+    });
 
     const toggleFields = () => {
       isExpanded.value = !isExpanded.value;
