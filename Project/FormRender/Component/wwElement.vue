@@ -418,7 +418,8 @@ export default {
       formReadOnly,
       isLoading,
       renderKey,
-      onFieldValueChange
+      onFieldValueChange,
+      autoSave
     };
   }
 };

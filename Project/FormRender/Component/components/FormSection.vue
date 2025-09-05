@@ -30,7 +30,7 @@ class="action-icon-section"
 </template>
 
 <script>
-import { computed, ref, onMounted, onUnmounted } from 'vue';
+import { computed, ref, onMounted, onUnmounted, toRef } from 'vue';
 import FieldComponent from './FieldComponent.vue';
 
 export default {
@@ -95,6 +95,7 @@ export default {
     const error = ref({});
     const hasAddedListener = ref(false);
     const fieldValues = ref({});
+    const autoSave = toRef(props, 'autoSave');
 
     const toggleFields = () => {
       isExpanded.value = !isExpanded.value;
@@ -311,7 +312,8 @@ export default {
       loading,
       fieldValues,
       getFieldOptions,
-      fieldRows
+      fieldRows,
+      autoSave
     };
   }
 };
