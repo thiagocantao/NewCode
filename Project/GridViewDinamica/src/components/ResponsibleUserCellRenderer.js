@@ -4,7 +4,7 @@ export default class ResponsibleUserCellRenderer {
     this.params = params;
     this.eGui = document.createElement('div');
     this.eGui.className = 'ru-cell';
-
+ 
     this.injectCSSOnce();
     this.render();
   }
@@ -146,7 +146,7 @@ export default class ResponsibleUserCellRenderer {
 
     if (groupAvatar && userAvatar) {
       this.eGui.innerHTML = `
-        <div class="ru-duo" title="${this.escape(textLabel)}">
+        <div class="ru-duo" title="${this.escape(group?.name)}">
           <div class="ru-avatar ru-group">${groupAvatar}</div>
           <div class="ru-avatar ru-user">${userAvatar}</div>
           <div class="ru-label">${this.escape(textLabel)}</div>
