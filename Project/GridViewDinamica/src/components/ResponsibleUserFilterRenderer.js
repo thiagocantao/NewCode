@@ -5,8 +5,8 @@ export default class ResponsibleUserFilterRenderer {
     this.allValues = [];
     this.filteredValues = [];
     this.selectAll = false;
+    // key -> { type: 'responsible'|'group', id, name, photo }
     this.userInfo = {};
-    this.formattedValues = [];
   }
 
   init(params) {
@@ -97,78 +97,45 @@ export default class ResponsibleUserFilterRenderer {
 
   loadValues() {
     const api = this.params.api;
-    const column = this.params.column;
-    const colDef = column.getColDef();
-    const field = colDef.field || column.getColId();
-    const cellRendererParams = colDef.cellRendererParams || {};
-
-    this.allValues = [];
-    this.formattedValues = [];
     this.userInfo = {};
+
     api.forEachNode(node => {
-      if (node.data) {
-        let value = this.getNestedValue(node.data, field);
-        let formatted = value;
-        // Aplica o formatter se necessário, igual ao FormatterCellRenderer
-        if (cellRendererParams.useCustomFormatter && typeof cellRendererParams.formatter === 'string') {
-          try {
-            const formatterFn = new Function(
-              'value',
-              'row',
-              'colDef',
-              'getRoundedSpanColor',
-              'dateFormatter',
-              cellRendererParams.formatter
-            );
-            formatted = formatterFn(
-              value,
-              node.data,
-              colDef,
-              this.getRoundedSpanColor,
-              this.dateFormatter
-            );
-          } catch (e) {
-            // Se der erro, mantém o valor original
-          }
+      const data = node.data || {};
+
+      const userId = data.ResponsibleUserID ?? this.getNestedValue(data, 'ResponsibleUserID');
+      if (userId !== undefined && userId !== null) {
+        const key = `user-${userId}`;
+        if (!this.userInfo[key]) {
+          const name = data.ResponsibleUser || data.Username || data.UserName || '';
+          const photo = data.photoUrl || data.PhotoUrl || data.PhotoURL || data.UserPhoto || '';
+          this.userInfo[key] = { type: 'responsible', id: userId, name, photo };
         }
-        if (value !== undefined && value !== null) {
-          this.allValues.push(value);
-          const name = node.data.ResponsibleUser || node.data.Username || node.data.UserName || '';
-          const photo = node.data.photoUrl || node.data.PhotoUrl || node.data.PhotoURL || node.data.UserPhoto || '';
-          this.userInfo[value] = { name, photo };
-          this.formattedValues.push(name || formatted);
+      }
+
+      const groupId = data.AssignedGroupID || data.GroupID || data.groupid;
+      if (groupId !== undefined && groupId !== null) {
+        const key = `group-${groupId}`;
+        if (!this.userInfo[key]) {
+          const name = data.AssignedGroupName || data.GroupName || data.Group || '';
+          const photo = data.groupPhoto || data.GroupPhoto || data.GroupImage || '';
+          this.userInfo[key] = { type: 'group', id: groupId, name, photo };
         }
       }
     });
-    // Remover duplicatas mantendo o mapeamento
-    const seen = new Set();
-    const uniqueRaw = [];
-    const uniqueFormatted = [];
-    this.allValues.forEach((raw, idx) => {
-      if (!seen.has(raw)) {
-        seen.add(raw);
-        uniqueRaw.push(raw);
-        uniqueFormatted.push(this.formattedValues[idx]);
-      }
-    });
-    // Função utilitária para extrair texto puro de HTML
-    function stripHtml(html) {
-      const tmp = document.createElement('div');
-      tmp.innerHTML = html;
-      return tmp.textContent || tmp.innerText || '';
-    }
-    // Ordena os valores alfabeticamente pelo texto visível formatado
-    const zipped = uniqueRaw.map((raw, idx) => ({ raw, formatted: uniqueFormatted[idx] }));
-    zipped.sort((a, b) => {
-      const textA = stripHtml(String(a.formatted)).toLowerCase();
-      const textB = stripHtml(String(b.formatted)).toLowerCase();
-      return textA.localeCompare(textB, undefined, { sensitivity: 'base' });
-    });
-    this.allValues = zipped.map(z => z.raw);
-    this.formattedValues = zipped.map(z => z.formatted);
-    const newInfo = {};
-    this.allValues.forEach(v => { if (this.userInfo[v]) newInfo[v] = this.userInfo[v]; });
-    this.userInfo = newInfo;
+
+    const respKeys = Object.keys(this.userInfo).filter(k => this.userInfo[k].type !== 'group');
+    const groupKeys = Object.keys(this.userInfo).filter(k => this.userInfo[k].type === 'group');
+
+    const sortByName = (a, b) => {
+      const na = (this.userInfo[a].name || '').toLowerCase();
+      const nb = (this.userInfo[b].name || '').toLowerCase();
+      return na.localeCompare(nb, undefined, { sensitivity: 'base' });
+    };
+
+    respKeys.sort(sortByName);
+    groupKeys.sort(sortByName);
+
+    this.allValues = [...respKeys, ...groupKeys];
     this.filteredValues = [...this.allValues];
   }
 
@@ -176,40 +143,56 @@ export default class ResponsibleUserFilterRenderer {
     if (!this.searchText) {
       this.filteredValues = [...this.allValues];
     } else {
-      this.filteredValues = this.allValues.filter((raw, idx) => {
-        const formatted = this.formattedValues[idx];
-        return String(formatted).toLowerCase().includes(this.searchText.toLowerCase());
+      const q = this.searchText.toLowerCase();
+      this.filteredValues = this.allValues.filter(key => {
+        const info = this.userInfo[key] || {};
+        return String(info.name || '').toLowerCase().includes(q);
       });
     }
     this.renderFilterList();
   }
 
   renderFilterList() {
+    const selected = new Set(this.selectedValues);
     this.selectAllCheckbox.checked =
       this.filteredValues.length > 0 &&
-      this.filteredValues.every(v => this.selectedValues.includes(v));
+      this.filteredValues.every(v => selected.has(v));
 
-    this.filterList.innerHTML = this.filteredValues.map((rawValue) => {
-      const idx = this.allValues.indexOf(rawValue);
-      const formattedValue = this.formattedValues[idx] || rawValue;
-      const checked = this.selectedValues.includes(rawValue) ? 'checked' : '';
-      const info = this.userInfo[rawValue] || { name: formattedValue, photo: '' };
-      const name = info.name || formattedValue;
+    const respHtml = [];
+    const groupHtml = [];
+
+    this.filteredValues.forEach(key => {
+      const info = this.userInfo[key] || {};
+      const checked = selected.has(key) ? 'checked' : '';
+      const name = info.name || '';
       const photo = info.photo;
       const initial = name ? name.trim().charAt(0).toUpperCase() : '';
       const avatar = photo
         ? `<img src="${photo}" alt="" />`
-        : `<span class="user-initial">${initial}</span>`;
-      return `
-        <label class="filter-item${this.selectedValues.includes(rawValue) ? ' selected' : ''}">
-          <input type="checkbox" value="${rawValue}" ${checked} />
+        : info.type === 'group'
+          ? `<span class="user-initial material-symbols-outlined">groups</span>`
+          : `<span class="user-initial">${initial}</span>`;
+
+      const item = `
+        <label class="filter-item${selected.has(key) ? ' selected' : ''}">
+          <input type="checkbox" value="${key}" ${checked} />
           <span class="user-option">
             <span class="avatar-outer"><span class="avatar-middle"><span class="user-avatar">${avatar}</span></span></span>
             <span class="filter-label">${name}</span>
           </span>
         </label>
       `;
-    }).join('');
+      if (info.type === 'group') groupHtml.push(item); else respHtml.push(item);
+    });
+
+    const sections = [];
+    if (respHtml.length) {
+      sections.push(`<div class="filter-section"><div class="filter-section-title">Responsibles</div>${respHtml.join('')}</div>`);
+    }
+    if (groupHtml.length) {
+      sections.push(`<div class="filter-section"><div class="filter-section-title">Groups</div>${groupHtml.join('')}</div>`);
+    }
+    this.filterList.innerHTML = sections.join('');
 
     this.filterList.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
       checkbox.addEventListener('change', (e) => {
@@ -221,9 +204,10 @@ export default class ResponsibleUserFilterRenderer {
         } else {
           this.selectedValues = this.selectedValues.filter(v => v !== value);
         }
+        const sel = new Set(this.selectedValues);
         this.selectAllCheckbox.checked =
           this.filteredValues.length > 0 &&
-          this.filteredValues.every(v => this.selectedValues.includes(v));
+          this.filteredValues.every(v => sel.has(v));
         this.applyFilter();
       });
     });
@@ -248,9 +232,18 @@ export default class ResponsibleUserFilterRenderer {
 
   doesFilterPass(params) {
     if (this.selectedValues.length === 0) return true;
-    const field = this.params.column.getColDef().field || this.params.column.getColId();
-    const value = this.getNestedValue(params.data, field);
-    return this.selectedValues.includes(value);
+    const row = params.data || {};
+    return this.selectedValues.some(key => {
+      const info = this.userInfo[key];
+      if (!info) return false;
+      if (info.type === 'group') {
+        const gid = row.AssignedGroupID || row.GroupID || row.groupid;
+        return String(gid) === String(info.id);
+      }
+      const field = this.params.column.getColDef().field || this.params.column.getColId();
+      const val = this.getNestedValue(row, field);
+      return String(val) === String(info.id);
+    });
   }
 
   getModel() {
