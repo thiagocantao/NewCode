@@ -86,6 +86,10 @@ export default {
     readOnly: {
       type: Boolean,
       required: false
+    },
+    autoSave: {
+      type: Boolean,
+      default: true
     }
   },
   setup(props, { emit }) {
@@ -116,6 +120,11 @@ export default {
     const companyId = computed(() => props.content.companyId);
     const language = computed(() => props.content.language);
     const formReadOnly = computed(() => props.content.readOnly);
+    const autoSave = computed(() => {
+      if (typeof props.autoSave === 'boolean') return props.autoSave;
+      if (typeof props.content.autoSave === 'boolean') return props.content.autoSave;
+      return true;
+    });
 
     const loadFormData = () => {
       let formData = null;
@@ -309,7 +318,9 @@ export default {
         const field = section.fields.find(f => f.id === fieldId || f.field_id === fieldId || f.ID === fieldId);
         if (field) {
           field.value = value;
-          updateFormState();
+          if (autoSave.value) {
+            updateFormState();
+          }
         }
       }
     };

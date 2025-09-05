@@ -66,6 +66,10 @@ export default {
     ticketId: {
       type: String,
       required: false
+    },
+    autoSave: {
+      type: Boolean,
+      default: true
     }
   },
   setup(props) {
@@ -95,6 +99,11 @@ export default {
     const ticketId = computed(() => props.ticketId || props.content.ticketId);
     const companyId = computed(() => props.content.companyId);
     const language = computed(() => props.content.language);
+    const autoSave = computed(() => {
+      if (typeof props.autoSave === 'boolean') return props.autoSave;
+      if (typeof props.content.autoSave === 'boolean') return props.content.autoSave;
+      return true;
+    });
 
     const formHeightStyle = computed(() => {
       if (props.content.formHeight) {
@@ -278,7 +287,9 @@ export default {
         const field = section.fields.find(f => f.id === fieldId);
         if (field) {
           field.value = value;
-          updateFormState();
+          if (autoSave.value) {
+            updateFormState();
+          }
         }
       }
     };
