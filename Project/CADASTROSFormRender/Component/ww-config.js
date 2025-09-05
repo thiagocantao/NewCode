@@ -273,6 +273,22 @@ export default {
                 tooltip: 'Content above this height will scroll vertically'
             }
             /* wwEditor:end */
+        },
+        autoSave: {
+            label: { en: 'Auto save fields' },
+            type: 'boolean',
+            section: 'settings',
+            bindable: true,
+            defaultValue: true,
+            /* wwEditor:start */
+            bindingValidation: {
+                type: 'boolean',
+                tooltip: 'Automatically persist field values when they change'
+            },
+            propertyHelp: {
+                tooltip: 'Disable to require manual saving of field values'
+            }
+            /* wwEditor:end */
         }
     },
     triggerEvents: [
