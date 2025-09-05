@@ -20,6 +20,7 @@ class="action-icon-section"
             :ticket-id="ticketId"
             :options="getFieldOptions(field.id)"
             :user-id="userId"
+            :auto-save="autoSave"
             @update:value="value => updateFieldValue(field.id, value)"
           />
         </div>
@@ -77,6 +78,10 @@ export default {
     readOnly: {
       type: Boolean,
       default: false
+    },
+    autoSave: {
+      type: Boolean,
+      default: true
     }
   },
   emits: ['update:value'],
