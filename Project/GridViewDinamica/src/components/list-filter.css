@@ -267,3 +267,15 @@
   cursor: pointer;
   line-height: 1;
 }
+
+/* Agrupamento em seções (Responsibles / Groups) */
+:is(.list-filter, .list-editor) .filter-section-title {
+  padding: 4px 0;
+  color: #444;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+:is(.list-filter, .list-editor) .filter-section {
+  padding-bottom: 4px;
+}
