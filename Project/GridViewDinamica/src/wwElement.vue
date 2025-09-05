@@ -17,7 +17,7 @@
 </template>
 
 <script>
-  import { shallowRef, watchEffect, computed, ref, onMounted, onUnmounted, watch, h } from "vue";
+  import { shallowRef, watchEffect, computed, ref, onMounted, onUnmounted, watch, h, nextTick } from "vue";
   import { AgGridVue } from "ag-grid-vue3";
   import {
   AllCommunityModule,
@@ -436,13 +436,29 @@
     loadAllColumnOptions();
   });
 
-  watch(() => props.content?.columns, () => {
-    loadAllColumnOptions();
-  }, { deep: true });
+  watch(
+    () => props.content?.columns,
+    () => {
+      loadAllColumnOptions();
+      nextTick(() => {
+        updateColumnsPosition();
+        updateColumnsSort();
+      });
+    },
+    { deep: true }
+  );
 
-  watch(() => props.content?.rowData, () => {
-    loadAllColumnOptions();
-  }, { deep: true });
+  watch(
+    () => props.content?.rowData,
+    () => {
+      loadAllColumnOptions();
+      nextTick(() => {
+        updateColumnsPosition();
+        updateColumnsSort();
+      });
+    },
+    { deep: true }
+  );
 
   // Interval para atualizar células DEADLINE
   let deadlineTimer = null;
@@ -815,6 +831,8 @@
       forceSelectionColumnFirst,
       forceSelectionColumnFirstDOM,
       columnOptions,
+      updateColumnsPosition,
+      updateColumnsSort,
       localeText: computed(() => {
         let lang = 'en-US';
         try {
@@ -1879,6 +1897,10 @@ forceClearSelection() {
             // Fallback para simplesmente atualizar o modelo de linhas
             this.gridApi.refreshClientSideRowModel?.('sort');
           }
+          this.$nextTick(() => {
+            this.updateColumnsPosition();
+            this.updateColumnsSort();
+          });
         }
       },
       deep: true
