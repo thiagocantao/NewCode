@@ -6,6 +6,7 @@ export default class ResponsibleUserFilterRenderer {
     this.filteredValues = [];
     this.selectAll = false;
     // key -> { type: 'responsible'|'group', id, name, photo }
+
     this.userInfo = {};
   }
 
@@ -149,6 +150,7 @@ export default class ResponsibleUserFilterRenderer {
         if (!this.userInfo[gKey]) {
           const photo = opt.photoUrl || opt.PhotoURL || opt.PhotoUrl || opt.photo || opt.image || opt.img || '';
           this.userInfo[gKey] = { type: 'group', id: groupId, name: opt.name || '', photo };
+
         }
         if (Array.isArray(opt.groupUsers)) {
           opt.groupUsers.forEach(u => {
@@ -163,6 +165,7 @@ export default class ResponsibleUserFilterRenderer {
             }
           });
         }
+
       } else {
         const uid = opt.id;
         const uKey = `user-${uid}`;
@@ -177,6 +180,7 @@ export default class ResponsibleUserFilterRenderer {
     api.forEachNode(node => {
       const data = node.data || {};
       const userId = this.getNestedValue(data, field);
+
       const groupId = data.AssignedGroupID || data.GroupID || data.groupid;
 
       if (groupId !== undefined && groupId !== null) {
@@ -186,6 +190,7 @@ export default class ResponsibleUserFilterRenderer {
           const gPhoto = data.groupPhoto || data.GroupPhoto || data.GroupImage || '';
           this.userInfo[gKey] = { type: 'group', id: groupId, name: gName, photo: gPhoto };
         }
+
       }
 
       if (userId !== undefined && userId !== null) {
@@ -200,6 +205,7 @@ export default class ResponsibleUserFilterRenderer {
     });
 
     const respKeys = Object.keys(this.userInfo).filter(k => this.userInfo[k].type === 'responsible');
+
     const groupKeys = Object.keys(this.userInfo).filter(k => this.userInfo[k].type === 'group');
 
     const sortByName = (a, b) => {
@@ -212,6 +218,7 @@ export default class ResponsibleUserFilterRenderer {
     groupKeys.sort(sortByName);
 
     this.allValues = [...respKeys, ...groupKeys];
+
     this.filteredValues = [...this.allValues];
   }
 
@@ -224,6 +231,7 @@ export default class ResponsibleUserFilterRenderer {
         const info = this.userInfo[key] || {};
         const target = (info.name || '').toLowerCase();
         return target.includes(q);
+
       });
     }
     this.renderFilterList();
@@ -236,6 +244,7 @@ export default class ResponsibleUserFilterRenderer {
       this.filteredValues.every(v => selected.has(v));
 
     const respHtml = [];
+
     const groupHtml = [];
 
     this.filteredValues.forEach(key => {
@@ -245,28 +254,32 @@ export default class ResponsibleUserFilterRenderer {
       const photo = info.photo;
       const initial = name.trim().charAt(0).toUpperCase();
       const avatar = photo
+
         ? `<img src="${photo}" alt="" />`
         : info.type === 'group'
           ? `<span class="user-initial material-symbols-outlined">groups</span>`
           : `<span class="user-initial">${initial}</span>`;
 
+
       const item = `
         <label class="filter-item${selected.has(key) ? ' selected' : ''}">
           <input type="checkbox" value="${key}" ${checked} />
           <span class="user-option">
-            <span class="avatar-outer"><span class="avatar-middle"><span class="user-avatar">${avatar}</span></span></span>
+            <span class="avatar-outer"><span class="avatar-middle"><span class="user-avatar${info.type === 'userGroup' ? ' user-group' : ''}">${avatar}</span></span></span>
             <span class="filter-label">${name}</span>
           </span>
         </label>
       `;
       if (info.type === 'group') groupHtml.push(item);
       else respHtml.push(item);
+
     });
 
     const sections = [];
     if (respHtml.length) {
       sections.push(`<div class="filter-section"><div class="filter-section-title">Responsibles</div>${respHtml.join('')}</div>`);
     }
+
     if (groupHtml.length) {
       sections.push(`<div class="filter-section"><div class="filter-section-title">Groups</div>${groupHtml.join('')}</div>`);
     }
@@ -320,6 +333,7 @@ export default class ResponsibleUserFilterRenderer {
       }
       const fieldName = this.params.column.getColDef().field || this.params.column.getColId();
       const val = this.getNestedValue(row, fieldName);
+
       return String(val) === String(info.id);
     });
   }
