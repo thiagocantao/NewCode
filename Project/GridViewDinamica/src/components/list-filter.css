@@ -56,21 +56,29 @@
   margin-bottom: 10px;
 }
 :is(.list-filter, .list-editor) .field-search {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
   position: relative;
-  padding: 0 0 10px 0;
+  padding: 0 12px 23px 12px;
+  width: 100%;
+  box-sizing: border-box;
+  border-bottom: 1px solid #f3f3f7;
 }
 
 :is(.list-filter, .list-editor) .search-input {
+    flex: 1;
   width: 100%;
-  padding: 7px 36px 7px 13px;
-  border: 1px solid #ddd;
+  padding: 4px 36px 4px 12px;
   border-radius: 20px;
-  font-size: 13px;
-  font-family: Roboto, Arial, sans-serif;
-  outline: none;
+  font-size: 13px;            /* 13px */
+  border: 1px solid #E0E0E0 !important;
   background: #fff;
-  color: #444;
+  outline: none !important;
+  box-shadow: none !important;
+  transition: border 0.2s;
   box-sizing: border-box;
+  font-weight: 400;           /* sem bold */
 }
 
 :is(.list-filter, .list-editor) .search-input::placeholder {
@@ -80,13 +88,12 @@
 }
 
 :is(.list-filter, .list-editor) .search-icon {
-  position: absolute;
-  right: 12px;
-  top: 16px;
+ position: absolute;
+  right: 21px;
+  top: 14px;
   transform: translateY(-50%);
-  color: #999;
-  width: 20px;
-  height: 20px;
+  font-size: 18px !important;
+  color: #888;
   pointer-events: none;
   display: flex;
   align-items: center;
@@ -315,4 +322,3 @@
 :is(.list-filter, .list-editor) .filter-section {
   padding-bottom: 4px;
 }
-
