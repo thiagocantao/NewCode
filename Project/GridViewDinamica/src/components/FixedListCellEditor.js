@@ -25,10 +25,17 @@ export default class FixedListCellEditor {
       (params.colDef.TagControl ||
         params.colDef.tagControl ||
         params.colDef.tagcontrol ||
-        '').toUpperCase();
-    const identifier = (params.colDef.FieldDB || '').toUpperCase();
+        '')
+        .toString()
+        .trim()
+        .toUpperCase();
+    const identifier = (params.colDef.FieldDB || '')
+      .toString()
+      .trim()
+      .toUpperCase();
     this.isResponsibleUser =
       tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
+    this.isCategoryField = tag === 'CATEGORYID' || identifier === 'CATEGORYID';
 
 
     // Fixed list options
@@ -166,9 +173,9 @@ export default class FixedListCellEditor {
   renderOptions() {
     this.listEl.innerHTML = this.filteredOptions
       .map(opt => {
-        const formatted = this.formatOption(opt);
         const selected = opt.value == this.value ? ' selected' : '';
         if (this.isResponsibleUser) {
+          const formatted = this.formatOption(opt);
           const photo = opt.photo || opt.image || opt.img || '';
           const name = this.stripHtml(String(formatted));
           const initial = name ? name.trim().charAt(0).toUpperCase() : '';
@@ -184,6 +191,12 @@ export default class FixedListCellEditor {
             </div>`;
         }
 
+        if (this.isCategoryField) {
+          const label = this.stripHtml(String(opt.label != null ? opt.label : opt.value));
+          return `<div class="filter-item${selected} category-option" data-value="${opt.value}"><span class="filter-label">${label}</span></div>`;
+        }
+
+        const formatted = this.formatOption(opt);
         return `<div class="filter-item${selected}" data-value="${opt.value}"><span class="filter-label">${formatted}</span></div>`;
       })
       .join('');
