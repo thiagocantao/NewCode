@@ -283,6 +283,7 @@
 
   const columnOptions = ref({});
   let responsibleUserCache = null;
+  const optionsCache = new Map();
 
   const parseStaticOptions = (opts) => {
     if (Array.isArray(opts)) {
@@ -423,14 +424,23 @@
     if (!props.content || !Array.isArray(props.content.columns)) return;
     const rows = wwLib.wwUtils.getDataFromCollection(props.content.rowData) || [];
     const result = {};
-    for (const col of props.content.columns) {
-      const colId = col.id || col.field;
-      result[colId] = {};
-      for (const row of rows) {
-        const ticketId = row?.TicketID;
-        result[colId][ticketId] = await getColumnOptions(col, ticketId);
-      }
-    }
+    await Promise.all(
+      (props.content.columns || []).map(async (col) => {
+        const colId = col.id || col.field;
+        result[colId] = {};
+        await Promise.all(
+          rows.map(async (row) => {
+            const ticketId = row?.TicketID;
+            const cacheKey = `${colId}_${ticketId}`;
+            if (!optionsCache.has(cacheKey)) {
+              const opts = await getColumnOptions(col, ticketId);
+              optionsCache.set(cacheKey, opts);
+            }
+            result[colId][ticketId] = optionsCache.get(cacheKey);
+          })
+        );
+      })
+    );
     columnOptions.value = result;
   };
 
