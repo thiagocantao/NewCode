@@ -422,7 +422,9 @@
 
   const loadAllColumnOptions = async () => {
     if (!props.content || !Array.isArray(props.content.columns)) return;
-    const rows = wwLib.wwUtils.getDataFromCollection(props.content.rowData) || [];
+    // Ensure rows is an array before iterating to avoid runtime errors
+    const rawRows = wwLib.wwUtils.getDataFromCollection(props.content.rowData);
+    const rows = Array.isArray(rawRows) ? rawRows : [];
     const result = {};
     await Promise.all(
       (props.content.columns || []).map(async (col) => {
