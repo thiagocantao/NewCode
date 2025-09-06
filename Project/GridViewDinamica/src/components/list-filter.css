@@ -201,6 +201,18 @@
   font-family: Roboto, Arial, sans-serif;
 }
 
+:is(.list-filter, .list-editor) .filter-item.category-option .filter-label {
+  background: #c9edf9;
+  color: #303030;
+  border: 1px solid #c9edf9;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  height: 25px;
+  font-weight: 400;
+}
+
 /* Estilos para opções de usuário com avatar */
 :is(.list-filter, .list-editor) .user-option {
   display: flex;
