@@ -417,29 +417,14 @@
     return opts;
   };
 
-  const loadAllColumnOptions = async () => {
-    if (!props.content || !Array.isArray(props.content.columns)) return;
-    const rows = wwLib.wwUtils.getDataFromCollection(props.content.rowData) || [];
-    const result = {};
-    for (const col of props.content.columns) {
-      const colId = col.id || col.field;
-      result[colId] = {};
-      for (const row of rows) {
-        const ticketId = row?.TicketID;
-        result[colId][ticketId] = await getColumnOptions(col, ticketId);
-      }
-    }
-    columnOptions.value = result;
-  };
-
-  onMounted(() => {
-    loadAllColumnOptions();
-  });
+  // As opções para campos de lista são carregadas sob demanda,
+  // portanto não preenchemos mais todas na montagem da grid.
+  // Limpa o cache sempre que colunas ou dados mudarem.
 
   watch(
     () => props.content?.columns,
     () => {
-      loadAllColumnOptions();
+      columnOptions.value = {};
       nextTick(() => {
         updateColumnsPosition();
         updateColumnsSort();
@@ -451,7 +436,7 @@
   watch(
     () => props.content?.rowData,
     () => {
-      loadAllColumnOptions();
+      columnOptions.value = {};
       nextTick(() => {
         updateColumnsPosition();
         updateColumnsSort();
@@ -831,6 +816,7 @@
       forceSelectionColumnFirst,
       forceSelectionColumnFirstDOM,
       columnOptions,
+      getColumnOptions,
       updateColumnsPosition,
       updateColumnsSort,
       localeText: computed(() => {
@@ -951,7 +937,17 @@
         const getDsOptions = params => {
           const ticketId = params.data?.TicketID;
           const colOpts = this.columnOptions[fieldKey] || {};
-          return colOpts[ticketId] || [];
+          if (!colOpts[ticketId]) {
+            const promise = (this.getColumnOptions
+              ? this.getColumnOptions(colCopy, ticketId)
+              : Promise.resolve([])).then(res => {
+                colOpts[ticketId] = res;
+                return res;
+              });
+            colOpts[ticketId] = promise;
+            this.columnOptions[fieldKey] = colOpts;
+          }
+          return colOpts[ticketId];
         };
 
         // Se o filtro for agListColumnFilter, usar o filtro customizado
@@ -983,23 +979,24 @@
               ? colCopy.listOptions
               : null;
           if (isResponsible) {
-            if (colCopy.editable) {
-              result.editable = true;
-              if (optionsArr && optionsArr.length) {
+            if (optionsArr && optionsArr.length) {
+              const baseRendererParams = result.cellRendererParams;
+              result.cellRendererParams = params => ({
+                ...(typeof baseRendererParams === 'function'
+                  ? baseRendererParams(params)
+                  : baseRendererParams),
+                options: optionsArr,
+              });
+              if (colCopy.editable) {
+                result.editable = true;
                 result.cellEditor = ResponsibleUserCellEditor;
                 result.cellEditorParams = { options: optionsArr };
-              } else {
-                result.cellEditor = ResponsibleUserCellEditor;
-                result.cellEditorParams = params => ({ options: getDsOptions(params) });
               }
+            } else if (colCopy.editable) {
+              result.editable = true;
+              result.cellEditor = ResponsibleUserCellEditor;
+              result.cellEditorParams = params => ({ options: getDsOptions(params) });
             }
-            const baseRendererParams = result.cellRendererParams;
-            result.cellRendererParams = params => ({
-              ...(typeof baseRendererParams === 'function'
-                ? baseRendererParams(params)
-                : baseRendererParams),
-              options: optionsArr || getDsOptions(params),
-            });
             return result;
           }
           // getDsOptions already defined above
@@ -1012,31 +1009,21 @@
               if (optionsArr && optionsArr.length) {
                 result.cellEditor = ListCellEditor;
                 result.cellEditorParams = { options: optionsArr };
-                const baseRendererParams = result.cellRendererParams;
-                result.cellRendererParams = params => ({
-                  ...(typeof baseRendererParams === 'function'
-                    ? baseRendererParams(params)
-                    : baseRendererParams),
+                result.cellRendererParams = {
+                  ...result.cellRendererParams,
                   options: optionsArr,
-                });
+                };
               } else {
                 result.cellEditor = tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor : FixedListCellEditor;
                 result.cellEditorParams = params => ({ options: getDsOptions(params) });
-                const baseRendererParams = result.cellRendererParams;
-                result.cellRendererParams = params => ({
-                  ...(typeof baseRendererParams === 'function'
-                    ? baseRendererParams(params)
-                    : baseRendererParams),
-                  options: getDsOptions(params),
-                });
               }
-            } else {
+            } else if (optionsArr && optionsArr.length) {
               const baseRendererParams = result.cellRendererParams;
               result.cellRendererParams = params => ({
                 ...(typeof baseRendererParams === 'function'
                   ? baseRendererParams(params)
                   : baseRendererParams),
-                options: optionsArr || getDsOptions(params),
+                options: optionsArr,
               });
             }
           }
@@ -1044,13 +1031,6 @@
             result.editable = true;
             result.cellEditor = tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor : FixedListCellEditor;
             result.cellEditorParams = params => ({ options: getDsOptions(params) });
-            const baseRendererParams = result.cellRendererParams;
-            result.cellRendererParams = params => ({
-              ...(typeof baseRendererParams === 'function'
-                ? baseRendererParams(params)
-                : baseRendererParams),
-              options: getDsOptions(params),
-            });
           }
           return result;
         }
@@ -1106,7 +1086,17 @@
               const getDsOptions = params => {
                 const ticketId = params.data?.TicketID;
                 const colOpts = this.columnOptions[fieldKey] || {};
-                return colOpts[ticketId] || [];
+                if (!colOpts[ticketId]) {
+                  const promise = (this.getColumnOptions
+                    ? this.getColumnOptions(colCopy, ticketId)
+                    : Promise.resolve([])).then(res => {
+                      colOpts[ticketId] = res;
+                      return res;
+                    });
+                  colOpts[ticketId] = promise;
+                  this.columnOptions[fieldKey] = colOpts;
+                }
+                return colOpts[ticketId];
               };
 
               const staticOptions = Array.isArray(colCopy.options)
@@ -1150,13 +1140,6 @@
                 };
               } else {
                 result.cellEditorParams = params => ({ options: getDsOptions(params) });
-                const baseRendererParams = result.cellRendererParams;
-                result.cellRendererParams = params => ({
-                  ...(typeof baseRendererParams === 'function'
-                    ? baseRendererParams(params)
-                    : baseRendererParams),
-                  options: getDsOptions(params),
-                });
               }
               if (colCopy.editable) {
                 result.editable = true;
@@ -1266,11 +1249,6 @@
                 result.cellEditor = ResponsibleUserCellEditor;
                 result.cellEditorParams = params => ({ options: getDsOptions(params) });
               }
-              const baseRendererParams = result.cellRendererParams;
-              result.cellRendererParams = params => ({
-                ...(typeof baseRendererParams === 'function' ? baseRendererParams(params) : baseRendererParams),
-                options: getDsOptions(params),
-              });
             }
             if (tagControl === 'DEADLINE') {
               result.filter = 'agDateColumnFilter';
@@ -1410,21 +1388,14 @@
                 } else {
                   result.cellEditor = tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor : FixedListCellEditor;
                   result.cellEditorParams = params => ({ options: getDsOptions(params) });
-                  const baseRendererParams = result.cellRendererParams;
-                  result.cellRendererParams = params => ({
-                    ...(typeof baseRendererParams === 'function'
-                      ? baseRendererParams(params)
-                      : baseRendererParams),
-                    options: getDsOptions(params),
-                  });
                 }
-              } else {
+              } else if (optionsArr && optionsArr.length) {
                 const baseRendererParams = result.cellRendererParams;
                 result.cellRendererParams = params => ({
                   ...(typeof baseRendererParams === 'function'
                     ? baseRendererParams(params)
                     : baseRendererParams),
-                  options: optionsArr || getDsOptions(params),
+                  options: optionsArr,
                 });
               }
               // O cellRenderer já aplica a formatação visual
@@ -1433,13 +1404,6 @@
               result.editable = true;
               result.cellEditor = tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor : FixedListCellEditor;
               result.cellEditorParams = params => ({ options: getDsOptions(params) });
-              const baseRendererParams = result.cellRendererParams;
-              result.cellRendererParams = params => ({
-                ...(typeof baseRendererParams === 'function'
-                  ? baseRendererParams(params)
-                  : baseRendererParams),
-                options: getDsOptions(params),
-              });
             }
             return result;
           }
