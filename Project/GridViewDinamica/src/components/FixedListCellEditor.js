@@ -40,6 +40,7 @@ export default class FixedListCellEditor {
       categoryTags.includes(tag) || categoryTags.includes(identifier);
 
 
+
     // Fixed list options
     let optionsArr = [];
     if (Array.isArray(params.options)) {

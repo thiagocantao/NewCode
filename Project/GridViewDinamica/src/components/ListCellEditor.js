@@ -38,6 +38,7 @@ export default class ListCellEditor {
     this.isCategoryField =
       categoryTags.includes(tag) || categoryTags.includes(identifier);
 
+
     // Build option array (supports promises)
     const normalize = (opt) => {
       if (typeof opt === 'object') {
