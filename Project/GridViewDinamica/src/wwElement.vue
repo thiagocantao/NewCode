@@ -17,7 +17,7 @@
 </template>
 
 <script>
-  import { shallowRef, watchEffect, computed, ref, onMounted, onUnmounted, watch, h, nextTick } from "vue";
+  import { shallowRef, watchEffect, computed, ref, onMounted, onUnmounted, watch, h } from "vue";
   import { AgGridVue } from "ag-grid-vue3";
   import {
   AllCommunityModule,
@@ -355,27 +355,29 @@
 
   const loadResponsibleUserOptions = async () => {
     try {
-      const lang = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
-      const companyId = window.wwLib?.wwVariable?.getValue('5d099f04-cd42-41fd-94ad-22d4de368c3a');
-      const loggeduserid = window?.wwLib?.wwVariable?.getValue?.('fc54ab80-1a04-4cfe-a504-793bdcfce5dd');
-      const apiUrl = window.wwLib?.wwVariable?.getValue('1195995b-34c3-42a5-b436-693f0f4f8825');
-      const apiKey = window.wwLib?.wwVariable?.getValue('d180be98-8926-47a7-b7f1-6375fbb95fa3');
-      const apiAuth = window.wwLib?.wwVariable?.getValue('dfcde09f-42f3-4b5c-b2e8-4314650655db');
-      if (!apiUrl) return [];
-      const fetchOptions = {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...(companyId ? { p_idcompany: companyId } : {}),
-          ...(lang ? { p_language: lang } : {}),
-          ...(loggeduserid ? {p_loggeduserid: loggeduserid} : {}),
-        }),
-      };
-      if (apiKey) fetchOptions.headers['apikey'] = apiKey;
-      if (apiAuth) fetchOptions.headers['Authorization'] = apiAuth;
-      const baseUrl = apiUrl.endsWith('/') ? apiUrl : apiUrl + '/';
-      const response = await fetch(baseUrl + 'getLookupGroupsAndUsers', fetchOptions);
-      const data = await response.json();
+      // const lang = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
+      // const companyId = window.wwLib?.wwVariable?.getValue('5d099f04-cd42-41fd-94ad-22d4de368c3a');
+      // const loggeduserid = window?.wwLib?.wwVariable?.getValue?.('fc54ab80-1a04-4cfe-a504-793bdcfce5dd');
+      // const apiUrl = window.wwLib?.wwVariable?.getValue('1195995b-34c3-42a5-b436-693f0f4f8825');
+      // const apiKey = window.wwLib?.wwVariable?.getValue('d180be98-8926-47a7-b7f1-6375fbb95fa3');
+      // const apiAuth = window.wwLib?.wwVariable?.getValue('dfcde09f-42f3-4b5c-b2e8-4314650655db');
+      // if (!apiUrl) return [];
+      // const fetchOptions = {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({
+      //     ...(companyId ? { p_idcompany: companyId } : {}),
+      //     ...(lang ? { p_language: lang } : {}),
+      //     ...(loggeduserid ? {p_loggeduserid: loggeduserid} : {}),
+      //   }),
+      // };
+
+
+      // if (apiKey) fetchOptions.headers['apikey'] = apiKey;
+      // if (apiAuth) fetchOptions.headers['Authorization'] = apiAuth;
+      // const baseUrl = apiUrl.endsWith('/') ? apiUrl : apiUrl + '/';
+      // const response = await fetch(baseUrl + 'getLookupGroupsAndUsers', fetchOptions);
+      const data = wwLib.wwCollection.getCollection("0e41f029-e1c3-4302-82ca-16aceccdadb1").data;
       return Array.isArray(data)
         ? data
         : Array.isArray(data?.data)
@@ -417,33 +419,32 @@
     return opts;
   };
 
-  // As opções para campos de lista são carregadas sob demanda,
-  // portanto não preenchemos mais todas na montagem da grid.
-  // Limpa o cache sempre que colunas ou dados mudarem.
+  const loadAllColumnOptions = async () => {
+    if (!props.content || !Array.isArray(props.content.columns)) return;
+    const rows = wwLib.wwUtils.getDataFromCollection(props.content.rowData) || [];
+    const result = {};
+    for (const col of props.content.columns) {
+      const colId = col.id || col.field;
+      result[colId] = {};
+      for (const row of rows) {
+        const ticketId = row?.TicketID;
+        result[colId][ticketId] = await getColumnOptions(col, ticketId);
+      }
+    }
+    columnOptions.value = result;
+  };
 
-  watch(
-    () => props.content?.columns,
-    () => {
-      columnOptions.value = {};
-      nextTick(() => {
-        updateColumnsPosition();
-        updateColumnsSort();
-      });
-    },
-    { deep: true }
-  );
+  onMounted(() => {
+    loadAllColumnOptions();
+  });
 
-  watch(
-    () => props.content?.rowData,
-    () => {
-      columnOptions.value = {};
-      nextTick(() => {
-        updateColumnsPosition();
-        updateColumnsSort();
-      });
-    },
-    { deep: true }
-  );
+  watch(() => props.content?.columns, () => {
+    loadAllColumnOptions();
+  }, { deep: true });
+
+  watch(() => props.content?.rowData, () => {
+    loadAllColumnOptions();
+  }, { deep: true });
 
   // Interval para atualizar células DEADLINE
   let deadlineTimer = null;
@@ -816,9 +817,6 @@
       forceSelectionColumnFirst,
       forceSelectionColumnFirstDOM,
       columnOptions,
-      getColumnOptions,
-      updateColumnsPosition,
-      updateColumnsSort,
       localeText: computed(() => {
         let lang = 'en-US';
         try {
@@ -937,17 +935,7 @@
         const getDsOptions = params => {
           const ticketId = params.data?.TicketID;
           const colOpts = this.columnOptions[fieldKey] || {};
-          if (!colOpts[ticketId]) {
-            const promise = (this.getColumnOptions
-              ? this.getColumnOptions(colCopy, ticketId)
-              : Promise.resolve([])).then(res => {
-                colOpts[ticketId] = res;
-                return res;
-              });
-            colOpts[ticketId] = promise;
-            this.columnOptions[fieldKey] = colOpts;
-          }
-          return colOpts[ticketId];
+          return colOpts[ticketId] || [];
         };
 
         // Se o filtro for agListColumnFilter, usar o filtro customizado
@@ -979,24 +967,23 @@
               ? colCopy.listOptions
               : null;
           if (isResponsible) {
-            if (optionsArr && optionsArr.length) {
-              const baseRendererParams = result.cellRendererParams;
-              result.cellRendererParams = params => ({
-                ...(typeof baseRendererParams === 'function'
-                  ? baseRendererParams(params)
-                  : baseRendererParams),
-                options: optionsArr,
-              });
-              if (colCopy.editable) {
-                result.editable = true;
+            if (colCopy.editable) {
+              result.editable = true;
+              if (optionsArr && optionsArr.length) {
                 result.cellEditor = ResponsibleUserCellEditor;
                 result.cellEditorParams = { options: optionsArr };
+              } else {
+                result.cellEditor = ResponsibleUserCellEditor;
+                result.cellEditorParams = params => ({ options: getDsOptions(params) });
               }
-            } else if (colCopy.editable) {
-              result.editable = true;
-              result.cellEditor = ResponsibleUserCellEditor;
-              result.cellEditorParams = params => ({ options: getDsOptions(params) });
             }
+            const baseRendererParams = result.cellRendererParams;
+            result.cellRendererParams = params => ({
+              ...(typeof baseRendererParams === 'function'
+                ? baseRendererParams(params)
+                : baseRendererParams),
+              options: optionsArr || getDsOptions(params),
+            });
             return result;
           }
           // getDsOptions already defined above
@@ -1009,21 +996,31 @@
               if (optionsArr && optionsArr.length) {
                 result.cellEditor = ListCellEditor;
                 result.cellEditorParams = { options: optionsArr };
-                result.cellRendererParams = {
-                  ...result.cellRendererParams,
+                const baseRendererParams = result.cellRendererParams;
+                result.cellRendererParams = params => ({
+                  ...(typeof baseRendererParams === 'function'
+                    ? baseRendererParams(params)
+                    : baseRendererParams),
                   options: optionsArr,
-                };
+                });
               } else {
                 result.cellEditor = tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor : FixedListCellEditor;
                 result.cellEditorParams = params => ({ options: getDsOptions(params) });
+                const baseRendererParams = result.cellRendererParams;
+                result.cellRendererParams = params => ({
+                  ...(typeof baseRendererParams === 'function'
+                    ? baseRendererParams(params)
+                    : baseRendererParams),
+                  options: getDsOptions(params),
+                });
               }
-            } else if (optionsArr && optionsArr.length) {
+            } else {
               const baseRendererParams = result.cellRendererParams;
               result.cellRendererParams = params => ({
                 ...(typeof baseRendererParams === 'function'
                   ? baseRendererParams(params)
                   : baseRendererParams),
-                options: optionsArr,
+                options: optionsArr || getDsOptions(params),
               });
             }
           }
@@ -1031,6 +1028,13 @@
             result.editable = true;
             result.cellEditor = tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor : FixedListCellEditor;
             result.cellEditorParams = params => ({ options: getDsOptions(params) });
+            const baseRendererParams = result.cellRendererParams;
+            result.cellRendererParams = params => ({
+              ...(typeof baseRendererParams === 'function'
+                ? baseRendererParams(params)
+                : baseRendererParams),
+              options: getDsOptions(params),
+            });
           }
           return result;
         }
@@ -1086,17 +1090,7 @@
               const getDsOptions = params => {
                 const ticketId = params.data?.TicketID;
                 const colOpts = this.columnOptions[fieldKey] || {};
-                if (!colOpts[ticketId]) {
-                  const promise = (this.getColumnOptions
-                    ? this.getColumnOptions(colCopy, ticketId)
-                    : Promise.resolve([])).then(res => {
-                      colOpts[ticketId] = res;
-                      return res;
-                    });
-                  colOpts[ticketId] = promise;
-                  this.columnOptions[fieldKey] = colOpts;
-                }
-                return colOpts[ticketId];
+                return colOpts[ticketId] || [];
               };
 
               const staticOptions = Array.isArray(colCopy.options)
@@ -1140,6 +1134,13 @@
                 };
               } else {
                 result.cellEditorParams = params => ({ options: getDsOptions(params) });
+                const baseRendererParams = result.cellRendererParams;
+                result.cellRendererParams = params => ({
+                  ...(typeof baseRendererParams === 'function'
+                    ? baseRendererParams(params)
+                    : baseRendererParams),
+                  options: getDsOptions(params),
+                });
               }
               if (colCopy.editable) {
                 result.editable = true;
@@ -1249,6 +1250,11 @@
                 result.cellEditor = ResponsibleUserCellEditor;
                 result.cellEditorParams = params => ({ options: getDsOptions(params) });
               }
+              const baseRendererParams = result.cellRendererParams;
+              result.cellRendererParams = params => ({
+                ...(typeof baseRendererParams === 'function' ? baseRendererParams(params) : baseRendererParams),
+                options: getDsOptions(params),
+              });
             }
             if (tagControl === 'DEADLINE') {
               result.filter = 'agDateColumnFilter';
@@ -1388,14 +1394,21 @@
                 } else {
                   result.cellEditor = tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor : FixedListCellEditor;
                   result.cellEditorParams = params => ({ options: getDsOptions(params) });
+                  const baseRendererParams = result.cellRendererParams;
+                  result.cellRendererParams = params => ({
+                    ...(typeof baseRendererParams === 'function'
+                      ? baseRendererParams(params)
+                      : baseRendererParams),
+                    options: getDsOptions(params),
+                  });
                 }
-              } else if (optionsArr && optionsArr.length) {
+              } else {
                 const baseRendererParams = result.cellRendererParams;
                 result.cellRendererParams = params => ({
                   ...(typeof baseRendererParams === 'function'
                     ? baseRendererParams(params)
                     : baseRendererParams),
-                  options: optionsArr,
+                  options: optionsArr || getDsOptions(params),
                 });
               }
               // O cellRenderer já aplica a formatação visual
@@ -1404,6 +1417,13 @@
               result.editable = true;
               result.cellEditor = tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor : FixedListCellEditor;
               result.cellEditorParams = params => ({ options: getDsOptions(params) });
+              const baseRendererParams = result.cellRendererParams;
+              result.cellRendererParams = params => ({
+                ...(typeof baseRendererParams === 'function'
+                  ? baseRendererParams(params)
+                  : baseRendererParams),
+                options: getDsOptions(params),
+              });
             }
             return result;
           }
@@ -1470,10 +1490,8 @@
   cellTextColor: this.content.cellColor,
   cellFontFamily: this.content.cellFontFamily,
   dataFontSize: this.content.cellFontSize,
-  oddRowBackgroundColor: this.content.rowAlternateColor,
   backgroundColor: this.content.rowBackgroundColor,
   rowHoverColor: this.content.rowHoverColor,
-  selectedRowBackgroundColor: this.content.selectedRowBackgroundColor,
   rowVerticalPaddingScale: this.content.rowVerticalPaddingScale || 1,
   menuBackgroundColor: this.content.menuBackgroundColor,
   menuTextColor: this.content.menuTextColor,
@@ -1861,10 +1879,6 @@ forceClearSelection() {
             // Fallback para simplesmente atualizar o modelo de linhas
             this.gridApi.refreshClientSideRowModel?.('sort');
           }
-          this.$nextTick(() => {
-            this.updateColumnsPosition();
-            this.updateColumnsSort();
-          });
         }
       },
       deep: true
