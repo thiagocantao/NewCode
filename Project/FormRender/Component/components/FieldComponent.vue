@@ -30,19 +30,13 @@
             @click="openDeadlinePicker"
             style="cursor:pointer;"
           />
-          <div v-if="showDeadlinePicker" class="deadline-picker-popup" style="z-index:10;">
-            <CustomDatePicker ref="deadlineDatePicker" v-model="deadlineDatePart"
-              @update:modelValue="onDeadlineDateChange" :disabled="field.is_readonly"
-              style="position:absolute;top:0;left:0;width:100%;height:0;opacity:0;pointer-events:none;" />
-            <input
-              ref="deadlineTimeInput"
-              type="time"
-              v-model="deadlineTimePart"
-              @change="onDeadlineTimeChange"
-              @blur="closeDeadlinePicker"
-              class="field-input date-input"
-              style="margin-top:6px;width:220px;display:block;" />
-          </div>
+          <CustomDatePicker
+            ref="deadlineDatePicker"
+            v-model="deadlineValue"
+            :disabled="field.is_readonly"
+            :show-time="true"
+            @update:modelValue="onDeadlineChange"
+            style="position:absolute;top:0;left:0;width:100%;height:0;overflow:hidden;"/>
         </div>
       </template>
       <template v-else-if="field.fieldType === 'DECIMAL'">
@@ -225,9 +219,6 @@ export default {
       showAlert: false,
       deadlineTimer: null,
       dataNow: new Date(),
-      showDeadlinePicker: false,
-      deadlineDatePart: '',
-      deadlineTimePart: '',
       currentColor: '#699d8c',
       isUserInput: false,
     }
@@ -639,44 +630,12 @@ export default {
     },
     openDeadlinePicker() {
       if (this.field.fieldType === 'DEADLINE' && !this.field.is_readonly) {
-        const val = this.deadlineValue;
-        if (val) {
-          const [d, t] = val.split('T');
-          this.deadlineDatePart = d;
-          this.deadlineTimePart = t || '00:00';
-        } else {
-          const now = new Date();
-          const pad = n => String(n).padStart(2, '0');
-          this.deadlineDatePart = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-          this.deadlineTimePart = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
-        }
-        this.showDeadlinePicker = true;
-        this.$nextTick(() => {
-          const dp = this.$refs.deadlineDatePicker;
-          dp && dp.openDp && dp.openDp();
-          const input = this.$refs.deadlineTimeInput;
-          if (input) input.focus();
-        });
+        const dp = this.$refs.deadlineDatePicker;
+        dp && dp.openDp && dp.openDp();
       }
     },
-    closeDeadlinePicker() {
-      this.showDeadlinePicker = false;
-      const dp = this.$refs.deadlineDatePicker;
-      dp && dp.closeDp && dp.closeDp();
-    },
-    onDeadlineDateChange(value) {
-      this.deadlineDatePart = value;
-      this.updateDeadline();
-    },
-    onDeadlineTimeChange(event) {
-      this.deadlineTimePart = event.target.value;
-      this.updateDeadline();
-    },
-    updateDeadline() {
-      if (this.deadlineDatePart && this.deadlineTimePart) {
-        const combined = `${this.deadlineDatePart}T${this.deadlineTimePart}`;
-        this.updateValue({ target: { value: combined } });
-      }
+    onDeadlineChange(value) {
+      this.updateValue({ target: { value } });
     },
     onContentEditableInput(event) {
       this.localValue = event.target.innerHTML;

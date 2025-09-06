@@ -22,33 +22,13 @@
         />
       </template>
       <template v-else-if="field.fieldType === 'DEADLINE'">
-        <div style="position:relative;">
-          <input
-            type="text"
-            :value="deadlineDiff"
-            readonly
-            :class="[
-              'field-input',
-              'date-input',
-              'deadline-visual',
-              deadlineColorClass,
-              { 'readonly-field': field.is_readonly }
-            ]"
-            :title="deadlineOriginalFormatted"
-            @click="openDeadlinePicker"
-            style="cursor:pointer;"
-          />
-          <input
-            v-if="showDeadlinePicker"
-            ref="visibleDeadlineInput"
-            type="datetime-local"
-            v-model="deadlineValue"
-            @change="updateValue"
-            @blur="closeDeadlinePicker"
-            class="field-input date-input deadline-picker-popup"
-            style="margin-top: 6px; width: 220px; display: block; z-index: 10;"
-          />
-        </div>
+        <CustomDatePicker
+          v-model="deadlineValue"
+          :disabled="field.is_readonly"
+          :show-time="true"
+          @update:modelValue="val => updateValue({ target: { value: val } })"
+          :class="['field-input', 'date-input', { error: error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
+        />
       </template>
       <template v-else-if="field.fieldType === 'DECIMAL'">
         <input
@@ -223,9 +203,6 @@ export default {
       localValue: this.parseInitialValue(this.field),
       originalValue: this.parseInitialValue(this.field),
       showAlert: false,
-      deadlineTimer: null,
-      dataNow: new Date(),
-      showDeadlinePicker: false,
       currentColor: '#699d8c',
       savedSelection: null,
       isUserInput: false,
@@ -268,9 +245,28 @@ export default {
       if (!this.searchTerm) return this.listOptions;
       const term = this.searchTerm.toLowerCase();
       return this.listOptions.filter(opt =>
-
         opt.label.toLowerCase().includes(term)
       );
+    },
+    deadlineValue: {
+      get() {
+        if (this.field.fieldType !== 'DEADLINE') return this.localValue;
+        const val = this.localValue || this.field.value;
+        if (!val) return '';
+        let match = val.match(/(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})/);
+        if (match) {
+          return `${match[1]}T${match[2]}`;
+        }
+        const d = new Date(val);
+        if (!isNaN(d.getTime())) {
+          const pad = n => String(n).padStart(2, '0');
+          return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+        return '';
+      },
+      set(v) {
+        this.localValue = v;
+      }
     }
   },
   watch: {
@@ -437,17 +433,8 @@ export default {
       this.localValue = parsed;
       this.originalValue = parsed;
     }
-    if (this.field.fieldType === 'DEADLINE') {
-      this.deadlineTimer = setInterval(() => {
-        this.dataNow = new Date();
-      }, 1000);
-    }
   },
   beforeDestroy() {
-    if (this.deadlineTimer) {
-      clearInterval(this.deadlineTimer);
-      this.deadlineTimer = null;
-    }
   }
 };
 </script>

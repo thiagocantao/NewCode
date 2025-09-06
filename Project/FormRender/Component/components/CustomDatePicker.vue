@@ -44,6 +44,9 @@
           {{ d.label }}
         </button>
       </div>
+      <div v-if="showTime" class="dp-time">
+        <input type="time" v-model="timePart" @input="onTimeInput" />
+      </div>
       <div class="dp-actions">
         <button type="button" class="dp-action" @click="pickToday">{{ labelToday }}</button>
         <button type="button" class="dp-action" @click="clearDate">{{ labelClear }}</button>
@@ -59,7 +62,8 @@ export default {
   name: 'CustomDatePicker',
   props: {
     modelValue: { type: String, default: '' },
-    disabled: { type: Boolean, default: false }
+    disabled: { type: Boolean, default: false },
+    showTime: { type: Boolean, default: false }
   },
   emits: ['update:modelValue'],
   setup(props, { emit }) {
@@ -103,9 +107,22 @@ export default {
     const dpInput = ref(null);
     const dpOpen = ref(false);
     const dpPopStyle = ref({});
-    const selectedDate = ref(props.modelValue || '');
+    const selectedDate = ref('');
+    const timePart = ref('00:00');
 
-    watch(() => props.modelValue, v => { selectedDate.value = v || ''; });
+    watch(
+      () => props.modelValue,
+      v => {
+        if (props.showTime) {
+          const [d, t] = (v || '').split('T');
+          selectedDate.value = d || '';
+          timePart.value = t ? t.slice(0,5) : '00:00';
+        } else {
+          selectedDate.value = v || '';
+        }
+      },
+      { immediate: true }
+    );
 
     const dpMonth = ref(0);
     const dpYear = ref(0);
@@ -176,6 +193,15 @@ export default {
       return cells;
     });
 
+    function emitValue(){
+      if(!selectedDate.value){
+        emit('update:modelValue', '');
+        return;
+      }
+      const val = props.showTime ? `${selectedDate.value}T${timePart.value}` : selectedDate.value;
+      emit('update:modelValue', val);
+    }
+
     function updatePopoverPosition() {
       const wrap = dpWrapper.value;
       if (!wrap) return;
@@ -195,6 +221,10 @@ export default {
       const base = parseYMD(selectedDate.value) || new Date();
       dpMonth.value = base.getMonth();
       dpYear.value = base.getFullYear();
+      if(props.showTime && !selectedDate.value){
+        const pad = n => String(n).padStart(2,'0');
+        timePart.value = `${pad(base.getHours())}:${pad(base.getMinutes())}`;
+      }
       dpOpen.value = true;
       nextTick(() => {
         updatePopoverPosition();
@@ -210,9 +240,33 @@ export default {
     }
     function prevMonth(){ dpMonth.value = dpMonth.value === 0 ? 11 : dpMonth.value - 1; if (dpMonth.value === 11) dpYear.value--; nextTick(updatePopoverPosition); }
     function nextMonth(){ dpMonth.value = dpMonth.value === 11 ? 0 : dpMonth.value + 1; if (dpMonth.value === 0) dpYear.value++; nextTick(updatePopoverPosition); }
-    function selectDay(d){ if(!d.inMonth) return; selectedDate.value = d.dateStr; emit('update:modelValue', selectedDate.value); closeDp(); }
-    function pickToday(){ selectedDate.value = toYMD(new Date()); emit('update:modelValue', selectedDate.value); closeDp(); }
-    function clearDate(){ selectedDate.value = ''; emit('update:modelValue', ''); closeDp(); }
+    function selectDay(d){
+      if(!d.inMonth) return;
+      selectedDate.value = d.dateStr;
+      emitValue();
+      if(!props.showTime) closeDp();
+    }
+    function pickToday(){
+      const now = new Date();
+      selectedDate.value = toYMD(now);
+      if(props.showTime){
+        const pad = n => String(n).padStart(2,'0');
+        timePart.value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+      }
+      emitValue();
+      closeDp();
+    }
+    function clearDate(){
+      selectedDate.value = '';
+      if(props.showTime) timePart.value = '00:00';
+      emit('update:modelValue', '');
+      closeDp();
+    }
+
+    function onTimeInput(e){
+      timePart.value = e.target.value;
+      emitValue();
+    }
 
     function onDocClick(e){
       if(!dpOpen.value) return;
@@ -226,7 +280,11 @@ export default {
       window.removeEventListener('resize', updatePopoverPosition, true);
     });
 
-    const displayDate = computed(() => selectedDate.value ? formatDateByStyle(selectedDate.value, formatStyle) : '');
+    const displayDate = computed(() => {
+      if (!selectedDate.value) return '';
+      const base = formatDateByStyle(selectedDate.value, formatStyle);
+      return props.showTime ? `${base} ${timePart.value}` : base;
+    });
 
     return {
       dpWrapper,
@@ -245,6 +303,9 @@ export default {
       displayDate,
       labelToday,
       labelClear,
+      timePart,
+      onTimeInput,
+      showTime: props.showTime,
       disabled: props.disabled
     };
   }
