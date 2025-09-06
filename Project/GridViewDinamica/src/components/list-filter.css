@@ -218,6 +218,7 @@
   background: transparent;
 }
 
+
 /* Estilos para opções de usuário com avatar */
 :is(.list-filter, .list-editor) .user-option {
   display: flex;

@@ -38,6 +38,7 @@ export default class FixedListCellEditor {
     this.isCategoryField = tag === 'CATEGORYID' || identifier === 'CATEGORYID';
 
 
+
     // Fixed list options
     let optionsArr = [];
     if (Array.isArray(params.options)) {

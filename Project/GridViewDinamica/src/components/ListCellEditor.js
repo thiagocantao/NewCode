@@ -36,6 +36,7 @@ export default class ListCellEditor {
       tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
     this.isCategoryField = tag === 'CATEGORYID' || identifier === 'CATEGORYID';
 
+
     // Build option array (supports promises)
     const normalize = (opt) => {
       if (typeof opt === 'object') {
