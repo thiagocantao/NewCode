@@ -218,6 +218,23 @@
   background: transparent;
 }
 
+:is(.list-filter, .list-editor) .filter-item.category-option .filter-label {
+  background: #c9edf9;
+  color: #303030;
+  border: 1px solid #c9edf9;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  height: 25px;
+  font-weight: 400;
+}
+
+:is(.list-filter, .list-editor) .filter-item.category-option:hover,
+:is(.list-filter, .list-editor) .filter-item.category-option.selected {
+  background: transparent;
+}
+
 
 /* Estilos para opções de usuário com avatar */
 :is(.list-filter, .list-editor) .user-option {

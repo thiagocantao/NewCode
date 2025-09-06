@@ -35,7 +35,9 @@ export default class FixedListCellEditor {
       .toUpperCase();
     this.isResponsibleUser =
       tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
-    this.isCategoryField = tag === 'CATEGORYID' || identifier === 'CATEGORYID';
+    const categoryTags = ['CATEGORYID', 'SUBCATEGORYID', 'CATEGORYLEVEL3ID'];
+    this.isCategoryField =
+      categoryTags.includes(tag) || categoryTags.includes(identifier);
 
 
 
