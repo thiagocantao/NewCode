@@ -25,11 +25,18 @@ export default class FixedListCellEditor {
       (params.colDef.TagControl ||
         params.colDef.tagControl ||
         params.colDef.tagcontrol ||
-        '').toUpperCase();
-    const identifier = (params.colDef.FieldDB || '').toUpperCase();
+        '')
+        .toString()
+        .trim()
+        .toUpperCase();
+    const identifier = (params.colDef.FieldDB || '')
+      .toString()
+      .trim()
+      .toUpperCase();
     this.isResponsibleUser =
       tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
-    this.isCategoryField = tag === 'CATEGORYID';
+    this.isCategoryField = tag === 'CATEGORYID' || identifier === 'CATEGORYID';
+
 
 
     // Fixed list options

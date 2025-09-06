@@ -213,6 +213,12 @@
   font-weight: 400;
 }
 
+:is(.list-filter, .list-editor) .filter-item.category-option:hover,
+:is(.list-filter, .list-editor) .filter-item.category-option.selected {
+  background: transparent;
+}
+
+
 /* Estilos para opções de usuário com avatar */
 :is(.list-filter, .list-editor) .user-option {
   display: flex;
