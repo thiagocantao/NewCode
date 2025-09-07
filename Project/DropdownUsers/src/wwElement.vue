@@ -208,22 +208,27 @@ export default {
       let nextGroupId = '';
 
       if (payload && typeof payload === 'object') {
-        if ('userId' in payload || 'groupId' in payload) {
-          nextUserId  = this.normalizeId(payload.userId);
-          nextGroupId = this.normalizeId(payload.groupId);
+        if (
+          'userId' in payload ||
+          'groupId' in payload ||
+          'userid' in payload ||
+          'groupid' in payload
+        ) {
+          nextUserId = this.normalizeId(payload.userId ?? payload.userid);
+          nextGroupId = this.normalizeId(payload.groupId ?? payload.groupid);
         } else if (payload.type === 'user') {
-          nextUserId  = this.normalizeId(payload.id);
+          nextUserId = this.normalizeId(payload.id);
           nextGroupId = '';
         } else if (payload.type === 'group') {
           nextGroupId = this.normalizeId(payload.id);
-          nextUserId  = '';
+          nextUserId = '';
         } else if ('id' in payload) {
           // fallback: tratar como user
-          nextUserId  = this.normalizeId(payload.id);
+          nextUserId = this.normalizeId(payload.id);
           nextGroupId = '';
         }
       } else {
-        nextUserId  = this.normalizeId(payload);
+        nextUserId = this.normalizeId(payload);
         nextGroupId = '';
       }
 
