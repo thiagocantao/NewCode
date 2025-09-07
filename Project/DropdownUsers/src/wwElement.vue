@@ -34,6 +34,7 @@
         :required="content.required"
         tabindex="-1"
         class="fake-input"
+
     />
 </template>
 
