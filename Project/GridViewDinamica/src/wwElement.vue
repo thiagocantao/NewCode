@@ -1268,6 +1268,26 @@
                 options: getDsOptions(params),
               });
             }
+            if (tagControl === 'DATE' || colCopy.cellDataType === 'date') {
+              result.filter = 'agDateColumnFilter';
+              if (colCopy.editable) {
+                result.cellEditor = DateTimeCellEditor;
+              }
+              const lang = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342') || navigator.language;
+              result.valueFormatter = params => {
+                if (!params.value) return '';
+                try {
+                  const d = new Date(params.value);
+                  if (!isNaN(d.getTime())) {
+                    return new Intl.DateTimeFormat(lang, { day: '2-digit', month: '2-digit', year: 'numeric' }).format(d);
+                  }
+                } catch (e) {
+                  return params.value;
+                }
+                return params.value || '';
+              };
+              delete result.valueParser;
+            }
             if (tagControl === 'DEADLINE') {
               result.filter = 'agDateColumnFilter';
               // Remove default date configuration applied above

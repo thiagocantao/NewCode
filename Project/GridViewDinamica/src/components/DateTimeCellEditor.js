@@ -1,95 +1,89 @@
+import { createApp, h } from 'vue';
+import CustomDatePicker from './CustomDatePicker.vue';
+
 export default class DateTimeCellEditor {
   init(params) {
     this.params = params;
-    
-    // Create input element
-    this.eInput = document.createElement('input');
-    this.eInput.type = 'datetime-local';
-    this.eInput.style.width = '100%';
-    this.eInput.style.height = '100%';
-    this.eInput.style.fontSize = '13px';
-    this.eInput.style.border = '1px solid #888';
-    this.eInput.style.outline = 'none';
-    this.eInput.style.padding = '4px';
+    const tag = (params.colDef?.TagControl || params.colDef?.tagControl || '').toUpperCase();
+    this.showTime = tag === 'DEADLINE';
 
-    // Convert and set initial value
-    if (params.value) {
-      const convertedValue = this.convertToDateTimeLocal(params.value);
-      this.eInput.value = convertedValue;
-    }
+    this.eGui = document.createElement('div');
+    this.eGui.style.height = '100%';
+    this.eGui.style.display = 'flex';
+    this.eGui.style.alignItems = 'center';
 
-    // Event handling
-    this.eInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        e.stopPropagation();
-        params.api.stopEditing();
-      }
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        e.stopPropagation();
-        params.api.stopEditing(true);
-      }
+    const initialValue = this.normalizeValue(params.value);
+    const self = this;
+
+    this.app = createApp({
+      data() {
+        return { value: initialValue };
+      },
+      render() {
+        return h(CustomDatePicker, {
+          ref: 'picker',
+          modelValue: this.value,
+          'onUpdate:modelValue': v => (this.value = v),
+          showTime: self.showTime,
+        });
+      },
     });
+
+    this.vm = this.app.mount(this.eGui);
   }
 
-  convertToDateTimeLocal(value) {
+  normalizeValue(value) {
     if (!value) return '';
-    
-    try {
-      let dateStr = value;
-      
-      // Handle format: "2024-01-15 10:30:00+00"
-      if (typeof dateStr === 'string' && dateStr.includes(' ')) {
-        dateStr = dateStr.replace(' ', 'T');
-        // Remove timezone if present
-        dateStr = dateStr.replace(/[\+\-]\d{2}:?\d{0,2}$/, '');
-      }
-      
-      const date = new Date(dateStr);
-      if (!isNaN(date.getTime())) {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        return `${year}-${month}-${day}T${hours}:${minutes}`;
-      }
-    } catch (e) {
-      // Silent error handling
+
+    if (this.showTime) {
+      try {
+        let dateStr = value;
+        if (typeof dateStr === 'string') {
+          dateStr = dateStr.replace(' ', 'T');
+          dateStr = dateStr.replace(/([+\-]\d{2}):?\d{0,2}$/, '');
+        }
+        const date = new Date(dateStr);
+        if (!isNaN(date.getTime())) {
+          const pad = n => String(n).padStart(2, '0');
+          return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+        }
+      } catch (e) {}
+      return value;
     }
-    
-    return '';
+
+    if (typeof value === 'string') {
+      if (value.includes('T')) return value.split('T')[0];
+      if (value.includes(' ')) return value.split(' ')[0];
+    }
+    try {
+      const date = new Date(value);
+      if (!isNaN(date.getTime())) {
+        const pad = n => String(n).padStart(2, '0');
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+      }
+    } catch (e) {}
+    return value;
   }
 
   getGui() {
-    return this.eInput;
+    return this.eGui;
   }
 
   afterGuiAttached() {
-    this.eInput.focus();
-    this.eInput.select();
+    const picker = this.vm?.$refs?.picker;
+    if (picker && typeof picker.openDp === 'function') {
+      picker.openDp();
+    }
   }
 
   getValue() {
-    const value = this.eInput.value;
-    
-    if (!value) {
-      return null;
+    return this.vm?.value || '';
+  }
+
+  destroy() {
+    if (this.app) {
+      this.app.unmount();
     }
-    
-    try {
-      // Return ISO string
-      const dateObject = new Date(value);
-      if (!isNaN(dateObject.getTime())) {
-        const isoString = dateObject.toISOString();
-        return isoString;
-      }
-    } catch (e) {
-      // Silent error handling
-    }
-    
-    return value;
   }
 
   isCancelBeforeStart() {
@@ -100,42 +94,8 @@ export default class DateTimeCellEditor {
     return false;
   }
 
-  isValueChanged() {
-    const currentValue = this.eInput.value;
-    const originalValue = this.params.value;
-    const hasChanged = !!currentValue;
-    return hasChanged;
-  }
-
-  destroy() {
-    // Last resort: if ag-grid didn't detect the change, force it manually
-    const currentValue = this.eInput?.value;
-    const originalValue = this.params?.value;
-    
-    if (currentValue && (originalValue === null || originalValue === undefined)) {
-      try {
-        const dateObject = new Date(currentValue);
-        if (!isNaN(dateObject.getTime())) {
-          const isoString = dateObject.toISOString();
-          
-          if (this.params?.api && this.params?.node && this.params?.column) {
-            const colId = this.params.column.getColId();
-            this.params.node.setDataValue(colId, isoString);
-            
-            this.params.api.refreshCells({
-              rowNodes: [this.params.node],
-              columns: [colId],
-              force: true
-            });
-          }
-        }
-      } catch (e) {
-        // Silent error handling
-      }
-    }
-  }
-
   isPopup() {
     return false;
   }
 }
+
