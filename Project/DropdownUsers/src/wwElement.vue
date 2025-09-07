@@ -33,7 +33,8 @@
         :value="selectedUserId"
         :required="content.required"
         tabindex="-1"
-        style="opacity:0;position:absolute;pointer-events:none;height:0;width:0;border:0;padding:0;margin:0;"
+        class="fake-input"
+
     />
 </template>
 
@@ -116,3 +117,19 @@ export default {
     },
 };
 </script>
+
+<style>
+.fake-input {
+    background: rgba(0, 0, 0, 0);
+    border: 0;
+    bottom: -1px;
+    font-size: 0;
+    height: 1px;
+    left: 0;
+    outline: none;
+    padding: 0;
+    position: absolute;
+    right: 0;
+    width: 100%;
+}
+</style>
