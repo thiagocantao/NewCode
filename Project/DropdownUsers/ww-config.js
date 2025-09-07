@@ -172,6 +172,13 @@ export default {
             bindable: true,
             description: 'Maximum width for the selector button (e.g., 150px, 10em, 100%)',
         },
+        required: {
+            label: { en: 'Required' },
+            type: 'OnOff',
+            defaultValue: false,
+            bindable: true,
+            section: 'settings',
+        },
         TableToSave: {
             label: { en: 'Table to Save' },
             type: 'text',

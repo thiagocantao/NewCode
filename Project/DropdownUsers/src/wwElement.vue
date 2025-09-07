@@ -27,10 +27,19 @@
         @user-selected="onUserSelected"
         @trigger-event="onTriggerEvent"
     />
+    <input
+        type="text"
+        :name="wwElementState.name"
+        :value="selectedUserId"
+        :required="content.required"
+        tabindex="-1"
+        style="opacity:0;position:absolute;pointer-events:none;height:0;width:0;border:0;padding:0;margin:0;"
+    />
 </template>
 
 <script>
 import UserSelector from './components/UserSelector.vue';
+import { computed } from 'vue';
 
 export default {
     components: {
@@ -43,6 +52,9 @@ export default {
         wwEditorState: { type: Object, required: true },
         /* wwEditor:end */
         uid: { type: String, required: true },
+    },
+    inject: {
+        useForm: { from: '_wwForm:useForm', default: null },
     },
     emits: ['update:content:effect', 'update:content', 'element-event', 'user-selected'],
     data() {
@@ -67,6 +79,15 @@ export default {
                     this.selectedUserId = val;
                 }
             );
+            if (this.useForm) {
+                const fieldName = computed(() => this.wwElementState.name);
+                const validation = computed(() => ({ required: this.content.required }));
+                this.useForm(
+                    value,
+                    { fieldName, validation, initialValue: '' },
+                    { elementState: this.wwElementState, emit: this.$emit, sidepanelFormPath: 'form', setValue }
+                );
+            }
         }
     },
     mounted() {
