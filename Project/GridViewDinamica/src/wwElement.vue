@@ -38,6 +38,7 @@
   import UserCellRenderer from "./components/UserCellRenderer.vue";
   import ListFilterRenderer from "./components/ListFilterRenderer.js";
   import ResponsibleUserFilterRenderer from "./components/ResponsibleUserFilterRenderer.js";
+  import DateTimeFilter from "./components/DateTimeFilter.js";
   import DateTimeCellEditor from "./components/DateTimeCellEditor.js";
   import FixedListCellEditor from "./components/FixedListCellEditor.js";
   import ResponsibleUserCellEditor from "./components/ResponsibleUserCellEditor.js";
@@ -1270,7 +1271,7 @@
               });
             }
             if (tagControl === 'DATE' || colCopy.cellDataType === 'date' || colCopy.cellDataType === 'dateString') {
-              result.filter = 'agDateColumnFilter';
+              result.filter = DateTimeFilter;
               if (colCopy.editable) {
                 result.cellEditor = DateTimeCellEditor;
               }
@@ -1290,7 +1291,7 @@
               delete result.valueParser;
             }
             if (tagControl === 'DEADLINE') {
-              result.filter = 'agDateColumnFilter';
+              result.filter = DateTimeFilter;
               // Remove default date configuration applied above
               delete result.cellDataType;
               if (colCopy.editable) {
