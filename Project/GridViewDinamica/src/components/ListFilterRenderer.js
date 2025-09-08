@@ -10,6 +10,21 @@ export default class ListFilterRenderer {
 
   init(params) {
     this.params = params;
+    const tag =
+      (params.colDef.TagControl ||
+        params.colDef.tagControl ||
+        params.colDef.tagcontrol ||
+        '')
+        .toString()
+        .trim()
+        .toUpperCase();
+    const identifier = (params.colDef.FieldDB || '')
+      .toString()
+      .trim()
+      .toUpperCase();
+    const categoryTags = ['CATEGORYID', 'SUBCATEGORYID', 'CATEGORYLEVEL3ID'];
+    this.isCategoryField =
+      categoryTags.includes(tag) || categoryTags.includes(identifier);
     this.loadValues();
     this.createGui();
   }
@@ -70,7 +85,13 @@ export default class ListFilterRenderer {
     if (!matchingStyle) return value;
     const borderRadius = fieldName === 'StatusID' ? '4px' : '12px';
     const fontweight = "font-weight:bold;";
-    return `<span style="height:25px; color: ${matchingStyle.CorFonte}; background:${matchingStyle.CorFundo}; border: 1px solid ${matchingStyle.CorFundo}; border-radius: ${borderRadius}; ${fontweight} display: inline-flex; align-items: center; padding: 0 12px;">${value}</span>`;
+    return `<span style="height:25px; color: ${matchingStyle.CorFonte}; background:${matchingStyle.CorFundo}; border: 1px solid ${matchingStyle.CorFundo}; border-radius: ${borderRadius}; ${fontweight} display: inline-flex; align-items: center; padding: 0 12px;">${value}</span>`; 
+  }
+
+  stripHtml(html) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || '';
   }
 
   dateFormatter(dateValue, lang) {
@@ -224,10 +245,13 @@ export default class ListFilterRenderer {
       const idx = this.allValues.indexOf(rawValue);
       const formattedValue = this.formattedValues[idx] || rawValue;
       const checked = this.selectedValues.includes(rawValue) ? 'checked' : '';
+      const baseClass = `filter-item${this.selectedValues.includes(rawValue) ? ' selected' : ''}`;
+      const itemClass = this.isCategoryField ? `${baseClass} category-option` : baseClass;
+      const label = this.isCategoryField ? this.stripHtml(String(formattedValue)) : formattedValue;
       return `
-        <label class="filter-item${this.selectedValues.includes(rawValue) ? ' selected' : ''}">
+        <label class="${itemClass}">
           <input type="checkbox" value="${rawValue}" ${checked} />
-          <span class="filter-label" title="">${formattedValue}</span>
+          <span class="filter-label" title="">${label}</span>
         </label>
       `;
     }).join('');

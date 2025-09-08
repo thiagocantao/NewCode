@@ -93,6 +93,22 @@
       this.filteredOptions = [...this.options];
       this.value = params.value;
 
+      const tag =
+        (params.colDef.TagControl ||
+          params.colDef.tagControl ||
+          params.colDef.tagcontrol ||
+          '')
+          .toString()
+          .trim()
+          .toUpperCase();
+      const identifier = (params.colDef.FieldDB || '')
+        .toString()
+        .trim()
+        .toUpperCase();
+      const categoryTags = ['CATEGORYID', 'SUBCATEGORYID', 'CATEGORYLEVEL3ID'];
+      this.isCategoryField =
+        categoryTags.includes(tag) || categoryTags.includes(identifier);
+
       this.searchInput.addEventListener('input', e => {
         this.filterOptions(e.target.value);
       });
@@ -184,6 +200,10 @@
         .map(opt => {
           const formatted = this.formatOption(opt);
           const selected = opt.value == this.value ? ' selected' : '';
+          if (this.isCategoryField) {
+            const label = this.stripHtml(String(opt.label != null ? opt.label : opt.value));
+            return `<div class="filter-item${selected} category-option" data-value="${opt.value}"><span class="filter-label">${label}</span></div>`;
+          }
           return `<div class="filter-item${selected}" data-value="${opt.value}"><span class="filter-label">${formatted}</span></div>`;
         })
         .join('');
