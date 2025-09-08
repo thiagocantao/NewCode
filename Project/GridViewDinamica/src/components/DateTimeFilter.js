@@ -8,6 +8,9 @@ export default class DateFilterInput {
     this.showTime = !!(params.filterParams && params.filterParams.showTime);
 
     this.eGui = document.createElement('div');
+    this.eGui.style.width = '100%';
+    // allow the filter option dropdown to retain its width
+    this.eGui.style.minWidth = '0';
 
     const self = this;
     this.app = createApp({

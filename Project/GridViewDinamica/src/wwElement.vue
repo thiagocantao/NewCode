@@ -2274,6 +2274,16 @@ forceClearSelection() {
     filter: drop-shadow(0 0 2px rgb(105, 157, 140));
   }
 
+  // Ensure the date filter's option dropdown has enough space
+  :deep(.ag-filter-select) {
+    min-width: 120px;
+  }
+
+  // Prevent the option popup from collapsing to a thin line
+  :deep(.ag-picker-options) {
+    min-width: 120px;
+  }
+
   // Fonte da paginação igual à das linhas da grid
   :deep(.ag-paging-panel),
   :deep(.ag-paging-panel *),
