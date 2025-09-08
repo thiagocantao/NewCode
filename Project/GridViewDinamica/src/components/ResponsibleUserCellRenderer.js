@@ -26,14 +26,8 @@ export default class ResponsibleUserCellRenderer {
     return this.params?.colDef || {};
   }
   isResponsibleCol() {
-    const tag = (
-      this.colDef.context?.TagControl ||
-      this.colDef.TagControl ||
-      this.colDef.tagControl ||
-      this.colDef.tagcontrol ||
-      ''
-    ).toUpperCase();
-    const fieldDb = (this.colDef.context?.FieldDB || this.colDef.FieldDB || '').toUpperCase();
+    const tag = (this.colDef.TagControl || this.colDef.tagControl || this.colDef.tagcontrol || '').toUpperCase();
+    const fieldDb = (this.colDef.FieldDB || '').toUpperCase();
     const field = (this.colDef.field || '').toUpperCase();
     return tag === 'RESPONSIBLEUSERID' || fieldDb === 'RESPONSIBLEUSERID' || field === 'RESPONSIBLEUSERID';
   }
