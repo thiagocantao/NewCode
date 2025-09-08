@@ -4,12 +4,7 @@ import CustomDatePicker from './CustomDatePicker.vue';
 export default class DateTimeCellEditor {
   init(params) {
     this.params = params;
-    const tag = (
-      params.colDef?.context?.TagControl ||
-      params.colDef?.TagControl ||
-      params.colDef?.tagControl ||
-      ''
-    ).toUpperCase();
+    const tag = (params.colDef?.TagControl || params.colDef?.tagControl || '').toUpperCase();
     this.showTime = tag === 'DEADLINE';
 
     this.eGui = document.createElement('div');
@@ -104,4 +99,3 @@ export default class DateTimeCellEditor {
     return true;
   }
 }
-
