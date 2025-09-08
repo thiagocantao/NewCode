@@ -21,8 +21,8 @@ export default class DateTimeFilter {
     this.eGui.style.display = 'flex';
     this.eGui.style.gap = '4px';
     this.eGui.innerHTML = `
-      <input type="date" class="from-date" style="flex:1;" lang="${this.lang}" />
-      <input type="date" class="to-date" style="flex:1;" lang="${this.lang}" />
+      <input type="datetime-local" class="from-date" style="flex:1;" lang="${this.lang}" />
+      <input type="datetime-local" class="to-date" style="flex:1;" lang="${this.lang}" />
 
     `;
     this.fromInput = this.eGui.querySelector('.from-date');
@@ -30,6 +30,23 @@ export default class DateTimeFilter {
     const listener = () => this.params.filterChangedCallback();
     this.fromInput.addEventListener('input', listener);
     this.toInput.addEventListener('input', listener);
+  }
+
+  toDateTimeLocal(value) {
+    try {
+      let v = value;
+      if (/\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?([\+\-]\d{2})?$/.test(v)) {
+        v = v.replace(' ', 'T');
+        if (/([\+\-]\d{2})(\d{2})?$/.test(v)) v = v.replace(/([\+\-]\d{2})(\d{2})?$/, '$1:$2');
+        if (/([\+\-]\d{2})$/.test(v)) v = v.replace(/([\+\-]\d{2})$/, '$1:00');
+      }
+      const d = new Date(v);
+      if (!isNaN(d.getTime())) {
+        const pad = n => n.toString().padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      }
+    } catch (e) {}
+    return value;
   }
 
 
@@ -59,8 +76,8 @@ export default class DateTimeFilter {
   }
 
   setModel(model) {
-    this.fromInput.value = model?.from || '';
-    this.toInput.value = model?.to || '';
+    this.fromInput.value = model?.from ? this.toDateTimeLocal(model.from) : '';
+    this.toInput.value = model?.to ? this.toDateTimeLocal(model.to) : '';
   }
 
   getGui() {
