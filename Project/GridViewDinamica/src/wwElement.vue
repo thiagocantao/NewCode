@@ -1291,7 +1291,22 @@
             if (tagControl === 'DATE' || colCopy.cellDataType === 'date' || colCopy.cellDataType === 'dateString') {
               const comparator = (filterDate, cellValue) => {
                 if (!cellValue) return -1;
-                const cellDate = new Date(cellValue);
+                let cellDate;
+                if (cellValue instanceof Date) {
+                  cellDate = cellValue;
+                } else if (typeof cellValue === 'string') {
+                  const match = cellValue.match(/^(\d{4})-(\d{2})-(\d{2})/);
+                  if (match) {
+                    cellDate = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+                  } else {
+                    const parsed = new Date(cellValue);
+                    if (isNaN(parsed.getTime())) return -1;
+                    cellDate = parsed;
+                  }
+                } else {
+                  cellDate = new Date(cellValue);
+                }
+
                 if (isNaN(cellDate.getTime())) return -1;
                 const cellOnlyDate = new Date(cellDate.getFullYear(), cellDate.getMonth(), cellDate.getDate());
                 return cellOnlyDate.getTime() - filterDate.getTime();
