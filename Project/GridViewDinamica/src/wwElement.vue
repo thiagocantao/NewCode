@@ -929,6 +929,8 @@
         const width = isFlex ? undefined : minWidth;
         const flex = isFlex ? (colCopy.flex ?? 1) : undefined;
         const maxWidth = toNumber(colCopy.maxWidth) || undefined;
+        const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
+        const identifier = (colCopy.FieldDB || '').toUpperCase();
         const commonProperties = {
           minWidth,
           ...(width ? { width } : {}),
@@ -938,12 +940,11 @@
           hide: !!colCopy.hide,
           editable: !!colCopy.editable, // <-- garantir editable
           FieldDB: colCopy.FieldDB, // <-- garantir FieldDB no colDef
+          TagControl: tagControl,
           ...(colCopy.pinned === 'left' ? { lockPinned: true, lockPosition: true } : {}),
         };
 
         const fieldKey = colCopy.id || colCopy.field;
-        const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
-        const identifier = (colCopy.FieldDB || '').toUpperCase();
         const getDsOptions = params => {
           const ticketId = params.data?.TicketID;
           const colOpts = this.columnOptions[fieldKey] || {};
