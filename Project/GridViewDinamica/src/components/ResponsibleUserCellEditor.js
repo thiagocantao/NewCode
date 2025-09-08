@@ -128,7 +128,8 @@ export default class ResponsibleUserCellEditor {
         else if (this.params.stopEditing) this.params.stopEditing();
       }
     };
-    document.addEventListener('mousedown', this.handleOutsideClick);
+    document.addEventListener('mousedown', this.handleOutsideClick, true);
+
 
     // CSS (ajustado: 14px, wght 400, ícone groups centralizado)
     this.injectCSSOnce();
@@ -600,7 +601,8 @@ export default class ResponsibleUserCellEditor {
   }
 
   destroy() {
-    document.removeEventListener('mousedown', this.handleOutsideClick);
+    document.removeEventListener('mousedown', this.handleOutsideClick, true);
+
   }
 
   isPopup() {
