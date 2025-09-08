@@ -19,14 +19,8 @@ export default class ResponsibleUserCellEditor {
     this.searchPlaceholder = 'Search user or group...';
 
     const tag =
-      (
-        colDef.context?.TagControl ||
-        colDef.TagControl ||
-        colDef.tagControl ||
-        colDef.tagcontrol ||
-        ''
-      ).toUpperCase();
-    const identifier = (colDef.context?.FieldDB || colDef.FieldDB || '').toUpperCase();
+      (colDef.TagControl || colDef.tagControl || colDef.tagcontrol || '').toUpperCase();
+    const identifier = (colDef.FieldDB || '').toUpperCase();
     this.isResponsibleUser = tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
 
     // Normalização das opções (mantém chaves extras intactas)
@@ -101,8 +95,7 @@ export default class ResponsibleUserCellEditor {
     const closeBtn = document.createElement('span');
     closeBtn.className = 'editor-close';
     closeBtn.innerHTML = '&times;';
-    closeBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
+    closeBtn.addEventListener('click', () => {
       if (this.params.api && this.params.api.stopEditing) this.params.api.stopEditing(true);
       else if (this.params.stopEditing) this.params.stopEditing(true);
     });
@@ -126,16 +119,6 @@ export default class ResponsibleUserCellEditor {
     });
 
     this.backBtn.addEventListener('click', () => this.backToRoot());
-
-    // Close editor when clicking outside
-    this.handleOutsideClick = (e) => {
-      if (!this.eGui.contains(e.target)) {
-        if (this.params.api && this.params.api.stopEditing) this.params.api.stopEditing();
-        else if (this.params.stopEditing) this.params.stopEditing();
-      }
-    };
-    document.addEventListener('mousedown', this.handleOutsideClick, true);
-
 
     // CSS (ajustado: 14px, wght 400, ícone groups centralizado)
     this.injectCSSOnce();
@@ -274,11 +257,7 @@ export default class ResponsibleUserCellEditor {
         );
         return fn(value, {}, colDef, this.getRoundedSpanColor.bind(this), this.dateFormatter.bind(this));
       } else if (params.useStyleArray && Array.isArray(params.styleArray)) {
-        const styled = this.getRoundedSpanColor(
-          value,
-          params.styleArray,
-          colDef.context?.FieldDB || colDef.FieldDB
-        );
+        const styled = this.getRoundedSpanColor(value, params.styleArray, colDef.FieldDB);
         if (styled) return styled;
       }
     } catch (e) {
@@ -610,10 +589,7 @@ export default class ResponsibleUserCellEditor {
     return this.value;
   }
 
-  destroy() {
-    document.removeEventListener('mousedown', this.handleOutsideClick, true);
-
-  }
+  destroy() {}
 
   isPopup() {
     return true;
@@ -649,8 +625,8 @@ export default class ResponsibleUserCellEditor {
 }
 .editor-close {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: 37px;
+  right: 10px;
   cursor: pointer;
   font-size: 16px;
   color: #6b7280;
@@ -661,18 +637,19 @@ export default class ResponsibleUserCellEditor {
 .user-selector__search {
   display: flex;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   position: relative;
-  padding: 0 12px;
+  padding: 0 12px 23px 12px;
   width: 100%;
   box-sizing: border-box;
+  border-bottom: 1px solid #f3f3f7;
 }
 .user-selector__input {
   flex: 1;
   width: 100%;
-  padding: 8px 36px 8px 12px;
+  padding: 4px 36px 4px 12px;
   border-radius: 20px;
-  font-size: 14px;            /* 14px */
+  font-size: 13px;            /* 13px */
   border: 1px solid #E0E0E0 !important;
   background: #fff;
   outline: none !important;
@@ -688,10 +665,10 @@ export default class ResponsibleUserCellEditor {
 }
 .user-selector__icon {
   position: absolute;
-  right: 22px;
-  top: 50%;
+  right: 21px;
+  top: 14px;
   transform: translateY(-50%);
-  font-size: 20px;
+  font-size: 18px !important;
   color: #888;
   pointer-events: none;
   display: flex;
