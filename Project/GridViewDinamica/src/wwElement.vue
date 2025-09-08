@@ -42,6 +42,7 @@
   import FixedListCellEditor from "./components/FixedListCellEditor.js";
   import ResponsibleUserCellEditor from "./components/ResponsibleUserCellEditor.js";
   import ResponsibleUserCellRenderer from "./components/ResponsibleUserCellRenderer.js";
+  import DateFilterInput from "./components/DateFilterInput.js";
   // Editor customizado inline para listas
   class ListCellEditor {
     init(params) {
@@ -764,6 +765,7 @@
     DateTimeCellEditor,
     ResponsibleUserCellEditor,
     ResponsibleUserCellRenderer,
+    agDateInput: DateFilterInput,
   };
   /* wwEditor:end */
   
@@ -1271,6 +1273,16 @@
             }
             if (tagControl === 'DATE' || colCopy.cellDataType === 'date' || colCopy.cellDataType === 'dateString') {
               result.filter = 'agDateColumnFilter';
+              result.filterParams = {
+                comparator: (filterDate, cellValue) => {
+                  if (!cellValue) return -1;
+                  const cellDate = new Date(cellValue);
+                  if (cellDate < filterDate) return -1;
+                  if (cellDate > filterDate) return 1;
+                  return 0;
+                },
+                showTime: false,
+              };
               if (colCopy.editable) {
                 result.cellEditor = DateTimeCellEditor;
               }
@@ -1291,6 +1303,16 @@
             }
             if (tagControl === 'DEADLINE') {
               result.filter = 'agDateColumnFilter';
+              result.filterParams = {
+                comparator: (filterDate, cellValue) => {
+                  if (!cellValue) return -1;
+                  const cellDate = new Date(cellValue);
+                  if (cellDate < filterDate) return -1;
+                  if (cellDate > filterDate) return 1;
+                  return 0;
+                },
+                showTime: true,
+              };
               // Remove default date configuration applied above
               delete result.cellDataType;
               if (colCopy.editable) {
