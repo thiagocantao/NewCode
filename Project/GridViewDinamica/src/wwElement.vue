@@ -285,6 +285,7 @@
   const getRowId = (params) =>
     resolveMappingFormula(props.content.idFormula, params.data);
 
+
   // Utility to verify that the underlying grid instance is still alive. After
   // publishing the project some callbacks could be triggered while the grid is
   // already destroyed which leads AG Grid to throw errors such as
@@ -1048,6 +1049,7 @@
           const result = {
             ...commonProperties,
             colId,
+
             headerName: colCopy.headerName,
             field: fieldKey,
             sortable: colCopy.sortable,
@@ -1146,6 +1148,7 @@
             return {
               ...commonProperties,
               colId,
+
               headerName: colCopy.headerName,
               cellRenderer: "ActionCellRenderer",
               cellRendererParams: {
@@ -1162,6 +1165,7 @@
             return {
               ...commonProperties,
               colId,
+
               headerName: colCopy.headerName,
               field: fieldKey,
               cellRenderer: "WewebCellRenderer",
@@ -1175,6 +1179,7 @@
             return {
               ...commonProperties,
               colId,
+
               headerName: colCopy.headerName,
               field: fieldKey,
               cellRenderer: "ImageCellRenderer",
@@ -1204,6 +1209,7 @@
               const result = {
                 ...commonProperties,
                 colId,
+
                 headerName: colCopy.headerName,
                 field: fieldKey,
                 sortable: colCopy.sortable,
@@ -1276,6 +1282,7 @@
             const result = {
               ...commonProperties,
               colId,
+
               headerName: colCopy.headerName,
               field: fieldKey,
               sortable: colCopy.sortable,
@@ -1719,6 +1726,7 @@
   const identifier = (colDef.context?.FieldDB || colDef.FieldDB || '').toUpperCase();
   const colId = colDef.colId || colDef.field;
   const fieldKey = colDef.field || colDef.colId;
+
   if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
     const colOpts = this.columnOptions?.[colId] || {};
     const ticketId = event.data?.TicketID;
