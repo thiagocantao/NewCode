@@ -19,8 +19,14 @@ export default class ResponsibleUserCellEditor {
     this.searchPlaceholder = 'Search user or group...';
 
     const tag =
-      (colDef.TagControl || colDef.tagControl || colDef.tagcontrol || '').toUpperCase();
-    const identifier = (colDef.FieldDB || '').toUpperCase();
+      (
+        colDef.context?.TagControl ||
+        colDef.TagControl ||
+        colDef.tagControl ||
+        colDef.tagcontrol ||
+        ''
+      ).toUpperCase();
+    const identifier = (colDef.context?.FieldDB || colDef.FieldDB || '').toUpperCase();
     this.isResponsibleUser = tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
 
     // Normalização das opções (mantém chaves extras intactas)
@@ -268,7 +274,11 @@ export default class ResponsibleUserCellEditor {
         );
         return fn(value, {}, colDef, this.getRoundedSpanColor.bind(this), this.dateFormatter.bind(this));
       } else if (params.useStyleArray && Array.isArray(params.styleArray)) {
-        const styled = this.getRoundedSpanColor(value, params.styleArray, colDef.FieldDB);
+        const styled = this.getRoundedSpanColor(
+          value,
+          params.styleArray,
+          colDef.context?.FieldDB || colDef.FieldDB
+        );
         if (styled) return styled;
       }
     } catch (e) {
