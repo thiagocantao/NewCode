@@ -11,19 +11,17 @@ export default class ListFilterRenderer {
   init(params) {
     this.params = params;
     const tag =
-      (params.colDef.context?.TagControl ||
-        params.colDef.TagControl ||
+      (params.colDef.TagControl ||
         params.colDef.tagControl ||
         params.colDef.tagcontrol ||
         '')
         .toString()
         .trim()
         .toUpperCase();
-    const identifier =
-      (params.colDef.context?.FieldDB || params.colDef.FieldDB || '')
-        .toString()
-        .trim()
-        .toUpperCase();
+    const identifier = (params.colDef.FieldDB || '')
+      .toString()
+      .trim()
+      .toUpperCase();
     const categoryTags = ['CATEGORYID', 'SUBCATEGORYID', 'CATEGORYLEVEL3ID'];
     this.isCategoryField =
       categoryTags.includes(tag) || categoryTags.includes(identifier);
@@ -139,10 +137,6 @@ export default class ListFilterRenderer {
 
     this.allValues = [];
     this.formattedValues = [];
-    // ``api`` can be undefined or the grid may already be destroyed when the
-    // filter component remains mounted after navigation. Guard against calling
-    // AG Grid APIs in those cases to avoid runtime errors.
-    if (!api || (api.isDestroyed && api.isDestroyed())) return;
     api.forEachNode(node => {
       if (!node.data) return;
       const rawValue = this.getNestedValue(node.data, field);
@@ -191,11 +185,7 @@ export default class ListFilterRenderer {
             this.dateFormatter
           );
         } else if (rendererParams.useStyleArray && Array.isArray(rendererParams.styleArray)) {
-          const styled = this.getRoundedSpanColor(
-            display,
-            rendererParams.styleArray,
-            colDef.context?.FieldDB || colDef.FieldDB
-          );
+          const styled = this.getRoundedSpanColor(display, rendererParams.styleArray, colDef.FieldDB);
           if (styled) formatted = styled;
         }
       } catch (e) {
