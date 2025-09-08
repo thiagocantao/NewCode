@@ -1287,7 +1287,7 @@
               headerName: colCopy.headerName,
               field: fieldKey,
               sortable: colCopy.sortable,
-              filter: colCopy.filter === 'agListColumnFilter' ? 'agSetColumnFilter' : colCopy.filter,
+              filter: colCopy.filter,
             };
             // Filtro de lista dinâmico
             if (colCopy.filter === 'agListColumnFilter') {
