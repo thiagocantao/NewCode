@@ -94,17 +94,19 @@
       this.value = params.value;
 
       const tag =
-        (params.colDef.TagControl ||
+        (params.colDef.context?.TagControl ||
+          params.colDef.TagControl ||
           params.colDef.tagControl ||
           params.colDef.tagcontrol ||
           '')
           .toString()
           .trim()
           .toUpperCase();
-      const identifier = (params.colDef.FieldDB || '')
-        .toString()
-        .trim()
-        .toUpperCase();
+      const identifier =
+        (params.colDef.context?.FieldDB || params.colDef.FieldDB || '')
+          .toString()
+          .trim()
+          .toUpperCase();
       const categoryTags = ['CATEGORYID', 'SUBCATEGORYID', 'CATEGORYLEVEL3ID'];
       this.isCategoryField =
         categoryTags.includes(tag) || categoryTags.includes(identifier);
@@ -200,7 +202,7 @@
           const styled = this.getRoundedSpanColor(
             value,
             params.styleArray,
-            colDef.FieldDB
+            colDef.context?.FieldDB || colDef.FieldDB
           );
           if (styled) return styled;
         }
@@ -1014,6 +1016,12 @@
         const maxWidth = toNumber(colCopy.maxWidth) || undefined;
         const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
         const identifier = (colCopy.FieldDB || '').toUpperCase();
+        const context = {
+          ...(colCopy.context || {}),
+          FieldDB: colCopy.FieldDB,
+          TagControl: tagControl,
+          id: colCopy.id,
+        };
         const commonProperties = {
           minWidth,
           ...(width ? { width } : {}),
@@ -1022,8 +1030,7 @@
           pinned: colCopy.pinned === "none" ? false : colCopy.pinned,
           hide: !!colCopy.hide,
           editable: !!colCopy.editable, // <-- garantir editable
-          FieldDB: colCopy.FieldDB, // <-- garantir FieldDB no colDef
-          TagControl: tagControl,
+          context,
           ...(colCopy.pinned === 'left' ? { lockPinned: true, lockPosition: true } : {}),
         };
 
@@ -1040,7 +1047,6 @@
             tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
           const result = {
             ...commonProperties,
-            id: colCopy.id,
             colId: colCopy.id,
             headerName: colCopy.headerName,
             field: colCopy.field,
@@ -1139,7 +1145,6 @@
           case "action": {
             return {
               ...commonProperties,
-              id: colCopy.id,
               colId: colCopy.id,
               headerName: colCopy.headerName,
               cellRenderer: "ActionCellRenderer",
@@ -1156,7 +1161,6 @@
           case "custom":
             return {
               ...commonProperties,
-              id: colCopy.id,
               colId: colCopy.id,
               headerName: colCopy.headerName,
               field: colCopy.field,
@@ -1170,7 +1174,6 @@
           case "image": {
             return {
               ...commonProperties,
-              id: colCopy.id,
               colId: colCopy.id,
               headerName: colCopy.headerName,
               field: colCopy.field,
@@ -1200,7 +1203,6 @@
 
               const result = {
                 ...commonProperties,
-                id: colCopy.id,
                 colId: colCopy.id,
                 headerName: colCopy.headerName,
                 field: colCopy.field,
@@ -1273,7 +1275,6 @@
           default: {
             const result = {
               ...commonProperties,
-              id: colCopy.id,
               colId: colCopy.id,
               headerName: colCopy.headerName,
               field: colCopy.field,
@@ -1708,8 +1709,14 @@
   },
   onCellValueChanged(event) {
   const colDef = event.column.getColDef ? event.column.getColDef() : {};
-  const tag = (colDef.TagControl || colDef.tagControl || colDef.tagcontrol || '').toUpperCase();
-  const identifier = (colDef.FieldDB || '').toUpperCase();
+  const tag = (
+    colDef.context?.TagControl ||
+    colDef.TagControl ||
+    colDef.tagControl ||
+    colDef.tagcontrol ||
+    ''
+  ).toUpperCase();
+  const identifier = (colDef.context?.FieldDB || colDef.FieldDB || '').toUpperCase();
   const fieldKey = colDef.colId || colDef.field;
   if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
     const colOpts = this.columnOptions[fieldKey] || {};
