@@ -10,7 +10,7 @@
       @pointerdown.stop.prevent="!disabled && openDp($event)"
       @mousedown.stop.prevent="!disabled && openDp($event)"
       @click.stop.prevent="!disabled && openDp($event)"
-      @focus="!disabled && openDp($event)"   
+      @focus="!disabled && autoOpen && openDp($event)"
       aria-haspopup="dialog"
       :aria-expanded="dpOpen ? 'true' : 'false'"
     />
@@ -25,44 +25,46 @@
       <span class="material-symbols-outlined">calendar_month</span>
     </button>
 
-    <div
-      v-if="dpOpen"
-      class="datepicker-pop"
-      :style="dpPopStyle"
-      ref="dpPopRef"
-    >
-      <div class="dp-header">
-        <button type="button" class="dp-nav" @click="prevMonth">&lt;</button>
-        <div class="dp-title">{{ monthLabel }}</div>
-        <button type="button" class="dp-nav" @click="nextMonth">&gt;</button>
-      </div>
+    <teleport to="body">
+      <div
+        v-if="dpOpen"
+        class="datepicker-pop"
+        :style="dpPopStyle"
+        ref="dpPopRef"
+      >
+        <div class="dp-header">
+          <button type="button" class="dp-nav" @click="prevMonth">&lt;</button>
+          <div class="dp-title">{{ monthLabel }}</div>
+          <button type="button" class="dp-nav" @click="nextMonth">&gt;</button>
+        </div>
 
-      <div class="dp-weekdays">
-        <div class="dp-weekday" v-for="d in weekdayAbbrs" :key="d">{{ d }}</div>
-      </div>
+        <div class="dp-weekdays">
+          <div class="dp-weekday" v-for="d in weekdayAbbrs" :key="d">{{ d }}</div>
+        </div>
 
-      <div class="dp-grid">
-        <button
-          v-for="d in gridDays"
-          :key="d.dateStr"
-          type="button"
-          class="dp-cell"
-          :class="{ 'is-muted': !d.inMonth, 'is-selected': d.isSelected, 'is-today': d.isToday }"
-          @click="selectDay(d)"
-        >
-          {{ d.label }}
-        </button>
-      </div>
+        <div class="dp-grid">
+          <button
+            v-for="d in gridDays"
+            :key="d.dateStr"
+            type="button"
+            class="dp-cell"
+            :class="{ 'is-muted': !d.inMonth, 'is-selected': d.isSelected, 'is-today': d.isToday }"
+            @click="selectDay(d)"
+          >
+            {{ d.label }}
+          </button>
+        </div>
 
-      <div v-if="showTime" class="dp-time">
-        <input type="time" v-model="timePart" @input="onTimeInput" />
-      </div>
+        <div v-if="showTime" class="dp-time">
+          <input type="time" v-model="timePart" @input="onTimeInput" />
+        </div>
 
-      <div class="dp-actions">
-        <button type="button" class="dp-action" @click="pickToday">{{ labelToday }}</button>
-        <button type="button" class="dp-action" @click="clearDate">{{ labelClear }}</button>
+        <div class="dp-actions">
+          <button type="button" class="dp-action" @click="pickToday">{{ labelToday }}</button>
+          <button type="button" class="dp-action" @click="clearDate">{{ labelClear }}</button>
+        </div>
       </div>
-    </div>
+    </teleport>
   </div>
 </template>
 
