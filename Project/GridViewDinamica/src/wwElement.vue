@@ -24,7 +24,8 @@
   ModuleRegistry,
   themeQuartz,
   } from "ag-grid-community";
-  import { SetFilterModule } from 'ag-grid-enterprise';
+  import { SetFilterModule } from "ag-grid-enterprise";
+
   import {
   AG_GRID_LOCALE_EN,
   AG_GRID_LOCALE_FR,
