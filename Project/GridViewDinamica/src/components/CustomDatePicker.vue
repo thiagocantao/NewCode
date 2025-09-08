@@ -25,46 +25,44 @@
       <span class="material-symbols-outlined">calendar_month</span>
     </button>
 
-    <teleport to="body">
-      <div
-        v-if="dpOpen"
-        class="datepicker-pop"
-        :style="dpPopStyle"
-        ref="dpPopRef"
-      >
-        <div class="dp-header">
-          <button type="button" class="dp-nav" @click="prevMonth">&lt;</button>
-          <div class="dp-title">{{ monthLabel }}</div>
-          <button type="button" class="dp-nav" @click="nextMonth">&gt;</button>
-        </div>
-
-        <div class="dp-weekdays">
-          <div class="dp-weekday" v-for="d in weekdayAbbrs" :key="d">{{ d }}</div>
-        </div>
-
-        <div class="dp-grid">
-          <button
-            v-for="d in gridDays"
-            :key="d.dateStr"
-            type="button"
-            class="dp-cell"
-            :class="{ 'is-muted': !d.inMonth, 'is-selected': d.isSelected, 'is-today': d.isToday }"
-            @click="selectDay(d)"
-          >
-            {{ d.label }}
-          </button>
-        </div>
-
-        <div v-if="showTime" class="dp-time">
-          <input type="time" v-model="timePart" @input="onTimeInput" />
-        </div>
-
-        <div class="dp-actions">
-          <button type="button" class="dp-action" @click="pickToday">{{ labelToday }}</button>
-          <button type="button" class="dp-action" @click="clearDate">{{ labelClear }}</button>
-        </div>
+    <div
+      v-if="dpOpen"
+      class="datepicker-pop"
+      :style="dpPopStyle"
+      ref="dpPopRef"
+    >
+      <div class="dp-header">
+        <button type="button" class="dp-nav" @click="prevMonth">&lt;</button>
+        <div class="dp-title">{{ monthLabel }}</div>
+        <button type="button" class="dp-nav" @click="nextMonth">&gt;</button>
       </div>
-    </teleport>
+
+      <div class="dp-weekdays">
+        <div class="dp-weekday" v-for="d in weekdayAbbrs" :key="d">{{ d }}</div>
+      </div>
+
+      <div class="dp-grid">
+        <button
+          v-for="d in gridDays"
+          :key="d.dateStr"
+          type="button"
+          class="dp-cell"
+          :class="{ 'is-muted': !d.inMonth, 'is-selected': d.isSelected, 'is-today': d.isToday }"
+          @click="selectDay(d)"
+        >
+          {{ d.label }}
+        </button>
+      </div>
+
+      <div v-if="showTime" class="dp-time">
+        <input type="time" v-model="timePart" @input="onTimeInput" />
+      </div>
+
+      <div class="dp-actions">
+        <button type="button" class="dp-action" @click="pickToday">{{ labelToday }}</button>
+        <button type="button" class="dp-action" @click="clearDate">{{ labelClear }}</button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -202,7 +200,7 @@ export default {
       if (!wrap) return;
       const rect = wrap.getBoundingClientRect();
       const left = Math.round(rect.left - 300);
-      const bottom = Math.round(window.innerHeight - rect.top - 80);
+      const bottom = Math.round(window.innerHeight - rect.top - 185);
       dpPopStyle.value = {
         position: 'fixed',
         left: `${left}px`,
@@ -294,6 +292,7 @@ export default {
   width: 100%;
   font-family: 'Roboto', sans-serif;
   font-size: 14px;
+  z-index: 99999;
 }
 
 .dp-input {
@@ -334,7 +333,7 @@ export default {
   border-radius: 8px;
   box-shadow: 0 8px 20px rgba(0,0,0,0.15);
   padding: 8px;
-  z-index: 2147483647;
+  z-index: 2147483647 !important;
 }
 
 .dp-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 6px; }
