@@ -282,11 +282,13 @@ export default {
       window.removeEventListener('resize', updatePopoverPosition, true);
     });
 
+
     onMounted(() => {
       if (props.autoOpen) {
         nextTick(() => openDp());
       }
     });
+
 
     expose({ openDp });
 
