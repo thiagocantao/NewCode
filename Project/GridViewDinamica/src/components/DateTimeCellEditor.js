@@ -72,7 +72,7 @@ export default class DateTimeCellEditor {
   afterGuiAttached() {
     const picker = this.vm?.$refs?.picker;
     if (picker && typeof picker.openDp === 'function') {
-      picker.openDp();
+      setTimeout(() => picker.openDp(), 0);
     }
   }
 
@@ -95,7 +95,7 @@ export default class DateTimeCellEditor {
   }
 
   isPopup() {
-    return false;
+    return true;
   }
 }
 
