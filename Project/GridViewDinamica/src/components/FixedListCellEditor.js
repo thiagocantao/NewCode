@@ -22,17 +22,19 @@ export default class FixedListCellEditor {
 
 
     const tag =
-      (params.colDef.TagControl ||
+      (params.colDef.context?.TagControl ||
+        params.colDef.TagControl ||
         params.colDef.tagControl ||
         params.colDef.tagcontrol ||
         '')
         .toString()
         .trim()
         .toUpperCase();
-    const identifier = (params.colDef.FieldDB || '')
-      .toString()
-      .trim()
-      .toUpperCase();
+    const identifier =
+      (params.colDef.context?.FieldDB || params.colDef.FieldDB || '')
+        .toString()
+        .trim()
+        .toUpperCase();
     this.isResponsibleUser =
       tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
     const categoryTags = ['CATEGORYID', 'SUBCATEGORYID', 'CATEGORYLEVEL3ID'];
@@ -176,7 +178,7 @@ export default class FixedListCellEditor {
         const styled = this.getRoundedSpanColor(
           value,
           params.styleArray,
-          colDef.FieldDB
+          colDef.context?.FieldDB || colDef.FieldDB
         );
         if (styled) return styled;
       }
