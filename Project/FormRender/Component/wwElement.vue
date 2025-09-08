@@ -324,38 +324,13 @@ export default {
     const selectFieldForProperties = (field) => {
     };
 
-    const formatWithFormula = async (val) => {
-      try {
-        const lang =
-          window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342') ||
-          navigator.language;
-        const formulaApi = window.wwLib?.wwFormula;
-        const use = formulaApi?.useFormula?.();
-        const resolveMappingFormula = use?.resolveMappingFormula;
-        const mapping = resolveMappingFormula
-          ? resolveMappingFormula('95a5a105-48b6-48d4-95c5-7179a664451d')
-          : null;
-        if (mapping && typeof formulaApi?.getValue === 'function') {
-          const res = formulaApi.getValue(mapping, {}, { args: [val, lang] });
-          return res instanceof Promise ? await res : res;
-        }
-      } catch (e) {
-      }
-      return val;
-    };
-
-    const onFieldValueChange = async (sectionId, { fieldId, value }) => {
+    const onFieldValueChange = (sectionId, { fieldId, value }) => {
       const section = formSections.value.find(s => s.id === sectionId);
       if (section) {
         const field = section.fields.find(f => f.id === fieldId || f.field_id === fieldId || f.ID === fieldId);
         if (field) {
-          if (field.fieldType === 'DATE' || field.fieldType === 'DEADLINE') {
-            value = await formatWithFormula(value);
-          }
           field.value = value;
-          if (autoSave.value) {
-            updateFormState();
-          }
+          updateFormState();
         }
       }
     };
