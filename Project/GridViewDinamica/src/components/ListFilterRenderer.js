@@ -137,6 +137,10 @@ export default class ListFilterRenderer {
 
     this.allValues = [];
     this.formattedValues = [];
+    // ``api`` can be undefined or the grid may already be destroyed when the
+    // filter component remains mounted after navigation. Guard against calling
+    // AG Grid APIs in those cases to avoid runtime errors.
+    if (!api || (api.isDestroyed && api.isDestroyed())) return;
     api.forEachNode(node => {
       if (!node.data) return;
       const rawValue = this.getNestedValue(node.data, field);
