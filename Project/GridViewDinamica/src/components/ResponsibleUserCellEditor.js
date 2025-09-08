@@ -95,7 +95,8 @@ export default class ResponsibleUserCellEditor {
     const closeBtn = document.createElement('span');
     closeBtn.className = 'editor-close';
     closeBtn.innerHTML = '&times;';
-    closeBtn.addEventListener('click', () => {
+    closeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
       if (this.params.api && this.params.api.stopEditing) this.params.api.stopEditing(true);
       else if (this.params.stopEditing) this.params.stopEditing(true);
     });
@@ -119,6 +120,15 @@ export default class ResponsibleUserCellEditor {
     });
 
     this.backBtn.addEventListener('click', () => this.backToRoot());
+
+    // Close editor when clicking outside
+    this.handleOutsideClick = (e) => {
+      if (!this.eGui.contains(e.target)) {
+        if (this.params.api && this.params.api.stopEditing) this.params.api.stopEditing();
+        else if (this.params.stopEditing) this.params.stopEditing();
+      }
+    };
+    document.addEventListener('mousedown', this.handleOutsideClick);
 
     // CSS (ajustado: 14px, wght 400, ícone groups centralizado)
     this.injectCSSOnce();
@@ -589,7 +599,9 @@ export default class ResponsibleUserCellEditor {
     return this.value;
   }
 
-  destroy() {}
+  destroy() {
+    document.removeEventListener('mousedown', this.handleOutsideClick);
+  }
 
   isPopup() {
     return true;

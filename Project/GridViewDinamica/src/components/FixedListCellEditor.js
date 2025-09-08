@@ -85,7 +85,8 @@ export default class FixedListCellEditor {
     });
 
     if (this.closeBtn) {
-      this.closeBtn.addEventListener('click', () => {
+      this.closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
         if (this.params.api && this.params.api.stopEditing) {
           this.params.api.stopEditing(true);
         } else if (this.params.stopEditing) {
@@ -93,6 +94,18 @@ export default class FixedListCellEditor {
         }
       });
     }
+
+    // Close editor when clicking outside
+    this.handleOutsideClick = (e) => {
+      if (!this.eGui.contains(e.target)) {
+        if (this.params.api && this.params.api.stopEditing) {
+          this.params.api.stopEditing();
+        } else if (this.params.stopEditing) {
+          this.params.stopEditing();
+        }
+      }
+    };
+    document.addEventListener('mousedown', this.handleOutsideClick);
 
     this.renderOptions();
   }
@@ -227,7 +240,9 @@ export default class FixedListCellEditor {
     return this.value;
   }
 
-  destroy() { }
+  destroy() {
+    document.removeEventListener('mousedown', this.handleOutsideClick);
+  }
 
   isPopup() {
     return true;
