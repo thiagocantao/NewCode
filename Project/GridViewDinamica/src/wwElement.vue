@@ -1298,6 +1298,7 @@
               };
               result.filter = 'agDateColumnFilter';
               result.filterParams = {
+
                 comparator,
                 filterOptions: ['equals', 'greaterThan', 'lessThan', 'inRange'],
                 suppressAndOrCondition: true,
@@ -1329,6 +1330,7 @@
               };
               result.filter = 'agDateColumnFilter';
               result.filterParams = {
+
                 comparator,
                 filterOptions: ['equals', 'greaterThan', 'lessThan', 'inRange'],
                 suppressAndOrCondition: true,
