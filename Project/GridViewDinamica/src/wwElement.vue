@@ -814,6 +814,7 @@
   
   /* wwEditor:start */
   const { createElement } = wwLib.wwElement.useCreate();
+  /* wwEditor:end */
 
   const gridComponents = {
     ActionCellRenderer,
@@ -828,7 +829,6 @@
     ResponsibleUserCellRenderer,
     agDateInput: DateFilterInput,
   };
-  /* wwEditor:end */
   
   function updateColumnsPosition() {
   if (!gridApi.value) return;
@@ -1286,7 +1286,7 @@
               headerName: colCopy.headerName,
               field: fieldKey,
               sortable: colCopy.sortable,
-              filter: colCopy.filter === 'agListColumnFilter' ? 'agSetColumnFilter' : colCopy.filter,
+              filter: colCopy.filter,
             };
             // Filtro de lista dinâmico
             if (colCopy.filter === 'agListColumnFilter') {
