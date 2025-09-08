@@ -1268,7 +1268,7 @@
                 options: getDsOptions(params),
               });
             }
-            if (tagControl === 'DATE' || colCopy.cellDataType === 'date') {
+            if (tagControl === 'DATE' || colCopy.cellDataType === 'date' || colCopy.cellDataType === 'dateString') {
               result.filter = 'agDateColumnFilter';
               if (colCopy.editable) {
                 result.cellEditor = DateTimeCellEditor;
