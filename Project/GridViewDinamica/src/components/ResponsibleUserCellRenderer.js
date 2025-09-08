@@ -4,7 +4,16 @@ export default class ResponsibleUserCellRenderer {
     this.params = params;
     this.eGui = document.createElement('div');
     this.eGui.className = 'ru-cell';
- 
+
+    // When ResponsibleUserID column is editable, show pointer cursor
+    let editable = params?.colDef?.editable;
+    if (typeof editable === 'function') {
+      try { editable = editable(params); } catch (e) { editable = false; }
+    }
+    if (editable && this.isResponsibleCol()) {
+      this.eGui.style.cursor = 'pointer';
+    }
+
     this.injectCSSOnce();
     this.render();
   }
