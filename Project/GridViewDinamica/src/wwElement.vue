@@ -1034,10 +1034,11 @@
           ...(colCopy.pinned === 'left' ? { lockPinned: true, lockPosition: true } : {}),
         };
 
-        const fieldKey = colCopy.id || colCopy.field;
+        const colId = colCopy.id || colCopy.field;
+        const fieldKey = colCopy.field || colCopy.id;
         const getDsOptions = params => {
           const ticketId = params.data?.TicketID;
-          const colOpts = this.columnOptions[fieldKey] || {};
+          const colOpts = this.columnOptions?.[colId] || {};
           return colOpts[ticketId] || [];
         };
 
@@ -1047,9 +1048,10 @@
             tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
           const result = {
             ...commonProperties,
-            colId: colCopy.id,
+            colId,
+
             headerName: colCopy.headerName,
-            field: colCopy.field,
+            field: fieldKey,
             sortable: colCopy.sortable,
             filter: isResponsible
               ? ResponsibleUserFilterRenderer
@@ -1145,7 +1147,8 @@
           case "action": {
             return {
               ...commonProperties,
-              colId: colCopy.id,
+              colId,
+
               headerName: colCopy.headerName,
               cellRenderer: "ActionCellRenderer",
               cellRendererParams: {
@@ -1161,9 +1164,10 @@
           case "custom":
             return {
               ...commonProperties,
-              colId: colCopy.id,
+              colId,
+
               headerName: colCopy.headerName,
-              field: colCopy.field,
+              field: fieldKey,
               cellRenderer: "WewebCellRenderer",
               cellRendererParams: {
                 containerId: colCopy.containerId,
@@ -1174,9 +1178,10 @@
           case "image": {
             return {
               ...commonProperties,
-              colId: colCopy.id,
+              colId,
+
               headerName: colCopy.headerName,
-              field: colCopy.field,
+              field: fieldKey,
               cellRenderer: "ImageCellRenderer",
               cellRendererParams: {
                 width: colCopy.imageWidth,
@@ -1188,7 +1193,7 @@
             {
               const getDsOptions = params => {
                 const ticketId = params.data?.TicketID;
-                const colOpts = this.columnOptions[fieldKey] || {};
+                const colOpts = this.columnOptions?.[colId] || {};
                 return colOpts[ticketId] || [];
               };
 
@@ -1203,9 +1208,10 @@
 
               const result = {
                 ...commonProperties,
-                colId: colCopy.id,
+                colId,
+
                 headerName: colCopy.headerName,
-                field: colCopy.field,
+                field: fieldKey,
                 sortable: colCopy.sortable,
                 filter: isResponsible
                   ? ResponsibleUserFilterRenderer
@@ -1275,9 +1281,10 @@
           default: {
             const result = {
               ...commonProperties,
-              colId: colCopy.id,
+              colId,
+
               headerName: colCopy.headerName,
-              field: colCopy.field,
+              field: fieldKey,
               sortable: colCopy.sortable,
               filter: colCopy.filter === 'agListColumnFilter' ? 'agSetColumnFilter' : colCopy.filter,
             };
@@ -1717,9 +1724,11 @@
     ''
   ).toUpperCase();
   const identifier = (colDef.context?.FieldDB || colDef.FieldDB || '').toUpperCase();
-  const fieldKey = colDef.colId || colDef.field;
+  const colId = colDef.colId || colDef.field;
+  const fieldKey = colDef.field || colDef.colId;
+
   if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
-    const colOpts = this.columnOptions[fieldKey] || {};
+    const colOpts = this.columnOptions?.[colId] || {};
     const ticketId = event.data?.TicketID;
     const opts = ticketId != null ? colOpts[ticketId] || [] : [];
     const match = opts.find(o => String(o.value) === String(event.newValue));
