@@ -64,7 +64,8 @@ export default {
   props: {
     modelValue: { type: String, default: '' },
     disabled: { type: Boolean, default: false },
-    showTime: { type: Boolean, default: false }
+    showTime: { type: Boolean, default: false },
+    autoOpen: { type: Boolean, default: false }
   },
   emits: ['update:modelValue'],
   setup(props, { emit, expose }) {
@@ -280,6 +281,14 @@ export default {
       window.removeEventListener('scroll', updatePopoverPosition, true);
       window.removeEventListener('resize', updatePopoverPosition, true);
     });
+
+
+    onMounted(() => {
+      if (props.autoOpen) {
+        nextTick(() => openDp());
+      }
+    });
+
 
     expose({ openDp });
 
