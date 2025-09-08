@@ -84,21 +84,11 @@ export default {
   },
   computed: {
     isCategoryField() {
-      const tag = (
-        this.params.colDef?.context?.TagControl ||
-        this.params.colDef?.TagControl ||
-        this.params.colDef?.tagControl ||
-        this.params.colDef?.tagcontrol ||
-        ''
-      )
+      const tag = (this.params.colDef?.TagControl || this.params.colDef?.tagControl || this.params.colDef?.tagcontrol || '')
         .toString()
         .trim()
         .toUpperCase();
-      const identifier = (
-        this.params.colDef?.context?.FieldDB ||
-        this.params.colDef?.FieldDB ||
-        ''
-      )
+      const identifier = (this.params.colDef?.FieldDB || '')
         .toString()
         .trim()
         .toUpperCase();
