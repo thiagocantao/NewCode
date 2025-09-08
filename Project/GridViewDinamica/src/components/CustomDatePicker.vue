@@ -7,10 +7,10 @@
       :value="displayDate"
       readonly
       :disabled="disabled"
-      @pointerdown.stop.prevent="!disabled && openDp()"
-      @mousedown.stop.prevent="!disabled && openDp()"
-      @click.stop.prevent="!disabled && openDp()"
-      @focus="!disabled && openDp()"
+      @pointerdown.stop.prevent="!disabled && openDp($event)"
+      @mousedown.stop.prevent="!disabled && openDp($event)"
+      @click.stop.prevent="!disabled && openDp($event)"
+      @focus="!disabled && openDp($event)"   
       aria-haspopup="dialog"
       :aria-expanded="dpOpen ? 'true' : 'false'"
     />
@@ -18,21 +18,29 @@
       v-if="!disabled"
       type="button"
       class="dp-icon"
-      @pointerdown.stop.prevent="openDp()"
-      @mousedown.stop.prevent="openDp()"
-      @click.stop.prevent="openDp()"
+      @pointerdown.stop.prevent="openDp($event)"
+      @mousedown.stop.prevent="openDp($event)"
+      @click.stop.prevent="openDp($event)"
     >
       <span class="material-symbols-outlined">calendar_month</span>
     </button>
-    <div v-if="dpOpen" class="datepicker-pop" :style="dpPopStyle">
+
+    <div
+      v-if="dpOpen"
+      class="datepicker-pop"
+      :style="dpPopStyle"
+      ref="dpPopRef"
+    >
       <div class="dp-header">
         <button type="button" class="dp-nav" @click="prevMonth">&lt;</button>
         <div class="dp-title">{{ monthLabel }}</div>
         <button type="button" class="dp-nav" @click="nextMonth">&gt;</button>
       </div>
+
       <div class="dp-weekdays">
         <div class="dp-weekday" v-for="d in weekdayAbbrs" :key="d">{{ d }}</div>
       </div>
+
       <div class="dp-grid">
         <button
           v-for="d in gridDays"
@@ -45,9 +53,11 @@
           {{ d.label }}
         </button>
       </div>
+
       <div v-if="showTime" class="dp-time">
         <input type="time" v-model="timePart" @input="onTimeInput" />
       </div>
+
       <div class="dp-actions">
         <button type="button" class="dp-action" @click="pickToday">{{ labelToday }}</button>
         <button type="button" class="dp-action" @click="clearDate">{{ labelClear }}</button>
@@ -76,12 +86,21 @@ export default {
     const formatStyle = String(formatStyleRaw).toLowerCase() === 'american' ? 'american' : 'european';
 
     const isPt = computed(() => String(lang || '').toLowerCase().startsWith('pt'));
-    const PT_MONTHS = [
-      'janeiro','fevereiro','março','abril','maio','junho',
-      'julho','agosto','setembro','outubro','novembro','dezembro'
-    ];
+    const PT_MONTHS = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
     const labelToday = computed(() => (isPt.value ? 'Hoje' : translateText('Today')));
     const labelClear = computed(() => (isPt.value ? 'Limpar' : translateText('Clear')));
+
+    const dpWrapper = ref(null);
+    const dpInput   = ref(null);
+    const dpPopRef  = ref(null);
+
+    const dpOpen = ref(false);
+    const dpPopStyle = ref({});
+    const selectedDate = ref('');
+    const timePart = ref('00:00');
+
+    // Guarda a posição exata do clique (clientX/Y)
+    const anchorPoint = ref(null); // { x, y } quando abrir por clique
 
     function toYMD(date) {
       const y = date.getFullYear();
@@ -105,29 +124,18 @@ export default {
     }
     function sameYMD(a,b){ return a && b && toYMD(a) === toYMD(b); }
 
-    const dpWrapper = ref(null);
-    const dpInput = ref(null);
-    const dpOpen = ref(false);
-    const dpPopStyle = ref({});
-    const selectedDate = ref('');
-    const timePart = ref('00:00');
-
-    watch(
-      () => props.modelValue,
-      v => {
-        if (props.showTime) {
-          const [d, t] = (v || '').split('T');
-          selectedDate.value = d || '';
-          timePart.value = t ? t.slice(0,5) : '00:00';
-        } else {
-          selectedDate.value = v || '';
-        }
-      },
-      { immediate: true }
-    );
+    watch(() => props.modelValue, v => {
+      if (props.showTime) {
+        const [d, t] = (v || '').split('T');
+        selectedDate.value = d || '';
+        timePart.value = t ? t.slice(0,5) : '00:00';
+      } else {
+        selectedDate.value = v || '';
+      }
+    }, { immediate: true });
 
     const dpMonth = ref(0);
-    const dpYear = ref(0);
+    const dpYear  = ref(0);
     const weekStart = computed(() => (formatStyle === 'american' ? 0 : 1));
 
     const weekdayAbbrs = computed(() => {
@@ -137,9 +145,7 @@ export default {
       }
       try {
         const base = Array.from({ length: 7 }, (_, i) =>
-          new Intl.DateTimeFormat(lang, { weekday: 'short' }).format(
-            new Date(Date.UTC(2021,7,1+i))
-          )
+          new Intl.DateTimeFormat(lang, { weekday: 'short' }).format(new Date(Date.UTC(2021,7,1+i)))
         );
         return weekStart.value === 1 ? base.slice(1).concat(base.slice(0,1)) : base;
       } catch {
@@ -162,13 +168,7 @@ export default {
       const label = date.getDate();
       const today = new Date();
       const selected = parseYMD(selectedDate.value);
-      return {
-        label,
-        dateStr: toYMD(date),
-        inMonth,
-        isToday: sameYMD(date,today),
-        isSelected: selected && sameYMD(date, selected)
-      };
+      return { label, dateStr: toYMD(date), inMonth, isToday: sameYMD(date,today), isSelected: selected && sameYMD(date, selected) };
     }
 
     const gridDays = computed(() => {
@@ -180,26 +180,17 @@ export default {
       const prevMonth = dpMonth.value === 0 ? 11 : dpMonth.value - 1;
       const daysInPrev = new Date(prevYear, prevMonth + 1, 0).getDate();
       const cells = [];
-      for (let i = daysInPrev - lead + 1; i <= daysInPrev; i++) {
-        cells.push(makeCell(new Date(prevYear, prevMonth, i), false));
-      }
-      for (let i = 1; i <= daysInCur; i++) {
-        cells.push(makeCell(new Date(dpYear.value, dpMonth.value, i), true));
-      }
+      for (let i = daysInPrev - lead + 1; i <= daysInPrev; i++) cells.push(makeCell(new Date(prevYear, prevMonth, i), false));
+      for (let i = 1; i <= daysInCur; i++) cells.push(makeCell(new Date(dpYear.value, dpMonth.value, i), true));
       const tail = 42 - cells.length;
       const nextYear = dpMonth.value === 11 ? dpYear.value + 1 : dpYear.value;
       const nextMonth = dpMonth.value === 11 ? 0 : dpMonth.value + 1;
-      for (let i = 1; i <= tail; i++) {
-        cells.push(makeCell(new Date(nextYear, nextMonth, i), false));
-      }
+      for (let i = 1; i <= tail; i++) cells.push(makeCell(new Date(nextYear, nextMonth, i), false));
       return cells;
     });
 
     function emitValue(){
-      if(!selectedDate.value){
-        emit('update:modelValue', '');
-        return;
-      }
+      if(!selectedDate.value){ emit('update:modelValue', ''); return; }
       const val = props.showTime ? `${selectedDate.value}T${timePart.value}` : selectedDate.value;
       emit('update:modelValue', val);
     }
@@ -208,87 +199,67 @@ export default {
       const wrap = dpWrapper.value;
       if (!wrap) return;
       const rect = wrap.getBoundingClientRect();
-      const left = Math.round(rect.left);
-      const top = Math.round(rect.bottom + 4);
+      const left = Math.round(rect.left - 300);
+      const bottom = Math.round(window.innerHeight - rect.top - 80);
       dpPopStyle.value = {
         position: 'fixed',
         left: `${left}px`,
-        top: `${top}px`,
+        bottom: `${bottom}px`,
         minWidth: `${Math.max(rect.width, 230)}px`,
         zIndex: 2147483647
       };
     }
 
-    function openDp(){
+    function onDocClick(e){
+      if(!dpOpen.value) return;
+      const insideWrapper = dpWrapper.value && dpWrapper.value.contains(e.target);
+      const insidePop = dpPopRef.value && dpPopRef.value.contains(e.target);
+      if(!insideWrapper && !insidePop) closeDp();
+    }
+
+    function openDp(e){
+      // captura coords do clique (pointer/mouse). Se veio de focus, anchorPoint será null.
+      anchorPoint.value = (e && typeof e.clientX === 'number') ? { x: e.clientX, y: e.clientY } : null;
+
       const base = parseYMD(selectedDate.value) || new Date();
       dpMonth.value = base.getMonth();
-      dpYear.value = base.getFullYear();
+      dpYear.value  = base.getFullYear();
       if(props.showTime && !selectedDate.value){
-        const pad = n => String(n).padStart(2,'0');
-        timePart.value = `${pad(base.getHours())}:${pad(base.getMinutes())}`;
+        const pad2 = n => String(n).padStart(2,'0');
+        timePart.value = `${pad2(base.getHours())}:${pad2(base.getMinutes())}`;
       }
       dpOpen.value = true;
+
       nextTick(() => {
         updatePopoverPosition();
-        try { dpInput.value && dpInput.value.focus(); } catch(e){}
+        try { dpInput.value && dpInput.value.focus(); } catch {}
+        document.addEventListener('click', onDocClick, false);
         window.addEventListener('scroll', updatePopoverPosition, true);
         window.addEventListener('resize', updatePopoverPosition, true);
       });
     }
+
     function closeDp(){
       dpOpen.value = false;
+      anchorPoint.value = null;
+      document.removeEventListener('click', onDocClick, false);
       window.removeEventListener('scroll', updatePopoverPosition, true);
       window.removeEventListener('resize', updatePopoverPosition, true);
     }
+
     function prevMonth(){ dpMonth.value = dpMonth.value === 0 ? 11 : dpMonth.value - 1; if (dpMonth.value === 11) dpYear.value--; nextTick(updatePopoverPosition); }
     function nextMonth(){ dpMonth.value = dpMonth.value === 11 ? 0 : dpMonth.value + 1; if (dpMonth.value === 0) dpYear.value++; nextTick(updatePopoverPosition); }
-    function selectDay(d){
-      if(!d.inMonth) return;
-      selectedDate.value = d.dateStr;
-      emitValue();
-      if(!props.showTime) closeDp();
-    }
-    function pickToday(){
-      const now = new Date();
-      selectedDate.value = toYMD(now);
-      if(props.showTime){
-        const pad = n => String(n).padStart(2,'0');
-        timePart.value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
-      }
-      emitValue();
-      closeDp();
-    }
-    function clearDate(){
-      selectedDate.value = '';
-      if(props.showTime) timePart.value = '00:00';
-      emit('update:modelValue', '');
-      closeDp();
-    }
+    function selectDay(d){ if(!d.inMonth) return; selectedDate.value = d.dateStr; emitValue(); if(!props.showTime) closeDp(); }
+    function pickToday(){ const now = new Date(); selectedDate.value = toYMD(now); if(props.showTime){ const p = n=>String(n).padStart(2,'0'); timePart.value = `${p(now.getHours())}:${p(now.getMinutes())}`; } emitValue(); closeDp(); }
+    function clearDate(){ selectedDate.value = ''; if(props.showTime) timePart.value = '00:00'; emit('update:modelValue',''); closeDp(); }
+    function onTimeInput(e){ timePart.value = e.target.value; emitValue(); }
 
-    function onTimeInput(e){
-      timePart.value = e.target.value;
-      emitValue();
-    }
-
-    function onDocClick(e){
-      if(!dpOpen.value) return;
-      const inside = dpWrapper.value && dpWrapper.value.contains(e.target);
-      if(!inside) closeDp();
-    }
-    onMounted(() => document.addEventListener('click', onDocClick, true));
+    onMounted(() => { if (props.autoOpen) nextTick(() => openDp()); });
     onBeforeUnmount(() => {
-      document.removeEventListener('click', onDocClick, true);
+      document.removeEventListener('click', onDocClick, false);
       window.removeEventListener('scroll', updatePopoverPosition, true);
       window.removeEventListener('resize', updatePopoverPosition, true);
     });
-
-
-    onMounted(() => {
-      if (props.autoOpen) {
-        nextTick(() => openDp());
-      }
-    });
-
 
     expose({ openDp });
 
@@ -299,26 +270,14 @@ export default {
     });
 
     return {
-      dpWrapper,
-      dpInput,
-      dpOpen,
-      dpPopStyle,
-      openDp,
-      prevMonth,
-      nextMonth,
-      selectDay,
-      pickToday,
-      clearDate,
-      weekdayAbbrs,
-      monthLabel,
-      gridDays,
-      displayDate,
-      labelToday,
-      labelClear,
-      timePart,
-      onTimeInput,
-      showTime: props.showTime,
-      disabled: props.disabled
+      dpWrapper, dpInput, dpPopRef,
+      dpOpen, dpPopStyle,
+      openDp, prevMonth, nextMonth,
+      selectDay, pickToday, clearDate,
+      weekdayAbbrs, monthLabel, gridDays,
+      displayDate, labelToday, labelClear,
+      timePart, onTimeInput,
+      showTime: props.showTime, disabled: props.disabled
     };
   }
 };
@@ -344,7 +303,7 @@ export default {
   cursor: pointer;
   font-family: 'Roboto', sans-serif;
   font-size: 13px;
-  border: 1px solid #ccc; /* borda fina e cinza escura */
+  border: 1px solid #ccc;
   border-radius: 4px;
 }
 
@@ -362,13 +321,9 @@ export default {
   border: 0;
   padding: 0;
   cursor: pointer;
-  color: #ddd; /* ícone cinza escuro */
+  color: #ddd;
 }
-
-.dp-icon:hover {
-  color: #ccc; /* um tom mais escuro ao passar o mouse */
-}
-
+.dp-icon:hover { color: #ccc; }
 
 .datepicker-pop {
   position: fixed;
@@ -379,16 +334,17 @@ export default {
   padding: 8px;
   z-index: 2147483647;
 }
+
 .dp-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 6px; }
-.dp-title { font-weight: 500; text-transform: capitalize; }
-.dp-nav { border: 1px solid #ccc; background: #f7f7f7; border-radius: 6px; padding: 2px 8px; cursor: pointer; }
+.dp-title  { font-weight: 500; text-transform: capitalize; }
+.dp-nav    { border: 1px solid #ccc; background: #f7f7f7; border-radius: 6px; padding: 2px 8px; cursor: pointer; }
 .dp-weekdays, .dp-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; }
 .dp-weekday { text-align: center; font-size: 12px; color: #666; padding: 4px 0; }
 .dp-cell { border: 0; background: transparent; border-radius: 6px; padding: 6px 0; cursor: pointer; align-items:center; text-align: center; justify-content: center;}
-.dp-cell:hover { background: #f0f0f0; }
+.dp-cell:hover   { background: #f0f0f0; }
 .dp-cell.is-muted { color: #aaa; cursor: default; }
 .dp-cell.is-selected { background: #689d8c; color: #fff; }
-.dp-cell.is-today { outline: 1px dashed #689d8c; }
+.dp-cell.is-today    { outline: 1px dashed #689d8c; }
 .dp-actions { display: flex; justify-content: space-between; margin-top: 6px; }
-.dp-action { border: 1px solid #ccc; background: #f7f7f7; border-radius: 6px; padding: 4px 8px; cursor: pointer; }
+.dp-action  { border: 1px solid #ccc; background: #f7f7f7; border-radius: 6px; padding: 4px 8px; cursor: pointer; }
 </style>
