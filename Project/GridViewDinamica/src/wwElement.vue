@@ -285,6 +285,7 @@
   const getRowId = (params) =>
     resolveMappingFormula(props.content.idFormula, params.data);
 
+
   // Utility to verify that the underlying grid instance is still alive. After
   // publishing the project some callbacks could be triggered while the grid is
   // already destroyed which leads AG Grid to throw errors such as
