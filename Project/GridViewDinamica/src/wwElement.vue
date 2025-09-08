@@ -38,7 +38,7 @@
   import UserCellRenderer from "./components/UserCellRenderer.vue";
   import ListFilterRenderer from "./components/ListFilterRenderer.js";
   import ResponsibleUserFilterRenderer from "./components/ResponsibleUserFilterRenderer.js";
-  import DateTimeFilter from "./components/DateTimeFilter.js";
+  import DateFilterInput from "./components/DateTimeFilter.js";
   import DateTimeCellEditor from "./components/DateTimeCellEditor.js";
   import FixedListCellEditor from "./components/FixedListCellEditor.js";
   import ResponsibleUserCellEditor from "./components/ResponsibleUserCellEditor.js";
@@ -1271,7 +1271,20 @@
               });
             }
             if (tagControl === 'DATE' || colCopy.cellDataType === 'date' || colCopy.cellDataType === 'dateString') {
-              result.filter = DateTimeFilter;
+              const comparator = (filterDate, cellValue) => {
+                if (!cellValue) return -1;
+                const cellDate = new Date(cellValue);
+                if (isNaN(cellDate.getTime())) return -1;
+                const cellOnlyDate = new Date(cellDate.getFullYear(), cellDate.getMonth(), cellDate.getDate());
+                return cellOnlyDate.getTime() - filterDate.getTime();
+              };
+              result.filter = 'agDateColumnFilter';
+              result.filterParams = {
+                dateComponent: DateFilterInput,
+                comparator,
+                filterOptions: ['equals', 'greaterThan', 'lessThan', 'inRange'],
+                suppressAndOrCondition: true,
+              };
               if (colCopy.editable) {
                 result.cellEditor = DateTimeCellEditor;
               }
@@ -1291,7 +1304,20 @@
               delete result.valueParser;
             }
             if (tagControl === 'DEADLINE') {
-              result.filter = DateTimeFilter;
+              const comparator = (filterDate, cellValue) => {
+                if (!cellValue) return -1;
+                const cellDate = new Date(cellValue);
+                if (isNaN(cellDate.getTime())) return -1;
+                return cellDate.getTime() - filterDate.getTime();
+              };
+              result.filter = 'agDateColumnFilter';
+              result.filterParams = {
+                dateComponent: DateFilterInput,
+                comparator,
+                filterOptions: ['equals', 'greaterThan', 'lessThan', 'inRange'],
+                suppressAndOrCondition: true,
+                showTime: true,
+              };
               // Remove default date configuration applied above
               delete result.cellDataType;
               if (colCopy.editable) {
