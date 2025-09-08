@@ -765,6 +765,7 @@
     DateTimeCellEditor,
     ResponsibleUserCellEditor,
     ResponsibleUserCellRenderer,
+    agDateInput: DateFilterInput,
   };
   /* wwEditor:end */
   
@@ -1297,7 +1298,7 @@
               };
               result.filter = 'agDateColumnFilter';
               result.filterParams = {
-                dateComponent: DateFilterInput,
+
                 comparator,
                 filterOptions: ['equals', 'greaterThan', 'lessThan', 'inRange'],
                 suppressAndOrCondition: true,
@@ -1329,7 +1330,7 @@
               };
               result.filter = 'agDateColumnFilter';
               result.filterParams = {
-                dateComponent: DateFilterInput,
+
                 comparator,
                 filterOptions: ['equals', 'greaterThan', 'lessThan', 'inRange'],
                 suppressAndOrCondition: true,
