@@ -38,7 +38,7 @@
   import UserCellRenderer from "./components/UserCellRenderer.vue";
   import ListFilterRenderer from "./components/ListFilterRenderer.js";
   import ResponsibleUserFilterRenderer from "./components/ResponsibleUserFilterRenderer.js";
-  import DateTimeFilter from "./components/DateTimeFilter.js";
+  import DateFilterInput from "./components/DateTimeFilter.js";
   import DateTimeCellEditor from "./components/DateTimeCellEditor.js";
   import FixedListCellEditor from "./components/FixedListCellEditor.js";
   import ResponsibleUserCellEditor from "./components/ResponsibleUserCellEditor.js";
@@ -765,6 +765,7 @@
     DateTimeCellEditor,
     ResponsibleUserCellEditor,
     ResponsibleUserCellRenderer,
+    agDateInput: DateFilterInput,
   };
   /* wwEditor:end */
   
@@ -838,23 +839,40 @@
             if (typeof v === 'string' && v.length > 0) lang = v;
           }
         } catch (e) {}
+        let base;
         switch (lang) {
           case 'pt-BR':
           case 'pt':
-            return AG_GRID_LOCALE_PT;
+            base = AG_GRID_LOCALE_PT;
+            break;
           case 'fr':
           case 'fr-FR':
-            return AG_GRID_LOCALE_FR;
+            base = AG_GRID_LOCALE_FR;
+            break;
           case 'de':
           case 'de-DE':
-            return AG_GRID_LOCALE_DE;
+            base = AG_GRID_LOCALE_DE;
+            break;
           case 'es':
           case 'es-ES':
-            return AG_GRID_LOCALE_ES;
+            base = AG_GRID_LOCALE_ES;
+            break;
           case 'en-US':
           default:
-            return AG_GRID_LOCALE_EN;
+            base = AG_GRID_LOCALE_EN;
         }
+        const overrides = {
+          'pt-BR': { equals: 'Igual', greaterThan: 'Depois', lessThan: 'Antes', inRange: 'Entre' },
+          'pt': { equals: 'Igual', greaterThan: 'Depois', lessThan: 'Antes', inRange: 'Entre' },
+          'fr': { equals: 'Égal', greaterThan: 'Après', lessThan: 'Avant', inRange: 'Entre' },
+          'fr-FR': { equals: 'Égal', greaterThan: 'Après', lessThan: 'Avant', inRange: 'Entre' },
+          'de': { equals: 'Gleich', greaterThan: 'Nach', lessThan: 'Vor', inRange: 'Zwischen' },
+          'de-DE': { equals: 'Gleich', greaterThan: 'Nach', lessThan: 'Vor', inRange: 'Zwischen' },
+          'es': { equals: 'Igual', greaterThan: 'Después', lessThan: 'Antes', inRange: 'Entre' },
+          'es-ES': { equals: 'Igual', greaterThan: 'Después', lessThan: 'Antes', inRange: 'Entre' },
+          default: { equals: 'Equals', greaterThan: 'After', lessThan: 'Before', inRange: 'Between' },
+        };
+        return { ...base, ...(overrides[lang] || overrides.default) };
       }),
       /* wwEditor:start */
       createElement,
@@ -1271,7 +1289,33 @@
               });
             }
             if (tagControl === 'DATE' || colCopy.cellDataType === 'date' || colCopy.cellDataType === 'dateString') {
-              result.filter = DateTimeFilter;
+              const comparator = (filterDate, cellValue) => {
+                if (!cellValue) return -1;
+                let cellDate;
+                if (cellValue instanceof Date) {
+                  cellDate = cellValue;
+                } else if (typeof cellValue === 'string') {
+                  const match = cellValue.match(/^(\d{4})-(\d{2})-(\d{2})/);
+                  if (match) {
+                    cellDate = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+                  } else {
+                    const parsed = new Date(cellValue);
+                    if (isNaN(parsed.getTime())) return -1;
+                    cellDate = parsed;
+                  }
+                } else {
+                  cellDate = new Date(cellValue);
+                }
+                if (isNaN(cellDate.getTime())) return -1;
+                const cellOnlyDate = new Date(cellDate.getFullYear(), cellDate.getMonth(), cellDate.getDate());
+                return cellOnlyDate.getTime() - filterDate.getTime();
+              };
+              result.filter = 'agDateColumnFilter';
+              result.filterParams = {
+                comparator,
+                filterOptions: ['equals', 'greaterThan', 'lessThan', 'inRange'],
+                suppressAndOrCondition: true,
+              };
               if (colCopy.editable) {
                 result.cellEditor = DateTimeCellEditor;
               }
@@ -1291,7 +1335,19 @@
               delete result.valueParser;
             }
             if (tagControl === 'DEADLINE') {
-              result.filter = DateTimeFilter;
+              const comparator = (filterDate, cellValue) => {
+                if (!cellValue) return -1;
+                const cellDate = new Date(cellValue);
+                if (isNaN(cellDate.getTime())) return -1;
+                return cellDate.getTime() - filterDate.getTime();
+              };
+              result.filter = 'agDateColumnFilter';
+              result.filterParams = {
+                comparator,
+                filterOptions: ['equals', 'greaterThan', 'lessThan', 'inRange'],
+                suppressAndOrCondition: true,
+                showTime: true,
+              };
               // Remove default date configuration applied above
               delete result.cellDataType;
               if (colCopy.editable) {
@@ -2228,6 +2284,16 @@ forceClearSelection() {
   :deep(.ag-header-cell.ag-header-cell-filtered .ag-header-icon) {
     color: rgb(105, 157, 140) !important;
     filter: drop-shadow(0 0 2px rgb(105, 157, 140));
+  }
+
+  // Ensure the date filter's option dropdown has enough space
+  :deep(.ag-filter-select) {
+    min-width: 120px;
+  }
+
+  // Prevent the option popup from collapsing to a thin line
+  :deep(.ag-picker-options) {
+    min-width: 120px;
   }
 
   // Fonte da paginação igual à das linhas da grid

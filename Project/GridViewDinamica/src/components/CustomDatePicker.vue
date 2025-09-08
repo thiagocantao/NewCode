@@ -10,7 +10,7 @@
       @pointerdown.stop.prevent="!disabled && openDp($event)"
       @mousedown.stop.prevent="!disabled && openDp($event)"
       @click.stop.prevent="!disabled && openDp($event)"
-      @focus="!disabled && openDp($event)"   
+      @focus="!disabled && autoOpen && openDp($event)"
       aria-haspopup="dialog"
       :aria-expanded="dpOpen ? 'true' : 'false'"
     />
