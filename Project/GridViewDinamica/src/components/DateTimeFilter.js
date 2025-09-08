@@ -35,7 +35,9 @@ export default class DateFilterInput {
 
   toValue(date) {
     if (!date) return '';
-    const d = date instanceof Date ? date : new Date(date);
+    const d = date instanceof Date
+      ? date
+      : new Date(String(date).includes('T') ? date : `${date}T00:00`);
     if (isNaN(d.getTime())) return '';
     const pad = n => n.toString().padStart(2, '0');
     if (this.showTime) {
@@ -57,8 +59,8 @@ export default class DateFilterInput {
   getDate() {
     const v = this.vm?.value;
     if (!v) return null;
-    const d = new Date(v);
-    return isNaN(d.getTime()) ? null : d;
+    const parsed = v.includes('T') ? new Date(v) : new Date(`${v}T00:00`);
+    return isNaN(parsed.getTime()) ? null : parsed;
   }
 
   setDate(date) {
