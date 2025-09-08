@@ -1,6 +1,6 @@
 <template>
   <CustomAlert v-if="autoSaveEnabled" :message="error" :visible="!!error && showAlert" @close="showAlert = false" />
-  <div class="field-component"
+  <div class="field-component" 
     :class="[`field-type-${field.fieldType.toLowerCase()}`, { 'is-mandatory': field.is_mandatory }]">
     <!-- Label do campo -->
     <label v-if="!field.is_hide_legend" class="field-label">
@@ -445,25 +445,6 @@ export default {
     onDateChange(value) {
       this.updateValue({ target: { value } });
     },
-    async formatWithFormula(value) {
-      try {
-        const lang =
-          window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342') ||
-          navigator.language;
-        const formulaApi = window.wwLib?.wwFormula;
-        const use = formulaApi?.useFormula?.();
-        const resolveMappingFormula = use?.resolveMappingFormula;
-        const mapping = resolveMappingFormula
-          ? resolveMappingFormula('95a5a105-48b6-48d4-95c5-7179a664451d')
-          : null;
-        if (mapping && typeof formulaApi?.getValue === 'function') {
-          const res = formulaApi.getValue(mapping, {}, { args: [value, lang] });
-          return res instanceof Promise ? await res : res;
-        }
-      } catch (e) {
-      }
-      return value;
-    },
     async updateValue(event) {
       let value;
       if (this.field.fieldType === 'FORMATED_TEXT') {
@@ -477,15 +458,16 @@ export default {
         case 'DATE':
           this.validateDate(value);
           if (!this.error && value) {
-            value = await this.formatWithFormula(value);
-            apiValue = value;
+           const dt = new Date(value + 'T00:00:00');
+            apiValue = dt.toISOString();
           }
           break;
         case 'DEADLINE':
           this.validateDeadline(value);
           // Converter para formato backend ao salvar
           if (!this.error && value) {
-            value = await this.formatWithFormula(value);
+            // value: '2025-06-30T00:00'
+            // backend: '2025-06-30 00:00:00+00'
             apiValue = value;
           }
           break;
