@@ -1,6 +1,7 @@
 <template>
   <div class="dp-wrapper" ref="dpWrapper">
     <input
+      ref="dpInput"
       class="dp-input"
       type="text"
       :value="displayDate"
@@ -63,10 +64,11 @@ export default {
   props: {
     modelValue: { type: String, default: '' },
     disabled: { type: Boolean, default: false },
-    showTime: { type: Boolean, default: false }
+    showTime: { type: Boolean, default: false },
+    autoOpen: { type: Boolean, default: false }
   },
   emits: ['update:modelValue'],
-  setup(props, { emit }) {
+  setup(props, { emit, expose }) {
     const translateText = (t) => t;
     const ww = window.wwLib?.wwVariable;
     const lang = ww?.getValue('aa44dc4c-476b-45e9-a094-16687e063342') || navigator.language;
@@ -279,6 +281,14 @@ export default {
       window.removeEventListener('scroll', updatePopoverPosition, true);
       window.removeEventListener('resize', updatePopoverPosition, true);
     });
+
+    onMounted(() => {
+      if (props.autoOpen) {
+        nextTick(() => openDp());
+      }
+    });
+
+    expose({ openDp });
 
     const displayDate = computed(() => {
       if (!selectedDate.value) return '';

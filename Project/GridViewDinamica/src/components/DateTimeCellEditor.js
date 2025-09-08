@@ -25,6 +25,7 @@ export default class DateTimeCellEditor {
           modelValue: this.value,
           'onUpdate:modelValue': v => (this.value = v),
           showTime: self.showTime,
+          autoOpen: true,
         });
       },
     });
@@ -69,13 +70,6 @@ export default class DateTimeCellEditor {
     return this.eGui;
   }
 
-  afterGuiAttached() {
-    const picker = this.vm?.$refs?.picker;
-    if (picker && typeof picker.openDp === 'function') {
-      picker.openDp();
-    }
-  }
-
   getValue() {
     return this.vm?.value || '';
   }
@@ -95,7 +89,7 @@ export default class DateTimeCellEditor {
   }
 
   isPopup() {
-    return false;
+    return true;
   }
 }
 
