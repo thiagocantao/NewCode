@@ -1514,7 +1514,7 @@
   },
   theme() {
   return themeQuartz.withParams({
-  headerBackgroundColor: this.content.headerBackgroundColor,
+  headerBackgroundColor: "#F5F6FA",
   headerTextColor: this.content.headerTextColor,
   headerFontSize: this.content.headerFontSize,
   headerFontFamily: this.content.headerFontFamily,
