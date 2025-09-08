@@ -5,6 +5,12 @@
     v-html="formattedValue"
     :style="[cellStyle, pointerStyle]"
   ></div>
+  <div
+    class="formatter-cell"
+    v-else-if="isCategoryField"
+    v-html="formattedValue"
+    :style="[cellStyle, pointerStyle]"
+  ></div>
   <div class="formatter-cell" v-else :style="[cellStyle, pointerStyle]">
     {{ formattedValue }}
   </div>
@@ -77,6 +83,18 @@ export default {
     return { now };
   },
   computed: {
+    isCategoryField() {
+      const tag = (this.params.colDef?.TagControl || this.params.colDef?.tagControl || this.params.colDef?.tagcontrol || '')
+        .toString()
+        .trim()
+        .toUpperCase();
+      const identifier = (this.params.colDef?.FieldDB || '')
+        .toString()
+        .trim()
+        .toUpperCase();
+      const categoryTags = ['CATEGORYID', 'SUBCATEGORYID', 'CATEGORYLEVEL3ID'];
+      return categoryTags.includes(tag) || categoryTags.includes(identifier);
+    },
     formattedValue() {
       try {
         const rawValue = this.params.value;
@@ -86,6 +104,10 @@ export default {
             opt => String(opt.value) === String(rawValue)
           );
           if (match) displayValue = match.label;
+        }
+
+        if (this.isCategoryField) {
+          return `<span style="height:25px; color: #303030; background:#c9edf9; border: 1px solid #c9edf9; border-radius: 12px; display: inline-flex; align-items: center; padding: 0 12px; font-weight:400;">${displayValue}</span>`;
         }
         // DEADLINE: barra proporcional
         if (
