@@ -274,10 +274,21 @@
   emits: ["trigger-event", "update:content:effect"],
   setup(props, ctx) {
   const { resolveMappingFormula } = wwLib.wwFormula.useFormula();
-  
+
   const gridApi = shallowRef(null);
   const columnApi = shallowRef(null);
   const agGridRef = ref(null);
+
+  // Ensure row ID generation does not rely on component instance context
+  const getRowId = (params) =>
+    resolveMappingFormula(props.content.idFormula, params.data);
+
+  // Utility to verify that the underlying grid instance is still alive. After
+  // publishing the project some callbacks could be triggered while the grid is
+  // already destroyed which leads AG Grid to throw errors such as
+  // `forEachNode() cannot be called as the grid has been destroyed`.
+  const isGridAlive = () =>
+    gridApi.value && !(gridApi.value.isDestroyed && gridApi.value.isDestroyed());
   const { value: selectedRows, setValue: setSelectedRows } =
   wwLib.wwVariable.useComponentVariable({
   uid: props.uid,
@@ -457,13 +468,25 @@
   };
 
   const loadAllColumnOptions = async () => {
-    if (!props.content || !Array.isArray(props.content.columns)) return;
+    if (!props.content) return;
+
+    // ``columns`` might be provided as an object when the project is
+    // published. Convert to an array to safely iterate over it.
+    const colsSrc = props.content.columns;
+    const columnsArr = Array.isArray(colsSrc) ? colsSrc : Object.values(colsSrc || {});
+    if (!columnsArr.length) return;
+
     // Ensure rows is an array before iterating to avoid runtime errors
     const rawRows = wwLib.wwUtils.getDataFromCollection(props.content.rowData);
-    const rows = Array.isArray(rawRows) ? rawRows : [];
+    const rows = Array.isArray(rawRows)
+      ? rawRows
+      : rawRows && typeof rawRows === 'object'
+        ? Object.values(rawRows)
+        : [];
+
     const result = {};
     await Promise.all(
-      (props.content.columns || []).map(async (col) => {
+      columnsArr.map(async (col) => {
         const colId = col.id || col.field;
         result[colId] = {};
         await Promise.all(
@@ -652,8 +675,8 @@
   
   // Função para forçar a coluna de seleção a ser a primeira
   const forceSelectionColumnFirst = () => {
-    if (!gridApi.value) return;
-    
+    if (!isGridAlive()) return;
+
     try {
       // Tentar reposicionar usando API do AG-Grid
       const columnState = gridApi.value.getColumnState();
@@ -687,19 +710,19 @@
         });
       }
     } catch (error) {
-      
+
     }
-    
+
     // Fallback: reposicionamento direto no DOM
     setTimeout(() => {
-      forceSelectionColumnFirstDOM();
+      if (isGridAlive()) forceSelectionColumnFirstDOM();
     }, 100);
   };
-  
+
   // Função para reposicionar a coluna de seleção diretamente no DOM
   const forceSelectionColumnFirstDOM = () => {
-    if (!gridApi.value) return;
-    
+    if (!isGridAlive()) return;
+
     try {
       const gridElement = agGridRef.value?.$el;
       if (!gridElement) return;
@@ -724,7 +747,7 @@
         }
       });
     } catch (error) {
-      
+
     }
   };
   
@@ -866,6 +889,7 @@
       forceSelectionColumnFirst,
       forceSelectionColumnFirstDOM,
       columnOptions,
+      getRowId,
       localeText: computed(() => {
         let lang = 'en-US';
         try {
@@ -920,7 +944,11 @@
     computed: {
     rowData() {
       const data = wwLib.wwUtils.getDataFromCollection(this.content.rowData);
-      return Array.isArray(data) ? data ?? [] : [];
+      // Some collections might come as objects after publish. Ensure we always
+      // work with an array to avoid ``.map`` runtime errors in production.
+      if (Array.isArray(data)) return data ?? [];
+      if (data && typeof data === 'object') return Object.values(data);
+      return [];
     },
     defaultColDef() {
       return {
@@ -1649,22 +1677,19 @@
   },
   methods: {
   deselectAllRows() {
-    if (this.gridApi) {
+    if (this.gridApi && !(this.gridApi.isDestroyed && this.gridApi.isDestroyed())) {
       this.gridApi.deselectAll();
     }
   },
   resetFilters() {
-    if (this.gridApi) {
+    if (this.gridApi && !(this.gridApi.isDestroyed && this.gridApi.isDestroyed())) {
       this.gridApi.setFilterModel(null);
     }
   },
   setFilters(filters) {
-    if (this.gridApi) {
+    if (this.gridApi && !(this.gridApi.isDestroyed && this.gridApi.isDestroyed())) {
       this.gridApi.setFilterModel(filters || null);
     }
-  },
-  getRowId(params) {
-  return this.resolveMappingFormula(this.content.idFormula, params.data);
   },
   onActionTrigger(event) {
   if (!event) return;
@@ -1701,7 +1726,7 @@
           event.data.PhotoUrl = '';
         }
       }
-      if (this.gridApi && event.node) {
+      if (this.gridApi && !(this.gridApi.isDestroyed && this.gridApi.isDestroyed()) && event.node) {
         this.gridApi.refreshCells({
           rowNodes: [event.node],
           columns: [fieldKey],
@@ -1716,7 +1741,7 @@
       const v = event.newValue;
       event.node.setDataValue(fieldKey, v);
 
-      if (this.gridApi) {
+      if (this.gridApi && !(this.gridApi.isDestroyed && this.gridApi.isDestroyed())) {
         this.gridApi.refreshCells({
           rowNodes: [event.node],
           columns: [fieldKey],
@@ -1855,14 +1880,14 @@
 },
 clearSelection() {
   // Limpar seleção usando a API do AG-Grid
-  if (this.gridApi) {
+  if (this.gridApi && !(this.gridApi.isDestroyed && this.gridApi.isDestroyed())) {
     this.gridApi.deselectAll();
   }
   // Limpar a variável selectedRows
   this.setSelectedRows([]);
   // Forçar atualização visual
   this.$nextTick(() => {
-    if (this.gridApi) {
+    if (this.gridApi && !(this.gridApi.isDestroyed && this.gridApi.isDestroyed())) {
       this.gridApi.deselectAll();
     }
   });
@@ -1882,7 +1907,7 @@ forceClearSelection() {
     this.setSelectedRows([]);
     
     // Forçar AG-Grid a desmarcar
-    if (this.gridApi) {
+    if (this.gridApi && !(this.gridApi.isDestroyed && this.gridApi.isDestroyed())) {
       this.gridApi.deselectAll();
     }
   }
@@ -1904,7 +1929,10 @@ forceClearSelection() {
       }
       // Checar configuração de draggable
       const field = colDef.field;
-      const columnConfig = this.content.columns.find(col => col.field === field);
+      const colsArr = Array.isArray(this.content.columns)
+        ? this.content.columns
+        : Object.values(this.content.columns || {});
+      const columnConfig = colsArr.find(col => col.field === field);
       if (columnConfig && columnConfig.draggable === false) {
         return false;
       }
@@ -1922,7 +1950,9 @@ forceClearSelection() {
     columnDefs: {
       async handler() {
         if (this.wwEditorState?.boundProps?.columns) return;
-        this.gridApi.resetColumnState();
+        if (this.gridApi && !(this.gridApi.isDestroyed && this.gridApi.isDestroyed())) {
+          this.gridApi.resetColumnState();
+        }
 
         if (this.wwEditorState.isACopy) return;
 
@@ -1944,7 +1974,7 @@ forceClearSelection() {
     // Watch for changes in rowSelection to reconfigure selection column
     'content.rowSelection': {
       handler(newValue, oldValue) {
-        if (newValue !== oldValue && this.gridApi) {
+        if (newValue !== oldValue && this.gridApi && !(this.gridApi.isDestroyed && this.gridApi.isDestroyed())) {
           this.$nextTick(() => {
             if (newValue === 'multiple' && !this.content.disableCheckboxes) {
               setTimeout(() => {
@@ -1962,10 +1992,10 @@ forceClearSelection() {
     // Watch selectedRows to sync visual state when cleared
     selectedRows: {
       handler(newValue) {
-        if (this.gridApi && Array.isArray(newValue) && newValue.length === 0) {
+        if (this.gridApi && !(this.gridApi.isDestroyed && this.gridApi.isDestroyed()) && Array.isArray(newValue) && newValue.length === 0) {
           // Clear via AG-Grid API
           setTimeout(() => {
-            if (this.gridApi) {
+            if (this.gridApi && !(this.gridApi.isDestroyed && this.gridApi.isDestroyed())) {
               this.gridApi.deselectAll();
             }
           }, 100);
@@ -1995,7 +2025,7 @@ forceClearSelection() {
     // Reaplica a ordenação atual quando o datasource muda
     'content.rowData': {
       handler() {
-        if (this.gridApi) {
+        if (this.gridApi && !(this.gridApi.isDestroyed && this.gridApi.isDestroyed())) {
           // Reaplica o sortModel atual se existir
           try {
             const currentSort = this.gridApi.getSortModel?.() || [];
@@ -2017,7 +2047,7 @@ forceClearSelection() {
     },
     'content.selectAllRows'(newValue) {
       if (newValue === null) return;
-      if (this.gridApi) {
+      if (this.gridApi && !(this.gridApi.isDestroyed && this.gridApi.isDestroyed())) {
         if (newValue === 'S') {
           this.gridApi.selectAll();
         } else if (newValue === 'N') {
