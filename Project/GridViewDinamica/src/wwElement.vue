@@ -838,23 +838,40 @@
             if (typeof v === 'string' && v.length > 0) lang = v;
           }
         } catch (e) {}
+        let base;
         switch (lang) {
           case 'pt-BR':
           case 'pt':
-            return AG_GRID_LOCALE_PT;
+            base = AG_GRID_LOCALE_PT;
+            break;
           case 'fr':
           case 'fr-FR':
-            return AG_GRID_LOCALE_FR;
+            base = AG_GRID_LOCALE_FR;
+            break;
           case 'de':
           case 'de-DE':
-            return AG_GRID_LOCALE_DE;
+            base = AG_GRID_LOCALE_DE;
+            break;
           case 'es':
           case 'es-ES':
-            return AG_GRID_LOCALE_ES;
+            base = AG_GRID_LOCALE_ES;
+            break;
           case 'en-US':
           default:
-            return AG_GRID_LOCALE_EN;
+            base = AG_GRID_LOCALE_EN;
         }
+        const overrides = {
+          'pt-BR': { equals: 'Igual', greaterThan: 'Depois', lessThan: 'Antes', inRange: 'Entre' },
+          'pt': { equals: 'Igual', greaterThan: 'Depois', lessThan: 'Antes', inRange: 'Entre' },
+          'fr': { equals: 'Égal', greaterThan: 'Après', lessThan: 'Avant', inRange: 'Entre' },
+          'fr-FR': { equals: 'Égal', greaterThan: 'Après', lessThan: 'Avant', inRange: 'Entre' },
+          'de': { equals: 'Gleich', greaterThan: 'Nach', lessThan: 'Vor', inRange: 'Zwischen' },
+          'de-DE': { equals: 'Gleich', greaterThan: 'Nach', lessThan: 'Vor', inRange: 'Zwischen' },
+          'es': { equals: 'Igual', greaterThan: 'Después', lessThan: 'Antes', inRange: 'Entre' },
+          'es-ES': { equals: 'Igual', greaterThan: 'Después', lessThan: 'Antes', inRange: 'Entre' },
+          default: { equals: 'Equals', greaterThan: 'After', lessThan: 'Before', inRange: 'Between' },
+        };
+        return { ...base, ...(overrides[lang] || overrides.default) };
       }),
       /* wwEditor:start */
       createElement,
