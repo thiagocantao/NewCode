@@ -209,11 +209,11 @@ export default {
       if (!wrap) return;
       const rect = wrap.getBoundingClientRect();
       const left = Math.round(rect.left);
-      const bottom = Math.round(window.innerHeight - rect.top + 4);
+      const top = Math.round(rect.bottom + 4);
       dpPopStyle.value = {
         position: 'fixed',
         left: `${left}px`,
-        bottom: `${bottom}px`,
+        top: `${top}px`,
         minWidth: `${Math.max(rect.width, 230)}px`,
         zIndex: 2147483647
       };
