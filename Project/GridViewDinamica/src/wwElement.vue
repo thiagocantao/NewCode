@@ -274,10 +274,15 @@
   emits: ["trigger-event", "update:content:effect"],
   setup(props, ctx) {
   const { resolveMappingFormula } = wwLib.wwFormula.useFormula();
-  
+
   const gridApi = shallowRef(null);
   const columnApi = shallowRef(null);
   const agGridRef = ref(null);
+
+  // Ensure row ID generation does not rely on component instance context
+  const getRowId = (params) =>
+    resolveMappingFormula(props.content.idFormula, params.data);
+
 
   // Utility to verify that the underlying grid instance is still alive. After
   // publishing the project some callbacks could be triggered while the grid is
@@ -885,6 +890,7 @@
       forceSelectionColumnFirst,
       forceSelectionColumnFirstDOM,
       columnOptions,
+      getRowId,
       localeText: computed(() => {
         let lang = 'en-US';
         try {
@@ -1685,9 +1691,6 @@
     if (this.gridApi && !(this.gridApi.isDestroyed && this.gridApi.isDestroyed())) {
       this.gridApi.setFilterModel(filters || null);
     }
-  },
-  getRowId(params) {
-  return this.resolveMappingFormula(this.content.idFormula, params.data);
   },
   onActionTrigger(event) {
   if (!event) return;
