@@ -1306,12 +1306,14 @@
                 } else {
                   cellDate = new Date(cellValue);
                 }
+
                 if (isNaN(cellDate.getTime())) return -1;
                 const cellOnlyDate = new Date(cellDate.getFullYear(), cellDate.getMonth(), cellDate.getDate());
                 return cellOnlyDate.getTime() - filterDate.getTime();
               };
               result.filter = 'agDateColumnFilter';
               result.filterParams = {
+
                 comparator,
                 filterOptions: ['equals', 'greaterThan', 'lessThan', 'inRange'],
                 suppressAndOrCondition: true,
@@ -1351,6 +1353,7 @@
                 comparator,
                 filterOptions: ['equals', 'greaterThan', 'lessThan', 'inRange'],
                 suppressAndOrCondition: true,
+
               };
               // Remove default date configuration applied above
               delete result.cellDataType;
