@@ -62,6 +62,7 @@ export default class FixedListCellEditor {
       else if (arr && typeof arr === 'object') list = Object.values(arr);
       else list = [];
       this.options = list.map(normalize);
+
       this.filteredOptions = [...this.options];
       this.renderOptions();
     };
@@ -96,6 +97,7 @@ export default class FixedListCellEditor {
     }
 
     optionsPromise.then(resolveOptions).catch(() => resolveOptions([]));
+
 
     this.value = params.value;
 
