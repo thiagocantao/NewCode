@@ -44,7 +44,11 @@ export default class ResponsibleUserCellEditor {
       return { value: opt, label: String(opt) };
     };
     const resolveOptions = (opts) => {
-      const arr = (opts || []).map(normalize);
+      let list;
+      if (Array.isArray(opts)) list = opts;
+      else if (opts && typeof opts === 'object') list = Object.values(opts);
+      else list = [];
+      const arr = list.map(normalize);
       this.options = arr;
       this.filteredRoot = [...arr];
       this.applyRootFilter();
@@ -52,7 +56,12 @@ export default class ResponsibleUserCellEditor {
     };
 
     let optionsPromise;
-    if (params.options && typeof params.options.then === 'function') {
+    const rendererOpts = this.rendererParams && this.rendererParams.options;
+    if (rendererOpts && typeof rendererOpts.then === 'function') {
+      optionsPromise = rendererOpts;
+    } else if (Array.isArray(rendererOpts)) {
+      optionsPromise = Promise.resolve(rendererOpts);
+    } else if (params.options && typeof params.options.then === 'function') {
       optionsPromise = params.options;
     } else if (Array.isArray(params.options)) {
       optionsPromise = Promise.resolve(params.options);
@@ -68,7 +77,7 @@ export default class ResponsibleUserCellEditor {
 
     this.options = [];
     this.filteredRoot = [];
-    optionsPromise.then(resolveOptions);
+    optionsPromise.then(resolveOptions).catch(() => resolveOptions([]));
 
     // DOM
     this.eGui = document.createElement('div');
