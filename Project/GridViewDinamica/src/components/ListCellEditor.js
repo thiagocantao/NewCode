@@ -55,7 +55,11 @@ export default class ListCellEditor {
     };
 
     const resolveOptions = (arr) => {
-      this.options = (arr || []).map(normalize);
+      let list;
+      if (Array.isArray(arr)) list = arr;
+      else if (arr && typeof arr === 'object') list = Object.values(arr);
+      else list = [];
+      this.options = list.map(normalize);
       this.filteredOptions = [...this.options];
       this.renderOptions();
     };
@@ -93,7 +97,7 @@ export default class ListCellEditor {
       optionsPromise = Promise.resolve([]);
     }
 
-    optionsPromise.then(resolveOptions);
+    optionsPromise.then(resolveOptions).catch(() => resolveOptions([]));
 
     this.value = params.value;
 
