@@ -597,6 +597,10 @@
       const onGridReady = (params) => {
         gridApi.value = params.api;
         columnApi.value = params.columnApi;
+        console.log('[GridViewDinamica] onGridReady', {
+          rows: params.api?.getDisplayedRowCount?.(),
+          cols: params.api?.getColumnDefs?.()?.length,
+        });
 
         // Limpeza antecipada quando a grid está prestes a ser destruída
         addGridListener(params.api, 'gridPreDestroyed', () => {
@@ -611,10 +615,13 @@
             headerName: col.getColDef().headerName,
             cellRenderer: col.getColDef().cellRenderer
           }));
+          console.log('[GridViewDinamica] columns', allCols);
         } else if (typeof params.api.getColumnDefs === 'function') {
           const colDefs = params.api.getColumnDefs();
+          console.log('[GridViewDinamica] columnDefs', colDefs);
         } else if (typeof params.api.getColumnState === 'function') {
           const colState = params.api.getColumnState();
+          console.log('[GridViewDinamica] columnState', colState);
         }
 
         updateColumnsPosition();
@@ -886,6 +893,9 @@
       }
 
       const onFirstDataRendered = () => {
+        console.log('[GridViewDinamica] firstDataRendered', {
+          rows: gridApi.value?.getDisplayedRowCount?.(),
+        });
         updateColumnsPosition();
         updateColumnsSort();
 

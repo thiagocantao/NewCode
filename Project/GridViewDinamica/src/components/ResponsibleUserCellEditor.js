@@ -51,6 +51,11 @@ export default class ResponsibleUserCellEditor {
       const arr = list.map(normalize);
       this.options = arr;
       this.filteredRoot = [...arr];
+      if (arr.length === 0) {
+        console.warn('[ResponsibleUserCellEditor] resolved zero options from', opts);
+      } else {
+        console.log('[ResponsibleUserCellEditor] resolved options', this.options);
+      }
       this.applyRootFilter();
       this.render();
     };
@@ -77,7 +82,12 @@ export default class ResponsibleUserCellEditor {
 
     this.options = [];
     this.filteredRoot = [];
-    optionsPromise.then(resolveOptions).catch(() => resolveOptions([]));
+    optionsPromise
+      .then(resolveOptions)
+      .catch((err) => {
+        console.error('[ResponsibleUserCellEditor] failed to load options', err);
+        resolveOptions([]);
+      });
 
     // DOM
     this.eGui = document.createElement('div');
