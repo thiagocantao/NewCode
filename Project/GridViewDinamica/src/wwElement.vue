@@ -1,43 +1,28 @@
 <template>
   <div class="ww-datagrid" :class="{ editing: isEditing }" :style="cssVars">
-    <ag-grid-vue
-      ref="agGridRef"
-      :rowData="rowData"
-      :columnDefs="finalColumnDefs"
-      :defaultColDef="defaultColDef"
-      :domLayout="content.layout === 'auto' ? 'autoHeight' : 'normal'"
-      :style="style"
-      :rowSelection="rowSelection"
-      :suppressMovableColumns="!content.movableColumns"
-      :alwaysShowHorizontalScroll="false"
-      :suppressColumnMoveAnimation="true"
-      :suppressDragLeaveHidesColumns="true"
-      :maintainColumnOrder="true"
-      :isColumnMovable="isColumnMovable"
-      :theme="theme"
-      :getRowId="getRowId"
-      :pagination="content.pagination"
-      :paginationPageSize="content.paginationPageSize || 10"
-      :paginationPageSizeSelector="false"
-      :columnHoverHighlight="content.columnHoverHighlight"
-      :locale-text="localeText"
-      :components="gridComponents"
-      :singleClickEdit="true"
-      @grid-ready="onGridReady"
-      @row-selected="onRowSelected"
-      @selection-changed="onSelectionChanged"
-      @cell-value-changed="onCellValueChanged"
-      @filter-changed="onFilterChanged"
-      @sort-changed="onSortChanged"
-      @row-clicked="onRowClicked"
-      @first-data-rendered="onFirstDataRendered"
-      @cell-clicked="onCellClicked"
-    >
+    <ag-grid-vue ref="agGridRef" :rowData="rowData" :columnDefs="finalColumnDefs" :defaultColDef="defaultColDef"
+      :domLayout="content.layout === 'auto' ? 'autoHeight' : 'normal'" :style="style" :rowSelection="rowSelection"
+      :suppressMovableColumns="!content.movableColumns" :alwaysShowHorizontalScroll="false"
+      :suppressColumnMoveAnimation="true" :suppressDragLeaveHidesColumns="true" :maintainColumnOrder="true"
+      :isColumnMovable="isColumnMovable" :theme="theme" :getRowId="getRowId" :pagination="content.pagination"
+      :paginationPageSize="content.paginationPageSize || 10" :paginationPageSizeSelector="false"
+      :columnHoverHighlight="content.columnHoverHighlight" :locale-text="localeText" :components="gridComponents"
+      :singleClickEdit="true" :popupParent="popupParent" @grid-ready="onGridReady" @row-selected="onRowSelected"
+      @selection-changed="onSelectionChanged" @cell-value-changed="onCellValueChanged" @filter-changed="onFilterChanged"
+      @sort-changed="onSortChanged" @row-clicked="onRowClicked" @first-data-rendered="onFirstDataRendered"
+      @cell-clicked="onCellClicked" @cell-editing-started="onCellEditingStarted">
     </ag-grid-vue>
   </div>
 </template>
 
 <script>
+  // --- Logger simples: habilite logs no publish com ?debug=1 ---
+  const DEBUG_ON = (() => {
+    try { return new URLSearchParams(window.location.search).get('debug') === '1'; }
+    catch { return false; }
+  })();
+  function debug(...args) { if (DEBUG_ON) { try { console.log('[GRID]', ...args); } catch {} } }
+
   import { shallowRef, watchEffect, computed, ref, onMounted, onUnmounted, watch, h } from "vue";
   import { AgGridVue } from "ag-grid-vue3";
   import {
@@ -63,6 +48,7 @@
   import FixedListCellEditor from "./components/FixedListCellEditor.js";
   import ResponsibleUserCellEditor from "./components/ResponsibleUserCellEditor.js";
   import ResponsibleUserCellRenderer from "./components/ResponsibleUserCellRenderer.js";
+  import "./components/list-filter.css"; // ✅ mover para o topo
 
   // Editor customizado inline para listas
   class ListCellEditor {
@@ -262,7 +248,6 @@
     }
     isPopup() { return true; }
   }
-  import './components/list-filter.css';
 
   // Registra apenas comunidade (sem SetFilter enterprise)
   ModuleRegistry.registerModules([AllCommunityModule]);
@@ -278,6 +263,7 @@
       FixedListCellEditor,
       DateTimeCellEditor,
       ResponsibleUserCellEditor,
+      ResponsibleUserCellRenderer,
     },
     props: {
       content: {
@@ -299,6 +285,7 @@
       const gridApi = shallowRef(null);
       const columnApi = shallowRef(null);
       const agGridRef = ref(null);
+      const popupParent = computed(() => agGridRef.value?.$el || document.body);
 
       // ---------- HELPERS ROBUSTOS ----------
       const asArray = (v) => {
@@ -307,6 +294,11 @@
         return [];
       };
       const asObject = (v) => (v && typeof v === 'object' ? v : {});
+      const usesTicketId = (col) => {
+        const ds = col?.dataSource || col?.data_source || {};
+        return ds?.useTicketId === true;
+      };
+
 
       // ---- VIDA ÚTIL & LIMPEZA DA GRID ----
       const destroyed = ref(false);
@@ -438,14 +430,15 @@
 
       const loadApiOptions = async (col, ticketId) => {
         try {
-          const lang = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
-          const companyId = window.wwLib?.wwVariable?.getValue('5d099f04-cd42-41fd-94ad-22d4de368c3a');
-          const apiUrl = window.wwLib?.wwVariable?.getValue('1195995b-34c3-42a5-b436-693f0f4f8825');
-          const apiKey = window.wwLib?.wwVariable?.getValue('d180be98-8926-47a7-b7f1-6375fbb95fa3');
-          const apiAuth = window.wwLib?.wwVariable?.getValue('dfcde09f-42f3-4b5c-b2e8-4314650655db');
+          // ---- FALLBACKS para publish ----
+          const lang = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342') || props.content?.lang || 'en-US';
+          const companyId = window.wwLib?.wwVariable?.getValue('5d099f04-cd42-41fd-94ad-22d4de368c3a') || props.content?.companyId;
+          const apiUrl = window.wwLib?.wwVariable?.getValue('1195995b-34c3-42a5-b436-693f0f4f8825') || props.content?.apiUrl;
+          const apiKey = window.wwLib?.wwVariable?.getValue('d180be98-8926-47a7-b7f1-6375fbb95fa3') || props.content?.apiKey;
+          const apiAuth = window.wwLib?.wwVariable?.getValue('dfcde09f-42f3-4b5c-b2e8-4314650655db') || props.content?.apiAuth;
 
           const ds = col.dataSource?.dataSource || col.dataSource;
-          if (!apiUrl || !ds?.functionName) return [];
+          if (!apiUrl || !ds?.functionName) { debug('API SKIP (missing apiUrl/functionName)', { apiUrl, ds }); return []; }
 
           const fetchOptions = {
             method: 'POST',
@@ -460,9 +453,12 @@
           if (apiKey) fetchOptions.headers['apikey'] = apiKey;
           if (apiAuth) fetchOptions.headers['Authorization'] = apiAuth;
 
+          debug('API FETCH', apiUrl + ds.functionName, fetchOptions);
           const response = await fetch(apiUrl + ds.functionName, fetchOptions);
           if (!response.ok) throw new Error(`HTTP error ${response.status}`);
           const data = await response.json();
+          debug('API OK', Array.isArray(data) ? `items: ${data.length}` : data);
+
           if (!Array.isArray(data)) return [];
 
           if (ds.transform) {
@@ -485,22 +481,68 @@
             })
             .filter(v => v);
         } catch (e) {
+          debug('API ERROR', e?.message || e);
           return [];
         }
       };
 
+      
       const loadResponsibleUserOptions = async () => {
         try {
+          // 1) Tenta coleção
           const data = wwLib.wwCollection.getCollection("0e41f029-e1c3-4302-82ca-16aceccdadb1").data;
+          const arr = Array.isArray(data) ? data : (data?.data || data?.result || data?.results);
+          if (Array.isArray(arr) && arr.length) return asArray(arr);
+        } catch (e) {
+          // ignora e tenta próximos fallbacks
+        }
+        // 2) Tenta datasource vindo por props
+        try {
+          const ds = props.content?.userDatasource;
+          if (Array.isArray(ds) && ds.length) return ds;
+          if (ds && typeof ds === 'object') {
+            const arr = ds.data || ds.result || ds.results;
+            if (Array.isArray(arr) && arr.length) return asArray(arr);
+          }
+        } catch (e) {}
+        // 3) Fallback final: API getLookupGroupsAndUsers (OLD_VERSION)
+        try {
+          const lang = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342') || props.content?.lang || 'en-US';
+          const loggeduserid = window?.wwLib?.wwVariable?.getValue?.('fc54ab80-1a04-4cfe-a504-793bdcfce5dd');
+          const companyId = window.wwLib?.wwVariable?.getValue('5d099f04-cd42-41fd-94ad-22d4de368c3a') || props.content?.companyId;
+          const apiUrl = window.wwLib?.wwVariable?.getValue('1195995b-34c3-42a5-b436-693f0f4f8825') || props.content?.apiUrl;
+          const apiKey = window.wwLib?.wwVariable?.getValue('d180be98-8926-47a7-b7f1-6375fbb95fa3') || props.content?.apiKey;
+          const apiAuth = window.wwLib?.wwVariable?.getValue('dfcde09f-42f3-4b5c-b2e8-4314650655db') || props.content?.apiAuth;
+          if (!apiUrl) { debug('ResponsibleUser API SKIP (missing apiUrl)'); return []; }
+          const fetchOptions = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ...(companyId ? { p_idcompany: companyId } : {}),
+              ...(lang ? { p_language: lang } : {}),
+              ...(loggeduserid ? { p_loggeduserid: loggeduserid } : {}),
+            }),
+          };
+          if (apiKey) fetchOptions.headers['apikey'] = apiKey;
+          if (apiAuth) fetchOptions.headers['Authorization'] = apiAuth;
+          const baseUrl = apiUrl.endsWith('/') ? apiUrl : apiUrl + '/';
+          debug('API FETCH getLookupGroupsAndUsers', { baseUrl, body: fetchOptions.body });
+          const response = await fetch(baseUrl + 'getLookupGroupsAndUsers', fetchOptions);
+          const data = await response.json();
+          debug('API OK getLookupGroupsAndUsers', { count: (data?.length || data?.data?.length || data?.result?.length || data?.results?.length || 0) });
           return asArray(
-            Array.isArray(data)
-              ? data
-              : data?.data || data?.result || data?.results
+            Array.isArray(data) ? data
+            : Array.isArray(data?.data) ? data.data
+            : Array.isArray(data?.result) ? data.result
+            : Array.isArray(data?.results) ? data.results
+            : []
           );
         } catch (e) {
+          debug('ResponsibleUser API ERROR', e?.message || e);
           return [];
         }
       };
+
 
       const getColumnOptions = async (col, ticketId) => {
         const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
@@ -545,7 +587,7 @@
             const colId = col.id || col.field;
             result[colId] = {};
             const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
-            if (tag === 'STATUSID') {
+            if (tag === 'STATUSID' || usesTicketId(col)) {
               await Promise.all(
                 rows.map(async (row) => {
                   const ticketId = row?.TicketID;
@@ -572,6 +614,7 @@
           })
         );
         columnOptions.value = result;
+        debug('Column options loaded', result);
       };
 
       onMounted(() => {
@@ -597,10 +640,6 @@
       const onGridReady = (params) => {
         gridApi.value = params.api;
         columnApi.value = params.columnApi;
-        console.log('[GridViewDinamica] onGridReady', {
-          rows: params.api?.getDisplayedRowCount?.(),
-          cols: params.api?.getColumnDefs?.()?.length,
-        });
 
         // Limpeza antecipada quando a grid está prestes a ser destruída
         addGridListener(params.api, 'gridPreDestroyed', () => {
@@ -615,13 +654,7 @@
             headerName: col.getColDef().headerName,
             cellRenderer: col.getColDef().cellRenderer
           }));
-          console.log('[GridViewDinamica] columns', allCols);
-        } else if (typeof params.api.getColumnDefs === 'function') {
-          const colDefs = params.api.getColumnDefs();
-          console.log('[GridViewDinamica] columnDefs', colDefs);
-        } else if (typeof params.api.getColumnState === 'function') {
-          const colState = params.api.getColumnState();
-          console.log('[GridViewDinamica] columnState', colState);
+          debug('Columns', allCols);
         }
 
         updateColumnsPosition();
@@ -871,7 +904,9 @@
 
       function updateColumnsPosition() {
         if (!gridApi.value) return;
-        const allColumns = asArray(gridApi.value.getAllGridColumns?.());
+        const allColumns = Array.isArray(gridApi.value.getAllGridColumns?.())
+          ? gridApi.value.getAllGridColumns?.()
+          : [];
         const positions = allColumns.map((col, idx) => ({
           FieldID: col?.getColDef?.().id,
           PositionField: idx + 1,
@@ -893,9 +928,6 @@
       }
 
       const onFirstDataRendered = () => {
-        console.log('[GridViewDinamica] firstDataRendered', {
-          rows: gridApi.value?.getDisplayedRowCount?.(),
-        });
         updateColumnsPosition();
         updateColumnsSort();
 
@@ -918,9 +950,44 @@
               headerName: col.getColDef().headerName,
               cellRenderer: col.getColDef().cellRenderer
             }));
+            debug('Mounted columns', allCols);
           }
         }, 2000); // Espera 2 segundos para garantir que a grid montou
       });
+
+      // --- Lazy load de opções ao abrir o editor (corrige listas vazias no publish) ---
+      const onCellEditingStarted = async (event) => {
+        try {
+          const colDef = event.column.getColDef?.() || {};
+          const colId = colDef.colId || colDef.field;
+          if (!colId) return;
+
+          const ticketId = event.data?.TicketID ?? '__ALL__';
+          const already =
+            Array.isArray(columnOptions.value?.[colId]?.[ticketId]) &&
+            columnOptions.value[colId][ticketId].length > 0;
+
+          if (already) return;
+
+          const opts = await getColumnOptions(colDef, event.data?.TicketID || null);
+          columnOptions.value = {
+            ...(columnOptions.value || {}),
+            [colId]: {
+              ...(columnOptions.value?.[colId] || {}),
+              [ticketId]: opts
+            }
+          };
+          debug('Lazy options for', colId, ticketId, opts?.length || 0);
+
+          gridApi.value?.refreshCells({
+            rowNodes: [event.node],
+            columns: [colDef.field || colDef.colId],
+            force: true
+          });
+        } catch (e) {
+          debug('onCellEditingStarted error', e?.message || e);
+        }
+      };
 
       return {
         resolveMappingFormula,
@@ -983,6 +1050,8 @@
         onFirstDataRendered,
         gridComponents,
         safeTimeout, // exposto para uso em watchers via this.safeTimeout
+        popupParent,
+        onCellEditingStarted,
       };
     },
     computed: {
@@ -2060,6 +2129,7 @@
         z-index: 10;
       }
     }
+
     /* wwEditor:end */
 
     // Estilos específicos para a coluna de seleção do AG-Grid
@@ -2120,6 +2190,7 @@
     }
 
     :deep(.ag-pinned-left-cols-container) {
+
       .ag-header-cell[col-id="ag-Grid-SelectionColumn"],
       .ag-cell[col-id="ag-Grid-SelectionColumn"] {
         position: sticky !important;
@@ -2206,6 +2277,55 @@
       background: #fff !important;
       vertical-align: middle !important;
       outline: none !important;
+    }
+
+    :deep(.ag-cell.ag-cell-inline-editing) {
+      padding: 0 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      height: 100% !important;
+      min-height: 0 !important;
+      max-height: none !important;
+      box-sizing: border-box !important;
+    }
+
+    :deep(.ag-cell.ag-cell-inline-editing .ag-cell-edit-wrapper),
+    :deep(.ag-cell.ag-cell-inline-editing .ag-cell-editor),
+    :deep(.ag-cell.ag-cell-inline-editing .ag-input-wrapper),
+    :deep(.ag-cell.ag-cell-inline-editing .ag-input-field-input-wrapper) {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      height: 100% !important;
+      min-height: 0 !important;
+      max-height: none !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      box-sizing: border-box !important;
+    }
+
+    :deep(.ag-cell.ag-cell-inline-editing input),
+    :deep(.ag-cell.ag-cell-inline-editing select),
+    :deep(.ag-cell.ag-cell-inline-editing textarea) {
+      height: 26px !important;
+      min-height: 26px !important;
+      max-height: 26px !important;
+      font-size: 12px !important;
+      font-family: 'Roboto', Arial, sans-serif !important;
+      padding: 0 8px !important;
+      border-radius: 8 !important;
+      box-shadow: none !important;
+      border: 1px solid #888 !important;
+      box-sizing: border-box !important;
+      line-height: 1.2 !important;
+      margin: 0 !important;
+      align-self: center !important;
+      resize: none !important;
+      background: #fff !important;
+      vertical-align: middle !important;
+      outline: none !important;
+      transition: none !important;
     }
 
     :deep(.ag-cell.ag-cell-inline-editing) {
@@ -2396,4 +2516,23 @@
     background: #ff6f6f !important;
     color: #fff !important;
   }
+
+  :deep(.ag-cell-edit-wrapper),
+:deep(.ag-popup-editor) {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Inputs dentro do editor com altura coerente à linha */
+:deep(.ag-popup-editor input),
+:deep(.ag-popup-editor select),
+:deep(.ag-popup-editor textarea) {
+  height: 26px !important;
+  min-height: 26px !important;
+  max-height: 26px !important;
+  line-height: 1.2 !important;
+}
 </style>
