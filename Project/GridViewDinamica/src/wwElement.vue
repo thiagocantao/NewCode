@@ -544,17 +544,31 @@
           columnsArr.map(async (col) => {
             const colId = col.id || col.field;
             result[colId] = {};
-            await Promise.all(
-              rows.map(async (row) => {
+            const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
+            if (tag === 'STATUSID') {
+              await Promise.all(
+                rows.map(async (row) => {
+                  const ticketId = row?.TicketID;
+                  const cacheKey = `${colId}_${ticketId}`;
+                  if (!optionsCache.has(cacheKey)) {
+                    const opts = await getColumnOptions(col, ticketId);
+                    optionsCache.set(cacheKey, asArray(opts));
+                  }
+                  result[colId][ticketId] = asArray(optionsCache.get(cacheKey));
+                })
+              );
+            } else {
+              const cacheKey = `${colId}_ALL`;
+              if (!optionsCache.has(cacheKey)) {
+                const opts = await getColumnOptions(col, null);
+                optionsCache.set(cacheKey, asArray(opts));
+              }
+              const colOpts = asArray(optionsCache.get(cacheKey));
+              rows.forEach((row) => {
                 const ticketId = row?.TicketID;
-                const cacheKey = `${colId}_${ticketId}`;
-                if (!optionsCache.has(cacheKey)) {
-                  const opts = await getColumnOptions(col, ticketId);
-                  optionsCache.set(cacheKey, asArray(opts));
-                }
-                result[colId][ticketId] = asArray(optionsCache.get(cacheKey));
-              })
-            );
+                result[colId][ticketId] = colOpts;
+              });
+            }
           })
         );
         columnOptions.value = result;
