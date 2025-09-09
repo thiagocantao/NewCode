@@ -55,13 +55,22 @@ export default class ListCellEditor {
     };
 
     const resolveOptions = (arr) => {
-      this.options = (arr || []).map(normalize);
+      let list;
+      if (Array.isArray(arr)) list = arr;
+      else if (arr && typeof arr === 'object') list = Object.values(arr);
+      else list = [];
+      this.options = list.map(normalize);
       this.filteredOptions = [...this.options];
       this.renderOptions();
     };
 
     let optionsPromise;
-    if (params.options && typeof params.options.then === 'function') {
+    const rendererOpts = this.rendererParams && this.rendererParams.options;
+    if (rendererOpts && typeof rendererOpts.then === 'function') {
+      optionsPromise = rendererOpts;
+    } else if (Array.isArray(rendererOpts)) {
+      optionsPromise = Promise.resolve(rendererOpts);
+    } else if (params.options && typeof params.options.then === 'function') {
       optionsPromise = params.options;
     } else if (Array.isArray(params.options)) {
       optionsPromise = Promise.resolve(params.options);
@@ -88,7 +97,7 @@ export default class ListCellEditor {
       optionsPromise = Promise.resolve([]);
     }
 
-    optionsPromise.then(resolveOptions);
+    optionsPromise.then(resolveOptions).catch(() => resolveOptions([]));
 
     this.value = params.value;
 

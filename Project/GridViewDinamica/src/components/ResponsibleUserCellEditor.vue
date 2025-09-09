@@ -37,7 +37,11 @@ export default {
     };
 
     const mapOptions = list => {
-      const arr = Array.isArray(list) ? list : [];
+      const arr = Array.isArray(list)
+        ? list
+        : list && typeof list === 'object'
+          ? Object.values(list)
+          : [];
       const hasNested = arr.some(it => Array.isArray(getProp(it, 'groupUsers')) && getProp(it, 'groupUsers').length);
       if (hasNested) {
         return arr.map(item => {
@@ -79,8 +83,14 @@ export default {
 
 
     const loadOptions = async () => {
-      if (props.params.options && props.params.options.length) {
-        options.value = mapOptions(props.params.options);
+      const initial = props.params.options;
+      const initialArr = Array.isArray(initial)
+        ? initial
+        : initial && typeof initial === 'object'
+          ? Object.values(initial)
+          : [];
+      if (initialArr.length) {
+        options.value = mapOptions(initialArr);
         return;
       }
       try {
