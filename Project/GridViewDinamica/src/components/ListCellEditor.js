@@ -61,6 +61,7 @@ export default class ListCellEditor {
       else list = [];
       this.options = list.map(normalize);
       this.filteredOptions = [...this.options];
+      console.log('[ListCellEditor] resolved options', this.options);
       this.renderOptions();
     };
 
@@ -97,7 +98,12 @@ export default class ListCellEditor {
       optionsPromise = Promise.resolve([]);
     }
 
-    optionsPromise.then(resolveOptions).catch(() => resolveOptions([]));
+    optionsPromise
+      .then(resolveOptions)
+      .catch((err) => {
+        console.error('[ListCellEditor] failed to load options', err);
+        resolveOptions([]);
+      });
 
     this.value = params.value;
 
