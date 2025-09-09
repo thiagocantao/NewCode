@@ -61,7 +61,12 @@ export default class ListCellEditor {
     };
 
     let optionsPromise;
-    if (params.options && typeof params.options.then === 'function') {
+    const rendererOpts = this.rendererParams && this.rendererParams.options;
+    if (rendererOpts && typeof rendererOpts.then === 'function') {
+      optionsPromise = rendererOpts;
+    } else if (Array.isArray(rendererOpts)) {
+      optionsPromise = Promise.resolve(rendererOpts);
+    } else if (params.options && typeof params.options.then === 'function') {
       optionsPromise = params.options;
     } else if (Array.isArray(params.options)) {
       optionsPromise = Promise.resolve(params.options);

@@ -41,27 +41,7 @@ export default class FixedListCellEditor {
 
 
 
-    // Fixed list options
-    let optionsArr = [];
-    if (Array.isArray(params.options)) {
-      optionsArr = params.options;
-    } else if (Array.isArray(params.colDef.listOptions)) {
-      optionsArr = params.colDef.listOptions;
-    } else if (
-      typeof params.colDef.listOptions === 'string' &&
-      params.colDef.listOptions.trim() !== ''
-    ) {
-      optionsArr = params.colDef.listOptions.split(',').map(o => o.trim());
-    } else if (
-      params.colDef.dataSource &&
-      typeof params.colDef.dataSource.list_options === 'string' &&
-      params.colDef.dataSource.list_options.trim() !== ''
-    ) {
-      optionsArr = params.colDef.dataSource.list_options
-        .split(',')
-        .map(o => o.trim());
-    }
-
+    // Fixed list options (supports options from renderer params)
     const normalize = (opt) => {
       if (typeof opt === 'object') {
         const findKey = key => Object.keys(opt).find(k => k.toLowerCase() === key);
@@ -75,8 +55,43 @@ export default class FixedListCellEditor {
       }
       return { value: opt, label: String(opt) };
     };
-    this.options = optionsArr.map(normalize);
-    this.filteredOptions = [...this.options];
+
+    const resolveOptions = (arr) => {
+      this.options = (arr || []).map(normalize);
+      this.filteredOptions = [...this.options];
+      this.renderOptions();
+    };
+
+    let optionsPromise;
+    const rendererOpts = this.rendererParams && this.rendererParams.options;
+    if (rendererOpts && typeof rendererOpts.then === 'function') {
+      optionsPromise = rendererOpts;
+    } else if (Array.isArray(rendererOpts)) {
+      optionsPromise = Promise.resolve(rendererOpts);
+    } else if (Array.isArray(params.options)) {
+      optionsPromise = Promise.resolve(params.options);
+    } else if (Array.isArray(params.colDef.listOptions)) {
+      optionsPromise = Promise.resolve(params.colDef.listOptions);
+    } else if (
+      typeof params.colDef.listOptions === 'string' &&
+      params.colDef.listOptions.trim() !== ''
+    ) {
+      optionsPromise = Promise.resolve(
+        params.colDef.listOptions.split(',').map(o => o.trim())
+      );
+    } else if (
+      params.colDef.dataSource &&
+      typeof params.colDef.dataSource.list_options === 'string' &&
+      params.colDef.dataSource.list_options.trim() !== ''
+    ) {
+      optionsPromise = Promise.resolve(
+        params.colDef.dataSource.list_options.split(',').map(o => o.trim())
+      );
+    } else {
+      optionsPromise = Promise.resolve([]);
+    }
+
+    optionsPromise.then(resolveOptions);
 
     this.value = params.value;
 
@@ -106,8 +121,6 @@ export default class FixedListCellEditor {
       }
     };
     document.addEventListener('mousedown', this.handleOutsideClick);
-
-    this.renderOptions();
   }
 
   filterOptions(text) {
