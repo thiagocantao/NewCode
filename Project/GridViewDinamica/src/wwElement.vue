@@ -24,6 +24,7 @@
   ModuleRegistry,
   themeQuartz,
   } from "ag-grid-community";
+  import { ColumnMenuModule } from "ag-grid-enterprise";
   import {
   AG_GRID_LOCALE_EN,
   AG_GRID_LOCALE_FR,
@@ -245,7 +246,7 @@
   
   // TODO: maybe register less modules
   // TODO: maybe register modules per grid instead of globally
-  ModuleRegistry.registerModules([AllCommunityModule]);
+  ModuleRegistry.registerModules([AllCommunityModule, ColumnMenuModule]);
   
   export default {
   components: {
@@ -1649,7 +1650,7 @@
   };
   },
   theme() {
-  return themeQuartz.withParams({
+  const params = {
   headerBackgroundColor: "#F5F6FA",
   headerTextColor: this.content.headerTextColor,
   headerFontSize: this.content.headerFontSize,
@@ -1672,7 +1673,11 @@
   focusShadow: this.content.focusShadow?.length
   ? this.content.focusShadow
   : undefined,
-  });
+  };
+  const cleanParams = Object.fromEntries(
+  Object.entries(params).filter(([, v]) => v != null)
+  );
+  return themeQuartz.withParams(cleanParams);
   },
   isEditing() {
   /* wwEditor:start */

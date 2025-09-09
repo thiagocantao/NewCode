@@ -118,6 +118,16 @@ export default class ListFilterRenderer {
   loadValues() {
     const api = this.params.api;
     const column = this.params.column;
+
+    // Avoid calling AG Grid APIs if the grid has already been destroyed.
+    // When the component lives longer than the grid instance (e.g. after
+    // navigation) AG Grid will throw "forEachNode() cannot be called as the
+    // grid has been destroyed". Checking here prevents those console errors
+    // in published projects.
+    if (!api || (api.isDestroyed && api.isDestroyed()) || !column) {
+      return;
+    }
+
     const colDef = column.getColDef();
     const field = colDef.field || column.getColId();
 
