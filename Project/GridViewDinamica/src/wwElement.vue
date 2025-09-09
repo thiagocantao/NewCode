@@ -436,7 +436,7 @@
         return [];
       };
 
-      const loadApiOptions = async (col, ticketId) => {
+      const loadApiOptions = async (col) => {
         try {
           const lang = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
           const companyId = window.wwLib?.wwVariable?.getValue('5d099f04-cd42-41fd-94ad-22d4de368c3a');
@@ -452,8 +452,7 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               ...(companyId ? { p_idcompany: companyId } : {}),
-              ...(lang ? { p_language: lang } : {}),
-              ...(ticketId ? { p_ticketid: ticketId } : {})
+              ...(lang ? { p_language: lang } : {})
             })
           };
 
@@ -502,7 +501,7 @@
         }
       };
 
-      const getColumnOptions = async (col, ticketId) => {
+      const getColumnOptions = async (col) => {
         const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
         const identifier = (col.FieldDB || '').toUpperCase();
         if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
@@ -523,7 +522,7 @@
 
         const hasFn = col.dataSource?.functionName || col.dataSource?.dataSource?.functionName;
         if (!opts.length && hasFn) {
-          opts = await loadApiOptions(col, ticketId);
+          opts = await loadApiOptions(col);
         }
 
         return asArray(opts);
@@ -536,25 +535,15 @@
         const columnsArr = asArray(colsSrc);
         if (!columnsArr.length) return;
 
-        const rawRows = wwLib.wwUtils.getDataFromCollection(props.content.rowData);
-        const rows = asArray(rawRows);
-
         const result = {};
         await Promise.all(
           columnsArr.map(async (col) => {
             const colId = col.id || col.field;
-            result[colId] = {};
-            await Promise.all(
-              rows.map(async (row) => {
-                const ticketId = row?.TicketID;
-                const cacheKey = `${colId}_${ticketId}`;
-                if (!optionsCache.has(cacheKey)) {
-                  const opts = await getColumnOptions(col, ticketId);
-                  optionsCache.set(cacheKey, asArray(opts));
-                }
-                result[colId][ticketId] = asArray(optionsCache.get(cacheKey));
-              })
-            );
+            if (!optionsCache.has(colId)) {
+              const opts = await getColumnOptions(col);
+              optionsCache.set(colId, asArray(opts));
+            }
+            result[colId] = asArray(optionsCache.get(colId));
           })
         );
         columnOptions.value = result;
@@ -1046,10 +1035,9 @@
 
           const colId = colCopy.id || colCopy.field;
           const fieldKey = colCopy.field || colCopy.id;
-          const getDsOptions = params => {
-            const ticketId = params?.data?.TicketID;
-            const colOpts = this.columnOptions?.[colId] || {};
-            return Array.isArray(colOpts?.[ticketId]) ? colOpts[ticketId] : [];
+          const getDsOptions = () => {
+            const colOpts = this.columnOptions?.[colId];
+            return Array.isArray(colOpts) ? colOpts : [];
           };
 
           // Se o filtro for agListColumnFilter, usar o filtro customizado
@@ -1089,7 +1077,7 @@
                   result.cellEditorParams = { options: optionsArr };
                 } else {
                   result.cellEditor = ResponsibleUserCellEditor;
-                  result.cellEditorParams = params => ({ options: getDsOptions(params) });
+                  result.cellEditorParams = () => ({ options: getDsOptions() });
                 }
               }
               const baseRendererParams = result.cellRendererParams;
@@ -1097,7 +1085,7 @@
                 ...(typeof baseRendererParams === 'function'
                   ? baseRendererParams(params)
                   : baseRendererParams),
-                options: optionsArr || getDsOptions(params),
+                options: optionsArr || getDsOptions(),
               });
               return result;
             }
@@ -1119,13 +1107,13 @@
                   });
                 } else {
                   result.cellEditor = tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor : FixedListCellEditor;
-                  result.cellEditorParams = params => ({ options: getDsOptions(params) });
+                  result.cellEditorParams = () => ({ options: getDsOptions() });
                   const baseRendererParams = result.cellRendererParams;
                   result.cellRendererParams = params => ({
                     ...(typeof baseRendererParams === 'function'
                       ? baseRendererParams(params)
                       : baseRendererParams),
-                    options: getDsOptions(params),
+                    options: getDsOptions(),
                   });
                 }
               } else {
@@ -1134,20 +1122,20 @@
                   ...(typeof baseRendererParams === 'function'
                     ? baseRendererParams(params)
                     : baseRendererParams),
-                  options: optionsArr || getDsOptions(params),
+                  options: optionsArr || getDsOptions(),
                 });
               }
             }
             if (colCopy.dataSource && colCopy.editable) {
               result.editable = true;
               result.cellEditor = tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor : FixedListCellEditor;
-              result.cellEditorParams = params => ({ options: getDsOptions(params) });
+              result.cellEditorParams = () => ({ options: getDsOptions() });
               const baseRendererParams = result.cellRendererParams;
               result.cellRendererParams = params => ({
                 ...(typeof baseRendererParams === 'function'
                   ? baseRendererParams(params)
                   : baseRendererParams),
-                options: getDsOptions(params),
+                options: getDsOptions(),
               });
             }
             return result;
@@ -1201,10 +1189,9 @@
             }
             case "list":
             {
-              const getDsOptions = params => {
-                const ticketId = params?.data?.TicketID;
-                const colOpts = this.columnOptions?.[colId] || {};
-                return Array.isArray(colOpts?.[ticketId]) ? colOpts[ticketId] : [];
+              const getDsOptions = () => {
+                const colOpts = this.columnOptions?.[colId];
+                return Array.isArray(colOpts) ? colOpts : [];
               };
 
               const staticOptions = Array.isArray(colCopy.options)
@@ -1249,13 +1236,13 @@
                   options: staticOptions,
                 };
               } else {
-                result.cellEditorParams = params => ({ options: getDsOptions(params) });
+                result.cellEditorParams = () => ({ options: getDsOptions() });
                 const baseRendererParams = result.cellRendererParams;
                 result.cellRendererParams = params => ({
                   ...(typeof baseRendererParams === 'function'
                     ? baseRendererParams(params)
                     : baseRendererParams),
-                  options: getDsOptions(params),
+                  options: getDsOptions(),
                 });
               }
               if (colCopy.editable) {
@@ -1358,12 +1345,12 @@
                 result.cellRenderer = ResponsibleUserCellRenderer;
                 if (colCopy.editable) {
                   result.cellEditor = ResponsibleUserCellEditor;
-                  result.cellEditorParams = params => ({ options: getDsOptions(params) });
+                  result.cellEditorParams = () => ({ options: getDsOptions() });
                 }
                 const baseRendererParams = result.cellRendererParams;
                 result.cellRendererParams = params => ({
                   ...(typeof baseRendererParams === 'function' ? baseRendererParams(params) : baseRendererParams),
-                  options: getDsOptions(params),
+                  options: getDsOptions(),
                 });
               }
 
@@ -1564,13 +1551,13 @@
                     };
                   } else {
                     result.cellEditor = tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor : FixedListCellEditor;
-                    result.cellEditorParams = params => ({ options: getDsOptions(params) });
+                    result.cellEditorParams = () => ({ options: getDsOptions() });
                     const baseRendererParams = result.cellRendererParams;
                     result.cellRendererParams = params => ({
                       ...(typeof baseRendererParams === 'function'
                         ? baseRendererParams(params)
                         : baseRendererParams),
-                      options: getDsOptions(params),
+                      options: getDsOptions(),
                     });
                   }
                 } else {
@@ -1579,20 +1566,20 @@
                     ...(typeof baseRendererParams === 'function'
                       ? baseRendererParams(params)
                       : baseRendererParams),
-                    options: optionsArr || getDsOptions(params),
+                    options: optionsArr || getDsOptions(),
                   });
                 }
               }
               if (colCopy.dataSource && colCopy.editable) {
                 result.editable = true;
                 result.cellEditor = tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor : FixedListCellEditor;
-                result.cellEditorParams = params => ({ options: getDsOptions(params) });
+                result.cellEditorParams = () => ({ options: getDsOptions() });
                 const baseRendererParams = result.cellRendererParams;
                 result.cellRendererParams = params => ({
                   ...(typeof baseRendererParams === 'function'
                     ? baseRendererParams(params)
                     : baseRendererParams),
-                  options: getDsOptions(params),
+                  options: getDsOptions(),
                 });
               }
               return result;
@@ -1728,9 +1715,8 @@
         const fieldKey = colDef.field || colDef.colId;
 
         if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
-          const colOpts = this.columnOptions?.[colId] || {};
-          const ticketId = event.data?.TicketID;
-          const opts = ticketId != null ? (Array.isArray(colOpts[ticketId]) ? colOpts[ticketId] : []) : [];
+          const colOpts = this.columnOptions?.[colId];
+          const opts = Array.isArray(colOpts) ? colOpts : [];
           const match = opts.find(o => String(o.value) === String(event.newValue));
           if (match) {
             if (event.data) {
