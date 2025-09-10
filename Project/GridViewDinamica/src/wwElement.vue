@@ -30,8 +30,6 @@
     ModuleRegistry,
     themeQuartz,
   } from "ag-grid-community";
-  import "ag-grid-community/styles/ag-grid.css";
-  import "ag-grid-community/styles/ag-theme-quartz.css";
   import {
     AG_GRID_LOCALE_EN,
     AG_GRID_LOCALE_FR,
