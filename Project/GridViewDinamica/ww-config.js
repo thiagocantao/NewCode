@@ -1,4 +1,10 @@
 export default {
+  files: {
+    css: [
+      'https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-grid.css',
+      'https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-quartz.css'
+    ]
+  },
   editor: {
   label: {
   en: "Datagrid",
