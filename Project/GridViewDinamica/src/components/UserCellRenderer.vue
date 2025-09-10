@@ -1,12 +1,17 @@
 <template>
-  <div v-if="selectedLabel" class="user-cell" :class="{ 'user-cell--group-user': selectedGroup && selectedUser }" :style="pointerStyle">
+  <div
+    v-if="selectedLabel"
+    class="user-cell"
+    :class="{ 'user-cell--group-user': selectedGroup && selectedUser }"
+    :style="pointerStyle"
+  >
+    <!-- CASO: Grupo + Responsável (stack) -->
     <template v-if="selectedGroup && selectedUser">
       <div
         class="avatar-outer group-avatar-wrapper selected-group-avatar"
-
+        :title="selectedGroup.name || ''"
         @mouseenter="onGroupMouseEnter"
         @mouseleave="onGroupMouseLeave"
-
       >
         <div class="avatar-middle">
           <div class="user-cell__avatar">
@@ -22,6 +27,7 @@
           {{ selectedGroup.name }}
         </div>
       </div>
+
       <div class="avatar-outer selected-user-avatar">
         <div class="avatar-middle">
           <div class="user-cell__avatar">
@@ -35,12 +41,14 @@
         </div>
       </div>
     </template>
+
+    <!-- CASO: Só Grupo -->
     <template v-else-if="selectedGroup">
       <div
         class="avatar-outer group-avatar-wrapper"
+        :title="selectedGroup.name || ''"
         @mouseenter="onGroupMouseEnter"
         @mouseleave="onGroupMouseLeave"
-
       >
         <div class="avatar-middle">
           <div class="user-cell__avatar">
@@ -57,6 +65,8 @@
         </div>
       </div>
     </template>
+
+    <!-- CASO: Só Responsável -->
     <template v-else>
       <div class="avatar-outer">
         <div class="avatar-middle">
@@ -71,6 +81,7 @@
         </div>
       </div>
     </template>
+
     <span class="user-cell__name">{{ selectedLabel }}</span>
   </div>
 </template>
@@ -92,6 +103,7 @@ export default {
     };
   },
   async created() {
+    // Carrega options (se vieram por params ou via API)
     if (this.currentParams.options && this.currentParams.options.length) {
       this.optionsCache = this.mapOptions(this.currentParams.options);
     } else {
@@ -102,37 +114,114 @@ export default {
     options() {
       return this.optionsCache;
     },
+
+    /* -----------------------------
+       GRUPO SELECIONADO
+       - Preferência:
+         1) value.groupid (quando cell value é objeto)
+         2) AssignedGroupID (ID -> lookup em options)
+         3) AssignedGroupName (nome direto)
+    ------------------------------ */
     selectedGroup() {
       const val = this.currentParams.value;
+
+      // Caso: valor-objeto com groupid
       if (val && typeof val === 'object' && val.groupid) {
-        return this.findGroupById(val.groupid);
+        const grp = this.findGroupById(val.groupid);
+        if (grp) return { name: grp.name, photo: this.pickPhoto(grp) };
       }
-      const name = this.currentParams.data?.AssignedGroupName;
+
+      // Caso: temos ID de grupo no rowData
+      const groupId =
+        this.currentParams.data?.AssignedGroupID ||
+        this.currentParams.data?.GroupID ||
+        this.currentParams.data?.GroupId;
+      if (groupId) {
+        const grp = this.findGroupById(groupId);
+        if (grp) return { name: grp.name, photo: this.pickPhoto(grp) };
+      }
+
+      // Caso: temos nome do grupo direto no rowData
+      const name =
+        this.currentParams.data?.AssignedGroupName ||
+        this.currentParams.data?.GroupName ||
+        this.currentParams.data?.Group;
       if (name) {
         const photo =
           this.currentParams.data?.AssignedGroupPhotoUrl ||
+          this.currentParams.data?.AssignedGroupPhotoURL ||
           this.currentParams.data?.AssignedGroupPhoto ||
           this.currentParams.data?.GroupPhotoURL ||
           this.currentParams.data?.GroupPhotoUrl ||
-          this.currentParams.data?.photoUrl ||
-          this.currentParams.data?.GroupPhoto;
+          this.currentParams.data?.GroupPhoto ||
+          this.currentParams.data?.photoUrl; // último fallback
         return { name, photo };
       }
+
       return null;
     },
+
+    /* -----------------------------
+       RESPONSÁVEL SELECIONADO
+       - Preferência:
+         1) value.userid (quando cell value é objeto) -> procura dentro do grupo, senão global
+         2) IDs no rowData (Technical responsible / ResponsibleUserID / etc) -> lookup em options
+         3) Nome direto no rowData (ResponsibleUser / Username / UserName)
+    ------------------------------ */
     selectedUser() {
       const val = this.currentParams.value;
+
+      // 1) valor-objeto com userid/groupid
       if (val && typeof val === 'object') {
         if (val.userid && val.groupid) {
           const grp = this.findGroupById(val.groupid);
-          if (grp) return (grp.groupUsers || []).find(u => String(u.id) === String(val.userid)) || null;
+          if (grp) {
+            const u = (grp.groupUsers || []).find(u => String(u.id) === String(val.userid));
+            if (u) return { name: u.name, photo: this.pickPhoto(u) };
+          }
         } else if (val.userid) {
-          return this.findUserById(val.userid);
+          const u = this.findUserById(val.userid);
+          if (u) return { name: u.name, photo: this.pickPhoto(u) };
         }
-      } else if (val) {
-        return this.findUserById(val);
       }
-      const name = this.currentParams.data?.ResponsibleUser || this.currentParams.data?.Username || this.currentParams.data?.UserName;
+
+      // 2) IDs no rowData
+      const technicalRespId =
+        this.currentParams.data?.['Technical responsible'] ||
+        this.currentParams.data?.TechnicalResponsible ||
+        this.currentParams.data?.Technical_responsible ||
+        this.currentParams.data?.TechnicalResponsibleID ||
+        this.currentParams.data?.ResponsibleUserID ||
+        this.currentParams.data?.ResponsibleID ||
+        this.currentParams.data?.UserID;
+
+      if (technicalRespId) {
+        // Se houver AssignedGroupID, tenta dentro do grupo primeiro
+        const groupId =
+          this.currentParams.data?.AssignedGroupID ||
+          this.currentParams.data?.GroupID ||
+          this.currentParams.data?.GroupId;
+        if (groupId) {
+          const grp = this.findGroupById(technicalRespId) || this.findGroupById(groupId);
+          // Se technicalRespId for na verdade um groupid inválido, a busca acima ainda se mantém robusta
+          if (grp) {
+            const u = (grp.groupUsers || []).find(u => String(u.id) === String(technicalRespId));
+            if (u) return { name: u.name, photo: this.pickPhoto(u) };
+          }
+        }
+        // Busca global
+        const u = this.findUserById(technicalRespId);
+        if (u) return { name: u.name, photo: this.pickPhoto(u) };
+      }
+
+      // 3) Nome direto no rowData
+      const name =
+        this.currentParams.data?.ResponsibleUser ||
+        this.currentParams.data?.Username ||
+        this.currentParams.data?.UserName ||
+        this.currentParams.data?.Responsible ||
+        this.currentParams.data?.Assignee;
+
       if (name) {
         const photo =
           this.currentParams.data?.photoUrl ||
@@ -142,29 +231,49 @@ export default {
           this.currentParams.data?.UserPhotoUrl;
         return { name, photo };
       }
+
       return null;
     },
+
+    /* Rótulo: se houver os dois, mostra o nome do responsável; senão o que existir */
     selectedLabel() {
       if (this.selectedGroup && this.selectedUser) return this.selectedUser.name;
       if (this.selectedGroup) return this.selectedGroup.name;
       return this.selectedUser ? this.selectedUser.name : '';
     },
+
+    /* Foto do usuário / grupo (consolidadas) */
     userPhoto() {
-      return this.selectedUser?.photoUrl || this.selectedUser?.PhotoURL || this.selectedUser?.PhotoUrl || this.selectedUser?.photo || '';
+      const u = this.selectedUser;
+      return (
+        u?.photo ||
+        u?.photoUrl ||
+        u?.PhotoURL ||
+        u?.PhotoUrl ||
+        ''
+      );
     },
     groupPhoto() {
-      return this.selectedGroup?.photoUrl || this.selectedGroup?.PhotoURL || this.selectedGroup?.PhotoUrl || this.selectedGroup?.photo || '';
+      const g = this.selectedGroup;
+      return (
+        g?.photo ||
+        g?.photoUrl ||
+        g?.PhotoURL ||
+        g?.PhotoUrl ||
+        ''
+      );
     },
 
     userInitial() {
       return this.selectedUser ? this.getInitial(this.selectedUser.name) : '';
     },
+
     isEditable() {
       const editable = this.currentParams.colDef?.editable;
       if (typeof editable === 'function') {
         try {
           return !!editable(this.currentParams);
-        } catch (e) {
+        } catch {
           return false;
         }
       }
@@ -175,6 +284,7 @@ export default {
     }
   },
   methods: {
+    /* Normaliza structure de options (grupos com groupUsers, usuários folha) */
     mapOptions(list) {
       const getProp = (obj, ...keys) => {
         for (const key of keys) {
@@ -186,19 +296,34 @@ export default {
         return undefined;
       };
       return (list || []).map(item => {
-        const children = getProp(item, 'groupUsers');
+        const children = getProp(item, 'groupUsers', 'children', 'users');
         return {
           ...item,
-          id: getProp(item, 'id', 'value'),
+          id: getProp(item, 'id', 'value', 'userId', 'userid', 'groupid'),
           name: getProp(item, 'name', 'label'),
           value: getProp(item, 'value', 'id'),
           label: getProp(item, 'label', 'name'),
+          photoUrl:
+            getProp(item, 'photoUrl', 'PhotoUrl', 'PhotoURL', 'photo', 'image', 'img') || undefined,
           ...(Array.isArray(children) && children.length
             ? { groupUsers: this.mapOptions(children) }
             : {})
         };
       });
     },
+
+    pickPhoto(entity) {
+      return (
+        entity?.photoUrl ||
+        entity?.PhotoUrl ||
+        entity?.PhotoURL ||
+        entity?.photo ||
+        entity?.image ||
+        entity?.img ||
+        undefined
+      );
+    },
+
     onGroupMouseEnter() {
       this.showGroupTooltip = true;
       this.updateRowZIndex(true);
@@ -218,6 +343,7 @@ export default {
         }
       }
     },
+
     async fetchOptions() {
       try {
         const lang = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
@@ -250,40 +376,52 @@ export default {
               : Array.isArray(data?.results)
                 ? data.results
                 : [];
-      } catch (e) {
+      } catch {
         return [];
       }
     },
+
+    /* Busca grupo/usuário em options */
     findGroupById(id, list = this.options) {
+      const target = String(id);
       for (const item of list || []) {
-        if (String(item.id) === String(id) && Array.isArray(item.groupUsers)) {
+        const hasChildren = Array.isArray(item.groupUsers) && item.groupUsers.length > 0;
+        // Alguns datasets usam o próprio item como grupo (com children)
+        if (String(item.id) === target && hasChildren) {
           return item;
         }
-        if (Array.isArray(item.groupUsers) && item.groupUsers.length) {
-          const found = this.findGroupById(id, item.groupUsers);
+        if (hasChildren) {
+          const found = this.findGroupById(target, item.groupUsers);
           if (found) return found;
         }
       }
       return null;
     },
     findUserById(id, list = this.options) {
+      const target = String(id);
       for (const item of list || []) {
         const hasGroup = Array.isArray(item.groupUsers) && item.groupUsers.length > 0;
-        if (String(item.id) === String(id) && !hasGroup) {
+        if (!hasGroup && String(item.id) === target) {
           return item;
         }
         if (hasGroup) {
-          const found = this.findUserById(id, item.groupUsers);
+          const found = this.findUserById(target, item.groupUsers);
           if (found) return found;
         }
       }
       return null;
     },
+
     getInitial(name) {
       return name ? String(name).trim().charAt(0).toUpperCase() : '';
     },
+
     refresh(params) {
       this.currentParams = params;
+      // Se options mudarem dinamicamente
+      if (params?.options && params.options !== this.optionsCache) {
+        this.optionsCache = this.mapOptions(params.options);
+      }
       return true;
     }
   }
@@ -300,7 +438,7 @@ export default {
   gap: 0;
 }
 .user-cell--group-user .selected-group-avatar {
-  margin-right: -8px;
+  margin-right: -8px;   /* mantém o grupo "um pouco atrás" */
   position: relative;
   z-index: 1;
 }
@@ -311,6 +449,7 @@ export default {
 .group-avatar-wrapper {
   position: relative;
 }
+
 .avatar-outer {
   width: 32px;
   height: 32px;
@@ -374,6 +513,7 @@ export default {
   padding-left: 3px;
 }
 
+/* Tooltip do grupo */
 .user-cell__group-tooltip {
   position: absolute;
   top: 35px;
@@ -386,7 +526,6 @@ export default {
   font-size: 12px;
   white-space: nowrap;
   z-index: 1000;
-
   text-align: center;
 }
 </style>
