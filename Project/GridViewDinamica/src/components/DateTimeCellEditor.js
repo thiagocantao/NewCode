@@ -1,91 +1,76 @@
-import { createApp, h } from 'vue';
-import CustomDatePicker from './CustomDatePicker.vue';
-
 export default class DateTimeCellEditor {
   init(params) {
     this.params = params;
     const tag = (params.colDef?.TagControl || params.colDef?.tagControl || '').toUpperCase();
-    this.showTime = tag === 'DEADLINE';
+    const type = tag === 'DEADLINE' ? 'datetime-local' : 'date';
 
-    this.eGui = document.createElement('div');
-    this.eGui.style.height = '100%';
-    this.eGui.style.display = 'flex';
-    this.eGui.style.alignItems = 'center';
+    const input = document.createElement('input');
+    input.type = type;
+    input.style.width = '100%';
+    input.style.height = '100%';
+    input.style.fontSize = '13px';
+    input.style.borderRadius = '6px';
+    input.style.padding = '4px';
 
-    const initialValue = this.normalizeValue(params.value);
-    const self = this;
+    if (params.value) {
+      input.value = this.toInputValue(params.value, type);
+    }
+    this.value = input.value || '';
 
-    this.app = createApp({
-      data() {
-        return { value: initialValue };
-      },
-      render() {
-        return h(CustomDatePicker, {
-          ref: 'picker',
-          modelValue: this.value,
-          'onUpdate:modelValue': v => (this.value = v),
-          showTime: self.showTime,
-        });
-      },
+    const sync = e => {
+      this.value = e.target.value;
+    };
+    input.addEventListener('input', sync);
+    input.addEventListener('change', sync);
+
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.stopPropagation();
+        e.preventDefault();
+        this.value = e.target.value;
+        if (this.params && this.params.api && this.params.api.stopEditing) {
+          this.params.api.stopEditing();
+        } else if (this.params && typeof this.params.stopEditing === 'function') {
+          this.params.stopEditing();
+        }
+      }
     });
 
-    this.vm = this.app.mount(this.eGui);
+    this.eInput = input;
   }
 
-  normalizeValue(value) {
-    if (!value) return '';
-
-    if (this.showTime) {
-      try {
-        let dateStr = value;
-        if (typeof dateStr === 'string') {
-          dateStr = dateStr.replace(' ', 'T');
-          dateStr = dateStr.replace(/([+\-]\d{2}):?\d{0,2}$/, '');
-        }
-        const date = new Date(dateStr);
-        if (!isNaN(date.getTime())) {
-          const pad = n => String(n).padStart(2, '0');
-          return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-        }
-      } catch (e) {}
-      return value;
-    }
-
-    if (typeof value === 'string') {
-      if (value.includes('T')) return value.split('T')[0];
-      if (value.includes(' ')) return value.split(' ')[0];
-    }
+  toInputValue(value, type) {
     try {
-      const date = new Date(value);
-      if (!isNaN(date.getTime())) {
+      let v = value;
+      if (typeof v === 'string') {
+        v = v.replace(' ', 'T');
+        v = v.replace(/([+\-]\d{2}):?(\d{2})?$/, '$1:$2');
+      }
+      const d = new Date(v);
+      if (!isNaN(d.getTime())) {
         const pad = n => String(n).padStart(2, '0');
-        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+        if (type === 'datetime-local') {
+          return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
       }
     } catch (e) {}
     return value;
   }
 
   getGui() {
-    return this.eGui;
+    return this.eInput;
   }
 
   afterGuiAttached() {
-    const picker = this.vm?.$refs?.picker;
-    if (picker && typeof picker.openDp === 'function') {
-      setTimeout(() => picker.openDp(), 0);
-    }
+    if (this.eInput) this.eInput.focus();
   }
-
 
   getValue() {
-    return this.vm?.value || '';
+    return this.value || '';
   }
 
-  destroy() {
-    if (this.app) {
-      this.app.unmount();
-    }
-  }
+  destroy() {}
 
   isCancelBeforeStart() {
     return false;
@@ -96,6 +81,6 @@ export default class DateTimeCellEditor {
   }
 
   isPopup() {
-    return true;
+    return false;
   }
 }
