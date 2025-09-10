@@ -1508,6 +1508,7 @@ setTimeout(() => {
             }
             // Use CustomDatePicker for editable date fields and deadlines
             if (colCopy.cellDataType === 'dateString' || tagControl === 'DEADLINE') {
+
               result.filter = 'agDateColumnFilter';
               if (tagControl !== 'DEADLINE') {
                 result.cellDataType = 'dateString';
