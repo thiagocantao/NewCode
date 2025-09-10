@@ -1,5 +1,6 @@
 /* Filtro customizado para campos do tipo list */
-.list-filter, .list-editor {
+.list-filter,
+.list-editor {
   padding: 12px 12px 8px 12px;
   min-width: 260px;
   max-width: 350px;
@@ -10,7 +11,8 @@
   box-shadow: 0 2px 8px rgba(255, 255, 255, 0.067);
   font-size: 15px;
   font-family: Roboto, Arial, sans-serif;
-  overflow: hidden; /* Garante que nada "vaze" para fora da borda arredondada */
+  overflow: hidden;
+  /* Garante que nada "vaze" para fora da borda arredondada */
   position: relative;
 }
 
@@ -52,33 +54,27 @@
   font-family: Roboto, Arial, sans-serif;
   font-size: 13px;
 }
+
 :is(.list-filter, .list-editor) .filter-header {
   margin-bottom: 10px;
 }
+
 :is(.list-filter, .list-editor) .field-search {
-  display: flex;
-  align-items: center;
-  margin-bottom: 4px;
   position: relative;
-  padding: 0 12px 20px 12px;
-  width: 100%;
-  box-sizing: border-box;
-  border-bottom: 1px solid #f3f3f7;
+  padding: 0 0 10px 0;
 }
 
 :is(.list-filter, .list-editor) .search-input {
-    flex: 1;
   width: 100%;
-  padding: 4px 36px 4px 12px;
+  padding: 7px 36px 7px 13px;
+  border: 1px solid #ddd;
   border-radius: 20px;
-  font-size: 13px;            /* 13px */
-  border: 1px solid #E0E0E0 !important;
+  font-size: 13px;
+  font-family: Roboto, Arial, sans-serif;
+  outline: none;
   background: #fff;
-  outline: none !important;
-  box-shadow: none !important;
-  transition: border 0.2s;
+  color: #444;
   box-sizing: border-box;
-  font-weight: 400;           /* sem bold */
 }
 
 :is(.list-filter, .list-editor) .search-input::placeholder {
@@ -88,12 +84,13 @@
 }
 
 :is(.list-filter, .list-editor) .search-icon {
- position: absolute;
-  right: 21px;
-  top: 14px;
+  position: absolute;
+  right: 12px;
+  top: 16px;
   transform: translateY(-50%);
-  font-size: 18px !important;
-  color: #888;
+  color: #999;
+  width: 20px;
+  height: 20px;
   pointer-events: none;
   display: flex;
   align-items: center;
@@ -111,11 +108,13 @@
   display: inline-block;
   vertical-align: middle;
 }
+
 :is(.list-filter, .list-editor) .filter-list {
   max-height: 180px;
   overflow-y: auto;
   margin-bottom: 10px;
 }
+
 :is(.list-filter, .list-editor) .select-all-row {
   display: flex;
   align-items: center;
@@ -208,47 +207,13 @@
   font-family: Roboto, Arial, sans-serif;
 }
 
-:is(.list-filter, .list-editor) .filter-item.category-option .filter-label {
-  background: #c9edf9;
-  color: #303030;
-  border: 1px solid #c9edf9;
-  border-radius: 12px;
-  display: inline-flex;
-  align-items: center;
-  padding: 0 12px;
-  height: 25px;
-  font-weight: 400;
-}
-
-:is(.list-filter, .list-editor) .filter-item.category-option:hover,
-:is(.list-filter, .list-editor) .filter-item.category-option.selected {
-  background: transparent;
-}
-
-:is(.list-filter, .list-editor) .filter-item.category-option .filter-label {
-  background: #c9edf9;
-  color: #303030;
-  border: 1px solid #c9edf9;
-  border-radius: 12px;
-  display: inline-flex;
-  align-items: center;
-  padding: 0 12px;
-  height: 25px;
-  font-weight: 400;
-}
-
-:is(.list-filter, .list-editor) .filter-item.category-option:hover,
-:is(.list-filter, .list-editor) .filter-item.category-option.selected {
-  background: transparent;
-}
-
-
 /* Estilos para opções de usuário com avatar */
 :is(.list-filter, .list-editor) .user-option {
   display: flex;
   align-items: center;
   gap: 8px;
 }
+
 :is(.list-filter, .list-editor) .avatar-outer {
   width: 24px;
   height: 24px;
@@ -260,6 +225,7 @@
   background: #fff;
   flex-shrink: 0;
 }
+
 :is(.list-filter, .list-editor) .avatar-middle {
   width: 22px;
   height: 22px;
@@ -270,6 +236,7 @@
   justify-content: center;
   background: #fff;
 }
+
 :is(.list-filter, .list-editor) .user-avatar {
   width: 18px;
   height: 18px;
@@ -280,18 +247,19 @@
   justify-content: center;
   overflow: hidden;
 }
+
 :is(.list-filter, .list-editor) .user-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   border-radius: 50%;
 }
+
 :is(.list-filter, .list-editor) .user-initial {
   width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
-
   justify-content: center;
   font-size: 12px;
   font-weight: 400;
@@ -303,22 +271,10 @@
 
 :is(.list-filter, .list-editor) .editor-close {
   position: absolute;
-  top: 35px;
-  right: 12px;
-  font-size: 16px;
+  top: 2px;
+  right: 3px;
+  font-size: 18px;
   color: #888;
   cursor: pointer;
   line-height: 1;
-}
-
-/* Agrupamento em seções (Responsibles / Groups) */
-:is(.list-filter, .list-editor) .filter-section-title {
-  padding: 4px 0;
-  color: #444;
-  font-size: 13px;
-  font-weight: 400;
-}
-
-:is(.list-filter, .list-editor) .filter-section {
-  padding-bottom: 4px;
 }
