@@ -2,11 +2,14 @@ export default class ResponsibleUserFilterRenderer {
   constructor() {
     this.searchText = '';
     this.selectedValues = [];
-    this.allValues = [];
-    this.filteredValues = [];
-    this.selectAll = false;
-    this.userInfo = {};
-    this.formattedValues = [];
+    // armazenamos separadamente usuários e grupos
+    this.userKeys = [];
+    this.groupKeys = [];
+    this.filteredUserKeys = [];
+    this.filteredGroupKeys = [];
+    this.metaMap = {}; // key -> { id, type, name, photo }
+    this.groupToUsers = {};
+    this.userToGroups = {};
   }
 
   init(params) {
@@ -49,8 +52,9 @@ export default class ResponsibleUserFilterRenderer {
     });
 
     this.selectAllCheckbox.addEventListener('change', (e) => {
+      const all = [...this.filteredUserKeys, ...this.filteredGroupKeys];
       if (e.target.checked) {
-        this.selectedValues = [...this.filteredValues];
+        this.selectedValues = [...all];
       } else {
         this.selectedValues = [];
       }
@@ -96,134 +100,139 @@ export default class ResponsibleUserFilterRenderer {
   }
 
   loadValues() {
-    const api = this.params.api;
     const column = this.params.column;
     const colDef = column.getColDef();
-    const field = colDef.field || column.getColId();
-    const cellRendererParams = colDef.cellRendererParams || {};
 
-    this.allValues = [];
-    this.formattedValues = [];
-    this.userInfo = {};
-    api.forEachNode(node => {
-      if (node.data) {
-        let value = this.getNestedValue(node.data, field);
-        let formatted = value;
-        // Aplica o formatter se necessário, igual ao FormatterCellRenderer
-        if (cellRendererParams.useCustomFormatter && typeof cellRendererParams.formatter === 'string') {
-          try {
-            const formatterFn = new Function(
-              'value',
-              'row',
-              'colDef',
-              'getRoundedSpanColor',
-              'dateFormatter',
-              cellRendererParams.formatter
-            );
-            formatted = formatterFn(
-              value,
-              node.data,
-              colDef,
-              this.getRoundedSpanColor,
-              this.dateFormatter
-            );
-          } catch (e) {
-            // Se der erro, mantém o valor original
-          }
-        }
-        if (value !== undefined && value !== null) {
-          this.allValues.push(value);
-          const name = node.data.ResponsibleUser || node.data.Username || node.data.UserName || '';
-          const photo = node.data.photoUrl || node.data.PhotoUrl || node.data.PhotoURL || node.data.UserPhoto || '';
-          this.userInfo[value] = { name, photo };
-          this.formattedValues.push(name || formatted);
-        }
-      }
-    });
-    // Remover duplicatas mantendo o mapeamento
-    const seen = new Set();
-    const uniqueRaw = [];
-    const uniqueFormatted = [];
-    this.allValues.forEach((raw, idx) => {
-      if (!seen.has(raw)) {
-        seen.add(raw);
-        uniqueRaw.push(raw);
-        uniqueFormatted.push(this.formattedValues[idx]);
-      }
-    });
-    // Função utilitária para extrair texto puro de HTML
-    function stripHtml(html) {
-      const tmp = document.createElement('div');
-      tmp.innerHTML = html;
-      return tmp.textContent || tmp.innerText || '';
+    // obtém opções usadas pelo editor/renderer
+    let crParams = colDef.cellRendererParams || {};
+    if (typeof crParams === 'function') {
+      try { crParams = crParams(this.params); } catch { crParams = {}; }
     }
-    // Ordena os valores alfabeticamente pelo texto visível formatado
-    const zipped = uniqueRaw.map((raw, idx) => ({ raw, formatted: uniqueFormatted[idx] }));
-    zipped.sort((a, b) => {
-      const textA = stripHtml(String(a.formatted)).toLowerCase();
-      const textB = stripHtml(String(b.formatted)).toLowerCase();
-      return textA.localeCompare(textB, undefined, { sensitivity: 'base' });
+    const options = Array.isArray(crParams.options) ? crParams.options : [];
+
+    this.userKeys = [];
+    this.groupKeys = [];
+    this.filteredUserKeys = [];
+    this.filteredGroupKeys = [];
+    this.metaMap = {};
+    this.groupToUsers = {};
+    this.userToGroups = {};
+
+    const addUser = (u) => {
+      const id = u?.id ?? u?.value ?? u?.UserID;
+      if (id == null) return;
+      const key = `u-${id}`;
+      if (this.metaMap[key]) return;
+      const name = u.name || u.label || u.DisplayName || '';
+      const photo = u.photoUrl || u.PhotoURL || u.PhotoUrl || u.photo || u.image || u.img || '';
+      this.metaMap[key] = { id, type: 'user', name, photo };
+      this.userKeys.push(key);
+    };
+
+    const addGroup = (g) => {
+      const id = g?.id ?? g?.value;
+      if (id == null) return;
+      const key = `g-${id}`;
+      const name = g.name || g.label || '';
+      const photo = g.photoUrl || g.PhotoURL || g.PhotoUrl || g.photo || g.image || g.img || '';
+      this.metaMap[key] = { id, type: 'group', name, photo };
+      this.groupKeys.push(key);
+      const members = Array.isArray(g.groupUsers) ? g.groupUsers : [];
+      this.groupToUsers[id] = [];
+      members.forEach(m => {
+        const uid = m?.id ?? m?.value ?? m?.UserID;
+        if (uid == null) return;
+        this.groupToUsers[id].push(String(uid));
+        if (!this.userToGroups[uid]) this.userToGroups[uid] = [];
+        this.userToGroups[uid].push(String(id));
+        addUser(m);
+      });
+    };
+
+    options.forEach(opt => {
+      const type = String(opt?.type || '').toLowerCase();
+      if (type === 'group' || Array.isArray(opt.groupUsers)) {
+        addGroup(opt);
+      } else {
+        addUser(opt);
+      }
     });
-    this.allValues = zipped.map(z => z.raw);
-    this.formattedValues = zipped.map(z => z.formatted);
-    const newInfo = {};
-    this.allValues.forEach(v => { if (this.userInfo[v]) newInfo[v] = this.userInfo[v]; });
-    this.userInfo = newInfo;
-    this.filteredValues = [...this.allValues];
+
+    const sortFn = (a, b) => {
+      const na = (this.metaMap[a]?.name || '').toLowerCase();
+      const nb = (this.metaMap[b]?.name || '').toLowerCase();
+      return na.localeCompare(nb);
+    };
+    this.userKeys.sort(sortFn);
+    this.groupKeys.sort(sortFn);
+    this.filteredUserKeys = [...this.userKeys];
+    this.filteredGroupKeys = [...this.groupKeys];
   }
 
   filterValues() {
-    if (!this.searchText) {
-      this.filteredValues = [...this.allValues];
+    const search = (this.searchText || '').toLowerCase();
+    if (!search) {
+      this.filteredUserKeys = [...this.userKeys];
+      this.filteredGroupKeys = [...this.groupKeys];
     } else {
-      this.filteredValues = this.allValues.filter((raw, idx) => {
-        const formatted = this.formattedValues[idx];
-        return String(formatted).toLowerCase().includes(this.searchText.toLowerCase());
-      });
+      this.filteredUserKeys = this.userKeys.filter(k =>
+        (this.metaMap[k]?.name || '').toLowerCase().includes(search)
+      );
+      this.filteredGroupKeys = this.groupKeys.filter(k =>
+        (this.metaMap[k]?.name || '').toLowerCase().includes(search)
+      );
     }
     this.renderFilterList();
   }
 
   renderFilterList() {
+    const filteredAll = [...this.filteredUserKeys, ...this.filteredGroupKeys];
     this.selectAllCheckbox.checked =
-      this.filteredValues.length > 0 &&
-      this.filteredValues.every(v => this.selectedValues.includes(v));
+      filteredAll.length > 0 && filteredAll.every(v => this.selectedValues.includes(v));
 
-    this.filterList.innerHTML = this.filteredValues.map((rawValue) => {
-      const idx = this.allValues.indexOf(rawValue);
-      const formattedValue = this.formattedValues[idx] || rawValue;
-      const checked = this.selectedValues.includes(rawValue) ? 'checked' : '';
-      const info = this.userInfo[rawValue] || { name: formattedValue, photo: '' };
-      const name = info.name || formattedValue;
-      const photo = info.photo;
+    const renderItem = (key) => {
+      const meta = this.metaMap[key] || {};
+      const checked = this.selectedValues.includes(key) ? 'checked' : '';
+      const name = meta.name || '';
+      const photo = meta.photo;
       const initial = name ? name.trim().charAt(0).toUpperCase() : '';
-      const avatar = photo
-        ? `<img src="${photo}" alt="" />`
-        : `<span class="user-initial">${initial}</span>`;
+      const avatar = meta.type === 'group'
+        ? `<span style="font-size:19px; padding-top:3px; padding-left:3px" class="material-symbols-outlined">groups</span>`
+        : (photo
+            ? `<img src="${photo}" alt="" />`
+            : `<span class="user-initial">${initial}</span>`);
       return `
-        <label class="filter-item${this.selectedValues.includes(rawValue) ? ' selected' : ''}">
-          <input type="checkbox" value="${rawValue}" ${checked} />
+        <label class="filter-item${this.selectedValues.includes(key) ? ' selected' : ''}">
+          <input type="checkbox" value="${key}" ${checked} />
           <span class="user-option">
             <span class="avatar-outer"><span class="avatar-middle"><span class="user-avatar">${avatar}</span></span></span>
             <span class="filter-label">${name}</span>
           </span>
-        </label>
-      `;
-    }).join('');
+        </label>`;
+    };
+
+    let html = '';
+    if (this.filteredUserKeys.length) {
+      html += `<div class="filter-group-label">Responsibles</div>`;
+      html += this.filteredUserKeys.map(renderItem).join('');
+    }
+    if (this.filteredGroupKeys.length) {
+      html += `<div class="filter-group-label">Groups</div>`;
+      html += this.filteredGroupKeys.map(renderItem).join('');
+    }
+    this.filterList.innerHTML = html;
 
     this.filterList.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
       checkbox.addEventListener('change', (e) => {
         const value = e.target.value;
         if (e.target.checked) {
-          if (!this.selectedValues.includes(value)) {
-            this.selectedValues.push(value);
-          }
+          if (!this.selectedValues.includes(value)) this.selectedValues.push(value);
         } else {
           this.selectedValues = this.selectedValues.filter(v => v !== value);
         }
+        const all = [...this.filteredUserKeys, ...this.filteredGroupKeys];
         this.selectAllCheckbox.checked =
-          this.filteredValues.length > 0 &&
-          this.filteredValues.every(v => this.selectedValues.includes(v));
+          all.length > 0 && all.every(v => this.selectedValues.includes(v));
         this.applyFilter();
       });
     });
@@ -237,7 +246,8 @@ export default class ResponsibleUserFilterRenderer {
     this.selectedValues = [];
     this.searchText = '';
     this.searchInput.value = '';
-    this.filteredValues = [...this.allValues];
+    this.filteredUserKeys = [...this.userKeys];
+    this.filteredGroupKeys = [...this.groupKeys];
     this.renderFilterList();
     this.params.filterChangedCallback();
   }
@@ -248,9 +258,30 @@ export default class ResponsibleUserFilterRenderer {
 
   doesFilterPass(params) {
     if (this.selectedValues.length === 0) return true;
-    const field = this.params.column.getColDef().field || this.params.column.getColId();
-    const value = this.getNestedValue(params.data, field);
-    return this.selectedValues.includes(value);
+    const row = params.data || {};
+    const rowUserId =
+      row.ResponsibleUserID || row.ResponsibleID || row.UserID || row.UserId || null;
+    const rowGroupId =
+      row.AssignedGroupID || row.GroupID || row.GroupId || null;
+
+    for (const key of this.selectedValues) {
+      const meta = this.metaMap[key];
+      if (!meta) continue;
+      if (meta.type === 'user') {
+        if (rowUserId != null && String(rowUserId) === String(meta.id)) return true;
+        if (rowGroupId != null) {
+          const members = this.groupToUsers[rowGroupId] || [];
+          if (members.includes(String(meta.id))) return true;
+        }
+      } else if (meta.type === 'group') {
+        if (rowGroupId != null && String(rowGroupId) === String(meta.id)) return true;
+        if (rowUserId != null) {
+          const groups = this.userToGroups[rowUserId] || [];
+          if (groups.includes(String(meta.id))) return true;
+        }
+      }
+    }
+    return false;
   }
 
   getModel() {
