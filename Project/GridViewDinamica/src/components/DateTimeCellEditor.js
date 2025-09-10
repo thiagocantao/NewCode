@@ -76,7 +76,6 @@ export default class DateTimeCellEditor {
     }
   }
 
-
   getValue() {
     return this.vm?.value || '';
   }
@@ -99,3 +98,4 @@ export default class DateTimeCellEditor {
     return true;
   }
 }
+
