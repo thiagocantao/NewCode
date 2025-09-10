@@ -177,6 +177,10 @@ export default class ResponsibleUserFilterRenderer {
     });
 
     const field = this.params.column.getColDef().field || this.params.column.getColId();
+    // Guard against calling AG Grid APIs when the grid has already been
+    // destroyed which may happen if the filter component lives longer than the
+    // grid instance.
+    if (!api || (api.isDestroyed && api.isDestroyed())) return;
     api.forEachNode(node => {
       const data = node.data || {};
       const userId = this.getNestedValue(data, field);
