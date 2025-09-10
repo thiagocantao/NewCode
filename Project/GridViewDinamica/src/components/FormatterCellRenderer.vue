@@ -5,12 +5,6 @@
     v-html="formattedValue"
     :style="[cellStyle, pointerStyle]"
   ></div>
-  <div
-    class="formatter-cell"
-    v-else-if="isCategoryField"
-    v-html="formattedValue"
-    :style="[cellStyle, pointerStyle]"
-  ></div>
   <div class="formatter-cell" v-else :style="[cellStyle, pointerStyle]">
     {{ formattedValue }}
   </div>
@@ -54,7 +48,7 @@ function dateFormatter(dateValue, lang) {
 
     return new Intl.DateTimeFormat(lang || 'en', dateOptions).format(date);
   } catch (error) {
-    
+    console.error('Error formatting date:', error);
     return dateValue;
   }
 }
@@ -83,18 +77,6 @@ export default {
     return { now };
   },
   computed: {
-    isCategoryField() {
-      const tag = (this.params.colDef?.TagControl || this.params.colDef?.tagControl || this.params.colDef?.tagcontrol || '')
-        .toString()
-        .trim()
-        .toUpperCase();
-      const identifier = (this.params.colDef?.FieldDB || '')
-        .toString()
-        .trim()
-        .toUpperCase();
-      const categoryTags = ['CATEGORYID', 'SUBCATEGORYID', 'CATEGORYLEVEL3ID'];
-      return categoryTags.includes(tag) || categoryTags.includes(identifier);
-    },
     formattedValue() {
       try {
         const rawValue = this.params.value;
@@ -105,16 +87,8 @@ export default {
           );
           if (match) displayValue = match.label;
         }
-
-        if (this.isCategoryField) {
-          return `<span style="height:25px; color: #303030; background:#c9edf9; border: 1px solid #c9edf9; border-radius: 12px; display: inline-flex; align-items: center; padding: 0 12px; font-weight:400;">${displayValue}</span>`;
-        }
         // DEADLINE: barra proporcional
-        if (
-          this.params.colDef?.context?.TagControl === 'DEADLINE' ||
-          this.params.colDef?.TagControl === 'DEADLINE' ||
-          this.params.colDef?.tagControl === 'DEADLINE'
-        ) {
+        if (this.params.colDef?.TagControl === 'DEADLINE' || this.params.colDef?.tagControl === 'DEADLINE') {
           const value = this.params.value;
           if (!value) return '';
           // Parse data DEADLINE
@@ -185,7 +159,7 @@ export default {
             textColor = '#b71c1c';
             debugLabel += ' (vermelho)';
           }
-          
+          console.log('DEADLINE BAR:', { percent, cor, label: debugLabel, value, diffDays });
           // Barra HTML
           return `
             <div class="deadline-bar-bg" style="width:100%;height:22px;position:relative;background:#f5f5f5;border-radius:8px;overflow:hidden;display:block;">
@@ -204,7 +178,7 @@ export default {
           if (styleArray && Array.isArray(styleArray)) {
             // Defina o raio de acordo com o FieldDB
             let borderRadius = '12px';
-            if (this.params.colDef?.context?.FieldDB === 'StatusID') borderRadius = '5px';
+            if (this.params.colDef?.FieldDB === 'StatusID') borderRadius = '5px';
             // Função inline para aplicar o raio
             function getRoundedSpanColorWithRadius(matchVal, textVal, colorArray) {
               if (!colorArray || !Array.isArray(colorArray) || !matchVal) return textVal;
@@ -237,7 +211,7 @@ export default {
           dateFormatter
         );
       } catch (error) {
-        
+        console.error('Error in custom formatter:', error);
         return `Error: ${error.message}`;
       }
     },
