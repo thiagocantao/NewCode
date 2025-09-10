@@ -1176,11 +1176,12 @@ setTimeout(() => {
           hide: !!colCopy.hide,
           editable: !!colCopy.editable, // <-- garantir editable
           FieldDB: colCopy.FieldDB, // <-- garantir FieldDB no colDef
+          TagControl: colCopy.TagControl,
           ...(colCopy.pinned === 'left' ? { lockPinned: true, lockPosition: true } : {}),
         };
 
-const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
-              const identifier = (colCopy.FieldDB || '').toUpperCase();
+        const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
+        const identifier = (colCopy.FieldDB || '').toUpperCase();
 
         // Se o filtro for agListColumnFilter, usar o filtro customizado
         if (colCopy.filter === 'agListColumnFilter') {
@@ -1505,20 +1506,26 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             if (colCopy.headerAlign) {
               result.headerClass = `ag-header-align-${colCopy.headerAlign}`;
             }
-            // Use CustomDatePicker for editable date fields
-            if (colCopy.cellDataType === 'dateString') {
+            // Use CustomDatePicker for editable date fields and deadlines
+            if (colCopy.cellDataType === 'dateString' || tagControl === 'DEADLINE') {
+
               result.filter = 'agDateColumnFilter';
-              result.cellDataType = 'dateString';
+              if (tagControl !== 'DEADLINE') {
+                result.cellDataType = 'dateString';
+              } else {
+                delete result.cellDataType;
+              }
               if (colCopy.editable) {
-                // use the class directly to avoid lookup issues
                 result.cellEditor = DateTimeCellEditor;
-                // Format value for display when editing ends
                 result.valueFormatter = params => {
                   if (typeof params.value === 'string' && params.value) {
                     try {
                       const date = new Date(params.value);
                       if (!isNaN(date.getTime())) {
                         const pad = n => n.toString().padStart(2, '0');
+                        if (tagControl === 'DEADLINE') {
+                          return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+                        }
                         return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
                       }
                     } catch (e) {
@@ -1527,6 +1534,9 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                   }
                   if (params.value instanceof Date && !isNaN(params.value.getTime())) {
                     const pad = n => n.toString().padStart(2, '0');
+                    if (tagControl === 'DEADLINE') {
+                      return `${params.value.getFullYear()}-${pad(params.value.getMonth() + 1)}-${pad(params.value.getDate())} ${pad(params.value.getHours())}:${pad(params.value.getMinutes())}:${pad(params.value.getSeconds())}`;
+                    }
                     return `${params.value.getFullYear()}-${pad(params.value.getMonth() + 1)}-${pad(params.value.getDate())}`;
                   }
                   return params.value || '';
@@ -1534,12 +1544,6 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
                 delete result.valueParser;
               }
             }
-            // Formatação especial para DEADLINE
-            const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
-            const identifier = (colCopy.FieldDB || '').toUpperCase();
-
-
-
             if (tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
               result.cellRenderer = 'UserCellRenderer';
               const opts = Array.isArray(colCopy.options)
@@ -1555,34 +1559,6 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
               }
             }
             if (tagControl === 'DEADLINE') {
-              result.filter = 'agDateColumnFilter';
-              // Remove default date configuration applied above
-              delete result.cellDataType;
-              if (colCopy.editable) {
-                // use the class directly to avoid lookup issues
-                result.cellEditor = DateTimeCellEditor;
-
-                // Format value for display when editing ends
-                result.valueFormatter = params => {
-                  if (typeof params.value === 'string' && params.value) {
-                    try {
-                      const date = new Date(params.value);
-                      if (!isNaN(date.getTime())) {
-                        const pad = n => n.toString().padStart(2, '0');
-                        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
-                      }
-                    } catch (e) {
-                      return params.value;
-                    }
-                  }
-                  if (params.value instanceof Date && !isNaN(params.value.getTime())) {
-                    const pad = n => n.toString().padStart(2, '0');
-                    return `${params.value.getFullYear()}-${pad(params.value.getMonth() + 1)}-${pad(params.value.getDate())} ${pad(params.value.getHours())}:${pad(params.value.getMinutes())}:${pad(params.value.getSeconds())}`;
-                  }
-                  return params.value || '';
-                };
-                delete result.valueParser;
-              }
               result.cellRenderer = params => {
                 // Função utilitária para calcular diff e cor (idêntica ao FieldComponent.vue)
                 function normalizeDeadline(val) {
