@@ -10,21 +10,6 @@ export default class ListFilterRenderer {
 
   init(params) {
     this.params = params;
-    const tag =
-      (params.colDef.TagControl ||
-        params.colDef.tagControl ||
-        params.colDef.tagcontrol ||
-        '')
-        .toString()
-        .trim()
-        .toUpperCase();
-    const identifier = (params.colDef.FieldDB || '')
-      .toString()
-      .trim()
-      .toUpperCase();
-    const categoryTags = ['CATEGORYID', 'SUBCATEGORYID', 'CATEGORYLEVEL3ID'];
-    this.isCategoryField =
-      categoryTags.includes(tag) || categoryTags.includes(identifier);
     this.loadValues();
     this.createGui();
   }
@@ -85,13 +70,7 @@ export default class ListFilterRenderer {
     if (!matchingStyle) return value;
     const borderRadius = fieldName === 'StatusID' ? '4px' : '12px';
     const fontweight = "font-weight:bold;";
-    return `<span style="height:25px; color: ${matchingStyle.CorFonte}; background:${matchingStyle.CorFundo}; border: 1px solid ${matchingStyle.CorFundo}; border-radius: ${borderRadius}; ${fontweight} display: inline-flex; align-items: center; padding: 0 12px;">${value}</span>`; 
-  }
-
-  stripHtml(html) {
-    const tmp = document.createElement('div');
-    tmp.innerHTML = html;
-    return tmp.textContent || tmp.innerText || '';
+    return `<span style="height:25px; color: ${matchingStyle.CorFonte}; background:${matchingStyle.CorFundo}; border: 1px solid ${matchingStyle.CorFundo}; border-radius: ${borderRadius}; ${fontweight} display: inline-flex; align-items: center; padding: 0 12px;">${value}</span>`;
   }
 
   dateFormatter(dateValue, lang) {
@@ -118,16 +97,6 @@ export default class ListFilterRenderer {
   loadValues() {
     const api = this.params.api;
     const column = this.params.column;
-
-    // Avoid calling AG Grid APIs if the grid has already been destroyed.
-    // When the component lives longer than the grid instance (e.g. after
-    // navigation) AG Grid will throw "forEachNode() cannot be called as the
-    // grid has been destroyed". Checking here prevents those console errors
-    // in published projects.
-    if (!api || (api.isDestroyed && api.isDestroyed()) || !column) {
-      return;
-    }
-
     const colDef = column.getColDef();
     const field = colDef.field || column.getColId();
 
@@ -255,13 +224,10 @@ export default class ListFilterRenderer {
       const idx = this.allValues.indexOf(rawValue);
       const formattedValue = this.formattedValues[idx] || rawValue;
       const checked = this.selectedValues.includes(rawValue) ? 'checked' : '';
-      const baseClass = `filter-item${this.selectedValues.includes(rawValue) ? ' selected' : ''}`;
-      const itemClass = this.isCategoryField ? `${baseClass} category-option` : baseClass;
-      const label = this.isCategoryField ? this.stripHtml(String(formattedValue)) : formattedValue;
       return `
-        <label class="${itemClass}">
+        <label class="filter-item${this.selectedValues.includes(rawValue) ? ' selected' : ''}">
           <input type="checkbox" value="${rawValue}" ${checked} />
-          <span class="filter-label" title="">${label}</span>
+          <span class="filter-label" title="">${formattedValue}</span>
         </label>
       `;
     }).join('');
