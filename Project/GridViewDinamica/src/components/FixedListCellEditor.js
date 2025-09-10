@@ -1,6 +1,7 @@
 export default class FixedListCellEditor {
   init(params) {
     this.params = params;
+    console.log('FixedListCellEditor init params:', params);
     const colDef = params.colDef || {};
     this.rendererParams =
       typeof colDef.cellRendererParams === 'function'
@@ -20,67 +21,95 @@ export default class FixedListCellEditor {
     this.listEl = this.eGui.querySelector('.filter-list');
     this.closeBtn = this.eGui.querySelector('.editor-close');
 
+    // log API calls triggered while loading list options
+    this.restoreApiLogger = this.setupApiLogger();
+
 
     const tag =
       (params.colDef.TagControl ||
         params.colDef.tagControl ||
         params.colDef.tagcontrol ||
-        '')
-        .toString()
-        .trim()
-        .toUpperCase();
-    const identifier = (params.colDef.FieldDB || '')
-      .toString()
-      .trim()
-      .toUpperCase();
+        '').toUpperCase();
+    const identifier = (params.colDef.FieldDB || '').toUpperCase();
     this.isResponsibleUser =
       tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
-    const categoryTags = ['CATEGORYID', 'SUBCATEGORYID', 'CATEGORYLEVEL3ID'];
-    this.isCategoryField =
-      categoryTags.includes(tag) || categoryTags.includes(identifier);
 
 
+    // Fixed list options (supports promises)
+    const normalize = opt =>
+      typeof opt === 'object' ? opt : { value: opt, label: String(opt) };
 
-    // Fixed list options (supports options from renderer params)
-    const normalize = (opt) => {
-      if (typeof opt === 'object') {
-        const findKey = key => Object.keys(opt).find(k => k.toLowerCase() === key);
-        const labelKey = findKey('label') || findKey('name');
-        const valueKey = findKey('value') || findKey('id');
-        return {
-          ...opt,
-          value: valueKey ? opt[valueKey] : opt.value,
-          label: labelKey ? opt[labelKey] : opt.label || opt.name
-        };
-      }
-      return { value: opt, label: String(opt) };
-    };
+    const resolveOptions = arr => {
+      console.log('FixedListCellEditor resolved options:', arr);
 
-    const resolveOptions = (arr) => {
-      let list;
-      if (Array.isArray(arr)) list = arr;
-      else if (arr && typeof arr === 'object') list = Object.values(arr);
-      else list = [];
-      this.options = list.map(normalize);
-
+      this.options = (arr || []).map(normalize);
       this.filteredOptions = [...this.options];
       this.renderOptions();
     };
 
     let optionsPromise;
-    const rendererOpts = this.rendererParams && this.rendererParams.options;
-    if (rendererOpts && typeof rendererOpts.then === 'function') {
-      optionsPromise = rendererOpts;
-    } else if (Array.isArray(rendererOpts)) {
-      optionsPromise = Promise.resolve(rendererOpts);
+    if (typeof params.options === 'function') {
+      console.log('FixedListCellEditor calling params.options function with', params);
+      try {
+        const result = params.options(params);
+        console.log('FixedListCellEditor params.options function result', result);
+        optionsPromise =
+          result && typeof result.then === 'function'
+            ? result
+            : Promise.resolve(result);
+      } catch (err) {
+        console.error('FixedListCellEditor params.options function error', err);
+        optionsPromise = Promise.resolve([]);
+      }
+    } else if (params.options && typeof params.options.then === 'function') {
+
+      console.log('FixedListCellEditor using params.options promise', params.options);
+      optionsPromise = params.options;
     } else if (Array.isArray(params.options)) {
+      console.log('FixedListCellEditor using params.options array', params.options);
       optionsPromise = Promise.resolve(params.options);
+    } else if (typeof params.colDef.options === 'function') {
+      console.log('FixedListCellEditor calling colDef.options function with', params);
+      try {
+        const result = params.colDef.options(params);
+        console.log('FixedListCellEditor colDef.options function result', result);
+        optionsPromise =
+          result && typeof result.then === 'function'
+            ? result
+            : Promise.resolve(result);
+      } catch (err) {
+        console.error('FixedListCellEditor colDef.options function error', err);
+        optionsPromise = Promise.resolve([]);
+      }
+
+    } else if (Array.isArray(params.colDef.options)) {
+      console.log('FixedListCellEditor using colDef.options', params.colDef.options);
+      optionsPromise = Promise.resolve(params.colDef.options);
     } else if (Array.isArray(params.colDef.listOptions)) {
+      console.log('FixedListCellEditor using colDef.listOptions array', params.colDef.listOptions);
       optionsPromise = Promise.resolve(params.colDef.listOptions);
+    } else if (
+      typeof params.colDef.listOptions === 'function'
+    ) {
+      console.log('FixedListCellEditor calling colDef.listOptions function with', params);
+      try {
+        const result = params.colDef.listOptions(params);
+        console.log('FixedListCellEditor colDef.listOptions function result', result);
+        optionsPromise =
+          result && typeof result.then === 'function'
+            ? result
+            : Promise.resolve(result);
+      } catch (err) {
+        console.error('FixedListCellEditor colDef.listOptions function error', err);
+        optionsPromise = Promise.resolve([]);
+      }
+
     } else if (
       typeof params.colDef.listOptions === 'string' &&
       params.colDef.listOptions.trim() !== ''
     ) {
+      console.log('FixedListCellEditor using colDef.listOptions string', params.colDef.listOptions);
+
       optionsPromise = Promise.resolve(
         params.colDef.listOptions.split(',').map(o => o.trim())
       );
@@ -89,14 +118,31 @@ export default class FixedListCellEditor {
       typeof params.colDef.dataSource.list_options === 'string' &&
       params.colDef.dataSource.list_options.trim() !== ''
     ) {
+
+      console.log(
+        'FixedListCellEditor using params.colDef.dataSource.list_options',
+        params.colDef.dataSource.list_options
+      );
+
       optionsPromise = Promise.resolve(
-        params.colDef.dataSource.list_options.split(',').map(o => o.trim())
+        params.colDef.dataSource.list_options
+          .split(',')
+          .map(o => o.trim())
       );
     } else {
+      console.log('FixedListCellEditor no options source found');
       optionsPromise = Promise.resolve([]);
     }
 
-    optionsPromise.then(resolveOptions).catch(() => resolveOptions([]));
+    optionsPromise
+      .then(res => {
+        console.log('FixedListCellEditor optionsPromise resolved', res);
+        resolveOptions(res);
+      })
+      .catch(err => {
+        console.error('FixedListCellEditor optionsPromise rejected', err);
+        resolveOptions([]);
+      });
 
 
     this.value = params.value;
@@ -106,8 +152,7 @@ export default class FixedListCellEditor {
     });
 
     if (this.closeBtn) {
-      this.closeBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
+      this.closeBtn.addEventListener('click', () => {
         if (this.params.api && this.params.api.stopEditing) {
           this.params.api.stopEditing(true);
         } else if (this.params.stopEditing) {
@@ -115,18 +160,67 @@ export default class FixedListCellEditor {
         }
       });
     }
+  }
 
-    // Close editor when clicking outside
-    this.handleOutsideClick = (e) => {
-      if (!this.eGui.contains(e.target)) {
-        if (this.params.api && this.params.api.stopEditing) {
-          this.params.api.stopEditing();
-        } else if (this.params.stopEditing) {
-          this.params.stopEditing();
+  setupApiLogger() {
+    const origFetch = window.fetch;
+    const origAxiosReq = window.axios && window.axios.request;
+    const XHR = window.XMLHttpRequest;
+    const origXHROpen = XHR && XHR.prototype.open;
+    const origXHRSend = XHR && XHR.prototype.send;
+    if (origFetch) {
+      window.fetch = (input, init = {}) => {
+        console.log('FixedListCellEditor fetch called with:', input, init);
+        if (init && init.body) {
+          try {
+            console.log('FixedListCellEditor fetch body:', init.body);
+          } catch (e) {
+            console.error('FixedListCellEditor fetch body log error', e);
+          }
         }
-      }
+        return origFetch(input, init);
+      };
+    }
+    if (origAxiosReq) {
+      window.axios.request = function (config) {
+        console.log('FixedListCellEditor axios request config:', config);
+        if (config && config.data) {
+          try {
+            console.log('FixedListCellEditor axios request body:', config.data);
+          } catch (e) {
+            console.error('FixedListCellEditor axios body log error', e);
+          }
+        }
+        return origAxiosReq.apply(this, arguments);
+      };
+    }
+    if (origXHROpen && origXHRSend) {
+      XHR.prototype.open = function (method, url) {
+        this.__flcMethod = method;
+        this.__flcUrl = url;
+        return origXHROpen.apply(this, arguments);
+      };
+      XHR.prototype.send = function (body) {
+        try {
+          console.log(
+            'FixedListCellEditor xhr request:',
+            this.__flcMethod,
+            this.__flcUrl,
+            body
+          );
+        } catch (e) {
+          console.error('FixedListCellEditor xhr body log error', e);
+        }
+        return origXHRSend.call(this, body);
+      };
+    }
+    return () => {
+      if (origFetch) window.fetch = origFetch;
+      if (origAxiosReq) window.axios.request = origAxiosReq;
+       if (origXHROpen) XHR.prototype.open = origXHROpen;
+       if (origXHRSend) XHR.prototype.send = origXHRSend;
     };
-    document.addEventListener('mousedown', this.handleOutsideClick);
+
   }
 
   filterOptions(text) {
@@ -200,7 +294,7 @@ export default class FixedListCellEditor {
         if (styled) return styled;
       }
     } catch (e) {
-      
+      console.error('Format option error', e);
     }
     return value;
   }
@@ -208,9 +302,9 @@ export default class FixedListCellEditor {
   renderOptions() {
     this.listEl.innerHTML = this.filteredOptions
       .map(opt => {
+        const formatted = this.formatOption(opt);
         const selected = opt.value == this.value ? ' selected' : '';
         if (this.isResponsibleUser) {
-          const formatted = this.formatOption(opt);
           const photo = opt.photo || opt.image || opt.img || '';
           const name = this.stripHtml(String(formatted));
           const initial = name ? name.trim().charAt(0).toUpperCase() : '';
@@ -226,12 +320,6 @@ export default class FixedListCellEditor {
             </div>`;
         }
 
-        if (this.isCategoryField) {
-          const label = this.stripHtml(String(opt.label != null ? opt.label : opt.value));
-          return `<div class="filter-item${selected} category-option" data-value="${opt.value}"><span class="filter-label">${label}</span></div>`;
-        }
-
-        const formatted = this.formatOption(opt);
         return `<div class="filter-item${selected}" data-value="${opt.value}"><span class="filter-label">${formatted}</span></div>`;
       })
       .join('');
@@ -260,7 +348,13 @@ export default class FixedListCellEditor {
   }
 
   destroy() {
-    document.removeEventListener('mousedown', this.handleOutsideClick);
+    if (this.restoreApiLogger) {
+      try {
+        this.restoreApiLogger();
+      } finally {
+        this.restoreApiLogger = null;
+      }
+    }
   }
 
   isPopup() {
