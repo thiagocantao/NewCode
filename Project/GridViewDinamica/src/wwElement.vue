@@ -302,9 +302,8 @@
   function usesTicketId(col) {
     const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
     const identifier = (col.FieldDB || '').toUpperCase();
-    if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') return false;
-    return col?.dataSource?.useTicketId === true;
-    }
+    return tag === 'STATUSID' || identifier === 'STATUSID';
+  }
   function getOptionsCacheKey(col, ticketId) {
     return usesTicketId(col) && ticketId != null ? String(ticketId) : GLOBAL_OPTIONS_KEY;
   }
