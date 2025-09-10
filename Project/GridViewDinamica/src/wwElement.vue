@@ -842,7 +842,7 @@ export default {
         const fieldKey = colCopy.id || colCopy.field;
         const getDsOptions = params => {
           const ticketId = params.data?.TicketID;
-          const colOpts = this.columnOptions[fieldKey] || {};
+          const colOpts = this.columnOptions?.[fieldKey] || {};
           return colOpts[ticketId] || [];
         };
 
@@ -1346,7 +1346,7 @@ export default {
       const fieldKey = event.column.getColId ? event.column.getColId() : (colDef.colId || colDef.field);
 
       if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
-        const colOpts = this.columnOptions[fieldKey] || {};
+        const colOpts = this.columnOptions?.[fieldKey] || {};
         const ticketId = event.data?.TicketID;
         const opts = ticketId != null ? colOpts[ticketId] || [] : [];
         const match = opts.find(o => String(o.value) === String(event.newValue));
