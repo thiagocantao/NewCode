@@ -198,6 +198,24 @@ import './components/list-filter.css';
 // Ag Grid modules
 ModuleRegistry.registerModules([AllCommunityModule]);
 
+function normalizeCollectionData(input) {
+  try {
+    if (Array.isArray(input)) return input;
+    const fromWW =
+      (typeof wwLib?.wwUtils?.getDataFromCollection === 'function'
+        ? wwLib.wwUtils.getDataFromCollection(input)
+        : input) ?? [];
+    if (Array.isArray(fromWW)) return fromWW;
+    if (Array.isArray(fromWW?.data)) return fromWW.data;
+    if (Array.isArray(fromWW?.result)) return fromWW.result;
+    if (Array.isArray(fromWW?.results)) return fromWW.results;
+    if (Array.isArray(fromWW?.items)) return fromWW.items;
+    return [];
+  } catch (e) {
+    return [];
+  }
+}
+
 export default {
   components: {
     AgGridVue,
@@ -220,25 +238,6 @@ export default {
   },
   emits: ["trigger-event", "update:content:effect"],
   setup(props, ctx) {
-    // ---- utils ----
-    function normalizeCollectionData(input) {
-      try {
-        if (Array.isArray(input)) return input;
-        const fromWW =
-          (typeof wwLib?.wwUtils?.getDataFromCollection === 'function'
-            ? wwLib.wwUtils.getDataFromCollection(input)
-            : input) ?? [];
-        if (Array.isArray(fromWW)) return fromWW;
-        if (Array.isArray(fromWW?.data)) return fromWW.data;
-        if (Array.isArray(fromWW?.result)) return fromWW.result;
-        if (Array.isArray(fromWW?.results)) return fromWW.results;
-        if (Array.isArray(fromWW?.items)) return fromWW.items;
-        return [];
-      } catch (e) {
-        return [];
-      }
-    }
-
     const gridApi = shallowRef(null);
     const columnApi = shallowRef(null);
     const agGridRef = ref(null);
@@ -732,7 +731,6 @@ export default {
       forceSelectionColumnFirst,
       forceSelectionColumnFirstDOM,
       columnOptions,
-      normalizeCollectionData,
       localeText: computed(() => {
         let lang = 'en-US';
         try {
@@ -770,7 +768,7 @@ export default {
   computed: {
     rowData() {
       const raw = this.content?.rowData;
-      const data = this.normalizeCollectionData(raw);
+      const data = normalizeCollectionData(raw);
       return Array.isArray(data) ? data : [];
     },
     defaultColDef() {
