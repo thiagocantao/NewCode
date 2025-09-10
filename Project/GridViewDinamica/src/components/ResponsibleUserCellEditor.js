@@ -26,43 +26,27 @@ export default class ResponsibleUserCellEditor {
     // Normalização das opções (mantém chaves extras intactas)
     const normalize = (opt) => {
       if (typeof opt === 'object') {
-        const findKey = keys =>
-          Object.keys(opt).find(k => keys.includes(k.toLowerCase()));
-        const labelKey = findKey(['label', 'name', 'displayname', 'display_name']);
-        const valueKey = findKey(['value', 'id', 'userid', 'user_id']);
-        const groupUsersKey = findKey(['groupusers', 'group_users']);
-        const normalized = {
+        const findKey = key => Object.keys(opt).find(k => k.toLowerCase() === key);
+        const labelKey = findKey('label') || findKey('name');
+        const valueKey = findKey('value') || findKey('id');
+        return {
           ...opt,
           value: valueKey ? opt[valueKey] : opt.value,
           label: labelKey ? opt[labelKey] : opt.label || opt.name
         };
-        if (groupUsersKey && Array.isArray(opt[groupUsersKey])) {
-          normalized.groupUsers = opt[groupUsersKey].map(normalize);
-        }
-        return normalized;
       }
       return { value: opt, label: String(opt) };
     };
     const resolveOptions = (opts) => {
-      let list;
-      if (Array.isArray(opts)) list = opts;
-      else if (opts && typeof opts === 'object') list = Object.values(opts);
-      else list = [];
-      const arr = list.map(normalize);
+      const arr = (opts || []).map(normalize);
       this.options = arr;
       this.filteredRoot = [...arr];
-      console.log('[ResponsibleUserCellEditor] resolved options', this.options);
       this.applyRootFilter();
       this.render();
     };
 
     let optionsPromise;
-    const rendererOpts = this.rendererParams && this.rendererParams.options;
-    if (rendererOpts && typeof rendererOpts.then === 'function') {
-      optionsPromise = rendererOpts;
-    } else if (Array.isArray(rendererOpts)) {
-      optionsPromise = Promise.resolve(rendererOpts);
-    } else if (params.options && typeof params.options.then === 'function') {
+    if (params.options && typeof params.options.then === 'function') {
       optionsPromise = params.options;
     } else if (Array.isArray(params.options)) {
       optionsPromise = Promise.resolve(params.options);
@@ -78,12 +62,7 @@ export default class ResponsibleUserCellEditor {
 
     this.options = [];
     this.filteredRoot = [];
-    optionsPromise
-      .then(resolveOptions)
-      .catch((err) => {
-        console.error('[ResponsibleUserCellEditor] failed to load options', err);
-        resolveOptions([]);
-      });
+    optionsPromise.then(resolveOptions);
 
     // DOM
     this.eGui = document.createElement('div');
@@ -276,7 +255,7 @@ export default class ResponsibleUserCellEditor {
         if (styled) return styled;
       }
     } catch (e) {
-      
+      console.error('Format option error', e);
     }
     return value;
   }
@@ -580,7 +559,7 @@ export default class ResponsibleUserCellEditor {
         });
       }
     } catch (e) {
-      
+      console.warn('postGroupAndUser failed', e);
     }
   }
 
@@ -640,8 +619,8 @@ export default class ResponsibleUserCellEditor {
 }
 .editor-close {
   position: absolute;
-  top: 37px;
-  right: 10px;
+  top: 4px;
+  right: 4px;
   cursor: pointer;
   font-size: 16px;
   color: #6b7280;
@@ -652,19 +631,18 @@ export default class ResponsibleUserCellEditor {
 .user-selector__search {
   display: flex;
   align-items: center;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
   position: relative;
-  padding: 0 12px 23px 12px;
+  padding: 0 12px;
   width: 100%;
   box-sizing: border-box;
-  border-bottom: 1px solid #f3f3f7;
 }
 .user-selector__input {
   flex: 1;
   width: 100%;
-  padding: 4px 36px 4px 12px;
+  padding: 8px 36px 8px 12px;
   border-radius: 20px;
-  font-size: 13px;            /* 13px */
+  font-size: 14px;            /* 14px */
   border: 1px solid #E0E0E0 !important;
   background: #fff;
   outline: none !important;
@@ -680,10 +658,10 @@ export default class ResponsibleUserCellEditor {
 }
 .user-selector__icon {
   position: absolute;
-  right: 21px;
-  top: 14px;
+  right: 22px;
+  top: 50%;
   transform: translateY(-50%);
-  font-size: 18px !important;
+  font-size: 20px;
   color: #888;
   pointer-events: none;
   display: flex;
