@@ -1505,6 +1505,35 @@ const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontr
             if (colCopy.headerAlign) {
               result.headerClass = `ag-header-align-${colCopy.headerAlign}`;
             }
+            // Use CustomDatePicker for editable date fields
+            if (colCopy.cellDataType === 'dateString') {
+              result.filter = 'agDateColumnFilter';
+              result.cellDataType = 'dateString';
+              if (colCopy.editable) {
+                // use the class directly to avoid lookup issues
+                result.cellEditor = DateTimeCellEditor;
+                // Format value for display when editing ends
+                result.valueFormatter = params => {
+                  if (typeof params.value === 'string' && params.value) {
+                    try {
+                      const date = new Date(params.value);
+                      if (!isNaN(date.getTime())) {
+                        const pad = n => n.toString().padStart(2, '0');
+                        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+                      }
+                    } catch (e) {
+                      return params.value;
+                    }
+                  }
+                  if (params.value instanceof Date && !isNaN(params.value.getTime())) {
+                    const pad = n => n.toString().padStart(2, '0');
+                    return `${params.value.getFullYear()}-${pad(params.value.getMonth() + 1)}-${pad(params.value.getDate())}`;
+                  }
+                  return params.value || '';
+                };
+                delete result.valueParser;
+              }
+            }
             // Formatação especial para DEADLINE
             const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
             const identifier = (colCopy.FieldDB || '').toUpperCase();
