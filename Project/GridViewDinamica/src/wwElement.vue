@@ -38,6 +38,7 @@
   import ListFilterRenderer from "./components/ListFilterRenderer.js";
   import ResponsibleUserFilterRenderer from "./components/ResponsibleUserFilterRenderer.js";
   import DateTimeCellEditor from "./components/DateTimeCellEditor.vue";
+  import DateTimeFilter from "./components/DateTimeFilter.js";
   import FixedListCellEditor from "./components/FixedListCellEditor.js";
   import ResponsibleUserCellEditor from "./components/ResponsibleUserCellEditor.js";
   // Editor customizado inline para listas
@@ -1531,9 +1532,35 @@ setTimeout(() => {
             }
             // Use DateTimeCellEditor for editable date fields and deadlines
             if (colCopy.cellDataType === 'dateString' || tagControl === 'DEADLINE') {
-
+              const showTime = tagControl === 'DEADLINE';
               result.filter = 'agDateColumnFilter';
-              if (tagControl !== 'DEADLINE') {
+              result.filterParams = {
+                filterOptions: ['equals', 'greaterThan', 'lessThan', 'inRange'],
+                defaultOption: 'equals',
+                suppressAndOrCondition: true,
+                buttons: ['reset', 'apply'],
+                dateComponent: DateTimeFilter,
+                showTime,
+                comparator: (filterDate, cellValue) => {
+                  if (!cellValue) return -1;
+                  const cellDate = new Date(cellValue);
+                  if (isNaN(cellDate)) return -1;
+                  if (!showTime) {
+                    const cellNoTime = new Date(
+                      cellDate.getFullYear(),
+                      cellDate.getMonth(),
+                      cellDate.getDate()
+                    );
+                    if (cellNoTime < filterDate) return -1;
+                    if (cellNoTime > filterDate) return 1;
+                    return 0;
+                  }
+                  if (cellDate < filterDate) return -1;
+                  if (cellDate > filterDate) return 1;
+                  return 0;
+                }
+              };
+              if (!showTime) {
                 result.cellDataType = 'dateString';
               } else {
                 delete result.cellDataType;
