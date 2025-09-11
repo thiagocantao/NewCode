@@ -87,6 +87,12 @@ export default {
           );
           if (match) displayValue = match.label;
         }
+        const tag = (this.params.colDef?.TagControl || this.params.colDef?.tagControl || this.params.colDef?.tagcontrol || '').toString().toUpperCase();
+        const identifier = (this.params.colDef?.FieldDB || '').toString().toUpperCase();
+        const categoryTags = ['CATEGORYID','SUBCATEGORYID','CATEGORYLEVEL3ID'];
+        if (categoryTags.includes(tag) || categoryTags.includes(identifier)) {
+          return `<span style="height:25px; color:#303030; background:#c9edf9; border:1px solid #c9edf9; border-radius:12px; font-weight:normal; display:inline-flex; align-items:center; padding:0 12px;">${displayValue}</span>`;
+        }
         // DEADLINE: barra proporcional
         if (this.params.colDef?.TagControl === 'DEADLINE' || this.params.colDef?.tagControl === 'DEADLINE') {
           const value = this.params.value;

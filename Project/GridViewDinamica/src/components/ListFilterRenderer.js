@@ -100,6 +100,11 @@ export default class ListFilterRenderer {
     const colDef = column.getColDef();
     const field = colDef.field || column.getColId();
 
+    const tag = (colDef.TagControl || colDef.tagControl || colDef.tagcontrol || '').toString().toUpperCase();
+    const identifier = (colDef.FieldDB || '').toString().toUpperCase();
+    const categoryTags = ['CATEGORYID','SUBCATEGORYID','CATEGORYLEVEL3ID'];
+    this.isCategoryField = categoryTags.includes(tag) || categoryTags.includes(identifier);
+
     const normalize = (opt) => {
       if (typeof opt === 'object') {
         const findKey = key => Object.keys(opt).find(k => k.toLowerCase() === key);
@@ -147,7 +152,9 @@ export default class ListFilterRenderer {
       // Aplica formatter ou style array conforme editor
       let formatted = display;
       try {
-        if (rendererParams.useCustomFormatter && typeof rendererParams.formatter === 'string') {
+        if (this.isCategoryField) {
+          formatted = `<span style="height:25px; color:#303030; background:#c9edf9; border:1px solid #c9edf9; border-radius:12px; font-weight:normal; display:inline-flex; align-items:center; padding:0 12px;">${display}</span>`;
+        } else if (rendererParams.useCustomFormatter && typeof rendererParams.formatter === 'string') {
           const formatterFn = new Function(
             'value',
             'row',
