@@ -1444,6 +1444,7 @@
                   filterOptions: ['equals', 'greaterThan', 'lessThan', 'inRange'],
                   suppressAndOrCondition: true,
                   dateComponent: DateTimeFilterEditor,
+
                 };
                 if (colCopy.editable) {
                   result.cellEditor = DateTimeCellEditor;
@@ -1482,6 +1483,7 @@
                   filterOptions: ['equals', 'greaterThan', 'lessThan', 'inRange'],
                   suppressAndOrCondition: true,
                   dateComponent: DateTimeFilterEditor,
+
                   showTime: true,
                 };
                 delete result.cellDataType;
