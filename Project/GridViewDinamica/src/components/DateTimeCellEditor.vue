@@ -10,7 +10,6 @@
       @pointerdown.stop.prevent="!disabled && openDp($event)"
       @mousedown.stop.prevent="!disabled && openDp($event)"
       @click.stop.prevent="!disabled && openDp($event)"
-      @focus="!disabled && autoOpen && openDp($event)"
       aria-haspopup="dialog"
       :aria-expanded="dpOpen ? 'true' : 'false'"
     />
@@ -69,7 +68,7 @@
 
 <script>
 
-import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { ref, computed, watch, onBeforeUnmount, nextTick } from 'vue';
 
 export default {
   name: 'DateTimeCellEditor',
@@ -305,18 +304,27 @@ export default {
       emitValue();
     }
 
-    onMounted(() => { if (props.autoOpen) nextTick(() => openDp()); });
     onBeforeUnmount(() => {
       document.removeEventListener('click', onDocClick, false);
       window.removeEventListener('scroll', updatePopoverPosition, true);
       window.removeEventListener('resize', updatePopoverPosition, true);
     });
 
-    expose({ openDp });
-
     // === AG Grid cell editor API ===
     expose({
-      afterGuiAttached(){ try { openDp(); } catch(e){} },
+      openDp,
+      afterGuiAttached(params){
+        try {
+          const ev = params && params.event;
+          const t = ev && ev.type;
+          if (
+            props.autoOpen &&
+            (t === 'click' || t === 'mousedown' || t === 'dblclick' || t === 'pointerdown' || t === 'touchstart')
+          ) {
+            openDp(ev);
+          }
+        } catch (e) {}
+      },
       getValue(){
         if(!selectedDate.value) return '';
         return isShowTime.value ? (selectedDate.value + 'T' + timePart.value) : selectedDate.value;
