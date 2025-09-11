@@ -1540,7 +1540,7 @@ setTimeout(() => {
                 defaultOption: 'equals',
                 suppressAndOrCondition: true,
                 buttons: ['reset', 'apply'],
-                dateComponent: DateTimeFilter,
+                dateComponent: 'DateTimeFilter',
                 showTime,
                 comparator: (filterDate, cellValue) => {
                   if (!cellValue) return -1;

@@ -10,10 +10,10 @@
 </template>
 
 <script>
-import { ref, watch, defineComponent } from 'vue';
+import { ref, watch } from 'vue';
 import DateTimeCellEditor from './DateTimeCellEditor.vue';
 
-export default defineComponent({
+export default {
   name: 'DateTimeFilter',
   components: { DateTimeCellEditor },
   props: {
@@ -68,6 +68,6 @@ export default defineComponent({
 
     return { value, disabled, showTime, onModelChange };
   }
-});
+};
 </script>
 
