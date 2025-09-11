@@ -1121,6 +1121,7 @@ setTimeout(() => {
         FixedListCellEditor,
         ResponsibleUserCellEditor,
         DateTimeCellEditor,
+        DateTimeFilter,
       },
     };
   },
