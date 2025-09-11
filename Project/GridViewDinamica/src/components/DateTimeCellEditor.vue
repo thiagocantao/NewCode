@@ -10,7 +10,6 @@
       @pointerdown.stop.prevent="!disabled && openDp($event)"
       @mousedown.stop.prevent="!disabled && openDp($event)"
       @click.stop.prevent="!disabled && openDp($event)"
-      @focus="!disabled && autoOpen && openDp($event)"
       aria-haspopup="dialog"
       :aria-expanded="dpOpen ? 'true' : 'false'"
     />
@@ -60,6 +59,7 @@
 
       <div class="dp-actions">
         <button type="button" class="dp-action" @click="pickToday">{{ labelToday }}</button>
+        <button type="button" class="dp-action" @click="applyDate">{{ labelSelect }}</button>
         <button type="button" class="dp-action" @click="clearDate">{{ labelClear }}</button>
       </div>
     </div>
@@ -68,7 +68,7 @@
 
 <script>
 
-import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { ref, computed, watch, onBeforeUnmount, nextTick } from 'vue';
 
 export default {
   name: 'DateTimeCellEditor',
@@ -77,7 +77,7 @@ export default {
     modelValue: { type: String, default: '' },
     disabled: { type: Boolean, default: false },
     showTime: { type: Boolean, default: false },
-    autoOpen: { type: Boolean, default: false }
+    autoOpen: { type: Boolean, default: true }
   },
   emits: ['update:modelValue'],
   setup(props, { emit, expose }) {
@@ -97,6 +97,7 @@ export default {
     const isPt = computed(() => String(lang || '').toLowerCase().startsWith('pt'));
     const PT_MONTHS = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
     const labelToday = computed(() => (isPt.value ? 'Hoje' : translateText('Today')));
+    const labelSelect = computed(() => (isPt.value ? 'Selecionar' : translateText('Select')));
     const labelClear = computed(() => (isPt.value ? 'Limpar' : translateText('Clear')));
 
     const dpWrapper = ref(null);
@@ -256,25 +257,70 @@ export default {
       window.removeEventListener('resize', updatePopoverPosition, true);
     }
 
-    function prevMonth(){ dpMonth.value = dpMonth.value === 0 ? 11 : dpMonth.value - 1; if (dpMonth.value === 11) dpYear.value--; nextTick(updatePopoverPosition); }
-    function nextMonth(){ dpMonth.value = dpMonth.value === 11 ? 0 : dpMonth.value + 1; if (dpMonth.value === 0) dpYear.value++; nextTick(updatePopoverPosition); }
-    function selectDay(d){ if(!d.inMonth) return; selectedDate.value = d.dateStr; emitValue(); if(!isShowTime.value) closeDp(); }
-    function pickToday(){ const now = new Date(); selectedDate.value = toYMD(now); if(isShowTime.value){ const p = n=>String(n).padStart(2,'0'); timePart.value = `${p(now.getHours())}:${p(now.getMinutes())}`; } emitValue(); closeDp(); }
-    function clearDate(){ selectedDate.value = ''; if(isShowTime.value) timePart.value = '00:00'; emit('update:modelValue',''); closeDp(); }
-    function onTimeInput(e){ timePart.value = e.target.value; emitValue(); }
+    function prevMonth(){
+      dpMonth.value = dpMonth.value === 0 ? 11 : dpMonth.value - 1;
+      if (dpMonth.value === 11) dpYear.value--;
+      nextTick(updatePopoverPosition);
+    }
+    function nextMonth(){
+      dpMonth.value = dpMonth.value === 11 ? 0 : dpMonth.value + 1;
+      if (dpMonth.value === 0) dpYear.value++;
+      nextTick(updatePopoverPosition);
+    }
+    function selectDay(d){
+      if(!d.inMonth) return;
+      selectedDate.value = d.dateStr;
+      emitValue();
+      if(!isShowTime.value) closeDp();
+    }
+    function pickToday(){
+      const now = new Date();
+      selectedDate.value = toYMD(now);
+      if(isShowTime.value){
+        const p = n=>String(n).padStart(2,'0');
+        timePart.value = `${p(now.getHours())}:${p(now.getMinutes())}`;
+      }
+      emitValue();
+      closeDp();
+    }
+    function clearDate(){
+      selectedDate.value = '';
+      if(isShowTime.value) timePart.value = '00:00';
+      emit('update:modelValue','');
+      closeDp();
+    }
+    function applyDate(){
+      emitValue();
+      closeDp();
+      const p = props.params || {};
+      if(p.api && typeof p.api.stopEditing === 'function'){
+        p.api.stopEditing();
+      } else if(typeof p.stopEditing === 'function'){
+        p.stopEditing();
+      }
+    }
+    function onTimeInput(e){
+      timePart.value = e.target.value;
+      emitValue();
+    }
 
-    onMounted(() => { if (props.autoOpen) nextTick(() => openDp()); });
     onBeforeUnmount(() => {
       document.removeEventListener('click', onDocClick, false);
       window.removeEventListener('scroll', updatePopoverPosition, true);
       window.removeEventListener('resize', updatePopoverPosition, true);
     });
 
-    expose({ openDp });
-
     // === AG Grid cell editor API ===
     expose({
-      afterGuiAttached(){ try { openDp(); } catch(e){} },
+      openDp,
+      afterGuiAttached(params){
+        try {
+          const ev = params && params.event;
+          if (props.autoOpen) {
+            openDp(ev);
+          }
+        } catch (e) {}
+      },
       getValue(){
         if(!selectedDate.value) return '';
         return isShowTime.value ? (selectedDate.value + 'T' + timePart.value) : selectedDate.value;
@@ -294,9 +340,9 @@ export default {
       dpWrapper, dpInput, dpPopRef,
       dpOpen, dpPopStyle,
       openDp, prevMonth, nextMonth,
-      selectDay, pickToday, clearDate,
+      selectDay, pickToday, clearDate, applyDate,
       weekdayAbbrs, monthLabel, gridDays,
-      displayDate, labelToday, labelClear,
+      displayDate, labelToday, labelSelect, labelClear,
       timePart, onTimeInput,
       showTime: isShowTime.value, disabled: props.disabled
     };
