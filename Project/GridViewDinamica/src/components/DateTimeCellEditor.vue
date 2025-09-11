@@ -132,15 +132,19 @@ export default {
     }
     function sameYMD(a,b){ return a && b && toYMD(a) === toYMD(b); }
 
-    watch(() => props.modelValue ?? (props.params && props.params.value), v => {
-      const val = v || '';
+    function applyValue(val){
+      const v = val || '';
       if (isShowTime.value) {
-        const [d, t] = String(val).split('T');
+        const [d, t] = String(v).split('T');
         selectedDate.value = d || '';
         timePart.value = t ? t.slice(0,5) : '00:00';
       } else {
-        selectedDate.value = val;
+        selectedDate.value = String(v);
       }
+    }
+
+    watch(() => props.modelValue ?? (props.params && props.params.value), v => {
+      applyValue(v);
     }, { immediate: true });
 
     const dpMonth = ref(0);
@@ -345,6 +349,10 @@ export default {
       openDp,
       afterGuiAttached(params){
         try {
+          // define o valor inicial do editor com o conteúdo da célula
+          const initVal = params?.value ?? (params?.colDef?.field ? params?.data?.[params.colDef.field] : undefined);
+          applyValue(initVal);
+
           const ev = params && params.event;
           if (props.autoOpen) {
             openDp(ev);
