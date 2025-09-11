@@ -1516,7 +1516,8 @@ setTimeout(() => {
                 delete result.cellDataType;
               }
               if (colCopy.editable) {
-                result.cellEditor = DateTimeCellEditor;
+                // Register Vue component by name so AG Grid can resolve it
+                result.cellEditor = 'DateTimeCellEditor';
                 result.valueFormatter = params => {
                   if (typeof params.value === 'string' && params.value) {
                     try {
