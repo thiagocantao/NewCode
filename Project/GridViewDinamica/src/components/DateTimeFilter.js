@@ -1,6 +1,6 @@
 
 import { createApp, h } from 'vue';
-import CustomDatePicker from './CustomDatePicker.vue';
+import DateTimeCellEditor from './DateTimeCellEditor.vue';
 
 export default class DateFilterInput {
   init(params) {
@@ -21,14 +21,16 @@ export default class DateFilterInput {
         };
       },
       render() {
-        return h(CustomDatePicker, {
+        return h(DateTimeCellEditor, {
           modelValue: this.value,
+          params,
+          showTime: self.showTime,
+          autoOpen: false,
+          disabled: this.disabled,
           'onUpdate:modelValue': v => {
             this.value = v;
             params.onDateChanged();
           },
-          showTime: self.showTime,
-          disabled: this.disabled,
         });
       },
     });
@@ -60,14 +62,16 @@ export default class DateFilterInput {
   }
 
   getDate() {
-    const v = this.vm?.value;
+    const v = this.vm ? this.vm.value : null;
     if (!v) return null;
     const parsed = v.includes('T') ? new Date(v) : new Date(`${v}T00:00`);
     return isNaN(parsed.getTime()) ? null : parsed;
   }
 
   setDate(date) {
-    this.vm.value = this.toValue(date);
+    if (this.vm) {
+      this.vm.value = this.toValue(date);
+    }
   }
 
   setDisabled(disabled) {
