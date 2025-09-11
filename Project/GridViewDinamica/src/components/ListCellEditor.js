@@ -28,6 +28,8 @@ export default class ListCellEditor {
     const identifier = (params.colDef.FieldDB || '').toUpperCase();
     this.isResponsibleUser =
       tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
+    const categoryTags = ['CATEGORYID','SUBCATEGORYID','CATEGORYLEVEL3ID'];
+    this.isCategoryField = categoryTags.includes(tag) || categoryTags.includes(identifier);
 
     // Build option array (supports promises)
     const normalize = (opt) => {
@@ -140,6 +142,9 @@ export default class ListCellEditor {
 
   formatOption(opt) {
     const value = opt.label != null ? opt.label : opt.value;
+    if (this.isCategoryField) {
+      return `<span style="height:25px; color:#303030; background:#c9edf9; border:1px solid #c9edf9; border-radius:12px; font-weight:normal; display:inline-flex; align-items:center; padding:0 12px;">${value}</span>`;
+    }
     const colDef = this.params.colDef || {};
     const params = this.rendererParams || {};
     try {
