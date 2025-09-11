@@ -608,11 +608,25 @@ const remountComponent = () => {
   // Listener de unload para salvar estado (opcional, robustez extra)
   let beforeUnloadHandler = null;
 
+  const handleDocumentClick = (e) => {
+    const selectors = ['.list-editor', '.list-filter', '.ag-popup', '[role="dialog"]'];
+    const anyPopup = selectors.some(sel => document.querySelector(sel));
+    if (!anyPopup) return;
+    const clickedInside = selectors.some(sel => e.target.closest(sel));
+    if (!clickedInside && gridApi.value) {
+      gridApi.value.stopEditing();
+      if (typeof gridApi.value.hidePopupMenu === 'function') {
+        gridApi.value.hidePopupMenu();
+      }
+    }
+  };
+
   onMounted(() => {
     loadAllColumnOptions();
 
     beforeUnloadHandler = () => saveGridState();
     window.addEventListener('beforeunload', beforeUnloadHandler);
+    document.addEventListener('click', handleDocumentClick, true);
   });
 
   watch(() => props.content?.columns, () => {
@@ -654,6 +668,7 @@ setTimeout(() => {
       window.removeEventListener('beforeunload', beforeUnloadHandler);
       beforeUnloadHandler = null;
     }
+    document.removeEventListener('click', handleDocumentClick, true);
   });
   
     const onGridReady = (params) => {
