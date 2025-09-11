@@ -316,11 +316,8 @@ export default {
       afterGuiAttached(params){
         try {
           const ev = params && params.event;
-          const t = ev && ev.type;
-          if (
-            props.autoOpen &&
-            (t === 'click' || t === 'mousedown' || t === 'dblclick' || t === 'pointerdown' || t === 'touchstart')
-          ) {
+          if (props.autoOpen) {
+
             openDp(ev);
           }
         } catch (e) {}
