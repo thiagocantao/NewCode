@@ -37,7 +37,7 @@
   import UserCellRenderer from "./components/UserCellRenderer.vue";
   import ListFilterRenderer from "./components/ListFilterRenderer.js";
   import ResponsibleUserFilterRenderer from "./components/ResponsibleUserFilterRenderer.js";
-  import DateTimeCellEditor from "./components/DateTimeCellEditor.js";
+  import DateTimeCellEditor from "./components/DateTimeCellEditor.vue";
   import FixedListCellEditor from "./components/FixedListCellEditor.js";
   import ResponsibleUserCellEditor from "./components/ResponsibleUserCellEditor.js";
   // Editor customizado inline para listas
@@ -1506,7 +1506,7 @@ setTimeout(() => {
             if (colCopy.headerAlign) {
               result.headerClass = `ag-header-align-${colCopy.headerAlign}`;
             }
-            // Use CustomDatePicker for editable date fields and deadlines
+            // Use DateTimeCellEditor for editable date fields and deadlines
             if (colCopy.cellDataType === 'dateString' || tagControl === 'DEADLINE') {
 
               result.filter = 'agDateColumnFilter';
@@ -1516,7 +1516,8 @@ setTimeout(() => {
                 delete result.cellDataType;
               }
               if (colCopy.editable) {
-                result.cellEditor = DateTimeCellEditor;
+                // Register Vue component by name so AG Grid can resolve it
+                result.cellEditor = 'DateTimeCellEditor';
                 result.valueFormatter = params => {
                   if (typeof params.value === 'string' && params.value) {
                     try {
