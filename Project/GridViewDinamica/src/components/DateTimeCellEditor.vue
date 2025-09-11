@@ -364,3 +364,5 @@ export default {
 .dp-weekdays, .dp-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; }
 .dp-weekday { text-align: center; font-size: 12px; color: #666; padding: 4px 0; }
 .dp-cell { border: 0; background: transparent; border-radius: 6px; padding: 6px 0; cursor: pointer; align-items:center; text-align: center; justify-content: center;}
+
+</style>
