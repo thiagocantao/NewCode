@@ -12,7 +12,7 @@
       @sort-changed="onSortChanged" @column-moved="onColumnMoved" @row-clicked="onRowClicked"
       @first-data-rendered="onFirstDataRendered" @cell-clicked="onCellClicked">
     </ag-grid-vue>
-  </div>
+  </div> 
 </template>
 
 <script>
@@ -1448,7 +1448,7 @@ setTimeout(() => {
               headerName: colCopy.headerName,
               field: colCopy.field,
               sortable: colCopy.sortable,
-              filter: colCopy.filter === 'agListColumnFilter' ? 'agSetColumnFilter' : colCopy.filter,
+              filter: colCopy.filter,
             };
             // Filtro de lista dinâmico
             if (colCopy.filter === 'agListColumnFilter') {
@@ -1782,10 +1782,9 @@ setTimeout(() => {
   },
   theme() {
   return themeQuartz.withParams({
-  headerBackgroundColor: this.content.headerBackgroundColor,
+  headerBackgroundColor: "#F5F6FA",
   headerTextColor: this.content.headerTextColor,
   headerFontSize: this.content.headerFontSize,
-  headerFontFamily: this.content.headerFontFamily,
   headerFontWeight: this.content.headerFontWeight,
   borderColor: this.content.borderColor,
   cellTextColor: this.content.cellColor,
