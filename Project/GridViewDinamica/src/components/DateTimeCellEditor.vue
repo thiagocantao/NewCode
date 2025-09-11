@@ -134,13 +134,15 @@ export default {
     }
     function sameYMD(a,b){ return a && b && toYMD(a) === toYMD(b); }
 
-    watch(() => props.modelValue, v => {
+    // Take initial value either from v-model or AG Grid params.value
+    watch(() => props.modelValue ?? (props.params && props.params.value), v => {
+      const val = v || '';
       if (isShowTime.value) {
-        const [d, t] = (v || '').split('T');
+        const [d, t] = String(val).split('T');
         selectedDate.value = d || '';
         timePart.value = t ? t.slice(0,5) : '00:00';
       } else {
-        selectedDate.value = v || '';
+        selectedDate.value = val;
       }
     }, { immediate: true });
 
@@ -209,12 +211,12 @@ export default {
       const wrap = dpWrapper.value;
       if (!wrap) return;
       const rect = wrap.getBoundingClientRect();
-      const left = Math.round(rect.left - 300);
-      const bottom = Math.round(window.innerHeight - rect.top - 185);
+      const left = Math.round(rect.left);
+      const top = Math.round(rect.bottom);
       dpPopStyle.value = {
         position: 'fixed',
         left: `${left}px`,
-        bottom: `${bottom}px`,
+        top: `${top}px`,
         minWidth: `${Math.max(rect.width, 230)}px`,
         zIndex: 2147483647
       };
