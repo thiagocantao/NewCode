@@ -317,6 +317,7 @@ export default {
         try {
           const ev = params && params.event;
           if (props.autoOpen) {
+
             openDp(ev);
           }
         } catch (e) {}
