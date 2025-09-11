@@ -44,6 +44,7 @@
   import ListFilterRenderer from "./components/ListFilterRenderer.js";
   import ResponsibleUserFilterRenderer from "./components/ResponsibleUserFilterRenderer.js";
   import DateTimeCellEditor from "./components/DateTimeCellEditor.vue";
+
   import DateTimeFilter from "./components/DateTimeFilter.vue";
   import FixedListCellEditor from "./components/FixedListCellEditor.js";
   import ResponsibleUserCellEditor from "./components/ResponsibleUserCellEditor.js";
