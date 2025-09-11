@@ -60,14 +60,16 @@ export default class DateFilterInput {
   }
 
   getDate() {
-    const v = this.vm?.value;
+    const v = this.vm ? this.vm.value : null;
     if (!v) return null;
     const parsed = v.includes('T') ? new Date(v) : new Date(`${v}T00:00`);
     return isNaN(parsed.getTime()) ? null : parsed;
   }
 
   setDate(date) {
-    this.vm.value = this.toValue(date);
+    if (this.vm) {
+      this.vm.value = this.toValue(date);
+    }
   }
 
   setDisabled(disabled) {
