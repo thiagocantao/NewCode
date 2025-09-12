@@ -319,6 +319,13 @@
 // Flag para aplicar sort externo (WW variable) no próximo mount
 const forceExternalSortNextMount = ref(false);
 
+const asArray = (v) => {
+if (Array.isArray(v)) return v;
+if (v && typeof v === 'object') return Object.values(v);
+return [];
+};
+const asObject = (v) => (v && typeof v === 'object' ? v : {});
+
 // Normaliza o Sort vindo da variável WW para o formato do AG Grid
 function getExternalSortFromWW() {
   try {
@@ -503,41 +510,22 @@ const remountComponent = () => {
   };
 
   const loadResponsibleUserOptions = async () => {
-    try {
-      const lang = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
-      const loggeduserid = window?.wwLib?.wwVariable?.getValue?.('fc54ab80-1a04-4cfe-a504-793bdcfce5dd');
-      const companyId = window.wwLib?.wwVariable?.getValue('5d099f04-cd42-41fd-94ad-22d4de368c3a');
-      const apiUrl = window.wwLib?.wwVariable?.getValue('1195995b-34c3-42a5-b436-693f0f4f8825');
-      const apiKey = window.wwLib?.wwVariable?.getValue('d180be98-8926-47a7-b7f1-6375fbb95fa3');
-      const apiAuth = window.wwLib?.wwVariable?.getValue('dfcde09f-42f3-4b5c-b2e8-4314650655db');
-      if (!apiUrl) return [];
-      const fetchOptions = {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...(companyId ? { p_idcompany: companyId } : {}),
-          ...(lang ? { p_language: lang } : {}),
-          ...(loggeduserid ? { p_loggeduserid: loggeduserid } : {}),
-        }),
+        try {
+          const data = wwLib.wwCollection.getCollection("0e41f029-e1c3-4302-82ca-16aceccdadb1").data;
+          return asArray(
+            Array.isArray(data)
+              ? data
+              : data?.data || data?.result || data?.results
+          );
+        } catch (e) {
+          // Fallback: props.content.userDatasource
+          const ds = props.content?.userDatasource;
+          if (Array.isArray(ds)) return ds;
+          if (ds && typeof ds === 'object') return asArray(ds.data || ds.result || ds.results);
+          
+          return [];
+        }
       };
-      if (apiKey) fetchOptions.headers['apikey'] = apiKey;
-      if (apiAuth) fetchOptions.headers['Authorization'] = apiAuth;
-      const baseUrl = apiUrl.endsWith('/') ? apiUrl : apiUrl + '/';
-      const response = await fetch(baseUrl + 'getLookupGroupsAndUsers', fetchOptions);
-      const data = await response.json();
-      return Array.isArray(data)
-        ? data
-        : Array.isArray(data?.data)
-          ? data.data
-          : Array.isArray(data?.result)
-            ? data.result
-            : Array.isArray(data?.results)
-              ? data.results
-              : [];
-    } catch (e) {
-      return [];
-    }
-  };
 
   let responsibleUserCache = null;
 
@@ -1529,45 +1517,42 @@ setTimeout(() => {
             if (colCopy.headerAlign) {
               result.headerClass = `ag-header-align-${colCopy.headerAlign}`;
             }
-            // Use DateTimeCellEditor for date and datetime fields
-            if (colCopy.cellDataType === 'dateString' || colCopy.cellDataType === 'dateTime' || tagControl === 'DEADLINE') {
-              const includeTime = colCopy.cellDataType === 'dateTime' || tagControl === 'DEADLINE';
+            // Use DateTimeCellEditor for editable date fields and deadlines
+            if (colCopy.cellDataType === 'dateString' || colCopy.cellDataType === 'dateTime' ||tagControl === 'DEADLINE') {
+
               result.filter = 'agDateColumnFilter';
               if (tagControl !== 'DEADLINE') {
                 result.cellDataType = 'dateString';
               } else {
                 delete result.cellDataType;
               }
-
-              const formatDate = date => {
-                const pad = n => n.toString().padStart(2, '0');
-                if (includeTime) {
-                  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
-                }
-                return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-              };
-
-              result.valueFormatter = params => {
-                if (typeof params.value === 'string' && params.value) {
-                  try {
-                    const date = new Date(params.value);
-                    if (!isNaN(date.getTime())) {
-                      return formatDate(date);
-                    }
-                  } catch (e) {
-                    return params.value;
-                  }
-                }
-                if (params.value instanceof Date && !isNaN(params.value.getTime())) {
-                  return formatDate(params.value);
-                }
-                return params.value || '';
-              };
-
               if (colCopy.editable) {
                 // Register Vue component by name so AG Grid can resolve it
                 result.cellEditor = 'DateTimeCellEditor';
-                result.cellEditorParams = { showTime: includeTime };
+                result.valueFormatter = params => {
+                  if (typeof params.value === 'string' && params.value) {
+                    try {
+                      const date = new Date(params.value);
+                      if (!isNaN(date.getTime())) {
+                        const pad = n => n.toString().padStart(2, '0');
+                        if (tagControl === 'DEADLINE') {
+                          return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+                        }
+                        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+                      }
+                    } catch (e) {
+                      return params.value;
+                    }
+                  }
+                  if (params.value instanceof Date && !isNaN(params.value.getTime())) {
+                    const pad = n => n.toString().padStart(2, '0');
+                    if (tagControl === 'DEADLINE') {
+                      return `${params.value.getFullYear()}-${pad(params.value.getMonth() + 1)}-${pad(params.value.getDate())} ${pad(params.value.getHours())}:${pad(params.value.getMinutes())}:${pad(params.value.getSeconds())}`;
+                    }
+                    return `${params.value.getFullYear()}-${pad(params.value.getMonth() + 1)}-${pad(params.value.getDate())}`;
+                  }
+                  return params.value || '';
+                };
                 delete result.valueParser;
               }
             }
