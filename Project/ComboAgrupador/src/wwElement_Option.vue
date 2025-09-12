@@ -23,12 +23,21 @@
             />
             <div class="user-option-content">
                 <template v-if="isUsersCombo">
-                    <div class="user-option-avatar" v-if="!isGroupOption">
-                        <img v-if="avatarUrl" :src="avatarUrl" alt="User avatar" />
-                        <span v-else>{{ avatarInitial }}</span>
+                    <div class="avatar-outer" v-if="!isGroupOption">
+                        <div class="avatar-middle">
+                            <div class="user-selector__avatar">
+                                <img v-if="avatarUrl" :src="avatarUrl" alt="User avatar" />
+                                <div v-else class="user-selector__initial">{{ avatarInitial }}</div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="user-option-avatar" v-else>
-                        <span class="material-symbols-outlined">groups</span>
+                    <div class="avatar-outer group-avatar-wrapper" v-else>
+                        <div class="avatar-middle">
+                            <div class="user-selector__avatar">
+                                <span class="material-symbols-outlined user-selector__group-icon">groups</span>
+                            </div>
+                        </div>
+
                     </div>
                 </template>
                 <span :style="optionTextStyles">{{ data.label }}</span>
@@ -37,12 +46,21 @@
         <template v-else>
             <div class="user-option-content">
                 <template v-if="isUsersCombo">
-                    <div class="user-option-avatar" v-if="!isGroupOption">
-                        <img v-if="avatarUrl" :src="avatarUrl" alt="User avatar" />
-                        <span v-else>{{ avatarInitial }}</span>
+                    <div class="avatar-outer" v-if="!isGroupOption">
+                        <div class="avatar-middle">
+                            <div class="user-selector__avatar">
+                                <img v-if="avatarUrl" :src="avatarUrl" alt="User avatar" />
+                                <div v-else class="user-selector__initial">{{ avatarInitial }}</div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="user-option-avatar" v-else>
-                        <span class="material-symbols-outlined">groups</span>
+                    <div class="avatar-outer group-avatar-wrapper" v-else>
+                        <div class="avatar-middle">
+                            <div class="user-selector__avatar">
+                                <span class="material-symbols-outlined user-selector__group-icon">groups</span>
+                            </div>
+                        </div>
+
                     </div>
                 </template>
                 <span :style="optionTextStyles">{{ data.label }}</span>
@@ -432,23 +450,68 @@ export default {
     gap: 0.5em;
 }
 
-.user-option-avatar {
-    width: 24px;
-    height: 24px;
+.avatar-outer {
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
-    background-color: #F3F4F6;
+    border: 1px solid #3A4663;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
-    font-weight: 500;
-    color: #6B7280;
+    background: #fff;
+}
+
+.avatar-middle {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+}
+
+.user-selector__avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #4B6CB7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     overflow: hidden;
 }
 
-.user-option-avatar img {
+.user-selector__avatar img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    border-radius: 50%;
+}
+
+.user-selector__initial {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 400;
+    background: transparent;
+    color: #fff;
+    border-radius: 50%;
+    letter-spacing: 0.5px;
+}
+
+.user-selector__group-icon {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: #fff;
+
 }
 </style>
