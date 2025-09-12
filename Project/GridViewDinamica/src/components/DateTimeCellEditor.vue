@@ -231,8 +231,8 @@ export default {
       let baseTop = 0;
 
       if (anchorPoint.value) {
-        baseLeft = anchorPoint.value.x - 100;
-        baseTop = anchorPoint.value.y;
+        baseLeft = anchorPoint.value.x - 130;
+        baseTop = anchorPoint.value.y - 100;
       } else if (dpWrapper.value) {
         const rect = dpWrapper.value.getBoundingClientRect();
         baseLeft = rect.left;
@@ -243,7 +243,7 @@ export default {
       const prevDisp = pop.style.display;
       pop.style.visibility = 'hidden';
       pop.style.display = 'block';
-      const w = pop.offsetWidth || 280;
+      const w = pop.offsetWidth || 200;
       const h = pop.offsetHeight || 200;
       pop.style.visibility = prevVis || '';
       pop.style.display = prevDisp || '';
