@@ -2,7 +2,20 @@
     <div class="ww-input-select__trigger">
         <!-- SINGLE SELECT -->
         <div v-if="isSingleSelect" :style="triggerStyle">
-            <span v-if="isOptionSelected" :style="selectedValueStyle">{{ selectedLabel }}</span>
+            <template v-if="isOptionSelected">
+                <div class="user-option-content">
+                    <template v-if="isUsersCombo">
+                        <div class="user-option-avatar" v-if="!selectedIsGroup">
+                            <img v-if="selectedAvatarUrl" :src="selectedAvatarUrl" alt="User avatar" />
+                            <span v-else>{{ selectedInitial }}</span>
+                        </div>
+                        <div class="user-option-avatar" v-else>
+                            <span class="material-symbols-outlined">groups</span>
+                        </div>
+                    </template>
+                    <span :style="selectedValueStyle">{{ selectedLabel }}</span>
+                </div>
+            </template>
             <span v-else :style="placeholderStyle">{{ data.placeholder }}</span>
             <div v-html="chipIcon" :style="triggerIconStyle" aria-hidden="true"></div>
         </div>
@@ -75,6 +88,25 @@ export default {
                 !!localContext.value?.data?.select?.active?.details?.label ||
                 localContext.value?.data?.select?.active?.details?.length > 0
         );
+        const isUsersCombo = computed(() => props.content.isUsers || false);
+        const selectedOptionData = computed(
+            () => localContext.value?.data?.select?.active?.details?.data || {}
+        );
+        const selectedAvatarUrl = computed(
+            () =>
+                selectedOptionData.value?.photoUrl ||
+                selectedOptionData.value?.PhotoURL ||
+                selectedOptionData.value?.PhotoUrl
+        );
+        const selectedIsGroup = computed(() => {
+            const d = selectedOptionData.value || {};
+            return (
+                (Array.isArray(d.groupUsers) && d.groupUsers.length > 0) ||
+                String(d.type || '').toLowerCase() === 'group' ||
+                d.isAssignToTeam
+            );
+        });
+        const selectedInitial = computed(() => (selectedLabel.value || '').trim().charAt(0).toUpperCase());
         const isOpen = computed(() => localContext.value?.data?.select?.utils?.isOpen);
         const data = ref({
             placeholder,
@@ -312,6 +344,10 @@ export default {
             setChipRef,
             visibleChipCount,
             hiddenChipCount,
+            isUsersCombo,
+            selectedAvatarUrl,
+            selectedIsGroup,
+            selectedInitial,
         };
     },
 };
@@ -346,5 +382,31 @@ export default {
 
 .ww-select-trigger {
     width: 100%;
+}
+
+.user-option-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+
+.user-option-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: #F3F4F6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 500;
+    color: #6B7280;
+    overflow: hidden;
+}
+
+.user-option-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 </style>

@@ -21,10 +21,32 @@
                 @change.stop="toggle"
                 @click.stop
             />
-            <span :style="optionTextStyles">{{ data.label }}</span>
+            <div class="user-option-content">
+                <template v-if="isUsersCombo">
+                    <div class="user-option-avatar" v-if="!isGroupOption">
+                        <img v-if="avatarUrl" :src="avatarUrl" alt="User avatar" />
+                        <span v-else>{{ avatarInitial }}</span>
+                    </div>
+                    <div class="user-option-avatar" v-else>
+                        <span class="material-symbols-outlined">groups</span>
+                    </div>
+                </template>
+                <span :style="optionTextStyles">{{ data.label }}</span>
+            </div>
         </label>
         <template v-else>
-            <span :style="optionTextStyles">{{ data.label }}</span>
+            <div class="user-option-content">
+                <template v-if="isUsersCombo">
+                    <div class="user-option-avatar" v-if="!isGroupOption">
+                        <img v-if="avatarUrl" :src="avatarUrl" alt="User avatar" />
+                        <span v-else>{{ avatarInitial }}</span>
+                    </div>
+                    <div class="user-option-avatar" v-else>
+                        <span class="material-symbols-outlined">groups</span>
+                    </div>
+                </template>
+                <span :style="optionTextStyles">{{ data.label }}</span>
+            </div>
             <div v-if="data.isSelected" v-html="optionIcon" :style="optionIconStyle" aria-hidden="true"></div>
         </template>
     </div>
@@ -201,6 +223,21 @@ export default {
                 : Array.isArray(selectValue.value) && selectValue.value.some(v => areValuesEqual(v, value.value))
         );
 
+        const isUsersCombo = computed(() => props.content.isUsers || false);
+        const avatarUrl = computed(
+            () =>
+                props.localData?.photoUrl || props.localData?.PhotoURL || props.localData?.PhotoUrl
+        );
+        const isGroupOption = computed(() => {
+            const d = props.localData || {};
+            return (
+                (Array.isArray(d.groupUsers) && d.groupUsers.length > 0) ||
+                String(d.type || '').toLowerCase() === 'group' ||
+                d.isAssignToTeam
+            );
+        });
+        const avatarInitial = computed(() => (label.value || '').trim().charAt(0).toUpperCase());
+
         const { optionId, handleKeyDown, focusFromOptionId } = useAccessibility({
             emit,
             optionElement,
@@ -354,6 +391,10 @@ export default {
             selectType,
             toggle,
             isSelected,
+            isUsersCombo,
+            avatarUrl,
+            avatarInitial,
+            isGroupOption,
         };
     },
 };
@@ -383,5 +424,31 @@ export default {
     display: flex;
     align-items: center;
     gap: 0.5em;
+}
+
+.user-option-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+
+.user-option-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: #F3F4F6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 500;
+    color: #6B7280;
+    overflow: hidden;
+}
+
+.user-option-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 </style>

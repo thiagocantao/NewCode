@@ -145,6 +145,7 @@ export default {
             'mappingValue',
             'mappingDisabled',
             'groupBy',
+            'isUsers',
             'optionBgColorField',
             'optionFontColorField',
             'initValueSingle',
@@ -868,6 +869,12 @@ export default {
                 tooltip:
                     'This should be disabled in some edge cases like in popups, datagrid, etc. A boolean value: \n\n`true` or `false`',
             },
+            section: 'settings',
+        },
+        isUsers: {
+            label: { en: 'Users combo' },
+            type: 'OnOff',
+            defaultValue: false,
             section: 'settings',
         },
         optionProperties: {
