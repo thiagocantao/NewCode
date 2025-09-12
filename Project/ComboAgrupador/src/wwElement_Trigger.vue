@@ -2,7 +2,28 @@
     <div class="ww-input-select__trigger">
         <!-- SINGLE SELECT -->
         <div v-if="isSingleSelect" :style="triggerStyle">
-            <span v-if="isOptionSelected" :style="selectedValueStyle">{{ selectedLabel }}</span>
+            <template v-if="isOptionSelected">
+                <div class="user-option-content">
+                    <template v-if="isUsersCombo">
+                        <div class="avatar-outer" v-if="!selectedIsGroup">
+                            <div class="avatar-middle">
+                                <div class="user-selector__avatar">
+                                    <img v-if="selectedAvatarUrl" :src="selectedAvatarUrl" alt="User avatar" />
+                                    <div v-else class="user-selector__initial">{{ selectedInitial }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="avatar-outer group-avatar-wrapper" v-else>
+                            <div class="avatar-middle">
+                                <div class="user-selector__avatar">
+                                    <span class="material-symbols-outlined user-selector__group-icon">groups</span>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                    <span :style="selectedValueStyle">{{ selectedLabel }}</span>
+                </div>
+            </template>
             <span v-else :style="placeholderStyle">{{ data.placeholder }}</span>
             <div v-html="chipIcon" :style="triggerIconStyle" aria-hidden="true"></div>
         </div>
@@ -75,6 +96,25 @@ export default {
                 !!localContext.value?.data?.select?.active?.details?.label ||
                 localContext.value?.data?.select?.active?.details?.length > 0
         );
+        const isUsersCombo = computed(() => props.content.isUsers || false);
+        const selectedOptionData = computed(
+            () => localContext.value?.data?.select?.active?.details?.data || {}
+        );
+        const selectedAvatarUrl = computed(
+            () =>
+                selectedOptionData.value?.photoUrl ||
+                selectedOptionData.value?.PhotoURL ||
+                selectedOptionData.value?.PhotoUrl
+        );
+        const selectedIsGroup = computed(() => {
+            const d = selectedOptionData.value || {};
+            return (
+                (Array.isArray(d.groupUsers) && d.groupUsers.length > 0) ||
+                String(d.type || '').toLowerCase() === 'group' ||
+                d.isAssignToTeam
+            );
+        });
+        const selectedInitial = computed(() => (selectedLabel.value || '').trim().charAt(0).toUpperCase());
         const isOpen = computed(() => localContext.value?.data?.select?.utils?.isOpen);
         const data = ref({
             placeholder,
@@ -312,6 +352,10 @@ export default {
             setChipRef,
             visibleChipCount,
             hiddenChipCount,
+            isUsersCombo,
+            selectedAvatarUrl,
+            selectedIsGroup,
+            selectedInitial,
         };
     },
 };
@@ -346,5 +390,75 @@ export default {
 
 .ww-select-trigger {
     width: 100%;
+}
+
+.user-option-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+
+.avatar-outer {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid #3A4663;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+}
+
+.avatar-middle {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+}
+
+.user-selector__avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #4B6CB7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.user-selector__avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.user-selector__initial {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 400;
+    background: transparent;
+    color: #fff;
+    border-radius: 50%;
+    letter-spacing: 0.5px;
+}
+
+.user-selector__group-icon {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: #fff;
 }
 </style>

@@ -21,10 +21,48 @@
                 @change.stop="toggle"
                 @click.stop
             />
-            <span :style="optionTextStyles">{{ data.label }}</span>
+            <div class="user-option-content">
+                <template v-if="isUsersCombo">
+                    <div class="avatar-outer" v-if="!isGroupOption">
+                        <div class="avatar-middle">
+                            <div class="user-selector__avatar">
+                                <img v-if="avatarUrl" :src="avatarUrl" alt="User avatar" />
+                                <div v-else class="user-selector__initial">{{ avatarInitial }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="avatar-outer group-avatar-wrapper" v-else>
+                        <div class="avatar-middle">
+                            <div class="user-selector__avatar">
+                                <span class="material-symbols-outlined user-selector__group-icon">groups</span>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+                <span :style="optionTextStyles">{{ data.label }}</span>
+            </div>
         </label>
         <template v-else>
-            <span :style="optionTextStyles">{{ data.label }}</span>
+            <div class="user-option-content">
+                <template v-if="isUsersCombo">
+                    <div class="avatar-outer" v-if="!isGroupOption">
+                        <div class="avatar-middle">
+                            <div class="user-selector__avatar">
+                                <img v-if="avatarUrl" :src="avatarUrl" alt="User avatar" />
+                                <div v-else class="user-selector__initial">{{ avatarInitial }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="avatar-outer group-avatar-wrapper" v-else>
+                        <div class="avatar-middle">
+                            <div class="user-selector__avatar">
+                                <span class="material-symbols-outlined user-selector__group-icon">groups</span>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+                <span :style="optionTextStyles">{{ data.label }}</span>
+            </div>
             <div v-if="data.isSelected" v-html="optionIcon" :style="optionIconStyle" aria-hidden="true"></div>
         </template>
     </div>
@@ -201,6 +239,21 @@ export default {
                 : Array.isArray(selectValue.value) && selectValue.value.some(v => areValuesEqual(v, value.value))
         );
 
+        const isUsersCombo = computed(() => props.content.isUsers || false);
+        const avatarUrl = computed(
+            () =>
+                props.localData?.photoUrl || props.localData?.PhotoURL || props.localData?.PhotoUrl
+        );
+        const isGroupOption = computed(() => {
+            const d = props.localData || {};
+            return (
+                (Array.isArray(d.groupUsers) && d.groupUsers.length > 0) ||
+                String(d.type || '').toLowerCase() === 'group' ||
+                d.isAssignToTeam
+            );
+        });
+        const avatarInitial = computed(() => (label.value || '').trim().charAt(0).toUpperCase());
+
         const { optionId, handleKeyDown, focusFromOptionId } = useAccessibility({
             emit,
             optionElement,
@@ -354,6 +407,10 @@ export default {
             selectType,
             toggle,
             isSelected,
+            isUsersCombo,
+            avatarUrl,
+            avatarInitial,
+            isGroupOption,
         };
     },
 };
@@ -383,5 +440,75 @@ export default {
     display: flex;
     align-items: center;
     gap: 0.5em;
+}
+
+.user-option-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+
+.avatar-outer {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid #3A4663;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+}
+
+.avatar-middle {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+}
+
+.user-selector__avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #4B6CB7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.user-selector__avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.user-selector__initial {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 400;
+    background: transparent;
+    color: #fff;
+    border-radius: 50%;
+    letter-spacing: 0.5px;
+}
+
+.user-selector__group-icon {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: #fff;
 }
 </style>
