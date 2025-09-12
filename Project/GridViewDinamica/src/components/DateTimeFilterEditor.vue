@@ -355,8 +355,15 @@ export default {
 
     const displayDate = computed(() => {
       if (!selectedDate.value) return '';
-      const base = formatDateByStyle(selectedDate.value, formatStyle);
-      return isShowTime.value ? `${base} ${timePart.value}` : base;
+      if (isShowTime.value) {
+        const d = new Date(`${selectedDate.value}T${timePart.value}`);
+        if (!isNaN(d.getTime())) {
+          return d.toLocaleString(lang);
+        }
+        const base = formatDateByStyle(selectedDate.value, formatStyle);
+        return `${base} ${timePart.value}`;
+      }
+      return formatDateByStyle(selectedDate.value, formatStyle);
     });
 
     // === Inline CSS objects (to defeat external overrides) ===
