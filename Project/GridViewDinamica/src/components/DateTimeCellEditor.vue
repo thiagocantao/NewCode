@@ -380,6 +380,7 @@ export default {
       return isShowTime.value
         ? `${selectedDate.value} ${timePart.value}`
         : selectedDate.value;
+
     });
 
     // === Inline CSS objects (to defeat external overrides) ===
