@@ -394,7 +394,7 @@ export default {
     display: flex;
     align-items: center;
     gap: 0.25em;
-    font-size: 13px
+    font-size: 13px;
 }
 
 .ww-select-group-icon {
