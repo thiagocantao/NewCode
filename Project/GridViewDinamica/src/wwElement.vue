@@ -2271,7 +2271,7 @@ forceClearSelection() {
     }
 
     :deep(.ag-cell[col-id="ag-Grid-SelectionColumn"]) {
-      background-color: inherit !important;
+      background-color: transparent !important;
       border-right: var(--ag-border-color, #ddd) 1px solid !important;
       min-width: 50px !important;
       max-width: 50px !important;
@@ -2288,6 +2288,11 @@ forceClearSelection() {
         width: 100% !important;
         height: 100% !important;
       }
+    }
+
+    // Aplica a mesma cor de hover à célula de seleção
+    :deep(.ag-row-hover .ag-cell[col-id="ag-Grid-SelectionColumn"]) {
+      background-color: var(--ag-row-hover-color) !important;
     }
 
     // Garantir que a coluna de seleção seja sempre fixa à esquerda quando pinned
