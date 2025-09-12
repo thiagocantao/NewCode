@@ -68,7 +68,7 @@ export default {
                 height: props.content.searchHeight,
                 'border-radius': props.content.searchBorderRadius,
                 padding: props.content.searchPadding,
-                'padding-left': '30px',
+                'padding-left': '12px',
                 margin: props.content.searchMargin,
                 'background-color': props.content.searchBgColor,
                 'font-family': props.content.searchFontFamily,
@@ -132,10 +132,10 @@ export default {
 
 .ww-select-search-icon {
     position: absolute;
-    left: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 20px;
+    right: 8px;
+    top: 40px;
+    transform: translateY(-36px);
+    font-size: 25px !important;
     color: #9e9e9e;
     pointer-events: none;
 }
