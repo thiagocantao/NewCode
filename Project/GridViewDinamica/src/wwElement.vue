@@ -1161,6 +1161,13 @@ setTimeout(() => {
           delete colCopy.useCustomFormatter;
           delete colCopy.useStyleArray;
         }
+        if (colCopy.cellDataType === 'dateTime') {
+          delete colCopy.useCustomFormatter;
+          delete colCopy.formatter;
+          delete colCopy.valueFormatter;
+          delete colCopy.cellRenderer;
+          delete colCopy.cellRendererFramework;
+        }
         if (colCopy.FieldDB === 'StatusID') {
           colCopy.filter = 'agListColumnFilter';
         }

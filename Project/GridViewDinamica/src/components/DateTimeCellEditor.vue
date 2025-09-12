@@ -108,6 +108,7 @@ export default {
     const dpPopStyle = ref({});
     const selectedDate = ref('');
     const timePart = ref('00:00');
+    const originalValue = ref('');
     const anchorPoint = ref(null);
 
     function toYMD(date) {
@@ -126,6 +127,8 @@ export default {
 
     function applyValue(val){
       const v = val || '';
+      originalValue.value = String(v);
+
       if (!v) {
         selectedDate.value = '';
         timePart.value = '00:00';
@@ -211,8 +214,32 @@ export default {
 
     function emitValue(){
       if(!selectedDate.value){ emit('update:modelValue', ''); return; }
-      const val = isShowTime.value ? `${selectedDate.value}T${timePart.value}` : selectedDate.value;
-      emit('update:modelValue', val);
+      if(!isShowTime.value){
+        emit('update:modelValue', selectedDate.value);
+        return;
+      }
+      const orig = originalValue.value || '';
+      if(/t/i.test(orig)){
+        emit('update:modelValue', `${selectedDate.value}T${timePart.value}`);
+        return;
+      }
+      const baseDate = new Date(`${selectedDate.value}T${timePart.value}`);
+      const mm = String(baseDate.getMonth() + 1).padStart(2,'0');
+      const dd = String(baseDate.getDate()).padStart(2,'0');
+      const yyyy = baseDate.getFullYear();
+      const min = String(baseDate.getMinutes()).padStart(2,'0');
+      if(/am|pm/i.test(orig)){
+        let hh = baseDate.getHours();
+        const ampm = hh >= 12 ? 'PM' : 'AM';
+        hh = hh % 12; if(hh === 0) hh = 12;
+        const hh12 = String(hh).padStart(2,'0');
+        emit('update:modelValue', `${mm}/${dd}/${yyyy} ${hh12}:${min} ${ampm}`);
+      } else if(orig.includes('/')){
+        const hh = String(baseDate.getHours()).padStart(2,'0');
+        emit('update:modelValue', `${mm}/${dd}/${yyyy} ${hh}:${min}`);
+      } else {
+        emit('update:modelValue', `${selectedDate.value} ${timePart.value}`);
+      }
     }
 
     function finalizeEditing(){
