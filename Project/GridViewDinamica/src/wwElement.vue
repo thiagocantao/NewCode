@@ -1161,6 +1161,13 @@ setTimeout(() => {
           delete colCopy.useCustomFormatter;
           delete colCopy.useStyleArray;
         }
+        if (colCopy.cellDataType === 'dateTime') {
+          delete colCopy.useCustomFormatter;
+          delete colCopy.formatter;
+          delete colCopy.valueFormatter;
+          delete colCopy.cellRenderer;
+          delete colCopy.cellRendererFramework;
+        }
         if (colCopy.FieldDB === 'StatusID') {
           colCopy.filter = 'agListColumnFilter';
         }
@@ -1517,8 +1524,8 @@ setTimeout(() => {
             if (colCopy.headerAlign) {
               result.headerClass = `ag-header-align-${colCopy.headerAlign}`;
             }
-            // Use DateTimeCellEditor for editable date fields and deadlines
-            if (colCopy.cellDataType === 'dateString' || colCopy.cellDataType === 'dateTime' ||tagControl === 'DEADLINE') {
+            // Use DateTimeCellEditor for date fields and deadlines
+            if (colCopy.cellDataType === 'dateString' || colCopy.cellDataType === 'dateTime' || tagControl === 'DEADLINE') {
 
               result.filter = 'agDateColumnFilter';
               if (tagControl !== 'DEADLINE') {
@@ -1526,33 +1533,10 @@ setTimeout(() => {
               } else {
                 delete result.cellDataType;
               }
+
               if (colCopy.editable) {
                 // Register Vue component by name so AG Grid can resolve it
                 result.cellEditor = 'DateTimeCellEditor';
-                result.valueFormatter = params => {
-                  if (typeof params.value === 'string' && params.value) {
-                    try {
-                      const date = new Date(params.value);
-                      if (!isNaN(date.getTime())) {
-                        const pad = n => n.toString().padStart(2, '0');
-                        if (tagControl === 'DEADLINE') {
-                          return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
-                        }
-                        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-                      }
-                    } catch (e) {
-                      return params.value;
-                    }
-                  }
-                  if (params.value instanceof Date && !isNaN(params.value.getTime())) {
-                    const pad = n => n.toString().padStart(2, '0');
-                    if (tagControl === 'DEADLINE') {
-                      return `${params.value.getFullYear()}-${pad(params.value.getMonth() + 1)}-${pad(params.value.getDate())} ${pad(params.value.getHours())}:${pad(params.value.getMinutes())}:${pad(params.value.getSeconds())}`;
-                    }
-                    return `${params.value.getFullYear()}-${pad(params.value.getMonth() + 1)}-${pad(params.value.getDate())}`;
-                  }
-                  return params.value || '';
-                };
                 delete result.valueParser;
               }
             }

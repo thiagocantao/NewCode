@@ -108,6 +108,7 @@ export default {
     const dpPopStyle = ref({});
     const selectedDate = ref('');
     const timePart = ref('00:00');
+    const originalValue = ref('');
     const anchorPoint = ref(null);
 
     function toYMD(date) {
@@ -122,25 +123,33 @@ export default {
       if (!y || !m || !d) return null;
       return new Date(y, m - 1, d);
     }
-    function formatDateByStyle(yyyyMmDd, style = formatStyle) {
-      if (!yyyyMmDd) return '';
-      const [y,m,d] = yyyyMmDd.split('-').map(Number);
-      const DD = String(d).padStart(2,'0');
-      const MM = String(m).padStart(2,'0');
-      const YYYY = String(y);
-      return style === 'american' ? `${MM}/${DD}/${YYYY}` : `${DD}/${MM}/${YYYY}`;
-    }
     function sameYMD(a,b){ return a && b && toYMD(a) === toYMD(b); }
 
     function applyValue(val){
       const v = val || '';
-      if (isShowTime.value) {
-        const [d, t] = String(v).split('T');
-        selectedDate.value = d || '';
-        timePart.value = t ? t.slice(0,5) : '00:00';
-      } else {
-        selectedDate.value = String(v);
+      originalValue.value = String(v);
+      if (!v) {
+        selectedDate.value = '';
+        timePart.value = '00:00';
+        return;
       }
+      if (isShowTime.value) {
+        if (typeof v === 'string' && v.includes('T')) {
+          const [d, t] = v.split('T');
+          selectedDate.value = d || '';
+          timePart.value = t ? t.slice(0,5) : '00:00';
+          return;
+        }
+        const d = new Date(v);
+        if (!isNaN(d.getTime())) {
+          selectedDate.value = toYMD(d);
+          const hh = String(d.getHours()).padStart(2,'0');
+          const mm = String(d.getMinutes()).padStart(2,'0');
+          timePart.value = `${hh}:${mm}`;
+          return;
+        }
+      }
+      selectedDate.value = String(v);
     }
 
     watch(() => props.modelValue ?? (props.params && props.params.value), v => {
@@ -204,8 +213,32 @@ export default {
 
     function emitValue(){
       if(!selectedDate.value){ emit('update:modelValue', ''); return; }
-      const val = isShowTime.value ? `${selectedDate.value}T${timePart.value}` : selectedDate.value;
-      emit('update:modelValue', val);
+      if(!isShowTime.value){
+        emit('update:modelValue', selectedDate.value);
+        return;
+      }
+      const orig = originalValue.value || '';
+      if(/t/i.test(orig)){
+        emit('update:modelValue', `${selectedDate.value}T${timePart.value}`);
+        return;
+      }
+      const baseDate = new Date(`${selectedDate.value}T${timePart.value}`);
+      const mm = String(baseDate.getMonth() + 1).padStart(2,'0');
+      const dd = String(baseDate.getDate()).padStart(2,'0');
+      const yyyy = baseDate.getFullYear();
+      const min = String(baseDate.getMinutes()).padStart(2,'0');
+      if(/am|pm/i.test(orig)){
+        let hh = baseDate.getHours();
+        const ampm = hh >= 12 ? 'PM' : 'AM';
+        hh = hh % 12; if(hh === 0) hh = 12;
+        const hh12 = String(hh).padStart(2,'0');
+        emit('update:modelValue', `${mm}/${dd}/${yyyy} ${hh12}:${min} ${ampm}`);
+      } else if(orig.includes('/')){
+        const hh = String(baseDate.getHours()).padStart(2,'0');
+        emit('update:modelValue', `${mm}/${dd}/${yyyy} ${hh}:${min}`);
+      } else {
+        emit('update:modelValue', `${selectedDate.value} ${timePart.value}`);
+      }
     }
 
     function finalizeEditing(){
@@ -370,8 +403,9 @@ export default {
 
     const displayDate = computed(() => {
       if (!selectedDate.value) return '';
-      const base = formatDateByStyle(selectedDate.value, formatStyle);
-      return isShowTime.value ? `${base} ${timePart.value}` : base;
+      return isShowTime.value
+        ? `${selectedDate.value} ${timePart.value}`
+        : selectedDate.value;
     });
 
     // === Inline CSS objects (to defeat external overrides) ===
