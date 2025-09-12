@@ -37,6 +37,7 @@
                                 <span class="material-symbols-outlined user-selector__group-icon">groups</span>
                             </div>
                         </div>
+
                     </div>
                 </template>
                 <span :style="optionTextStyles">{{ data.label }}</span>
@@ -59,6 +60,7 @@
                                 <span class="material-symbols-outlined user-selector__group-icon">groups</span>
                             </div>
                         </div>
+
                     </div>
                 </template>
                 <span :style="optionTextStyles">{{ data.label }}</span>
@@ -510,5 +512,6 @@ export default {
     justify-content: center;
     font-size: 18px;
     color: #fff;
+
 }
 </style>

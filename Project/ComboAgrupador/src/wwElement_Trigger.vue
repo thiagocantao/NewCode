@@ -19,6 +19,7 @@
                                     <span class="material-symbols-outlined user-selector__group-icon">groups</span>
                                 </div>
                             </div>
+
                         </div>
                     </template>
                     <span :style="selectedValueStyle">{{ selectedLabel }}</span>
@@ -460,5 +461,6 @@ export default {
     justify-content: center;
     font-size: 18px;
     color: #fff;
+
 }
 </style>
