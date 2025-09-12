@@ -16,6 +16,7 @@
             >
                 <wwLayoutItemContext :key="index" is-repeat :index="index" :data="item">
                     <template v-if="item.__type === 'group'">
+                        <div class="ww-select-separator"></div>
                         <div class="ww-select-group" :style="{ padding: content.optionPadding }">
                             <span style="font-size:16px"
                                 class="material-symbols-outlined ww-select-group-icon"
@@ -378,6 +379,10 @@ export default {
 
 <style>
 @import 'vue-virtual-scroller/dist/vue-virtual-scroller.css';
+
+.ww-select-separator {
+    border-top: 1px solid #e0e0e0;
+}
 
 .ww-select-group-label {
     display: flex;
