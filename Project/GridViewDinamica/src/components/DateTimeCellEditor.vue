@@ -128,6 +128,7 @@ export default {
     function applyValue(val){
       const v = val || '';
       originalValue.value = String(v);
+
       if (!v) {
         selectedDate.value = '';
         timePart.value = '00:00';
@@ -406,6 +407,7 @@ export default {
       return isShowTime.value
         ? `${selectedDate.value} ${timePart.value}`
         : selectedDate.value;
+
     });
 
     // === Inline CSS objects (to defeat external overrides) ===

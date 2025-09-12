@@ -1525,6 +1525,7 @@ setTimeout(() => {
               result.headerClass = `ag-header-align-${colCopy.headerAlign}`;
             }
             // Use DateTimeCellEditor for date fields and deadlines
+
             if (colCopy.cellDataType === 'dateString' || colCopy.cellDataType === 'dateTime' || tagControl === 'DEADLINE') {
 
               result.filter = 'agDateColumnFilter';
@@ -1533,6 +1534,7 @@ setTimeout(() => {
               } else {
                 delete result.cellDataType;
               }
+
 
               if (colCopy.editable) {
                 // Register Vue component by name so AG Grid can resolve it
