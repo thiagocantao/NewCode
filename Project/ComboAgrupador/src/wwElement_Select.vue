@@ -1024,6 +1024,8 @@ export default {
     text-align: right;
     padding: 4px 8px;
     cursor: pointer;
+    font-size: 13px;
+    font-family: arial;
 }
 
 .ww-select {
