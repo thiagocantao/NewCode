@@ -806,6 +806,8 @@ export default class ResponsibleUserCellEditor {
   display: inline-block;
   color: #fff;
   font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+  padding-right: 2px;
+  padding-bottom: 1px;
 }
 
 /* Chevron direita */
