@@ -15,16 +15,21 @@
                 :data-index="index"
             >
                 <wwLayoutItemContext :key="index" is-repeat :index="index" :data="item">
-                    <template v-if="item.__type === 'group'">
+                    <template v-if="item.__type === 'group' && item.label !== 'User'">
                         <div class="ww-select-separator"></div>
                         <div class="ww-select-group" :style="{ padding: content.optionPadding }">
-                            <span style="font-size:16px"
+                            <span
+                                v-if="showGroupCheckbox"
+                                style="font-size:16px"
                                 class="material-symbols-outlined ww-select-group-icon"
                                 @click.stop="toggleGroupCollapse(item.label)"
                             >
                                 {{ collapsedGroups.has(item.label) ? 'chevron_right' : 'expand_more' }}
                             </span>
-                            <label v-if="selectType === 'multiple'" class="ww-select-group-label">
+                            <label
+                                v-if="selectType === 'multiple' && showGroupCheckbox"
+                                class="ww-select-group-label"
+                            >
                                 <input
                                     type="checkbox"
                                     :checked="isGroupSelected(item)"
@@ -123,6 +128,8 @@ export default {
         const updateValue = inject('_wwSelect:updateValue', () => {});
         const removeSpecificValue = inject('_wwSelect:removeSpecificValue', () => {});
         const mappingValue = inject('_wwSelect:mappingValue', ref(null));
+
+        const showGroupCheckbox = computed(() => props.content.showGroupCheckbox !== false);
 
         const virtualScroll = computed(() => props.content.virtualScroll);
         const virtualScrollSizeDependencies = computed(() => props.content.virtualScrollSizeDependencies);
@@ -247,14 +254,25 @@ export default {
             const { groups, ungrouped } = groupedOptions.value;
 
             groups.forEach((group, gIndex) => {
-                items.push({ __type: 'group', label: group.label, items: group.items, id: `group_${gIndex}` });
-                if (!collapsedGroups.value.has(group.label)) {
+                const showHeader = group.label !== 'User';
+                if (showHeader) {
+                    items.push({ __type: 'group', label: group.label, items: group.items, id: `group_${gIndex}` });
+                }
+                if (!showHeader || !collapsedGroups.value.has(group.label)) {
                     group.items.forEach((item, index) => {
                         const isPrimitive = typeof item !== 'object' || item === null;
                         if (isPrimitive) {
-                            items.push({ value: item, id: `id_${gIndex}_${index}`, __group: group.label });
+                            items.push({
+                                value: item,
+                                id: `id_${gIndex}_${index}`,
+                                ...(showHeader ? { __group: group.label } : {}),
+                            });
                         } else {
-                            items.push({ ...item, id: item.id ?? `id_${gIndex}_${index}`, __group: group.label });
+                            items.push({
+                                ...item,
+                                id: item.id ?? `id_${gIndex}_${index}`,
+                                ...(showHeader ? { __group: group.label } : {}),
+                            });
                         }
                     });
                 }
@@ -372,6 +390,7 @@ export default {
             toggleGroup,
             collapsedGroups,
             toggleGroupCollapse,
+            showGroupCheckbox,
         };
     },
 };

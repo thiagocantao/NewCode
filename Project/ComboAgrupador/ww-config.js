@@ -146,6 +146,7 @@ export default {
             'mappingDisabled',
             'groupBy',
             'isUsers',
+            'showGroupCheckbox',
             'optionBgColorField',
             'optionFontColorField',
             'initValueSingle',
@@ -875,6 +876,12 @@ export default {
             label: { en: 'Users combo' },
             type: 'OnOff',
             defaultValue: false,
+            section: 'settings',
+        },
+        showGroupCheckbox: {
+            label: { en: 'Show group checkbox' },
+            type: 'OnOff',
+            defaultValue: true,
             section: 'settings',
         },
         optionProperties: {
