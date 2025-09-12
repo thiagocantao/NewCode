@@ -1517,7 +1517,8 @@ setTimeout(() => {
             if (colCopy.headerAlign) {
               result.headerClass = `ag-header-align-${colCopy.headerAlign}`;
             }
-            // Use DateTimeCellEditor and locale formatting for date fields and deadlines
+            // Use DateTimeCellEditor for date fields and deadlines
+
             if (colCopy.cellDataType === 'dateString' || colCopy.cellDataType === 'dateTime' || tagControl === 'DEADLINE') {
 
               result.filter = 'agDateColumnFilter';
@@ -1527,18 +1528,6 @@ setTimeout(() => {
                 delete result.cellDataType;
               }
 
-              const lang = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342') || navigator.language;
-              result.valueFormatter = params => {
-                const val = params.value;
-                if (!val) return '';
-                const date = val instanceof Date ? val : new Date(val);
-                if (isNaN(date.getTime())) return val;
-                if (tagControl === 'DEADLINE' || colCopy.cellDataType === 'dateTime') {
-                  return date.toLocaleString(lang);
-                }
-                const pad = n => n.toString().padStart(2, '0');
-                return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-              };
 
               if (colCopy.editable) {
                 // Register Vue component by name so AG Grid can resolve it

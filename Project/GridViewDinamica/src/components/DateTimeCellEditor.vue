@@ -122,25 +122,32 @@ export default {
       if (!y || !m || !d) return null;
       return new Date(y, m - 1, d);
     }
-    function formatDateByStyle(yyyyMmDd, style = formatStyle) {
-      if (!yyyyMmDd) return '';
-      const [y,m,d] = yyyyMmDd.split('-').map(Number);
-      const DD = String(d).padStart(2,'0');
-      const MM = String(m).padStart(2,'0');
-      const YYYY = String(y);
-      return style === 'american' ? `${MM}/${DD}/${YYYY}` : `${DD}/${MM}/${YYYY}`;
-    }
     function sameYMD(a,b){ return a && b && toYMD(a) === toYMD(b); }
 
     function applyValue(val){
       const v = val || '';
-      if (isShowTime.value) {
-        const [d, t] = String(v).split('T');
-        selectedDate.value = d || '';
-        timePart.value = t ? t.slice(0,5) : '00:00';
-      } else {
-        selectedDate.value = String(v);
+      if (!v) {
+        selectedDate.value = '';
+        timePart.value = '00:00';
+        return;
       }
+      if (isShowTime.value) {
+        if (typeof v === 'string' && v.includes('T')) {
+          const [d, t] = v.split('T');
+          selectedDate.value = d || '';
+          timePart.value = t ? t.slice(0,5) : '00:00';
+          return;
+        }
+        const d = new Date(v);
+        if (!isNaN(d.getTime())) {
+          selectedDate.value = toYMD(d);
+          const hh = String(d.getHours()).padStart(2,'0');
+          const mm = String(d.getMinutes()).padStart(2,'0');
+          timePart.value = `${hh}:${mm}`;
+          return;
+        }
+      }
+      selectedDate.value = String(v);
     }
 
     watch(() => props.modelValue ?? (props.params && props.params.value), v => {
@@ -370,15 +377,10 @@ export default {
 
     const displayDate = computed(() => {
       if (!selectedDate.value) return '';
-      if (isShowTime.value) {
-        const d = new Date(`${selectedDate.value}T${timePart.value}`);
-        if (!isNaN(d.getTime())) {
-          return d.toLocaleString(lang);
-        }
-        const base = formatDateByStyle(selectedDate.value, formatStyle);
-        return `${base} ${timePart.value}`;
-      }
-      return formatDateByStyle(selectedDate.value, formatStyle);
+      return isShowTime.value
+        ? `${selectedDate.value} ${timePart.value}`
+        : selectedDate.value;
+
     });
 
     // === Inline CSS objects (to defeat external overrides) ===
