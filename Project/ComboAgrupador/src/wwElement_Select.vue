@@ -41,6 +41,8 @@
                     <div :style="[dropdownStyles]">
                         <SelectDropdown :content="content" :wwEditorState="wwEditorState">
                             <SelectSearch v-if="showSearch" :content="content" :wwEditorState="wwEditorState" />
+                            <div class="ww-select-close" @click="closeDropdown">x</div>
+                            <div class="ww-select-separator"></div>
                             <!-- List mode -->
                             <SelectOptionList :content="content" :wwEditorState="wwEditorState" />
                         </SelectDropdown>
@@ -1017,6 +1019,12 @@ export default {
 
 <style lang="scss" scoped>
 // dropdown width is
+
+.ww-select-close {
+    text-align: right;
+    padding: 4px 8px;
+    cursor: pointer;
+}
 
 .ww-select {
     position: relative;

@@ -1,14 +1,17 @@
 <template>
-    <input
-        ref="searchElementRef"
-        name="select-search"
-        :style="[searchStyles]"
-        :class="['ww-select-search']"
-        @input="handleInputChange"
-        @focus="handleSearchFocus"
-        @blur="handleSearchBlur"
-        :placeholder="searchPlaceholder"
-    />
+    <div class="ww-select-search-wrapper">
+        <span class="material-symbols-outlined ww-select-search-icon">search</span>
+        <input
+            ref="searchElementRef"
+            name="select-search"
+            :style="[searchStyles]"
+            :class="['ww-select-search']"
+            @input="handleInputChange"
+            @focus="handleSearchFocus"
+            @blur="handleSearchBlur"
+            :placeholder="searchPlaceholder"
+        />
+    </div>
 </template>
 
 <script>
@@ -65,6 +68,7 @@ export default {
                 height: props.content.searchHeight,
                 'border-radius': props.content.searchBorderRadius,
                 padding: props.content.searchPadding,
+                'padding-left': '30px',
                 margin: props.content.searchMargin,
                 'background-color': props.content.searchBgColor,
                 'font-family': props.content.searchFontFamily,
@@ -122,6 +126,20 @@ export default {
 </script>
 
 <style scoped lang="scss">
+.ww-select-search-wrapper {
+    position: relative;
+}
+
+.ww-select-search-icon {
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+    color: #9e9e9e;
+    pointer-events: none;
+}
+
 .ww-select-search {
     &::placeholder {
         color: var(--placeholder-color);
