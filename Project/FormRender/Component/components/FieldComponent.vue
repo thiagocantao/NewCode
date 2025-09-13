@@ -733,6 +733,7 @@ export default {
         );
         if (!hasValue) {
           this.error = 'Campo obrigatório';
+
           return false;
         }
       }
