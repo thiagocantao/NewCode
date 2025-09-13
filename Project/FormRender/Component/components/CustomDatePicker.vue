@@ -1,7 +1,7 @@
 <template>
   <div class="dp-wrapper" ref="dpWrapper">
     <input
-      class="dp-input"
+      :class="['dp-input', { error }]"
       type="text"
       :value="displayDate"
       readonly
@@ -63,7 +63,8 @@ export default {
   props: {
     modelValue: { type: String, default: '' },
     disabled: { type: Boolean, default: false },
-    showTime: { type: Boolean, default: false }
+    showTime: { type: Boolean, default: false },
+    error: { type: Boolean, default: false }
   },
   emits: ['update:modelValue'],
   setup(props, { emit }) {
@@ -306,7 +307,8 @@ export default {
       timePart,
       onTimeInput,
       showTime: props.showTime,
-      disabled: props.disabled
+      disabled: props.disabled,
+      error: props.error
     };
   }
 };
@@ -334,6 +336,11 @@ export default {
   font-size: 13px;
   border: 1px solid #ccc; /* borda fina e cinza escura */
   border-radius: 4px;
+}
+
+.dp-input.error {
+  border-color: #ff0000;
+  box-shadow: 0 0 0 1px #ff0000;
 }
 
 .dp-icon {
