@@ -723,6 +723,22 @@ export default {
       }
       return document.body;
     },
+    validate() {
+      const value = this.localValue;
+      if (this.field.is_mandatory) {
+        const hasValue = !(
+          value === null ||
+          value === undefined ||
+          (typeof value === 'string' && value.trim() === '')
+        );
+        if (!hasValue) {
+          this.error = '';
+          return false;
+        }
+      }
+      this.error = null;
+      return true;
+    },
     onDropdownClick(e) {
       if (!this.field.is_readonly) {
         this.toggleDropdown();

@@ -345,6 +345,11 @@ export default {
                     label: { en: 'JSON Data' }
                 }
             ]
+        },
+        {
+            action: 'validateRequiredFields',
+            label: { en: 'Validate required fields' },
+            args: []
         }
     ]
 };
