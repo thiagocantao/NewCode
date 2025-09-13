@@ -155,6 +155,7 @@ export default {
       selectedDate.value = String(v);
     }
     // defina o valor inicial de forma síncrona para evitar campo vazio ao montar
+
     const initVal =
       props.modelValue !== undefined &&
       props.modelValue !== null &&
@@ -162,6 +163,7 @@ export default {
         ? props.modelValue
         : (props.params && props.params.value);
     applyValue(initVal);
+
 
     watch(
       () => {
@@ -172,6 +174,7 @@ export default {
       v => {
         applyValue(v);
       }
+
     );
 
     const dpMonth = ref(0);
@@ -260,6 +263,7 @@ export default {
             }
           }
         }
+
       }
 
       if(newVal === originalValue.value) return;
@@ -387,6 +391,7 @@ export default {
       if(isShowTime.value) timePart.value = '00:00';
       readyToEmit.value = true;
       emitValue();
+
       closeDp();
       finalizeEditing(); // Clear => finaliza
     }
