@@ -153,7 +153,13 @@ export default {
       selectedDate.value = String(v);
     }
     // defina o valor inicial de forma síncrona para evitar campo vazio ao montar
-    const initVal = props.modelValue ?? (props.params && props.params.value);
+
+    const initVal =
+      props.modelValue !== undefined &&
+      props.modelValue !== null &&
+      props.modelValue !== ''
+        ? props.modelValue
+        : (props.params && props.params.value);
     applyValue(initVal);
 
 
