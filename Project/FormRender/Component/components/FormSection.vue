@@ -9,10 +9,11 @@ class="action-icon-section"
 </span>
       <h3 class="section-title">{{ sectionTitle }}</h3> 
     </div>
-    <div v-if="isExpanded" class="section-fields">
+  <div v-if="isExpanded" class="section-fields">
       <div v-for="(row, rowIndex) in fieldRows" :key="'row-' + rowIndex" class="form-row">
         <div v-for="field in row" :key="field.id" class="field-wrapper" :style="{ gridColumn: 'span ' + Math.min(Math.max(parseInt(field.columns) || 1, 1), 4) }">
           <FieldComponent
+            ref="fieldComponents"
             :field="field"
             :api-url="apiUrl"
             :api-key="apiKey"
@@ -30,7 +31,7 @@ class="action-icon-section"
 </template>
 
 <script>
-import { computed, ref, onMounted, onUnmounted, toRef } from 'vue';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
 import FieldComponent from './FieldComponent.vue';
 
 export default {
@@ -95,7 +96,7 @@ export default {
     const error = ref({});
     const hasAddedListener = ref(false);
     const fieldValues = ref({});
-    const autoSave = toRef(props, 'autoSave');
+    const fieldComponents = ref([]);
 
     const autoSave = computed(() => {
       if (typeof props.autoSave === 'string') return props.autoSave.toLowerCase() === 'true';
@@ -148,6 +149,17 @@ export default {
       if (currentRow.length) rows.push(currentRow);
       return rows;
     });
+
+    const validateFields = () => {
+      let valid = true;
+      fieldComponents.value.forEach(comp => {
+        if (comp && typeof comp.validate === 'function') {
+          const fieldValid = comp.validate();
+          if (!fieldValid) valid = false;
+        }
+      });
+      return valid;
+    };
 
     const getInputType = (fieldType) => {
       switch (fieldType) {
@@ -319,7 +331,9 @@ export default {
       fieldValues,
       getFieldOptions,
       fieldRows,
-      autoSave
+      autoSave,
+      fieldComponents,
+      validateFields
     };
   }
 };
