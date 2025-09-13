@@ -31,7 +31,7 @@ class="action-icon-section"
 </template>
 
 <script>
-import { computed, ref, onMounted, onUnmounted, toRef } from 'vue';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
 import FieldComponent from './FieldComponent.vue';
 
 export default {
@@ -97,7 +97,7 @@ export default {
     const hasAddedListener = ref(false);
     const fieldValues = ref({});
     const fieldComponents = ref([]);
-    const autoSave = toRef(props, 'autoSave');
+
 
     const autoSave = computed(() => {
       if (typeof props.autoSave === 'string') return props.autoSave.toLowerCase() === 'true';

@@ -571,7 +571,7 @@ export default {
     },
     validateDate(value) {
       if (!value) {
-        this.error = this.field.is_mandatory ? '' : null;
+        this.error = this.field.is_mandatory ? 'Campo obrigatório' : null;
         return;
       }
       const date = new Date(value + 'T00:00:00');
@@ -583,7 +583,7 @@ export default {
     },
     validateDeadline(value) {
       if (!value) {
-        this.error = this.field.is_mandatory ? '' : null;
+        this.error = this.field.is_mandatory ? 'Campo obrigatório' : null;
         return;
       }
       // O input datetime-local retorna 'YYYY-MM-DDTHH:mm', que é válido para Date
@@ -596,35 +596,35 @@ export default {
     },
     validateDecimal(value) {
       if (value === null || isNaN(value)) {
-        this.error = this.field.is_mandatory ? '' : null;
+        this.error = this.field.is_mandatory ? 'Campo obrigatório' : null;
         return;
       }
       this.error = null;
     },
     validateInteger(value) {
       if (value === null || isNaN(value)) {
-        this.error = this.field.is_mandatory ? '' : null;
+        this.error = this.field.is_mandatory ? 'Campo obrigatório' : null;
         return;
       }
       this.error = null;
     },
     validateList(value) {
       if (this.field.is_mandatory && !value) {
-        this.error = '';
+        this.error = 'Campo obrigatório';
       } else {
         this.error = null;
       }
     },
     validateMultilineText(value) {
       if (this.field.is_mandatory && !value.trim()) {
-        this.error = '';
+        this.error = 'Campo obrigatório';
       } else {
         this.error = null;
       }
     },
     validateText(value) {
       if (this.field.is_mandatory && !value.trim()) {
-        this.error = '';
+        this.error = 'Campo obrigatório';
       } else {
         this.error = null;
       }
@@ -732,7 +732,8 @@ export default {
           (typeof value === 'string' && value.trim() === '')
         );
         if (!hasValue) {
-          this.error = '';
+          this.error = 'Campo obrigatório';
+
           return false;
         }
       }
