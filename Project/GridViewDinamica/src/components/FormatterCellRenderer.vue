@@ -109,8 +109,12 @@ export default {
         const rawValue = this.params.value;
         let displayValue = rawValue;
 
-if (this.params.colDef?.TagControl === 'DATETIME' || this.params.colDef?.tagControl === 'DATETIME')
-return dateTimeFormater(rawValue, "");
+if (
+  this.params.colDef?.TagControl === 'DATETIME' ||
+  this.params.colDef?.tagControl === 'DATETIME' ||
+  this.params.colDef?.cellDataType === 'dateTime'
+)
+  return dateTimeFormater(rawValue, "");
 
         if (Array.isArray(this.params.options)) {
           const match = this.params.options.find(

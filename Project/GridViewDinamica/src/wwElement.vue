@@ -1162,11 +1162,9 @@ setTimeout(() => {
           delete colCopy.useStyleArray;
         }
         if (colCopy.cellDataType === 'dateTime') {
-          colCopy.cellRenderer = FormatterCellRenderer;
           delete colCopy.useCustomFormatter;
           delete colCopy.formatter;
           delete colCopy.valueFormatter;
-          delete colCopy.cellRenderer;
           delete colCopy.cellRendererFramework;
         }
         if (colCopy.FieldDB === 'StatusID') {
@@ -1533,8 +1531,10 @@ setTimeout(() => {
               if (tagControl !== 'DEADLINE' && colCopy.cellDataType !== 'dateTime') {
                 result.cellDataType = 'dateString';
               } else {
-                if(colCopy.cellDataType === 'dateTime')
-                  result.TagControl = "DATETIME";
+                if (colCopy.cellDataType === 'dateTime') {
+                  result.TagControl = 'DATETIME';
+                  result.cellRenderer = 'FormatterCellRenderer';
+                }
                 delete result.cellDataType;
               }
 
