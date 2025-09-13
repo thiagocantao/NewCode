@@ -11,7 +11,12 @@
     <!-- Campos de entrada baseados no tipo -->
     <div class="field-input-container">
       <template v-if="field.fieldType === 'DATE'">
-        <CustomDatePicker v-model="localValue" :disabled="field.is_readonly" @update:modelValue="onDateChange" />
+        <CustomDatePicker
+          v-model="localValue"
+          :disabled="field.is_readonly"
+          @update:modelValue="onDateChange"
+          :error="error && field.is_mandatory"
+        />
       </template>
       <template v-else-if="field.fieldType === 'DEADLINE'">
         <div style="position:relative;">
@@ -89,7 +94,7 @@
       <template
         v-else-if="field.fieldType === 'SIMPLE_LIST' || field.fieldType === 'CONTROLLED_LIST' || field.fieldType === 'LIST'">
         <div class="custom-dropdown-wrapper" :class="{ 'readonly-field': field.is_readonly }">
-          <div class="custom-dropdown-selected" :class="{ 'open': dropdownOpen, 'readonly-field': field.is_readonly }"
+          <div class="custom-dropdown-selected" :class="{ open: dropdownOpen, 'readonly-field': field.is_readonly, error: error && field.is_mandatory }"
             @click="onDropdownClick" tabindex="0" @keydown.enter.prevent="!field.is_readonly && toggleDropdown()">
             <span v-if="selectedOption" @click.stop="onDropdownClick" style="pointer-events:auto">{{ selectedOption.label }}</span>
             <span class="material-symbols-outlined dropdown-arrow" @click.stop="onDropdownClick" style="pointer-events:auto">expand_more</span>
@@ -1136,6 +1141,11 @@ export default {
   .custom-dropdown-selected.open {
     border-color: #699d8c;
     box-shadow: 0 2px 8px rgba(105, 157, 140, 0.08);
+  }
+
+  .custom-dropdown-selected.error {
+    border-color: #ff0000;
+    box-shadow: 0 0 0 1px #ff0000;
   }
 
   .custom-dropdown-selected.readonly-field {
