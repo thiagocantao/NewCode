@@ -110,6 +110,8 @@ export default {
     const timePart = ref('00:00');
     const originalValue = ref('');
     const anchorPoint = ref(null);
+    // evita validação imediata ao entrar em edição
+    const readyToEmit = ref(false);
 
     function toYMD(date) {
       const y = date.getFullYear();
@@ -152,10 +154,25 @@ export default {
       }
       selectedDate.value = String(v);
     }
+    // defina o valor inicial de forma síncrona para evitar campo vazio ao montar
+    const initVal =
+      props.modelValue !== undefined &&
+      props.modelValue !== null &&
+      props.modelValue !== ''
+        ? props.modelValue
+        : (props.params && props.params.value);
+    applyValue(initVal);
 
-    watch(() => props.modelValue ?? (props.params && props.params.value), v => {
-      applyValue(v);
-    }, { immediate: true });
+    watch(
+      () => {
+        const mv = props.modelValue;
+        const pv = props.params && props.params.value;
+        return mv !== undefined && mv !== null && mv !== '' ? mv : pv;
+      },
+      v => {
+        applyValue(v);
+      }
+    );
 
     const dpMonth = ref(0);
     const dpYear  = ref(0);
@@ -213,6 +230,7 @@ export default {
     });
 
     function emitValue(){
+      if(!readyToEmit.value) return;
       if(!selectedDate.value){ emit('update:modelValue', ''); return; }
       if(!isShowTime.value){
         emit('update:modelValue', selectedDate.value);
@@ -342,6 +360,7 @@ export default {
       if(!d.inMonth) return;
       // Apenas seleciona o dia e mantém o calendário aberto
       selectedDate.value = d.dateStr;
+      readyToEmit.value = true;
       emitValue();
     }
     function onPickToday(){
@@ -351,6 +370,7 @@ export default {
         const p = n=>String(n).padStart(2,'0');
         timePart.value = `${p(now.getHours())}:${p(now.getMinutes())}`;
       }
+      readyToEmit.value = true;
       emitValue();
       closeDp();
       finalizeEditing(); // Today => finaliza
@@ -358,17 +378,20 @@ export default {
     function onClear(){
       selectedDate.value = '';
       if(isShowTime.value) timePart.value = '00:00';
+      readyToEmit.value = true;
       emit('update:modelValue','');
       closeDp();
       finalizeEditing(); // Clear => finaliza
     }
     function onApply(){
+      readyToEmit.value = true;
       emitValue();
       closeDp();
       finalizeEditing(); // Select => finaliza
     }
     function onTimeInput(e){
       timePart.value = e.target.value;
+      readyToEmit.value = true;
       emitValue();
     }
 
