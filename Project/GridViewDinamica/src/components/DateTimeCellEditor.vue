@@ -153,9 +153,17 @@ export default {
       selectedDate.value = String(v);
     }
 
-    watch(() => props.modelValue ?? (props.params && props.params.value), v => {
-      applyValue(v);
-    }, { immediate: true });
+    watch(
+      () => {
+        const mv = props.modelValue;
+        const pv = props.params && props.params.value;
+        return mv !== undefined && mv !== null && mv !== '' ? mv : pv;
+      },
+      v => {
+        applyValue(v);
+      },
+      { immediate: true }
+    );
 
     const dpMonth = ref(0);
     const dpYear  = ref(0);
