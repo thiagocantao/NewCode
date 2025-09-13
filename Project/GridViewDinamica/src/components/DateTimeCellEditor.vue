@@ -234,33 +234,41 @@ export default {
 
     function emitValue(){
       if(!readyToEmit.value) return;
-      if(!selectedDate.value){ emit('update:modelValue', ''); return; }
-      if(!isShowTime.value){
-        emit('update:modelValue', selectedDate.value);
-        return;
+
+      let newVal = '';
+      if(selectedDate.value){
+        if(!isShowTime.value){
+          newVal = selectedDate.value;
+        } else {
+          const orig = originalValue.value || '';
+          if(/t/i.test(orig)){
+            newVal = `${selectedDate.value}T${timePart.value}`;
+          } else {
+            const baseDate = new Date(`${selectedDate.value}T${timePart.value}`);
+            const mm = String(baseDate.getMonth() + 1).padStart(2,'0');
+            const dd = String(baseDate.getDate()).padStart(2,'0');
+            const yyyy = baseDate.getFullYear();
+            const min = String(baseDate.getMinutes()).padStart(2,'0');
+            if(/am|pm/i.test(orig)){
+              let hh = baseDate.getHours();
+              const ampm = hh >= 12 ? 'PM' : 'AM';
+              hh = hh % 12; if(hh === 0) hh = 12;
+              const hh12 = String(hh).padStart(2,'0');
+              newVal = `${mm}/${dd}/${yyyy} ${hh12}:${min} ${ampm}`;
+            } else if(orig.includes('/')){
+              const hh = String(baseDate.getHours()).padStart(2,'0');
+              newVal = `${mm}/${dd}/${yyyy} ${hh}:${min}`;
+            } else {
+              newVal = `${selectedDate.value} ${timePart.value}`;
+            }
+          }
+        }
+
       }
-      const orig = originalValue.value || '';
-      if(/t/i.test(orig)){
-        emit('update:modelValue', `${selectedDate.value}T${timePart.value}`);
-        return;
-      }
-      const baseDate = new Date(`${selectedDate.value}T${timePart.value}`);
-      const mm = String(baseDate.getMonth() + 1).padStart(2,'0');
-      const dd = String(baseDate.getDate()).padStart(2,'0');
-      const yyyy = baseDate.getFullYear();
-      const min = String(baseDate.getMinutes()).padStart(2,'0');
-      if(/am|pm/i.test(orig)){
-        let hh = baseDate.getHours();
-        const ampm = hh >= 12 ? 'PM' : 'AM';
-        hh = hh % 12; if(hh === 0) hh = 12;
-        const hh12 = String(hh).padStart(2,'0');
-        emit('update:modelValue', `${mm}/${dd}/${yyyy} ${hh12}:${min} ${ampm}`);
-      } else if(orig.includes('/')){
-        const hh = String(baseDate.getHours()).padStart(2,'0');
-        emit('update:modelValue', `${mm}/${dd}/${yyyy} ${hh}:${min}`);
-      } else {
-        emit('update:modelValue', `${selectedDate.value} ${timePart.value}`);
-      }
+
+      if(newVal === originalValue.value) return;
+      emit('update:modelValue', newVal);
+      originalValue.value = newVal;
     }
 
     function finalizeEditing(){
@@ -382,7 +390,8 @@ export default {
       selectedDate.value = '';
       if(isShowTime.value) timePart.value = '00:00';
       readyToEmit.value = true;
-      emit('update:modelValue','');
+      emitValue();
+
       closeDp();
       finalizeEditing(); // Clear => finaliza
     }
@@ -420,8 +429,7 @@ export default {
         } catch (e) {}
       },
       getValue(){
-        if(!selectedDate.value) return '';
-        return isShowTime.value ? (selectedDate.value + 'T' + timePart.value) : selectedDate.value;
+        return originalValue.value || '';
       },
       isPopup(){ return true; },
       isCancelBeforeStart(){ return false; },
