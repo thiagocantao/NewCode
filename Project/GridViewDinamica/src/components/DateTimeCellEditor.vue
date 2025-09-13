@@ -161,14 +161,27 @@ export default {
       props.modelValue !== null &&
       props.modelValue !== ''
         ? props.modelValue
-        : (props.params && props.params.value);
+        : (
+            props.params &&
+            (props.params.value !== undefined && props.params.value !== null
+              ? props.params.value
+              : props.params.colDef && props.params.data
+                ? props.params.data[props.params.colDef.field]
+                : undefined)
+          );
     applyValue(initVal);
 
 
     watch(
       () => {
         const mv = props.modelValue;
-        const pv = props.params && props.params.value;
+        const p = props.params || {};
+        const pv =
+          p.value !== undefined && p.value !== null
+            ? p.value
+            : p.colDef && p.data
+              ? p.data[p.colDef.field]
+              : undefined;
         return mv !== undefined && mv !== null && mv !== '' ? mv : pv;
       },
       v => {
