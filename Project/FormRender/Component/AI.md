@@ -54,6 +54,7 @@ This component provides a complete form building system that combines available 
 ***Exposed Actions:***
 - `importFieldsFromJsonData`: Imports fields from JSON data. Args: jsonData (string|object)
 - `importFormFromJsonData`: Imports form from JSON data. Args: jsonData (string|object)
+- `validateRequiredFields`: Checks required fields and highlights empty ones.
 
 ***Exposed Variables:***
 - fieldsData: Array of field definitions in the available fields container. (path: variables['current_element_uid-fieldsData'])

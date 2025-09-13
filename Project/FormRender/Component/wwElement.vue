@@ -19,6 +19,7 @@
             <FormSection
               v-for="section in formSections"
               :key="`section-${section.id}-${renderKey}`"
+              ref="sectionComponents"
               :section="section"
               :all-fields="allAvailableFields"
               :is-editing="isEditing"
@@ -113,6 +114,7 @@ export default {
     const allAvailableFields = ref([]);
     const isLoading = ref(true); // Estado de carregamento global
     const renderKey = ref(0); // Chave para forçar re-renderização
+    const sectionComponents = ref([]);
 
     const apiKey = computed(() => props.apiKey || props.content.apiKey);
     const apiAuthorization = computed(() => props.apiAuthorization || props.content.apiAuthorization);
@@ -406,6 +408,17 @@ export default {
     watch(formSections, (newSections, oldSections) => {
     }, { deep: true });
 
+    const validateRequiredFields = () => {
+      let valid = true;
+      sectionComponents.value.forEach(section => {
+        if (section && typeof section.validateFields === 'function') {
+          const sectionValid = section.validateFields();
+          if (!sectionValid) valid = false;
+        }
+      });
+      return valid;
+    };
+
     return {
       isEditing,
       formData,
@@ -428,7 +441,9 @@ export default {
       isLoading,
       renderKey,
       onFieldValueChange,
-      autoSave
+      autoSave,
+      sectionComponents,
+      validateRequiredFields
     };
   }
 };
