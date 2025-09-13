@@ -152,6 +152,10 @@ export default {
       }
       selectedDate.value = String(v);
     }
+    // defina o valor inicial de forma síncrona para evitar campo vazio ao montar
+    const initVal = props.modelValue ?? (props.params && props.params.value);
+    applyValue(initVal);
+
 
     watch(
       () => {
@@ -161,8 +165,8 @@ export default {
       },
       v => {
         applyValue(v);
-      },
-      { immediate: true }
+      }
+
     );
 
     const dpMonth = ref(0);
