@@ -152,10 +152,25 @@ export default {
       }
       selectedDate.value = String(v);
     }
+    // defina o valor inicial de forma síncrona para evitar campo vazio ao montar
+    const initVal =
+      props.modelValue !== undefined &&
+      props.modelValue !== null &&
+      props.modelValue !== ''
+        ? props.modelValue
+        : (props.params && props.params.value);
+    applyValue(initVal);
 
-    watch(() => props.modelValue ?? (props.params && props.params.value), v => {
-      applyValue(v);
-    }, { immediate: true });
+    watch(
+      () => {
+        const mv = props.modelValue;
+        const pv = props.params && props.params.value;
+        return mv !== undefined && mv !== null && mv !== '' ? mv : pv;
+      },
+      v => {
+        applyValue(v);
+      }
+    );
 
     const dpMonth = ref(0);
     const dpYear  = ref(0);
