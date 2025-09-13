@@ -53,6 +53,33 @@ function dateFormatter(dateValue, lang) {
   }
 }
 
+function dateTimeFormater(dateValue, lang)
+{
+  
+const isAmerican = window.wwLib?.wwVariable?.getValue('21a41590-e7d8-46a5-af76-bb3542da1df3').toUpperCase() == "AMERICAN";
+
+const dateOptions = {
+  timeZone: window.wwLib?.wwVariable?.getValue('7509df4b-d0bc-40c3-a542-bfe0e22f5ec6'),      
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    };
+const timeOptions = {
+      timeZone: window.wwLib?.wwVariable?.getValue('7509df4b-d0bc-40c3-a542-bfe0e22f5ec6'),
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: isAmerican
+    };
+    var newDate = new Date(dateValue);
+lang = isAmerican ? "en-us" : "en-gb";
+
+    const datePart = new Intl.DateTimeFormat(lang || 'en', dateOptions).format(new Date(newDate));
+    const timePart = new Intl.DateTimeFormat(lang || 'en', timeOptions).format(new Date(newDate.setMinutes(newDate.getMinutes() + window.wwLib?.wwVariable?.getValue('5d9d5372-4189-4152-bb1d-da6800cd0b65'))));
+
+ 
+    return `${datePart} ${timePart}`;
+  
+}
 
 export default {
   name: "FormatterCellRenderer",
@@ -81,6 +108,10 @@ export default {
       try {
         const rawValue = this.params.value;
         let displayValue = rawValue;
+
+if (this.params.colDef?.TagControl === 'DATETIME' || this.params.colDef?.tagControl === 'DATETIME')
+return dateTimeFormater(rawValue, "");
+
         if (Array.isArray(this.params.options)) {
           const match = this.params.options.find(
             opt => String(opt.value) === String(rawValue)
