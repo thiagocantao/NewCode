@@ -1162,6 +1162,7 @@ setTimeout(() => {
           delete colCopy.useStyleArray;
         }
         if (colCopy.cellDataType === 'dateTime') {
+          colCopy.cellRenderer = FormatterCellRenderer;
           delete colCopy.useCustomFormatter;
           delete colCopy.formatter;
           delete colCopy.valueFormatter;
@@ -1529,9 +1530,11 @@ setTimeout(() => {
             if (colCopy.cellDataType === 'dateString' || colCopy.cellDataType === 'dateTime' || tagControl === 'DEADLINE') {
 
               result.filter = 'agDateColumnFilter';
-              if (tagControl !== 'DEADLINE') {
+              if (tagControl !== 'DEADLINE' && colCopy.cellDataType !== 'dateTime') {
                 result.cellDataType = 'dateString';
               } else {
+                if(colCopy.cellDataType === 'dateTime')
+                  result.TagControl = "DATETIME";
                 delete result.cellDataType;
               }
 
