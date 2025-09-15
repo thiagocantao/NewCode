@@ -18,127 +18,89 @@ const CustomDatePicker = (() => {
     return null;
   }
 
-const { createApp, ref, computed, watch, nextTick, onBeforeUnmount } = window.Vue || Vue;
+  const { ref, computed, watch, nextTick, h, Teleport, onBeforeUnmount } = VueGlobal;
 
-const CustomDatePicker = {
-  template: `
-    <div class="dp-wrapper" ref="dpWrapper">
-      <input
-        class="dp-input"
-        ref="dpInput"
-        type="text"
-        :value="displayDate"
-        readonly
-        :disabled="disabled"
-        @pointerdown.stop.prevent="!disabled && openDp($event)"
-        @mousedown.stop.prevent="!disabled && openDp($event)"
-        @click.stop.prevent="!disabled && openDp($event)"
-        @focus="!disabled && openDp($event)"
-        aria-haspopup="dialog"
-        :aria-expanded="dpOpen ? 'true' : 'false'"
-      />
-      <button
-        v-if="!disabled"
-        type="button"
-        class="dp-icon"
-        @pointerdown.stop.prevent="openDp($event)"
-        @mousedown.stop.prevent="openDp($event)"
-        @click.stop.prevent="openDp($event)"
-      >
-        <span class="material-symbols-outlined">calendar_month</span>
-      </button>
-      <div v-if="dpOpen" class="datepicker-pop" :style="dpPopStyle" ref="dpPopRef">
-        <div class="dp-header">
-          <button type="button" class="dp-nav" @click="prevMonth">&lt;</button>
-          <div class="dp-title">{{ monthLabel }}</div>
-          <button type="button" class="dp-nav" @click="nextMonth">&gt;</button>
-        </div>
-        <div class="dp-weekdays">
-          <div class="dp-weekday" v-for="d in weekdayAbbrs" :key="d">{{ d }}</div>
-        </div>
-        <div class="dp-grid">
-          <button
-            v-for="d in gridDays"
-            :key="d.dateStr"
-            type="button"
-            class="dp-cell"
-            :class="{ 'is-muted': !d.inMonth, 'is-selected': d.isSelected, 'is-today': d.isToday }"
-            @click="selectDay(d)"
-          >
-            {{ d.label }}
-          </button>
-        </div>
-        <div v-if="showTime" class="dp-time">
-          <input type="time" v-model="timePart" @input="onTimeInput" />
-        </div>
-        <div class="dp-actions">
-          <button type="button" class="dp-action" @click="pickToday">{{ labelToday }}</button>
-          <button type="button" class="dp-action" @click="clearDate">{{ labelClear }}</button>
-        </div>
-      </div>
-    </div>
-  `,
-  props: {
-    modelValue: { type: String, default: '' },
-    disabled: { type: Boolean, default: false },
-    showTime: { type: Boolean, default: false },
-  },
-  emits: ['update:modelValue'],
-  setup(props, { emit }) {
-    const translateText = t => t;
-    const ww = window.wwLib?.wwVariable;
-    const lang = ww?.getValue('aa44dc4c-476b-45e9-a094-16687e063342') || navigator.language;
-    const formatStyleRaw = ww?.getValue('21a41590-e7d8-46a5-af76-bb3542da1df3') || 'european';
-    const formatStyle = String(formatStyleRaw).toLowerCase() === 'american' ? 'american' : 'european';
+  return {
+    props: {
+      modelValue: { type: String, default: "" },
+      disabled: { type: Boolean, default: false },
+      showTime: { type: Boolean, default: false },
+    },
+    emits: ["update:modelValue"],
+    setup(props, { emit }) {
+      const translateText = (t) => t;
+      const ww = window.wwLib?.wwVariable;
+      const lang = ww?.getValue("aa44dc4c-476b-45e9-a094-16687e063342") || navigator.language;
+      const formatStyleRaw = ww?.getValue("21a41590-e7d8-46a5-af76-bb3542da1df3") || "european";
+      const formatStyle = String(formatStyleRaw).toLowerCase() === "american" ? "american" : "european";
 
-    const isPt = computed(() => String(lang || '').toLowerCase().startsWith('pt'));
-    const PT_MONTHS = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
-    const labelToday = computed(() => (isPt.value ? 'Hoje' : translateText('Today')));
-    const labelClear = computed(() => (isPt.value ? 'Limpar' : translateText('Clear')));
+      const isPt = computed(() => String(lang || "").toLowerCase().startsWith("pt"));
+      const PT_MONTHS = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+      const labelToday = computed(() => (isPt.value ? "Hoje" : translateText("Today")));
+      const labelClear = computed(() => (isPt.value ? "Limpar" : translateText("Clear")));
 
-    function toYMD(date) {
-      const y = date.getFullYear();
-      const m = String(date.getMonth() + 1).padStart(2, '0');
-      const d = String(date.getDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
-    }
-    function parseYMD(ymd) {
-      if (!ymd) return null;
-      const [y, m, d] = ymd.split('-').map(Number);
-      if (!y || !m || !d) return null;
-      return new Date(y, m - 1, d);
-    }
-    function formatDateByStyle(yyyyMmDd, style = formatStyle) {
-      if (!yyyyMmDd) return '';
-      const [y, m, d] = yyyyMmDd.split('-').map(Number);
-      const DD = String(d).padStart(2, '0');
-      const MM = String(m).padStart(2, '0');
-      const YYYY = String(y);
-      return style === 'american' ? `${MM}/${DD}/${YYYY}` : `${DD}/${MM}/${YYYY}`;
-    }
-    function sameYMD(a, b) {
-      return a && b && toYMD(a) === toYMD(b);
-    }
+      const toYMD = (date) => {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, "0");
+        const d = String(date.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
+      };
+      const parseYMD = (ymd) => {
+        if (!ymd) return null;
+        const [y, m, d] = ymd.split("-").map(Number);
+        if (!y || !m || !d) return null;
+        return new Date(y, m - 1, d);
+      };
+      const formatDateByStyle = (yyyyMmDd, style = formatStyle) => {
+        if (!yyyyMmDd) return "";
+        const [y, m, d] = yyyyMmDd.split("-").map(Number);
+        const DD = String(d).padStart(2, "0");
+        const MM = String(m).padStart(2, "0");
+        const YYYY = String(y);
+        return style === "american" ? `${MM}/${DD}/${YYYY}` : `${DD}/${MM}/${YYYY}`;
+      };
+      const sameYMD = (a, b) => a && b && toYMD(a) === toYMD(b);
 
-    const dpWrapper = ref(null);
-    const dpInput = ref(null);
-    const dpOpen = ref(false);
-    const dpPopRef = ref(null);
-    const dpPopStyle = ref({});
-    const selectedDate = ref('');
-    const timePart = ref('00:00');
-    const anchorPoint = ref(null);
+      const dpWrapper = ref(null);
+      const dpOpen = ref(false);
+      const dpPopRef = ref(null);
+      const dpPopStyle = ref({});
+      const selectedDate = ref("");
+      const timePart = ref("00:00");
 
-    watch(
-      () => props.modelValue,
-      v => {
-        if (props.showTime) {
-          const [d, t] = (v || '').split('T');
-          selectedDate.value = d || '';
-          timePart.value = t ? t.slice(0, 5) : '00:00';
-        } else {
-          selectedDate.value = v || '';
+      // Anti-loop
+      let syncLock = false;
 
+      watch(
+        () => props.modelValue,
+        (v) => {
+          if (syncLock) return;
+          const prevDate = selectedDate.value || "";
+          let nextDate = "";
+          let nextTime = timePart.value;
+          if (props.showTime) {
+            const [d, t] = (v || "").split("T");
+            nextDate = d || "";
+            nextTime = t ? t.slice(0, 5) : "00:00";
+          } else {
+            nextDate = (v || "").split("T")[0] || "";
+          }
+          if (nextDate !== prevDate || nextTime !== timePart.value) {
+            selectedDate.value = nextDate;
+            timePart.value = nextTime;
+          }
+        },
+        { immediate: true }
+      );
+
+      const dpMonth = ref(0);
+      const dpYear = ref(0);
+      const weekStart = computed(() => (formatStyle === "american" ? 0 : 1));
+
+      const weekdayAbbrs = computed(() => {
+        if (isPt.value) {
+          const base = ["dom","seg","ter","qua","qui","sex","sáb"];
+          return weekStart.value === 1 ? base.slice(1).concat(base.slice(0,1)) : base;
         }
         try {
           const base = Array.from({ length: 7 }, (_, i) =>
@@ -188,109 +150,11 @@ const CustomDatePicker = {
         return cells;
       });
 
-    const gridDays = computed(() => {
-      const first = new Date(dpYear.value, dpMonth.value, 1);
-      const startWeekday = first.getDay();
-      const lead = (startWeekday - weekStart.value + 7) % 7;
-      const daysInCur = new Date(dpYear.value, dpMonth.value + 1, 0).getDate();
-      const prevYear = dpMonth.value === 0 ? dpYear.value - 1 : dpYear.value;
-      const prevMonth = dpMonth.value === 0 ? 11 : dpMonth.value - 1;
-      const daysInPrev = new Date(prevYear, prevMonth + 1, 0).getDate();
-      const cells = [];
-      for (let i = daysInPrev - lead + 1; i <= daysInPrev; i++) {
-        cells.push(makeCell(new Date(prevYear, prevMonth, i), false));
-      }
-      for (let i = 1; i <= daysInCur; i++) {
-        cells.push(makeCell(new Date(dpYear.value, dpMonth.value, i), true));
-      }
-      const tail = 42 - cells.length;
-      const nextYear = dpMonth.value === 11 ? dpYear.value + 1 : dpYear.value;
-      const nextMonth = dpMonth.value === 11 ? 0 : dpMonth.value + 1;
-      for (let i = 1; i <= tail; i++) {
-        cells.push(makeCell(new Date(nextYear, nextMonth, i), false));
-      }
-      return cells;
-    });
-
-    function updatePopoverPosition() {
-      const wrapper = dpWrapper.value;
-      const pop = dpPopRef.value;
-      if (!wrapper || !pop) return;
-
-      const rect = wrapper.getBoundingClientRect();
-      const popWidth = pop.offsetWidth || 0;
-      const popHeight = pop.offsetHeight || 0;
-      const minWidth = Math.max(rect.width, 230);
-      const margin = 8;
-      const gap = 4;
-      const width = Math.max(popWidth, minWidth);
-      const height = popHeight || 340;
-
-      const anchor = anchorPoint.value;
-
-      let left = anchor ? anchor.x - width / 2 : rect.left;
-      let top = anchor ? anchor.y + gap : rect.bottom + gap;
-
-      if (left + width + margin > window.innerWidth) {
-        left = Math.max(margin, window.innerWidth - width - margin);
-      }
-      if (left < margin) {
-        left = margin;
-      }
-
-      if (top + height + margin > window.innerHeight) {
-        top = rect.top - height - gap;
-        if (top < margin) {
-          top = Math.max(margin, window.innerHeight - height - margin);
-        }
-      }
-
-      dpPopStyle.value = {
-        position: 'fixed',
-        left: `${Math.round(left)}px`,
-        top: `${Math.round(top)}px`,
-        minWidth: `${minWidth}px`,
-        zIndex: 2147483647,
-      };
-
-      if (anchorPoint.value) {
-        anchorPoint.value = null;
-      }
-    }
-
-    function openDp(evt) {
-      const base = selectedDate.value ? parseYMD(selectedDate.value) : new Date();
-      dpMonth.value = base.getMonth();
-      dpYear.value = base.getFullYear();
-
-      anchorPoint.value =
-        evt && typeof evt.clientX === 'number'
-          ? { x: evt.clientX, y: evt.clientY }
-          : null;
-
-      if (props.showTime && !selectedDate.value) {
-        const pad2 = n => String(n).padStart(2, '0');
-        timePart.value = `${pad2(base.getHours())}:${pad2(base.getMinutes())}`;
-      }
-
-      dpOpen.value = true;
-
-      nextTick(() => {
-        updatePopoverPosition();
-        if (dpInput.value && typeof dpInput.value.focus === 'function') {
-          try {
-            dpInput.value.focus();
-          } catch (_err) {
-            /* ignore focus errors */
-          }
-        }
-      });
-
-      document.addEventListener('click', handleClickOutside);
-      window.addEventListener('scroll', updatePopoverPosition, true);
-      window.addEventListener('resize', updatePopoverPosition, true);
-    }
-
+      // ---- POSICIONAMENTO: sempre pela âncora (wrapper) ----
+      function computePosition() {
+        const rect = dpWrapper.value?.getBoundingClientRect?.();
+        const popEl = dpPopRef.value;
+        if (!rect || !popEl) return;
 
         const vw = window.innerWidth;
         const vh = window.innerHeight;
@@ -298,42 +162,19 @@ const CustomDatePicker = {
         const ph = popEl.offsetHeight || 320;
         const margin = 8;
 
-    function closeDp() {
-      dpOpen.value = false;
-      anchorPoint.value = null;
-      document.removeEventListener('click', handleClickOutside);
-      window.removeEventListener('scroll', updatePopoverPosition, true);
-      window.removeEventListener('resize', updatePopoverPosition, true);
-    }
+        // Preferência: bottom-start do input
+        let left = rect.left;
+        let top = rect.bottom;
 
-    function handleClickOutside(e) {
-      const wrapper = dpWrapper.value;
-      if (!wrapper) return;
-      if (!wrapper.contains(e.target)) {
-        closeDp();
-      }
-    }
+        // Se estourar na direita, tenta alinhar à direita do input
+        if (left + pw + margin > vw) left = rect.right - pw;
 
-    function prevMonth() {
-      if (dpMonth.value === 0) {
-        dpMonth.value = 11;
-        dpYear.value--;
-      } else {
-        dpMonth.value--;
-      }
-      nextTick(updatePopoverPosition);
-    }
+        // Se ainda estourar, clamp lateral
+        if (left < margin) left = margin;
+        if (left + pw > vw - margin) left = vw - margin - pw;
 
-    function nextMonth() {
-      if (dpMonth.value === 11) {
-        dpMonth.value = 0;
-        dpYear.value++;
-      } else {
-        dpMonth.value++;
-      }
-      nextTick(updatePopoverPosition);
-    }
-
+        // Se não cabe para baixo, tenta para cima
+        if (top + ph + margin > vh) top = rect.top - ph;
 
         // Fallback: centraliza verticalmente próximo ao campo
         if (top < margin || top + ph > vh - margin) {
@@ -402,37 +243,11 @@ const CustomDatePicker = {
         }
       }
 
-    if (typeof onBeforeUnmount === 'function') {
-      onBeforeUnmount(() => {
-        closeDp();
+      const displayDate = computed(() => {
+        if (!selectedDate.value) return "";
+        const base = formatDateByStyle(selectedDate.value, formatStyle);
+        return props.showTime ? `${base} ${timePart.value}` : base;
       });
-    }
-
-    return {
-      dpWrapper,
-      dpInput,
-      dpOpen,
-      dpPopRef,
-      dpPopStyle,
-      openDp,
-      prevMonth,
-      nextMonth,
-      selectDay,
-      pickToday,
-      clearDate,
-      weekdayAbbrs,
-      monthLabel,
-      gridDays,
-      displayDate,
-      labelToday,
-      labelClear,
-      timePart,
-      onTimeInput,
-      showTime: props.showTime,
-      disabled: props.disabled,
-    };
-  },
-};
 
       // Render com Teleport → body
       return () => {

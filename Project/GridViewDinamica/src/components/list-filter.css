@@ -289,8 +289,15 @@
   align-items: stretch;
 }
 
-.deadline-filter .custom-range .dp-wrapper {
+.deadline-filter .custom-range input[type="date"] {
   flex: 1;
+  padding: 6px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: Roboto, Arial, sans-serif;
+  color: #444;
+  box-sizing: border-box;
 }
 
 .deadline-filter .apply-btn {
@@ -384,13 +391,15 @@
   margin-bottom: 8px;
 }
 
-.deadline-filter .custom-range.between-mode {
-  flex-direction: column;
-  align-items: stretch;
-}
-
-.deadline-filter .custom-range .dp-wrapper {
+.deadline-filter .custom-range input[type="date"] {
   flex: 1;
+  padding: 6px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: Roboto, Arial, sans-serif;
+  color: #444;
+  box-sizing: border-box;
 }
 
 .deadline-filter .apply-btn {
@@ -402,31 +411,6 @@
   cursor: pointer;
   font-size: 13px;
 }
-
-.deadline-filter .apply-btn:hover {
-  background: #4b5560;
-}
-
-
-.deadline-filter .apply-btn:hover {
-  background: #4b5560;
-}
-
-
-.deadline-filter .apply-btn {
-  padding: 6px 12px;
-  border: none;
-  background: #5e6a75;
-  color: #fff;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-}
-
-.deadline-filter .apply-btn:hover {
-  background: #4b5560;
-}
-
 
 .deadline-filter .apply-btn:hover {
   background: #4b5560;
@@ -505,122 +489,89 @@
   line-height: 1;
 }
 
-/* Custom date picker styles */
-.dp-wrapper {
-  position: relative;
-  width: 100%;
-  font-family: 'Roboto', sans-serif;
-  font-size: 14px;
-}
+.dp-wrapper { position: relative; display: inline-flex; align-items: center; gap: 6px; }
+.dp-input { width: 160px; padding: 8px 10px; border: 1px solid #d0d5dd; border-radius: 8px; background: #fff; font: 14px/1.2 Roboto, Arial, sans-serif; cursor: pointer; }
+.dp-input[disabled] { background: #f2f4f7; color: #98a2b3; cursor: not-allowed; }
+.dp-icon { border: 0; background: transparent; cursor: pointer; padding: 4px; border-radius: 6px; }
+.dp-icon:hover { background: #f2f4f7; }
 
-.dp-input {
-  display: block;
-  width: 100%;
-  padding-left: 5px;
-  padding-right: 30px;
-  height: 35px;
-  cursor: pointer;
-  font-family: 'Roboto', sans-serif;
-  font-size: 13px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
+.datepicker-pop { position: fixed; z-index: 9999; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.08); width: 280px; padding: 8px; user-select: none; }
+.dp-header { display: flex; align-items: center; justify-content: space-between; padding: 4px 4px 8px; }
+.dp-title { font: 600 14px/1.2 Inter, system-ui, Arial; }
+.dp-nav { border: 0; background: #f3f4f6; width: 28px; height: 28px; border-radius: 8px; cursor: pointer; }
+.dp-nav:active { transform: translateY(1px); }
+.dp-weekdays, .dp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.dp-weekdays { padding: 4px 2px; color: #6b7280; font: 600 11px/1 Inter, sans-serif; text-transform: uppercase; letter-spacing: .02em; }
+.dp-weekday { text-align: center; }
+.dp-grid { padding: 6px 2px 4px; }
+.dp-cell { border: 0; height: 32px; border-radius: 8px; background: #fff; cursor: pointer; font: 500 13px/1 Inter, sans-serif; }
+.dp-cell:hover { background: #f3f4f6; }
+.dp-cell.is-muted { color: #9ca3af; }
+.dp-cell.is-selected { background: #2563eb; color: #fff; }
+.dp-cell.is-today { outline: 1px dashed #2563eb; outline-offset: -3px; }
 
-.dp-icon {
-  position: absolute;
-  right: 6px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 24px;
-  height: 24px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: 0;
-  padding: 0;
-  cursor: pointer;
-  color: #ddd;
-}
+.dp-actions { display: flex; gap: 8px; justify-content: space-between; padding-top: 8px; }
+.dp-action { flex: 1; border: 1px solid #d0d5dd; background: #fff; height: 32px; border-radius: 8px; cursor: pointer; font: 600 12px/1 Inter; }
+.dp-action:hover { background: #f9fafb; }
 
-.dp-icon:hover {
-  color: #ccc;
+.list-filter.deadline-filter { min-width: 280px; }
+.field-search { position: relative; margin-bottom: 8px; }
+.field-search .search-input { width: 100%; padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 8px; }
+.filter-list { display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow: auto; }
+.filter-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 8px; cursor: pointer; }
+.filter-item:hover { background: #f3f4f6; }
+.filter-item.selected { background: #e0e7ff; }
+.custom-header { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.custom-title { font-weight: 600; }
+.custom-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.custom-select { flex: 1; height: 32px; border: 1px solid #e5e7eb; border-radius: 8px; padding: 0 8px; }
+.custom-range { display: flex; flex-direction: column; gap: 8px; margin: 8px 0; }
+.picker-row { display: grid; grid-template-columns: 60px 1fr; align-items: center; gap: 8px; }
+.picker-label { color: #6b7280; font: 600 12px/1 Inter; }
+.custom-actions { display: flex; gap: 8px; }
+.apply-btn, .cancel-btn { height: 32px; border-radius: 8px; border: 1px solid #d0d5dd; background: #fff; flex: 1; cursor: pointer; }
+.apply-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+
+/* Garante que o popup não seja clipado por containers do menu (usa Teleport→body) */
+.dp-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147480000 !important;
+  background: transparent !important;
 }
 
 .datepicker-pop {
-  position: fixed;
+  position: fixed !important;
+  z-index: 2147480001 !important; /* acima do backdrop e do menu */
+  width: 280px;
+  border-radius: 12px;
   background: #fff;
-  border: 1px solid #acacad;
-  border-radius: 8px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 10px 30px rgba(0,0,0,.08);
   padding: 8px;
-  z-index: 2147483647;
 }
 
-.dp-header {
-  display: flex;
+/* Botões do calendário podem ser afetados por resets (ex.: button{all:unset}) */
+.dp-nav, .dp-cell, .dp-action, .dp-icon {
+  all: unset;
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  margin-bottom: 6px;
-}
-.dp-title {
-  font-weight: 500;
-  text-transform: capitalize;
-}
-.dp-nav {
-  border: 1px solid #ccc;
-  background: #f7f7f7;
-  border-radius: 6px;
-  padding: 2px 8px;
-  cursor: pointer;
-}
-.dp-weekdays,
-.dp-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 2px;
-}
-.dp-weekday {
-  text-align: center;
-  font-size: 12px;
-  color: #666;
-  padding: 4px 0;
-}
-.dp-cell {
-  border: 0;
-  background: transparent;
-  border-radius: 6px;
-  padding: 6px 0;
-  cursor: pointer;
-  align-items: center;
-  text-align: center;
   justify-content: center;
-}
-.dp-cell:hover {
-  background: #f0f0f0;
-}
-.dp-cell.is-muted {
-  color: #aaa;
-  cursor: default;
-}
-.dp-cell.is-selected {
-  background: #689d8c;
-  color: #fff;
-}
-.dp-cell.is-today {
-  outline: 1px dashed #689d8c;
-}
-.dp-actions {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 6px;
-}
-.dp-action {
-  border: 1px solid #ccc;
-  background: #f7f7f7;
-  border-radius: 6px;
-  padding: 4px 8px;
   cursor: pointer;
 }
+.dp-nav { width: 28px; height: 28px; background: #f3f4f6; border-radius: 8px; }
+.dp-cell { height: 32px; border-radius: 8px; padding: 0 0.25rem; }
+.dp-action { height: 32px; border-radius: 8px; border: 1px solid #d0d5dd; padding: 0 .5rem; }
+.dp-icon { padding: 4px; border-radius: 6px; }
+.dp-cell.is-selected { background: #2563eb; color: #fff; }
+.dp-cell.is-today { outline: 1px dashed #2563eb; outline-offset: -3px; }
 
+/* Garanta que a fonte de ícone exista (Material Symbols) */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined', sans-serif !important;
+  font-weight: normal; font-style: normal; line-height: 1;
+  letter-spacing: normal; text-transform: none; display: inline-block;
+  white-space: nowrap; word-wrap: normal; direction: ltr;
+  -webkit-font-feature-settings: 'liga'; -webkit-font-smoothing: antialiased;
+}
