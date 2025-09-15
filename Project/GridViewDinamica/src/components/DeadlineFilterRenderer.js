@@ -189,21 +189,42 @@ const CustomDatePicker = {
       return cells;
     });
 
+    function updatePopoverPosition() {
+      const wrap = dpWrapper.value;
+      if (!wrap) return;
+      const rect = wrap.getBoundingClientRect();
+      const left = Math.round(rect.left);
+      const bottom = Math.round(window.innerHeight - rect.top + 4);
+      dpPopStyle.value = {
+        position: 'fixed',
+        left: `${left}px`,
+        bottom: `${bottom}px`,
+        minWidth: `${Math.max(rect.width, 230)}px`,
+        zIndex: 2147483647,
+      };
+    }
+
+
     function openDp() {
       const base = selectedDate.value ? parseYMD(selectedDate.value) : new Date();
       dpMonth.value = base.getMonth();
       dpYear.value = base.getFullYear();
       dpOpen.value = true;
       nextTick(() => {
-        const rect = dpWrapper.value.getBoundingClientRect();
-        dpPopStyle.value = { left: `${rect.left}px`, top: `${rect.bottom + window.scrollY}px` };
+        updatePopoverPosition();
+        window.addEventListener('scroll', updatePopoverPosition, true);
+        window.addEventListener('resize', updatePopoverPosition, true);
       });
-      document.addEventListener('click', handleClickOutside);
+      document.addEventListener('click', handleClickOutside, true);
+
     }
 
     function closeDp() {
       dpOpen.value = false;
-      document.removeEventListener('click', handleClickOutside);
+      window.removeEventListener('scroll', updatePopoverPosition, true);
+      window.removeEventListener('resize', updatePopoverPosition, true);
+      document.removeEventListener('click', handleClickOutside, true);
+
     }
 
     function handleClickOutside(e) {
