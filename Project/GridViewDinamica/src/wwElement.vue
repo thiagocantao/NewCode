@@ -37,6 +37,7 @@
   import UserCellRenderer from "./components/UserCellRenderer.vue";
   import ListFilterRenderer from "./components/ListFilterRenderer.js";
   import ResponsibleUserFilterRenderer from "./components/ResponsibleUserFilterRenderer.js";
+  import DeadlineFilterRenderer from "./components/DeadlineFilterRenderer.js";
   import DateTimeCellEditor from "./components/DateTimeCellEditor.vue";
   import FixedListCellEditor from "./components/FixedListCellEditor.js";
   import ResponsibleUserCellEditor from "./components/ResponsibleUserCellEditor.js";
@@ -1527,7 +1528,11 @@ setTimeout(() => {
 
             if (colCopy.cellDataType === 'dateString' || colCopy.cellDataType === 'dateTime' || tagControl === 'DEADLINE') {
 
-              result.filter = 'agDateColumnFilter';
+              if (tagControl === 'DEADLINE') {
+                result.filter = DeadlineFilterRenderer;
+              } else {
+                result.filter = 'agDateColumnFilter';
+              }
               if (tagControl !== 'DEADLINE' && colCopy.cellDataType !== 'dateTime') {
                 result.cellDataType = 'dateString';
               } else {
