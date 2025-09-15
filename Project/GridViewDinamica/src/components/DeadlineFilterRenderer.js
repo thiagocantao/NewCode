@@ -3,6 +3,8 @@ export default class DeadlineFilterRenderer {
     this.selected = null;
     this.customFrom = '';
     this.customTo = '';
+    this.customMode = 'equals';
+
     this.searchText = '';
     this.options = [
       { label: 'Today', value: 'today' },
@@ -72,24 +74,66 @@ export default class DeadlineFilterRenderer {
 
   showCustomInputs() {
     this.listEl.innerHTML = `
-      <div class="custom-range">
-        <input type="date" class="from-date" />
-        <span style="margin:0 4px;">-</span>
-        <input type="date" class="to-date" />
-        <button type="button" class="apply-btn">Apply</button>
+      <div class="custom-header">
+        <span class="back-icon material-symbols-outlined">arrow_back_ios</span>
+        <span class="custom-title">Customize</span>
       </div>
+      <select class="custom-select">
+        <option value="equals">Equals</option>
+        <option value="before">Before</option>
+        <option value="after">After</option>
+        <option value="between">Between</option>
+      </select>
+      <div class="custom-range"></div>
+      <button type="button" class="apply-btn">Apply</button>
     `;
-    const fromInput = this.listEl.querySelector('.from-date');
-    const toInput = this.listEl.querySelector('.to-date');
+    const backBtn = this.listEl.querySelector('.back-icon');
+    backBtn.addEventListener('click', () => this.render());
+    const select = this.listEl.querySelector('.custom-select');
+    select.value = this.customMode;
+    select.addEventListener('change', e => {
+      this.customMode = e.target.value;
+      this.updateCustomRange();
+    });
+    this.customRangeEl = this.listEl.querySelector('.custom-range');
+    this.updateCustomRange();
     const applyBtn = this.listEl.querySelector('.apply-btn');
-    fromInput.value = this.customFrom;
-    toInput.value = this.customTo;
     applyBtn.addEventListener('click', () => {
-      this.customFrom = fromInput.value;
-      this.customTo = toInput.value;
+      const fromInput = this.customRangeEl.querySelector('.from-date');
+      const toInput = this.customRangeEl.querySelector('.to-date');
+      this.customFrom = fromInput ? fromInput.value : '';
+      this.customTo = toInput ? toInput.value : '';
+      if (this.customMode === 'equals') this.customTo = this.customFrom;
+      if (this.customMode === 'before') this.customFrom = '';
+      if (this.customMode === 'after') this.customTo = '';
+
       this.params.filterChangedCallback();
     });
   }
+
+  updateCustomRange() {
+    let rangeHtml = '';
+    switch (this.customMode) {
+      case 'before':
+        rangeHtml = `<input type="date" class="to-date" />`;
+        break;
+      case 'after':
+        rangeHtml = `<input type="date" class="from-date" />`;
+        break;
+      case 'between':
+        rangeHtml = `<input type="date" class="from-date" /> <span style="margin:0 4px;">-</span> <input type="date" class="to-date" />`;
+        break;
+      case 'equals':
+      default:
+        rangeHtml = `<input type="date" class="from-date" />`;
+    }
+    this.customRangeEl.innerHTML = rangeHtml;
+    const fromInput = this.customRangeEl.querySelector('.from-date');
+    const toInput = this.customRangeEl.querySelector('.to-date');
+    if (fromInput) fromInput.value = this.customFrom;
+    if (toInput) toInput.value = this.customTo;
+  }
+
 
   getSelectedRange() {
     const now = window.gridDeadlineNow instanceof Date ? new Date(window.gridDeadlineNow) : new Date();
@@ -124,9 +168,27 @@ export default class DeadlineFilterRenderer {
         return { from: start, to: endOfDay(todayStart) };
       }
       case 'custom': {
-        const from = this.customFrom ? startOfDay(new Date(this.customFrom)) : null;
-        const to = this.customTo ? endOfDay(new Date(this.customTo)) : null;
-        if (!from && !to) return null;
+
+        let from = this.customFrom ? startOfDay(new Date(this.customFrom)) : null;
+        let to = this.customTo ? endOfDay(new Date(this.customTo)) : null;
+        switch (this.customMode) {
+          case 'equals':
+            if (!from) return null;
+            to = endOfDay(new Date(this.customFrom));
+            break;
+          case 'before':
+            if (!to) return null;
+            from = null;
+            break;
+          case 'after':
+            if (!from) return null;
+            to = null;
+            break;
+          case 'between':
+            if (!from && !to) return null;
+            break;
+        }
+
         return { from, to };
       }
       default:
@@ -159,6 +221,8 @@ export default class DeadlineFilterRenderer {
       option: this.selected,
       from: from ? from.toISOString() : null,
       to: to ? to.toISOString() : null,
+      mode: this.customMode,
+
     };
   }
 
@@ -173,6 +237,8 @@ export default class DeadlineFilterRenderer {
     this.selected = model.option;
     this.customFrom = model.from ? model.from.slice(0, 10) : '';
     this.customTo = model.to ? model.to.slice(0, 10) : '';
+    this.customMode = model.mode || 'equals';
+
     this.render();
   }
 
