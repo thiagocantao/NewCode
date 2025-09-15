@@ -1,6 +1,5 @@
 
-const { createApp, ref, computed, watch, nextTick, onUnmounted } = window.Vue || Vue;
-
+const { createApp, ref, computed, watch, nextTick } = window.Vue || Vue;
 
 const CustomDatePicker = {
   template: `
@@ -189,60 +188,62 @@ const CustomDatePicker = {
       }
       return cells;
     });
+function openDp(evt) {
+  const base = selectedDate.value ? parseYMD(selectedDate.value) : new Date();
+  dpMonth.value = base.getMonth();
+  dpYear.value = base.getFullYear();
+  dpOpen.value = true;
 
-    function updatePopoverPosition() {
-      const wrap = dpWrapper.value;
-      if (!wrap) return;
-      const rect = wrap.getBoundingClientRect();
-      const left = Math.round(rect.left);
-      const top = Math.round(rect.bottom + 4);
-      dpPopStyle.value = {
-        position: 'fixed',
-        left: `${left}px`,
-        top: `${top}px`,
+  nextTick(() => {
+    const popEl = dpPopRef.value;
 
-        minWidth: `${Math.max(rect.width, 230)}px`,
-        zIndex: 2147483647,
-      };
-    }
+    // Coordenadas do clique (fallback para o wrapper se não houver evento, ex: abertura por teclado)
+    const clickX = evt?.clientX ?? (
+      dpWrapper.value.getBoundingClientRect().left +
+      (dpWrapper.value.offsetWidth / 2)
+    );
+    const clickY = evt?.clientY ?? (
+      dpWrapper.value.getBoundingClientRect().bottom
+    );
 
+    // Tamanho da viewport e do popup
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const pw = popEl?.offsetWidth ?? 320;  // fallback
+    const ph = popEl?.offsetHeight ?? 340; // fallback
 
-    function openDp() {
-      const base = selectedDate.value ? parseYMD(selectedDate.value) : new Date();
-      dpMonth.value = base.getMonth();
-      dpYear.value = base.getFullYear();
-      dpOpen.value = true;
-      nextTick(() => {
-        updatePopoverPosition();
-        window.addEventListener('scroll', updatePopoverPosition, true);
-        window.addEventListener('resize', updatePopoverPosition, true);
-      });
-      document.addEventListener('click', handleClickOutside, true);
+    const margin = 8; // respiro da borda
 
-    }
+    // Posição inicial: exatamente onde clicou
+    let left = clickX;
+    let top  = clickY;
+
+    // Ajustes para não sair da viewport (lado direito e inferior)
+    if (left + pw + margin > vw) left = vw - pw - margin;
+    if (top  + ph + margin > vh) top  = clickY - ph - margin; // abre "para cima" se não couber abaixo
+
+    // Ajustes para borda esquerda/superior
+    if (left < margin) left = margin;
+    if (top  < margin)  top  = margin;
+
+    // Como usamos position: fixed, usamos clientX/clientY diretamente
+    dpPopStyle.value = { left: `${left}px`, top: `${top}px` };
+  });
+
+  document.addEventListener('click', handleClickOutside);
+}
+
 
     function closeDp() {
       dpOpen.value = false;
-      window.removeEventListener('scroll', updatePopoverPosition, true);
-      window.removeEventListener('resize', updatePopoverPosition, true);
-      document.removeEventListener('click', handleClickOutside, true);
-
+      document.removeEventListener('click', handleClickOutside);
     }
 
     function handleClickOutside(e) {
-      const wrap = dpWrapper.value;
-      if (!wrap || !wrap.contains(e.target)) {
-
+      if (!dpWrapper.value.contains(e.target)) {
         closeDp();
       }
     }
-
-    onUnmounted(() => {
-      window.removeEventListener('scroll', updatePopoverPosition, true);
-      window.removeEventListener('resize', updatePopoverPosition, true);
-      document.removeEventListener('click', handleClickOutside, true);
-    });
-
 
     function prevMonth() {
       if (dpMonth.value === 0) {
