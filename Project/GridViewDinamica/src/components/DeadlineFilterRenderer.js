@@ -6,6 +6,414 @@
      com clamp ao viewport + auto flip + listeners de scroll/resize
 */
 
+const DEADLINE_FILTER_STYLE_ID = "__grid_deadline_filter_styles_v3__";
+const DEADLINE_FILTER_STYLES = `
+.list-filter.deadline-filter {
+  padding: 14px 16px 12px;
+  min-width: 280px;
+  max-width: 360px;
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.16);
+  font-family: "Roboto", "Inter", "Helvetica Neue", Arial, sans-serif;
+  font-size: 13px;
+  color: #1f2937;
+  box-sizing: border-box;
+}
+.list-filter.deadline-filter .field-search {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+}
+.list-filter.deadline-filter .search-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid #d0d5dd;
+  background: #ffffff;
+  font-size: 13px;
+  color: #1f2937;
+  outline: none;
+}
+.list-filter.deadline-filter .search-input::placeholder {
+  color: #94a3b8;
+}
+.list-filter.deadline-filter .search-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+.list-filter.deadline-filter .filter-list {
+  max-height: 260px;
+  overflow-y: auto;
+  padding-right: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.list-filter.deadline-filter .filter-list::-webkit-scrollbar {
+  width: 6px;
+}
+.list-filter.deadline-filter .filter-list::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.6);
+  border-radius: 999px;
+}
+.list-filter.deadline-filter .filter-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  transition: background 0.15s ease, color 0.15s ease;
+  cursor: pointer;
+  color: #1f2937;
+}
+.list-filter.deadline-filter .filter-item:hover {
+  background: #f1f5f9;
+}
+.list-filter.deadline-filter .filter-item.selected {
+  background: rgba(37, 99, 235, 0.1);
+  color: #1d4ed8;
+  font-weight: 600;
+}
+.list-filter.deadline-filter .filter-item.custom {
+  border-top: 1px solid rgba(148, 163, 184, 0.35);
+  margin-top: 8px;
+  padding-top: 12px;
+}
+.list-filter.deadline-filter .filter-label {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.2;
+}
+.list-filter.deadline-filter .arrow-icon {
+  margin-left: auto;
+  font-size: 18px;
+  color: #94a3b8;
+}
+.list-filter.deadline-filter .custom-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.list-filter.deadline-filter .back-btn {
+  border: none;
+  background: #f1f5f9;
+  color: #475467;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.list-filter.deadline-filter .back-btn:hover {
+  background: #e2e8f0;
+  color: #1d4ed8;
+}
+.list-filter.deadline-filter .custom-title {
+  flex: 1;
+  text-align: center;
+  font-weight: 600;
+  font-size: 14px;
+  color: #1f2937;
+}
+.list-filter.deadline-filter .custom-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.list-filter.deadline-filter .custom-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+.list-filter.deadline-filter .custom-select {
+  border-radius: 8px;
+  border: 1px solid #d0d5dd;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #1f2937;
+  background: #ffffff;
+  outline: none;
+  min-height: 36px;
+}
+.list-filter.deadline-filter .custom-select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+.list-filter.deadline-filter .custom-range {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.list-filter.deadline-filter .picker-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.list-filter.deadline-filter .picker-label {
+  width: 64px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+}
+.list-filter.deadline-filter .picker-mount {
+  flex: 1;
+}
+.list-filter.deadline-filter .dp-fallback {
+  border-radius: 8px;
+  border: 1px dashed #cbd5f5;
+  background: #f8fafc;
+  color: #64748b;
+  padding: 10px 12px;
+  text-align: center;
+  font-size: 13px;
+}
+.list-filter.deadline-filter .custom-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+.list-filter.deadline-filter .apply-btn,
+.list-filter.deadline-filter .cancel-btn {
+  flex: 1;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+}
+.list-filter.deadline-filter .apply-btn {
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.2);
+}
+.list-filter.deadline-filter .apply-btn:not(:disabled):hover {
+  background: #1d4ed8;
+}
+.list-filter.deadline-filter .apply-btn:disabled {
+  background: #d1d9ee;
+  color: #94a3b8;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.list-filter.deadline-filter .cancel-btn {
+  background: #f1f5f9;
+  color: #475467;
+}
+.list-filter.deadline-filter .cancel-btn:hover {
+  background: #e2e8f0;
+}
+.dp-wrapper {
+  position: relative;
+  width: 100%;
+  font-family: "Roboto", "Inter", "Helvetica Neue", Arial, sans-serif;
+}
+.dp-input {
+  width: 100%;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  padding: 8px 36px 8px 12px;
+  min-height: 36px;
+  background: #ffffff;
+  font-size: 13px;
+  color: #1f2937;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.dp-input:disabled {
+  background: #f8fafc;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+.dp-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+  outline: none;
+}
+.dp-icon {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0;
+}
+.dp-icon:hover {
+  color: #1d4ed8;
+}
+.dp-icon .material-symbols-outlined {
+  font-size: 20px;
+}
+.dp-backdrop {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  z-index: 2147483646;
+}
+.datepicker-pop {
+  position: fixed;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 14px;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.16);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 2147483647;
+  min-width: 240px;
+  box-sizing: border-box;
+}
+.dp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.dp-title {
+  flex: 1;
+  text-align: center;
+  font-weight: 600;
+  font-size: 14px;
+  color: #1f2937;
+  text-transform: capitalize;
+}
+.dp-nav {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #d0d5dd;
+  background: #f1f5f9;
+  color: #475467;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.dp-nav:hover {
+  background: #e2e8f0;
+  color: #1d4ed8;
+}
+.dp-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  text-align: center;
+}
+.dp-weekday {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+}
+.dp-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.dp-cell {
+  border: none;
+  border-radius: 8px;
+  height: 32px;
+  background: transparent;
+  color: #1f2937;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dp-cell:hover {
+  background: #e2e8f0;
+}
+.dp-cell.is-muted {
+  color: #cbd5f5;
+  cursor: default;
+}
+.dp-cell.is-muted:hover {
+  background: transparent;
+}
+.dp-cell.is-selected {
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 600;
+}
+.dp-cell.is-today {
+  box-shadow: inset 0 0 0 1px #2563eb;
+}
+.dp-time {
+  margin-top: 4px;
+}
+.dp-time input {
+  width: 100%;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: #1f2937;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+.dp-time input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+  outline: none;
+}
+.dp-actions {
+  display: flex;
+  gap: 8px;
+}
+.dp-action {
+  flex: 1;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #475467;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.dp-action:hover {
+  background: #e2e8f0;
+}
+`;
+
+function ensureDeadlineFilterStyles() {
+  if (typeof document === "undefined") return;
+  if (document.getElementById(DEADLINE_FILTER_STYLE_ID)) return;
+
+  const style = document.createElement("style");
+  style.id = DEADLINE_FILTER_STYLE_ID;
+  style.textContent = DEADLINE_FILTER_STYLES;
+  document.head.appendChild(style);
+}
+
 const CustomDatePicker = (() => {
   const VueGlobal =
     (typeof window !== "undefined" && window.Vue) ||
@@ -515,6 +923,8 @@ export default class DeadlineFilterRenderer {
       (typeof Vue !== "undefined" ? Vue : null);
     this.fromApp = null;
     this.toApp = null;
+
+    ensureDeadlineFilterStyles();
   }
 
   _unmountPickers(){ try{ this.fromApp?.unmount?.(); }catch{} try{ this.toApp?.unmount?.(); }catch{} this.fromApp=null; this.toApp=null; }
