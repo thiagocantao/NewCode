@@ -685,6 +685,7 @@ export default class DeadlineFilterRenderer {
 
     this.eGui = null;
     this.listEl = null;
+    this.searchWrapper = null;
     this.filteredOptions = [...this.options];
 
     this._Vue =
@@ -712,11 +713,13 @@ export default class DeadlineFilterRenderer {
     this.eGui.className = "list-filter deadline-filter";
     this.eGui.innerHTML = `
       <div class="field-search">
+        <span class="search-icon material-symbols-outlined">search</span>
         <input type="text" placeholder="Search..." class="search-input" />
       </div>
       <div class="filter-list"></div>
     `;
 
+    this.searchWrapper = this.eGui.querySelector(".field-search");
     const searchInput = this.eGui.querySelector(".search-input");
     this.listEl = this.eGui.querySelector(".filter-list");
 
@@ -731,6 +734,12 @@ export default class DeadlineFilterRenderer {
     this.render();
   }
 
+  _setSearchVisibility(show = true) {
+    if (!this.searchWrapper) return;
+    this.searchWrapper.style.display = show ? "" : "none";
+    this.searchWrapper.setAttribute("aria-hidden", show ? "false" : "true");
+  }
+
   getGui() { return this.eGui; }
   afterGuiAttached(params) { this.hidePopup = params?.hidePopup; }
   destroy() { this._unmountPickers(); }
@@ -741,6 +750,7 @@ export default class DeadlineFilterRenderer {
 
   render() {
     this._unmountPickers();
+    this._setSearchVisibility(true);
 
     this.listEl.innerHTML = this.filteredOptions
       .map((opt) => {
@@ -781,6 +791,7 @@ export default class DeadlineFilterRenderer {
 
   showCustomInputs() {
     this._unmountPickers();
+    this._setSearchVisibility(false);
 
     this.listEl.innerHTML = `
       <div class="custom-header">

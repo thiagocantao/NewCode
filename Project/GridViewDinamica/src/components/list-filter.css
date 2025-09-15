@@ -63,9 +63,9 @@
 
 :is(.list-filter, .list-editor) .search-input {
   width: 100%;
-  padding: 7px 36px 7px 13px;
+  padding: 8px 42px 8px 16px;
   border: 1px solid #ddd;
-  border-radius: 20px;
+  border-radius: 9999px;
   font-size: 13px;
   font-family: Roboto, Arial, sans-serif;
   outline: none;
@@ -82,8 +82,8 @@
 
 :is(.list-filter, .list-editor) .search-icon {
   position: absolute;
-  right: 12px;
-  top: 16px;
+  right: 16px;
+  top: 50%;
   transform: translateY(-50%);
   color: #999;
   width: 20px;
@@ -94,9 +94,9 @@
   justify-content: center;
 }
 
-:is(.list-filter, .list-editor) .search-icon i.material-symbols-outlined-search {
+:is(.list-filter, .list-editor) .search-icon.material-symbols-outlined {
   font-family: 'Material Symbols Outlined';
-  font-size: 19px;
+  font-size: 20px;
   font-style: normal;
   font-weight: normal;
   line-height: 1;
@@ -348,7 +348,12 @@
 
 .list-filter.deadline-filter { min-width: 280px; }
 .field-search { position: relative; margin-bottom: 8px; }
-.field-search .search-input { width: 100%; padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 8px; }
+.field-search .search-input {
+  width: 100%;
+  padding: 8px 42px 8px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 9999px;
+}
 .filter-list { display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow: auto; }
 .filter-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 8px; cursor: pointer; }
 .filter-item:hover { background: #f3f4f6; }

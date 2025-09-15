@@ -11,8 +11,8 @@ export default class ListCellEditor {
     this.eGui.innerHTML = `
       <span class="editor-close">&times;</span>
       <div class="field-search">
+        <span class="search-icon material-symbols-outlined">search</span>
         <input type="text" class="search-input" placeholder="Search..." />
-        <span class="search-icon"><i class="material-symbols-outlined-search">search</i></span>
       </div>
       <div class="filter-list"></div>
     `;
