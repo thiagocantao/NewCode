@@ -77,11 +77,14 @@ export default class DeadlineFilterRenderer {
           this.customMode = 'equals';
           this.params.filterChangedCallback();
           this.render();
+          this.closePopup();
+
           return;
         }
         this.selected = value;
         this.params.filterChangedCallback();
         this.render();
+        this.closePopup();
 
       });
     });
@@ -256,10 +259,21 @@ export default class DeadlineFilterRenderer {
     this.customFrom = model.from ? model.from.slice(0, 10) : '';
     this.customTo = model.to ? model.to.slice(0, 10) : '';
     this.customMode = model.mode || 'equals';
-
     this.render();
   }
 
-  afterGuiAttached() {}
+  afterGuiAttached(params) {
+    this.hidePopup = params?.hidePopup;
+  }
+
   destroy() {}
+
+  closePopup() {
+    if (typeof this.hidePopup === 'function') {
+      this.hidePopup();
+    } else if (this.params?.api?.hidePopupMenu) {
+      this.params.api.hidePopupMenu();
+    }
+  }
+
 }
