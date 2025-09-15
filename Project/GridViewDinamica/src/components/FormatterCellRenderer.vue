@@ -55,7 +55,8 @@ function dateFormatter(dateValue, lang) {
 
 function dateTimeFormater(dateValue, lang)
 {
-  
+  if(dateValue == null || dateValue == "")
+  return "";
 const isAmerican = window.wwLib?.wwVariable?.getValue('21a41590-e7d8-46a5-af76-bb3542da1df3').toUpperCase() == "AMERICAN";
 
 const dateOptions = {
