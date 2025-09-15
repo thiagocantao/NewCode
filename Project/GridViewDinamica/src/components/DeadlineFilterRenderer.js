@@ -19,6 +19,7 @@ export default class DeadlineFilterRenderer {
     this.filteredOptions = [...this.options];
     this.eGui = document.createElement('div');
     this.eGui.className = 'list-filter deadline-filter';
+
     this.eGui.innerHTML = `
       <div class="field-search">
         <input type="text" placeholder="Search..." class="search-input" />
@@ -53,6 +54,7 @@ export default class DeadlineFilterRenderer {
           <span class="filter-label">${opt.label}</span>
           ${opt.value === 'custom' ? '<span class="arrow-icon">arrow_forward_ios</span>' : ''}
         </div>`;
+
       })
       .join('');
     this.listEl.querySelectorAll('.filter-item').forEach(el => {

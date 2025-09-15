@@ -246,6 +246,26 @@
   flex-shrink: 0;
 }
 
+/* Specific styles for Deadline filter */
+.deadline-filter .field-search {
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #ccc;
+}
+
+.deadline-filter .filter-item {
+  padding: 12px 0;
+  margin-bottom: 8px;
+
+}
+
+.deadline-filter .filter-item.custom {
+  border-top: 1px solid #ccc;
+  margin-top: 12px;
+  padding-top: 12px;
+
+}
+
 /* Estilos para opções de usuário com avatar */
 :is(.list-filter, .list-editor) .user-option {
   display: flex;
