@@ -50,7 +50,10 @@ export default class DeadlineFilterRenderer {
       .map(opt => {
         const selected = this.selected === opt.value ? ' selected' : '';
         const custom = opt.value === 'custom' ? ' custom' : '';
-        return `<div class="filter-item${selected}${custom}" data-value="${opt.value}"><span class="filter-label">${opt.label}</span></div>`;
+        return `<div class="filter-item${selected}${custom}" data-value="${opt.value}">
+          <span class="filter-label">${opt.label}</span>
+          ${opt.value === 'custom' ? '<span class="arrow-icon">arrow_forward_ios</span>' : ''}
+        </div>`;
 
       })
       .join('');
