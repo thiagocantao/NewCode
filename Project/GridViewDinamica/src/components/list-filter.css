@@ -208,15 +208,23 @@
 }
 
 /* Specific styles for Deadline filter */
+.deadline-filter .field-search {
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #ccc;
+}
+
 .deadline-filter .filter-item {
-  padding: 10px 0;
-  margin-bottom: 4px;
+  padding: 12px 0;
+  margin-bottom: 8px;
+
 }
 
 .deadline-filter .filter-item.custom {
   border-top: 1px solid #ccc;
-  margin-top: 4px;
-  padding-top: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+
 }
 
 /* Estilos para opções de usuário com avatar */
