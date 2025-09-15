@@ -1,11 +1,18 @@
+
+import { createApp } from 'vue';
+import CustomDatePicker from '../../../CustomDatePicker/CustomDatePicker.vue';
+
+
 export default class DeadlineFilterRenderer {
   constructor() {
     this.selected = null;
     this.customFrom = '';
     this.customTo = '';
     this.customMode = 'equals';
-
     this.searchText = '';
+    this.fromPickerApp = null;
+    this.toPickerApp = null;
+
     this.options = [
       { label: 'Today', value: 'today' },
       { label: 'Yesterday', value: 'yesterday' },
@@ -50,6 +57,8 @@ export default class DeadlineFilterRenderer {
   }
 
   render() {
+    this.destroyCustomPickers();
+
     this.listEl.innerHTML = this.filteredOptions
       .map(opt => {
         const selected = this.selected === opt.value ? ' selected' : '';
@@ -91,6 +100,8 @@ export default class DeadlineFilterRenderer {
   }
 
   showCustomInputs() {
+    this.destroyCustomPickers();
+
     this.listEl.innerHTML = `
       <div class="custom-header">
         <span class="back-icon material-symbols-outlined">arrow_back_ios</span>
@@ -117,10 +128,6 @@ export default class DeadlineFilterRenderer {
     this.updateCustomRange();
     const applyBtn = this.listEl.querySelector('.apply-btn');
     applyBtn.addEventListener('click', () => {
-      const fromInput = this.customRangeEl.querySelector('.from-date');
-      const toInput = this.customRangeEl.querySelector('.to-date');
-      this.customFrom = fromInput ? fromInput.value : '';
-      this.customTo = toInput ? toInput.value : '';
       if (this.customMode === 'equals') this.customTo = this.customFrom;
       if (this.customMode === 'before') this.customFrom = '';
       if (this.customMode === 'after') this.customTo = '';
@@ -130,31 +137,45 @@ export default class DeadlineFilterRenderer {
   }
 
   updateCustomRange() {
+    this.destroyCustomPickers();
     let rangeHtml = '';
     switch (this.customMode) {
       case 'before':
-        rangeHtml = `<input type="date" class="to-date" />`;
+        rangeHtml = `<div class="to-date"></div>`;
         break;
       case 'after':
-        rangeHtml = `<input type="date" class="from-date" />`;
+        rangeHtml = `<div class="from-date"></div>`;
         break;
       case 'between':
-        rangeHtml = `<input type="date" class="from-date" /> <input type="date" class="to-date" />`;
-
+        rangeHtml = `<div class="from-date"></div><div class="to-date"></div>`;
         break;
       case 'equals':
       default:
-        rangeHtml = `<input type="date" class="from-date" />`;
+        rangeHtml = `<div class="from-date"></div>`;
     }
     this.customRangeEl.innerHTML = rangeHtml;
     this.customRangeEl.className = 'custom-range' + (this.customMode === 'between' ? ' between-mode' : '');
-
-    const fromInput = this.customRangeEl.querySelector('.from-date');
-    const toInput = this.customRangeEl.querySelector('.to-date');
-    if (fromInput) fromInput.value = this.customFrom;
-    if (toInput) toInput.value = this.customTo;
+    const fromContainer = this.customRangeEl.querySelector('.from-date');
+    const toContainer = this.customRangeEl.querySelector('.to-date');
+    if (fromContainer) {
+      this.fromPickerApp = createApp(CustomDatePicker, {
+        modelValue: this.customFrom,
+        'onUpdate:modelValue': val => {
+          this.customFrom = val;
+        },
+      });
+      this.fromPickerApp.mount(fromContainer);
+    }
+    if (toContainer) {
+      this.toPickerApp = createApp(CustomDatePicker, {
+        modelValue: this.customTo,
+        'onUpdate:modelValue': val => {
+          this.customTo = val;
+        },
+      });
+      this.toPickerApp.mount(toContainer);
+    }
   }
-
 
   getSelectedRange() {
     const now = window.gridDeadlineNow instanceof Date ? new Date(window.gridDeadlineNow) : new Date();
@@ -266,13 +287,27 @@ export default class DeadlineFilterRenderer {
     this.hidePopup = params?.hidePopup;
   }
 
-  destroy() {}
+  destroy() {
+    this.destroyCustomPickers();
+  }
+
 
   closePopup() {
     if (typeof this.hidePopup === 'function') {
       this.hidePopup();
     } else if (this.params?.api?.hidePopupMenu) {
       this.params.api.hidePopupMenu();
+    }
+  }
+
+  destroyCustomPickers() {
+    if (this.fromPickerApp) {
+      this.fromPickerApp.unmount();
+      this.fromPickerApp = null;
+    }
+    if (this.toPickerApp) {
+      this.toPickerApp.unmount();
+      this.toPickerApp = null;
     }
   }
 
