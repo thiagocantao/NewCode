@@ -23,10 +23,8 @@ export default class ResponsibleUserFilterRenderer {
     this.eGui.className = 'list-filter';
     this.eGui.innerHTML = `
       <div class="field-search">
+        <span class="search-icon material-symbols-outlined">search</span>
         <input type="text" placeholder="Search..." class="search-input" />
-        <span class="search-icon">
-          <i class="material-symbols-outlined-search">search</i>
-        </span>
       </div>
       <div class="select-all-row">
         <label>
