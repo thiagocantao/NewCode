@@ -307,6 +307,132 @@
   background: #4b5560;
 }
 
+/* Specific styles for Deadline filter */
+.deadline-filter {
+  max-width: none;
+  max-height: none;
+  overflow: visible;
+}
+
+.deadline-filter .field-search {
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #ccc;
+}
+
+.deadline-filter .filter-list {
+  max-height: none;
+  overflow: visible;
+}
+
+.deadline-filter .filter-item {
+  width: 100%;
+  padding: 12px 0;
+  margin-bottom: 8px;
+}
+
+.deadline-filter .filter-item.custom {
+  border-top: 1px solid #ccc;
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.deadline-filter .filter-item.custom .arrow-icon {
+  margin-left: auto;
+  font-family: 'Material Symbols Outlined';
+  font-size: 16px;
+  line-height: 1;
+  color: #999;
+  flex-shrink: 0;
+}
+
+.deadline-filter .custom-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.deadline-filter .custom-header .back-icon {
+  font-family: 'Material Symbols Outlined';
+  font-size: 16px;
+  cursor: pointer;
+  margin-right: 8px;
+}
+
+.deadline-filter .custom-header .custom-title {
+  margin-left: auto;
+  font-size: 13px;
+}
+
+.deadline-filter .custom-select {
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: Roboto, Arial, sans-serif;
+  background: #fff;
+  color: #444;
+  box-sizing: border-box;
+}
+
+.deadline-filter .custom-range {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.deadline-filter .custom-range.between-mode {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.deadline-filter .custom-range .dp-wrapper {
+  flex: 1;
+}
+
+.deadline-filter .apply-btn {
+  padding: 6px 12px;
+  border: none;
+  background: #5e6a75;
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.deadline-filter .apply-btn:hover {
+  background: #4b5560;
+}
+
+
+.deadline-filter .apply-btn:hover {
+  background: #4b5560;
+}
+
+
+.deadline-filter .apply-btn {
+  padding: 6px 12px;
+  border: none;
+  background: #5e6a75;
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.deadline-filter .apply-btn:hover {
+  background: #4b5560;
+}
+
+
+.deadline-filter .apply-btn:hover {
+  background: #4b5560;
+}
+
+
 /* Estilos para opções de usuário com avatar */
 :is(.list-filter, .list-editor) .user-option {
   display: flex;
@@ -497,3 +623,4 @@
   padding: 4px 8px;
   cursor: pointer;
 }
+

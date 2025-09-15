@@ -1,4 +1,6 @@
+
 const { createApp, ref, computed, watch, nextTick, onUnmounted } = window.Vue || Vue;
+
 
 const CustomDatePicker = {
   template: `
@@ -198,10 +200,12 @@ const CustomDatePicker = {
         position: 'fixed',
         left: `${left}px`,
         top: `${top}px`,
+
         minWidth: `${Math.max(rect.width, 230)}px`,
         zIndex: 2147483647,
       };
     }
+
 
     function openDp() {
       const base = selectedDate.value ? parseYMD(selectedDate.value) : new Date();
@@ -214,6 +218,7 @@ const CustomDatePicker = {
         window.addEventListener('resize', updatePopoverPosition, true);
       });
       document.addEventListener('click', handleClickOutside, true);
+
     }
 
     function closeDp() {
@@ -221,11 +226,13 @@ const CustomDatePicker = {
       window.removeEventListener('scroll', updatePopoverPosition, true);
       window.removeEventListener('resize', updatePopoverPosition, true);
       document.removeEventListener('click', handleClickOutside, true);
+
     }
 
     function handleClickOutside(e) {
       const wrap = dpWrapper.value;
       if (!wrap || !wrap.contains(e.target)) {
+
         closeDp();
       }
     }
@@ -235,6 +242,7 @@ const CustomDatePicker = {
       window.removeEventListener('resize', updatePopoverPosition, true);
       document.removeEventListener('click', handleClickOutside, true);
     });
+
 
     function prevMonth() {
       if (dpMonth.value === 0) {
@@ -322,6 +330,7 @@ const CustomDatePicker = {
   },
 };
 
+
 export default class DeadlineFilterRenderer {
   constructor() {
     this.selected = null;
@@ -331,6 +340,7 @@ export default class DeadlineFilterRenderer {
     this.searchText = '';
     this.fromPickerApp = null;
     this.toPickerApp = null;
+
     this.options = [
       { label: 'Today', value: 'today' },
       { label: 'Yesterday', value: 'yesterday' },
@@ -339,6 +349,7 @@ export default class DeadlineFilterRenderer {
       { label: 'Last 30 days', value: 'last_30_days' },
       { label: 'Customize', value: 'custom' },
       { label: 'Clear', value: 'clear' },
+
     ];
   }
 
@@ -347,6 +358,7 @@ export default class DeadlineFilterRenderer {
     this.filteredOptions = [...this.options];
     this.eGui = document.createElement('div');
     this.eGui.className = 'list-filter deadline-filter';
+
     this.eGui.innerHTML = `
       <div class="field-search">
         <input type="text" placeholder="Search..." class="search-input" />
@@ -374,6 +386,7 @@ export default class DeadlineFilterRenderer {
 
   render() {
     this.destroyCustomPickers();
+
     this.listEl.innerHTML = this.filteredOptions
       .map(opt => {
         const selected = this.selected === opt.value ? ' selected' : '';
@@ -382,10 +395,12 @@ export default class DeadlineFilterRenderer {
           <span class="filter-label">${opt.label}</span>
           ${opt.value === 'custom' ? '<span class="arrow-icon">arrow_forward_ios</span>' : ''}
         </div>`;
+
       })
       .join('');
     this.listEl.querySelectorAll('.filter-item').forEach(el => {
       el.addEventListener('click', () => {
+
         const value = el.getAttribute('data-value');
         if (value === 'custom') {
           this.selected = value;
@@ -400,18 +415,21 @@ export default class DeadlineFilterRenderer {
           this.params.filterChangedCallback();
           this.render();
           this.closePopup();
+
           return;
         }
         this.selected = value;
         this.params.filterChangedCallback();
         this.render();
         this.closePopup();
+
       });
     });
   }
 
   showCustomInputs() {
     this.destroyCustomPickers();
+
     this.listEl.innerHTML = `
       <div class="custom-header">
         <span class="back-icon material-symbols-outlined">arrow_back_ios</span>
@@ -441,6 +459,7 @@ export default class DeadlineFilterRenderer {
       if (this.customMode === 'equals') this.customTo = this.customFrom;
       if (this.customMode === 'before') this.customFrom = '';
       if (this.customMode === 'after') this.customTo = '';
+
       this.params.filterChangedCallback();
     });
   }
@@ -486,6 +505,7 @@ export default class DeadlineFilterRenderer {
     }
   }
 
+
   getSelectedRange() {
     const now = window.gridDeadlineNow instanceof Date ? new Date(window.gridDeadlineNow) : new Date();
     const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -519,6 +539,7 @@ export default class DeadlineFilterRenderer {
         return { from: start, to: endOfDay(todayStart) };
       }
       case 'custom': {
+
         let from = this.customFrom ? startOfDay(new Date(this.customFrom)) : null;
         let to = this.customTo ? endOfDay(new Date(this.customTo)) : null;
         switch (this.customMode) {
@@ -538,6 +559,7 @@ export default class DeadlineFilterRenderer {
             if (!from && !to) return null;
             break;
         }
+
         return { from, to };
       }
       default:
@@ -571,6 +593,7 @@ export default class DeadlineFilterRenderer {
       from: from ? from.toISOString() : null,
       to: to ? to.toISOString() : null,
       mode: this.customMode,
+
     };
   }
 
