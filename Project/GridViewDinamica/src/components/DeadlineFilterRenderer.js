@@ -27,7 +27,7 @@ const CustomDatePicker = {
       >
         <span class="material-symbols-outlined">calendar_month</span>
       </button>
-      <div v-if="dpOpen" class="datepicker-pop" :style="dpPopStyle">
+      <div v-if="dpOpen" class="datepicker-pop" :style="dpPopStyle" ref="dpPopRef">
         <div class="dp-header">
           <button type="button" class="dp-nav" @click="prevMonth">&lt;</button>
           <div class="dp-title">{{ monthLabel }}</div>
@@ -102,6 +102,7 @@ const CustomDatePicker = {
 
     const dpWrapper = ref(null);
     const dpOpen = ref(false);
+    const dpPopRef = ref(null);
     const dpPopStyle = ref({});
     const selectedDate = ref('');
     const timePart = ref('00:00');
@@ -310,6 +311,7 @@ function openDp(evt) {
     return {
       dpWrapper,
       dpOpen,
+      dpPopRef,
       dpPopStyle,
       openDp,
       prevMonth,
