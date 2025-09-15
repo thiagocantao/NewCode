@@ -1,19 +1,20 @@
 
-const { createApp, ref, computed, watch, nextTick } = window.Vue || Vue;
+const { createApp, ref, computed, watch, nextTick, onBeforeUnmount } = window.Vue || Vue;
 
 const CustomDatePicker = {
   template: `
     <div class="dp-wrapper" ref="dpWrapper">
       <input
         class="dp-input"
+        ref="dpInput"
         type="text"
         :value="displayDate"
         readonly
         :disabled="disabled"
-        @pointerdown.stop.prevent="!disabled && openDp()"
-        @mousedown.stop.prevent="!disabled && openDp()"
-        @click.stop.prevent="!disabled && openDp()"
-        @focus="!disabled && openDp()"
+        @pointerdown.stop.prevent="!disabled && openDp($event)"
+        @mousedown.stop.prevent="!disabled && openDp($event)"
+        @click.stop.prevent="!disabled && openDp($event)"
+        @focus="!disabled && openDp($event)"
         aria-haspopup="dialog"
         :aria-expanded="dpOpen ? 'true' : 'false'"
       />
@@ -21,13 +22,13 @@ const CustomDatePicker = {
         v-if="!disabled"
         type="button"
         class="dp-icon"
-        @pointerdown.stop.prevent="openDp()"
-        @mousedown.stop.prevent="openDp()"
-        @click.stop.prevent="openDp()"
+        @pointerdown.stop.prevent="openDp($event)"
+        @mousedown.stop.prevent="openDp($event)"
+        @click.stop.prevent="openDp($event)"
       >
         <span class="material-symbols-outlined">calendar_month</span>
       </button>
-      <div v-if="dpOpen" class="datepicker-pop" :style="dpPopStyle">
+      <div v-if="dpOpen" class="datepicker-pop" :style="dpPopStyle" ref="dpPopRef">
         <div class="dp-header">
           <button type="button" class="dp-nav" @click="prevMonth">&lt;</button>
           <div class="dp-title">{{ monthLabel }}</div>
@@ -101,10 +102,13 @@ const CustomDatePicker = {
     }
 
     const dpWrapper = ref(null);
+    const dpInput = ref(null);
     const dpOpen = ref(false);
+    const dpPopRef = ref(null);
     const dpPopStyle = ref({});
     const selectedDate = ref('');
     const timePart = ref('00:00');
+    const anchorPoint = ref(null);
 
     watch(
       () => props.modelValue,
@@ -188,59 +192,99 @@ const CustomDatePicker = {
       }
       return cells;
     });
-function openDp(evt) {
-  const base = selectedDate.value ? parseYMD(selectedDate.value) : new Date();
-  dpMonth.value = base.getMonth();
-  dpYear.value = base.getFullYear();
-  dpOpen.value = true;
 
-  nextTick(() => {
-    const popEl = dpPopRef.value;
+    function updatePopoverPosition() {
+      const wrapper = dpWrapper.value;
+      const pop = dpPopRef.value;
+      if (!wrapper || !pop) return;
 
-    // Coordenadas do clique (fallback para o wrapper se não houver evento, ex: abertura por teclado)
-    const clickX = evt?.clientX ?? (
-      dpWrapper.value.getBoundingClientRect().left +
-      (dpWrapper.value.offsetWidth / 2)
-    );
-    const clickY = evt?.clientY ?? (
-      dpWrapper.value.getBoundingClientRect().bottom
-    );
+      const rect = wrapper.getBoundingClientRect();
+      const popWidth = pop.offsetWidth || 0;
+      const popHeight = pop.offsetHeight || 0;
+      const minWidth = Math.max(rect.width, 230);
+      const margin = 8;
+      const gap = 4;
+      const width = Math.max(popWidth, minWidth);
+      const height = popHeight || 340;
 
-    // Tamanho da viewport e do popup
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    const pw = popEl?.offsetWidth ?? 320;  // fallback
-    const ph = popEl?.offsetHeight ?? 340; // fallback
+      const anchor = anchorPoint.value;
 
-    const margin = 8; // respiro da borda
+      let left = anchor ? anchor.x - width / 2 : rect.left;
+      let top = anchor ? anchor.y + gap : rect.bottom + gap;
 
-    // Posição inicial: exatamente onde clicou
-    let left = clickX;
-    let top  = clickY;
+      if (left + width + margin > window.innerWidth) {
+        left = Math.max(margin, window.innerWidth - width - margin);
+      }
+      if (left < margin) {
+        left = margin;
+      }
 
-    // Ajustes para não sair da viewport (lado direito e inferior)
-    if (left + pw + margin > vw) left = vw - pw - margin;
-    if (top  + ph + margin > vh) top  = clickY - ph - margin; // abre "para cima" se não couber abaixo
+      if (top + height + margin > window.innerHeight) {
+        top = rect.top - height - gap;
+        if (top < margin) {
+          top = Math.max(margin, window.innerHeight - height - margin);
+        }
+      }
 
-    // Ajustes para borda esquerda/superior
-    if (left < margin) left = margin;
-    if (top  < margin)  top  = margin;
+      dpPopStyle.value = {
+        position: 'fixed',
+        left: `${Math.round(left)}px`,
+        top: `${Math.round(top)}px`,
+        minWidth: `${minWidth}px`,
+        zIndex: 2147483647,
+      };
 
-    // Como usamos position: fixed, usamos clientX/clientY diretamente
-    dpPopStyle.value = { left: `${left}px`, top: `${top}px` };
-  });
+      if (anchorPoint.value) {
+        anchorPoint.value = null;
+      }
+    }
 
-  document.addEventListener('click', handleClickOutside);
-}
+    function openDp(evt) {
+      const base = selectedDate.value ? parseYMD(selectedDate.value) : new Date();
+      dpMonth.value = base.getMonth();
+      dpYear.value = base.getFullYear();
+
+      anchorPoint.value =
+        evt && typeof evt.clientX === 'number'
+          ? { x: evt.clientX, y: evt.clientY }
+          : null;
+
+      if (props.showTime && !selectedDate.value) {
+        const pad2 = n => String(n).padStart(2, '0');
+        timePart.value = `${pad2(base.getHours())}:${pad2(base.getMinutes())}`;
+      }
+
+      dpOpen.value = true;
+
+      nextTick(() => {
+        updatePopoverPosition();
+        if (dpInput.value && typeof dpInput.value.focus === 'function') {
+          try {
+            dpInput.value.focus();
+          } catch (_err) {
+            /* ignore focus errors */
+          }
+        }
+      });
+
+      document.addEventListener('click', handleClickOutside);
+      window.addEventListener('scroll', updatePopoverPosition, true);
+      window.addEventListener('resize', updatePopoverPosition, true);
+    }
 
 
     function closeDp() {
       dpOpen.value = false;
+      anchorPoint.value = null;
       document.removeEventListener('click', handleClickOutside);
+      window.removeEventListener('scroll', updatePopoverPosition, true);
+      window.removeEventListener('resize', updatePopoverPosition, true);
     }
 
     function handleClickOutside(e) {
-      if (!dpWrapper.value.contains(e.target)) {
+      const wrapper = dpWrapper.value;
+      if (!wrapper) return;
+      if (!wrapper.contains(e.target)) {
         closeDp();
       }
     }
@@ -252,6 +296,7 @@ function openDp(evt) {
       } else {
         dpMonth.value--;
       }
+      nextTick(updatePopoverPosition);
     }
 
     function nextMonth() {
@@ -261,6 +306,7 @@ function openDp(evt) {
       } else {
         dpMonth.value++;
       }
+      nextTick(updatePopoverPosition);
     }
 
     function selectDay(d) {
@@ -307,9 +353,17 @@ function openDp(evt) {
       return props.showTime ? `${base} ${timePart.value}` : base;
     });
 
+    if (typeof onBeforeUnmount === 'function') {
+      onBeforeUnmount(() => {
+        closeDp();
+      });
+    }
+
     return {
       dpWrapper,
+      dpInput,
       dpOpen,
+      dpPopRef,
       dpPopStyle,
       openDp,
       prevMonth,
