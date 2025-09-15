@@ -309,6 +309,7 @@
   background: #4b5560;
 }
 
+
 /* Estilos para opções de usuário com avatar */
 :is(.list-filter, .list-editor) .user-option {
   display: flex;

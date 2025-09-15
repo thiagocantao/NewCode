@@ -4,6 +4,7 @@ export default class DeadlineFilterRenderer {
     this.customFrom = '';
     this.customTo = '';
     this.customMode = 'equals';
+
     this.searchText = '';
     this.options = [
       { label: 'Today', value: 'today' },
@@ -20,6 +21,7 @@ export default class DeadlineFilterRenderer {
     this.filteredOptions = [...this.options];
     this.eGui = document.createElement('div');
     this.eGui.className = 'list-filter deadline-filter';
+
     this.eGui.innerHTML = `
       <div class="field-search">
         <input type="text" placeholder="Search..." class="search-input" />
@@ -54,6 +56,7 @@ export default class DeadlineFilterRenderer {
           <span class="filter-label">${opt.label}</span>
           ${opt.value === 'custom' ? '<span class="arrow-icon">arrow_forward_ios</span>' : ''}
         </div>`;
+
       })
       .join('');
     this.listEl.querySelectorAll('.filter-item').forEach(el => {
@@ -103,6 +106,7 @@ export default class DeadlineFilterRenderer {
       if (this.customMode === 'equals') this.customTo = this.customFrom;
       if (this.customMode === 'before') this.customFrom = '';
       if (this.customMode === 'after') this.customTo = '';
+
       this.params.filterChangedCallback();
     });
   }
@@ -129,6 +133,7 @@ export default class DeadlineFilterRenderer {
     if (fromInput) fromInput.value = this.customFrom;
     if (toInput) toInput.value = this.customTo;
   }
+
 
   getSelectedRange() {
     const now = window.gridDeadlineNow instanceof Date ? new Date(window.gridDeadlineNow) : new Date();
@@ -163,6 +168,7 @@ export default class DeadlineFilterRenderer {
         return { from: start, to: endOfDay(todayStart) };
       }
       case 'custom': {
+
         let from = this.customFrom ? startOfDay(new Date(this.customFrom)) : null;
         let to = this.customTo ? endOfDay(new Date(this.customTo)) : null;
         switch (this.customMode) {
@@ -182,6 +188,7 @@ export default class DeadlineFilterRenderer {
             if (!from && !to) return null;
             break;
         }
+
         return { from, to };
       }
       default:
@@ -215,6 +222,7 @@ export default class DeadlineFilterRenderer {
       from: from ? from.toISOString() : null,
       to: to ? to.toISOString() : null,
       mode: this.customMode,
+
     };
   }
 
@@ -230,6 +238,7 @@ export default class DeadlineFilterRenderer {
     this.customFrom = model.from ? model.from.slice(0, 10) : '';
     this.customTo = model.to ? model.to.slice(0, 10) : '';
     this.customMode = model.mode || 'equals';
+
     this.render();
   }
 
