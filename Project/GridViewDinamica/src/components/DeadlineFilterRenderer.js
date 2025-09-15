@@ -13,6 +13,8 @@ export default class DeadlineFilterRenderer {
       { label: 'This month', value: 'this_month' },
       { label: 'Last 30 days', value: 'last_30_days' },
       { label: 'Customize', value: 'custom' },
+      { label: 'Clear', value: 'clear' },
+
     ];
   }
 
@@ -61,13 +63,26 @@ export default class DeadlineFilterRenderer {
       .join('');
     this.listEl.querySelectorAll('.filter-item').forEach(el => {
       el.addEventListener('click', () => {
-        this.selected = el.getAttribute('data-value');
-        if (this.selected === 'custom') {
+
+        const value = el.getAttribute('data-value');
+        if (value === 'custom') {
+          this.selected = value;
           this.showCustomInputs();
-        } else {
+          return;
+        }
+        if (value === 'clear') {
+          this.selected = null;
+          this.customFrom = '';
+          this.customTo = '';
+          this.customMode = 'equals';
           this.params.filterChangedCallback();
           this.render();
+          return;
         }
+        this.selected = value;
+        this.params.filterChangedCallback();
+        this.render();
+
       });
     });
   }
@@ -121,13 +136,16 @@ export default class DeadlineFilterRenderer {
         rangeHtml = `<input type="date" class="from-date" />`;
         break;
       case 'between':
-        rangeHtml = `<input type="date" class="from-date" /> <span style="margin:0 4px;">-</span> <input type="date" class="to-date" />`;
+        rangeHtml = `<input type="date" class="from-date" /> <input type="date" class="to-date" />`;
+
         break;
       case 'equals':
       default:
         rangeHtml = `<input type="date" class="from-date" />`;
     }
     this.customRangeEl.innerHTML = rangeHtml;
+    this.customRangeEl.className = 'custom-range' + (this.customMode === 'between' ? ' between-mode' : '');
+
     const fromInput = this.customRangeEl.querySelector('.from-date');
     const toInput = this.customRangeEl.querySelector('.to-date');
     if (fromInput) fromInput.value = this.customFrom;
