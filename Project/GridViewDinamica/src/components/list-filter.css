@@ -207,6 +207,18 @@
   font-family: Roboto, Arial, sans-serif;
 }
 
+/* Specific styles for Deadline filter */
+.deadline-filter .filter-item {
+  padding: 10px 0;
+  margin-bottom: 4px;
+}
+
+.deadline-filter .filter-item.custom {
+  border-top: 1px solid #ccc;
+  margin-top: 4px;
+  padding-top: 10px;
+}
+
 /* Estilos para opções de usuário com avatar */
 :is(.list-filter, .list-editor) .user-option {
   display: flex;

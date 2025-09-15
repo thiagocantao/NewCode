@@ -18,7 +18,8 @@ export default class DeadlineFilterRenderer {
     this.params = params;
     this.filteredOptions = [...this.options];
     this.eGui = document.createElement('div');
-    this.eGui.className = 'list-filter';
+    this.eGui.className = 'list-filter deadline-filter';
+
     this.eGui.innerHTML = `
       <div class="field-search">
         <input type="text" placeholder="Search..." class="search-input" />
@@ -48,7 +49,9 @@ export default class DeadlineFilterRenderer {
     this.listEl.innerHTML = this.filteredOptions
       .map(opt => {
         const selected = this.selected === opt.value ? ' selected' : '';
-        return `<div class="filter-item${selected}" data-value="${opt.value}"><span class="filter-label">${opt.label}</span></div>`;
+        const custom = opt.value === 'custom' ? ' custom' : '';
+        return `<div class="filter-item${selected}${custom}" data-value="${opt.value}"><span class="filter-label">${opt.label}</span></div>`;
+
       })
       .join('');
     this.listEl.querySelectorAll('.filter-item').forEach(el => {
