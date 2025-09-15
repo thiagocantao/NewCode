@@ -12,7 +12,6 @@
   font-size: 15px;
   font-family: Roboto, Arial, sans-serif;
   overflow: hidden;
-  /* Garante que nada "vaze" para fora da borda arredondada */
   position: relative;
 }
 
@@ -55,9 +54,7 @@
   font-size: 13px;
 }
 
-:is(.list-filter, .list-editor) .filter-header {
-  margin-bottom: 10px;
-}
+:is(.list-filter, .list-editor) .filter-header { margin-bottom: 10px; }
 
 :is(.list-filter, .list-editor) .field-search {
   position: relative;
@@ -139,9 +136,7 @@
   width: 100%;
 }
 
-:is(.list-filter, .list-editor) .select-all-row label:hover {
-  background: #f6f7fa;
-}
+:is(.list-filter, .list-editor) .select-all-row label:hover { background: #f6f7fa; }
 
 :is(.list-filter, .list-editor) .select-all-checkbox {
   width: 16px;
@@ -167,13 +162,8 @@
   transition: background 0.15s;
 }
 
-:is(.list-filter, .list-editor) .filter-item:hover {
-  background: #f6f7fa;
-}
-
-:is(.list-filter, .list-editor) .filter-item.selected {
-  background: #f6f7fa;
-}
+:is(.list-filter, .list-editor) .filter-item:hover { background: #f6f7fa; }
+:is(.list-filter, .list-editor) .filter-item.selected { background: #f6f7fa; }
 
 :is(.list-filter, .list-editor) .filter-item input[type="checkbox"] {
   width: 16px;
@@ -191,10 +181,7 @@
   background: #5e6a75;
   border-color: #5e6a75;
 }
-
-:is(.list-filter, .list-editor) .filter-item input[type="checkbox"]:focus {
-  outline: none;
-}
+:is(.list-filter, .list-editor) .filter-item input[type="checkbox"]:focus { outline: none; }
 
 :is(.list-filter, .list-editor) .filter-label {
   white-space: nowrap;
@@ -208,61 +195,28 @@
 }
 
 /* Specific styles for Deadline filter */
-.deadline-filter {
-  max-width: none;
-  max-height: none;
-  overflow: visible;
-}
-
-.deadline-filter .field-search {
-  padding-bottom: 12px;
-  margin-bottom: 12px;
-  border-bottom: 1px solid #ccc;
-}
-
-.deadline-filter .filter-list {
-  max-height: none;
-  overflow: visible;
-}
-
-.deadline-filter .filter-item {
-  width: 100%;
-  padding: 12px 0;
-  margin-bottom: 8px;
-}
+.deadline-filter { max-width: none; max-height: none; overflow: visible; }
+.deadline-filter .field-search { padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid #ccc; }
+.deadline-filter .filter-list { max-height: none; overflow: visible; }
+.deadline-filter .filter-item { width: 100%; padding: 12px 0; margin-bottom: 8px; }
 
 .deadline-filter .filter-item.custom {
   border-top: 1px solid #ccc;
   margin-top: 12px;
   padding-top: 12px;
 }
-
 .deadline-filter .filter-item.custom .arrow-icon {
   margin-left: auto;
   font-family: 'Material Symbols Outlined';
-  font-size: 16px;
+  font-size: 22px !important;
   line-height: 1;
   color: #999;
   flex-shrink: 0;
 }
 
-.deadline-filter .custom-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.deadline-filter .custom-header .back-icon {
-  font-family: 'Material Symbols Outlined';
-  font-size: 16px;
-  cursor: pointer;
-  margin-right: 8px;
-}
-
-.deadline-filter .custom-header .custom-title {
-  margin-left: auto;
-  font-size: 13px;
-}
+.deadline-filter .custom-header { display: flex; align-items: center; margin-bottom: 8px; }
+.deadline-filter .custom-header .back-icon { font-family: 'Material Symbols Outlined'; font-size: 16px; cursor: pointer; margin-right: 8px; }
+.deadline-filter .custom-header .custom-title { margin-left: auto; font-size: 13px; }
 
 .deadline-filter .custom-select {
   width: 100%;
@@ -277,17 +231,8 @@
   box-sizing: border-box;
 }
 
-.deadline-filter .custom-range {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-bottom: 8px;
-}
-
-.deadline-filter .custom-range.between-mode {
-  flex-direction: column;
-  align-items: stretch;
-}
+.deadline-filter .custom-range { display: flex; align-items: center; gap: 4px; margin-bottom: 8px; }
+.deadline-filter .custom-range.between-mode { flex-direction: column; align-items: stretch; }
 
 .deadline-filter .custom-range input[type="date"] {
   flex: 1;
@@ -309,186 +254,33 @@
   cursor: pointer;
   font-size: 13px;
 }
-
-.deadline-filter .apply-btn:hover {
-  background: #4b5560;
-}
-
-/* Specific styles for Deadline filter */
-.deadline-filter {
-  max-width: none;
-  max-height: none;
-  overflow: visible;
-}
-
-.deadline-filter .field-search {
-  padding-bottom: 12px;
-  margin-bottom: 12px;
-  border-bottom: 1px solid #ccc;
-}
-
-.deadline-filter .filter-list {
-  max-height: none;
-  overflow: visible;
-}
-
-.deadline-filter .filter-item {
-  width: 100%;
-  padding: 12px 0;
-  margin-bottom: 8px;
-}
-
-.deadline-filter .filter-item.custom {
-  border-top: 1px solid #ccc;
-  margin-top: 12px;
-  padding-top: 12px;
-}
-
-.deadline-filter .filter-item.custom .arrow-icon {
-  margin-left: auto;
-  font-family: 'Material Symbols Outlined';
-  font-size: 16px;
-  line-height: 1;
-  color: #999;
-  flex-shrink: 0;
-}
-
-.deadline-filter .custom-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.deadline-filter .custom-header .back-icon {
-  font-family: 'Material Symbols Outlined';
-  font-size: 16px;
-  cursor: pointer;
-  margin-right: 8px;
-}
-
-.deadline-filter .custom-header .custom-title {
-  margin-left: auto;
-  font-size: 13px;
-}
-
-.deadline-filter .custom-select {
-  width: 100%;
-  margin-bottom: 8px;
-  padding: 6px 10px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 13px;
-  font-family: Roboto, Arial, sans-serif;
-  background: #fff;
-  color: #444;
-  box-sizing: border-box;
-}
-
-.deadline-filter .custom-range {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-bottom: 8px;
-}
-
-.deadline-filter .custom-range input[type="date"] {
-  flex: 1;
-  padding: 6px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 13px;
-  font-family: Roboto, Arial, sans-serif;
-  color: #444;
-  box-sizing: border-box;
-}
-
-.deadline-filter .apply-btn {
-  padding: 6px 12px;
-  border: none;
-  background: #5e6a75;
-  color: #fff;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-}
-
-.deadline-filter .apply-btn:hover {
-  background: #4b5560;
-}
-
+.deadline-filter .apply-btn:hover { background: #4b5560; }
 
 /* Estilos para opções de usuário com avatar */
-:is(.list-filter, .list-editor) .user-option {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
+:is(.list-filter, .list-editor) .user-option { display: flex; align-items: center; gap: 8px; }
 :is(.list-filter, .list-editor) .avatar-outer {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 1px solid #3A4663;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #fff;
-  flex-shrink: 0;
+  width: 24px; height: 24px; border-radius: 50%; border: 1px solid #3A4663;
+  display: flex; align-items: center; justify-content: center; background: #fff; flex-shrink: 0;
 }
-
 :is(.list-filter, .list-editor) .avatar-middle {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 2px solid #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #fff;
+  width: 22px; height: 22px; border-radius: 50%; border: 2px solid #fff;
+  display: flex; align-items: center; justify-content: center; background: #fff;
 }
-
 :is(.list-filter, .list-editor) .user-avatar {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #4B6CB7;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
+  width: 18px; height: 18px; border-radius: 50%; background: #4B6CB7;
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
 }
-
-:is(.list-filter, .list-editor) .user-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
-}
-
+:is(.list-filter, .list-editor) .user-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
 :is(.list-filter, .list-editor) .user-initial {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 400;
-  background: transparent;
-  color: #fff;
-  border-radius: 50%;
-  letter-spacing: 0.5px;
+  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 400; background: transparent; color: #fff; border-radius: 50%; letter-spacing: 0.5px;
 }
 
 :is(.list-filter, .list-editor) .editor-close {
-  position: absolute;
-  top: 2px;
-  right: 3px;
-  font-size: 18px;
-  color: #888;
-  cursor: pointer;
-  line-height: 1;
+  position: absolute; top: 2px; right: 3px; font-size: 18px; color: #888; cursor: pointer; line-height: 1;
 }
 
+/* ---- DatePicker base ---- */
 .dp-wrapper { position: relative; display: inline-flex; align-items: center; gap: 6px; }
 .dp-input { width: 160px; padding: 8px 10px; border: 1px solid #d0d5dd; border-radius: 8px; background: #fff; font: 14px/1.2 Roboto, Arial, sans-serif; cursor: pointer; }
 .dp-input[disabled] { background: #f2f4f7; color: #98a2b3; cursor: not-allowed; }
@@ -500,6 +292,7 @@
 .dp-title { font: 600 14px/1.2 Inter, system-ui, Arial; }
 .dp-nav { border: 0; background: #f3f4f6; width: 28px; height: 28px; border-radius: 8px; cursor: pointer; }
 .dp-nav:active { transform: translateY(1px); }
+
 .dp-weekdays, .dp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
 .dp-weekdays { padding: 4px 2px; color: #6b7280; font: 600 11px/1 Inter, sans-serif; text-transform: uppercase; letter-spacing: .02em; }
 .dp-weekday { text-align: center; }
@@ -510,7 +303,7 @@
 .dp-cell.is-selected { background: #2563eb; color: #fff; }
 .dp-cell.is-today { outline: 1px dashed #2563eb; outline-offset: -3px; }
 
-.dp-actions { display: flex; gap: 8px; justify-content: space-between; padding-top: 8px; }
+.dp-actions { display: flex; gap: 8px; justify-content: space-between; padding: 8px; }
 .dp-action { flex: 1; border: 1px solid #d0d5dd; background: #fff; height: 32px; border-radius: 8px; cursor: pointer; font: 600 12px/1 Inter; }
 .dp-action:hover { background: #f9fafb; }
 
@@ -532,18 +325,17 @@
 .apply-btn, .cancel-btn { height: 32px; border-radius: 8px; border: 1px solid #d0d5dd; background: #fff; flex: 1; cursor: pointer; }
 .apply-btn:disabled { opacity: .5; cursor: not-allowed; }
 
-
 /* Garante que o popup não seja clipado por containers do menu (usa Teleport→body) */
 .dp-backdrop {
   position: fixed !important;
   inset: 0 !important;
-  z-index: 2147480000 !important;
+  z-index: 2147483646 !important; /* ↑ sobe o nível do backdrop */
   background: transparent !important;
 }
 
 .datepicker-pop {
   position: fixed !important;
-  z-index: 2147480001 !important; /* acima do backdrop e do menu */
+  z-index: 2147483647 !important; /* ↑ garante no topo */
   width: 280px;
   border-radius: 12px;
   background: #fff;
