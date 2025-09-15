@@ -110,6 +110,14 @@ export default {
         const rawValue = this.params.value;
         let displayValue = rawValue;
 
+        const fieldKey = this.params.colDef?.colId || this.params.colDef?.field;
+        if (fieldKey && this.params.data) {
+          const storedLabel = this.params.data[`${fieldKey}__displayLabel`];
+          if (storedLabel !== undefined && storedLabel !== null) {
+            displayValue = storedLabel;
+          }
+        }
+
 if (
   this.params.colDef?.TagControl === 'DATETIME' ||
   this.params.colDef?.tagControl === 'DATETIME' ||

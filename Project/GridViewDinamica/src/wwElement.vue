@@ -199,6 +199,50 @@
       }
       return value;
     }
+    getColumnFieldKey() {
+      if (!this.params) return null;
+      const col = this.params.column;
+      if (col && typeof col.getColId === 'function') {
+        const id = col.getColId();
+        if (id) return id;
+      }
+      return this.params.colDef?.field || this.params.colDef?.colId || null;
+    }
+    extractOptionLabel(value) {
+      if (!this.options || !this.options.length) return undefined;
+      const match = this.options.find(opt => String(opt.value) === String(value));
+      if (!match) return undefined;
+      const label =
+        match.label ??
+        match.name ??
+        match.text ??
+        match.descricao ??
+        match.description ??
+        match.Valor ??
+        match.value;
+      return label != null ? label : undefined;
+    }
+    updateDisplayLabel(value, { refresh = true } = {}) {
+      const fieldKey = this.getColumnFieldKey();
+      const rowData = this.params?.node?.data;
+      if (!fieldKey || !rowData) return;
+      const labelField = `${fieldKey}__displayLabel`;
+      const label = this.extractOptionLabel(value);
+      if (label != null) {
+        rowData[labelField] = String(label);
+      } else if (value != null && value !== '') {
+        rowData[labelField] = String(value);
+      } else {
+        delete rowData[labelField];
+      }
+      if (refresh && this.params.api && this.params.node) {
+        this.params.api.refreshCells({
+          rowNodes: [this.params.node],
+          columns: [fieldKey],
+          force: true,
+        });
+      }
+    }
     renderOptions() {
       this.listEl.innerHTML = this.filteredOptions
         .map(opt => {
@@ -209,7 +253,9 @@
         .join('');
       this.listEl.querySelectorAll('.filter-item').forEach(el => {
         el.addEventListener('click', () => {
-          this.value = el.getAttribute('data-value');
+          const selectedValue = el.getAttribute('data-value');
+          this.value = selectedValue;
+          this.updateDisplayLabel(selectedValue, { refresh: false });
           if (this.params.api && this.params.api.stopEditing) {
             this.params.api.stopEditing();
           } else if (this.params.stopEditing) {
@@ -220,7 +266,10 @@
     }
     getGui() { return this.eGui; }
     afterGuiAttached() { if (this.searchInput) this.searchInput.focus(); }
-    getValue() { return this.value; }
+    getValue() {
+      this.updateDisplayLabel(this.value);
+      return this.value;
+    }
     destroy() {}
     isPopup() { return true; }
   }
