@@ -685,6 +685,7 @@ export default class DeadlineFilterRenderer {
 
     this.eGui = null;
     this.listEl = null;
+    this.searchContainer = null;
     this.filteredOptions = [...this.options];
 
     this._Vue =
@@ -701,6 +702,7 @@ export default class DeadlineFilterRenderer {
     this.toApp = null;
   }
   _closeAndNotify() {
+    this._setSearchVisibility(true);
     this.params?.filterChangedCallback?.();
     this.closePopup();
   }
@@ -718,6 +720,7 @@ export default class DeadlineFilterRenderer {
     `;
 
     const searchInput = this.eGui.querySelector(".search-input");
+    this.searchContainer = this.eGui.querySelector(".field-search");
     this.listEl = this.eGui.querySelector(".filter-list");
 
     searchInput.addEventListener("input", (e) => {
@@ -739,7 +742,13 @@ export default class DeadlineFilterRenderer {
     else if (this.params?.api?.hidePopupMenu) this.params.api.hidePopupMenu();
   }
 
+  _setSearchVisibility(show) {
+    if (!this.searchContainer) return;
+    this.searchContainer.style.display = show ? "" : "none";
+  }
+
   render() {
+    this._setSearchVisibility(true);
     this._unmountPickers();
 
     this.listEl.innerHTML = this.filteredOptions
@@ -780,6 +789,7 @@ export default class DeadlineFilterRenderer {
   }
 
   showCustomInputs() {
+    this._setSearchVisibility(false);
     this._unmountPickers();
 
     this.listEl.innerHTML = `
