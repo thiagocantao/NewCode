@@ -6,6 +6,8 @@
      com clamp ao viewport + auto flip + listeners de scroll/resize
 */
 
+import "./list-filter.css";
+
 const CustomDatePicker = (() => {
   const VueGlobal =
     (typeof window !== "undefined" && window.Vue) ||
