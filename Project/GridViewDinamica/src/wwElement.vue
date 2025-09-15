@@ -2358,6 +2358,12 @@ forceClearSelection() {
       border: none !important;
     }
 
+    :deep(.ag-row.ag-row-even),
+    :deep(.ag-row.ag-row-odd) {
+      border-top: none !important;
+      border-bottom: none !important;
+    }
+
     :deep(.ag-row:last-child .ag-cell) {
       border-bottom: none !important;
     }
