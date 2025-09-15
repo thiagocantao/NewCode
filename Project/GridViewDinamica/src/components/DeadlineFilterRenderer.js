@@ -255,20 +255,23 @@ const CustomDatePicker = (() => {
       };
       const sTitle = { font: "600 14px/1.2 Inter, system-ui, Arial" };
       const sNav = {
-        width: "28px",
-        height: "28px",
-        background: "#f3f4f6",
-        borderRadius: "8px",
-        cursor: "pointer",
-        border: "none",
+        minWidth: "28px",
+        minHeight: "28px",
+        border: "1px solid #ccc",
+        background: "#f7f7f7",
+        borderRadius: "6px",
+        padding: "2px 8px",
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
+        cursor: "pointer",
+        lineHeight: "1",
+        color: "#424242",
       };
       const sWeek = {
         display: "grid",
         gridTemplateColumns: "repeat(7,1fr)",
-        gap: "4px",
+        gap: "2px",
         padding: "4px 2px",
         color: "#6b7280",
         font: "600 11px/1 Inter, sans-serif",
@@ -279,36 +282,43 @@ const CustomDatePicker = (() => {
       const sGrid = {
         display: "grid",
         gridTemplateColumns: "repeat(7,1fr)",
-        gap: "4px",
+        gap: "2px",
         padding: "6px 2px 4px",
       };
       const sCell = {
-        height: "32px",
-        borderRadius: "8px",
-        background: "#fff",
-        cursor: "pointer",
-        font: "500 13px/1 Inter, sans-serif",
+        border: "1px solid transparent",
+        background: "transparent",
+        borderRadius: "6px",
+        padding: "6px 0",
+        minHeight: "30px",
+        width: "100%",
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: "0 4px",
-        border: "none",
+        cursor: "pointer",
+        font: "500 13px/1 Inter, sans-serif",
+        lineHeight: "1",
       };
       const sCellMuted = { color: "#9ca3af" };
-      const sCellSel = { background: "#2563eb", color: "#fff" };
-      const sCellToday = { outline: "1px dashed #2563eb", outlineOffset: "-3px" };
+      const sCellSel = { background: "#e7f0ff", borderColor: "#84a9ff" };
+      const sCellToday = { outline: "1px dashed #aaa" };
       const sActions = {
         display: "flex",
-        gap: "8px",
-        justifyContent: "space-between",
+        gap: "6px",
+        justifyContent: "flex-end",
         paddingTop: "8px",
+        flexWrap: "wrap",
       };
       const sAction = {
         flex: 1,
-        border: "1px solid #d0d5dd",
-        background: "#fff",
-        height: "32px",
-        borderRadius: "8px",
+        border: "1px solid #ccc",
+        background: "#f7f7f7",
+        borderRadius: "6px",
+        padding: "4px 8px",
+        minHeight: "28px",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
         cursor: "pointer",
         font: "600 12px/1 Inter",
       };
@@ -595,8 +605,8 @@ const CustomDatePicker = (() => {
                         style: {
                           width: "100%",
                           height: "32px",
-                          border: "1px solid #d0d5dd",
-                          borderRadius: "8px",
+                          border: "1px solid #ccc",
+                          borderRadius: "6px",
                           padding: "0 8px",
                           font: "13px/1 Inter, Arial",
                           boxSizing: "border-box",
@@ -970,6 +980,29 @@ export default class DeadlineFilterRenderer {
     );
   }
 
+  _parseDateValue(raw) {
+    if (raw instanceof Date) {
+      return isNaN(raw.getTime()) ? null : new Date(raw.getTime());
+    }
+    if (typeof raw === "number") {
+      const fromNumber = new Date(raw);
+      return isNaN(fromNumber.getTime()) ? null : fromNumber;
+    }
+    if (typeof raw === "string") {
+      const trimmed = raw.trim();
+      if (!trimmed) return null;
+      let candidate = trimmed;
+      if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(trimmed) && !/[\+\-]\d{2}$/.test(trimmed)) {
+        candidate = trimmed.replace(" ", "T");
+      } else if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}[\+\-]\d{2}$/.test(trimmed)) {
+        candidate = trimmed.replace(" ", "T").replace(/([\+\-]\d{2})$/, "$1:00");
+      }
+      const fromString = new Date(candidate);
+      return isNaN(fromString.getTime()) ? null : fromString;
+    }
+    return null;
+  }
+
   getSelectedRange() {
     const now =
       window.gridDeadlineNow instanceof Date
@@ -1038,10 +1071,9 @@ export default class DeadlineFilterRenderer {
 
   doesFilterPass(params) {
     const field = this.params?.colDef?.field;
-    const value = params?.data ? params.data[field] : undefined;
-    if (!value) return false;
-    const dateValue = new Date(value);
-    if (isNaN(dateValue.getTime())) return false;
+    const rawValue = params?.data ? params.data[field] : undefined;
+    const dateValue = this._parseDateValue(rawValue);
+    if (!dateValue) return false;
     const range = this.getSelectedRange();
     if (!range) return true;
     const { from, to } = range;
