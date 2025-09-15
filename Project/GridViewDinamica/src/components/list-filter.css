@@ -207,6 +207,45 @@
   font-family: Roboto, Arial, sans-serif;
 }
 
+/* Specific styles for Deadline filter */
+.deadline-filter {
+  max-width: none;
+  max-height: none;
+  overflow: visible;
+}
+
+.deadline-filter .field-search {
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #ccc;
+}
+
+.deadline-filter .filter-list {
+  max-height: none;
+  overflow: visible;
+}
+
+.deadline-filter .filter-item {
+  width: 100%;
+  padding: 12px 0;
+  margin-bottom: 8px;
+}
+
+.deadline-filter .filter-item.custom {
+  border-top: 1px solid #ccc;
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.deadline-filter .filter-item.custom .arrow-icon {
+  margin-left: auto;
+  font-family: 'Material Symbols Outlined';
+  font-size: 16px;
+  line-height: 1;
+  color: #999;
+  flex-shrink: 0;
+}
+
 /* Estilos para opções de usuário com avatar */
 :is(.list-filter, .list-editor) .user-option {
   display: flex;
