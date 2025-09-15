@@ -79,13 +79,33 @@
         this.renderOptions();
       };
 
-import "./components/list-filter.css";
-
-const CustomDatePicker = (() => {
-  const VueGlobal =
-    (typeof window !== "undefined" && window.Vue) ||
-    (typeof Vue !== "undefined" ? Vue : null);
-
+      let optionsPromise;
+      if (params.options && typeof params.options.then === 'function') {
+        optionsPromise = params.options;
+      } else if (Array.isArray(params.options)) {
+        optionsPromise = Promise.resolve(params.options);
+      } else if (Array.isArray(params.colDef.options)) {
+        optionsPromise = Promise.resolve(params.colDef.options);
+      } else if (Array.isArray(params.colDef.listOptions)) {
+        optionsPromise = Promise.resolve(params.colDef.listOptions);
+      } else if (
+        typeof params.colDef.listOptions === 'string' &&
+        params.colDef.listOptions.trim() !== ''
+      ) {
+        optionsPromise = Promise.resolve(
+          params.colDef.listOptions.split(',').map(o => o.trim())
+        );
+      } else if (
+        params.colDef.dataSource &&
+        typeof params.colDef.dataSource.list_options === 'string' &&
+        params.colDef.dataSource.list_options.trim() !== ''
+      ) {
+        optionsPromise = Promise.resolve(
+          params.colDef.dataSource.list_options.split(',').map(o => o.trim())
+        );
+      } else {
+        optionsPromise = Promise.resolve([]);
+      }
 
       optionsPromise.then(resolveOptions);
 
