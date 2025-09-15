@@ -209,21 +209,19 @@
   margin-left: auto;
   width: 28px;
   height: 28px;
-  border: 1px solid #ccc;
   border-radius: 6px;
-  background: #f7f7f7;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: #424242;
-  font-size: 16px;
+  font-size: 20px !important;
+  cursor:pointer;
   flex-shrink: 0;
 }
 
 .deadline-filter .custom-header { display: flex; align-items: center; margin-bottom: 8px; }
 .deadline-filter .custom-header .back-btn {
-  border: 1px solid #ccc;
-  background: #f7f7f7;
+
   border-radius: 6px;
   width: 28px;
   height: 28px;
@@ -232,12 +230,11 @@
   justify-content: center;
   cursor: pointer;
   color: #424242;
-  font-size: 16px;
+  font-size: 20px !important;
   line-height: 1;
   padding: 0;
   margin-right: 6px;
 }
-.deadline-filter .custom-header .back-btn:hover { background: #ececec; }
 .deadline-filter .custom-header .custom-title { margin-left: auto; font-size: 13px; }
 
 .deadline-filter .custom-select {
@@ -359,7 +356,7 @@
 .filter-item:hover { background: #f3f4f6; }
 .filter-item.selected { background: #e0e7ff; }
 .custom-header { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
-.custom-title { font-weight: 600; }
+.custom-title { font-weight: 400; }
 .custom-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
 .custom-select { flex: 1; height: 32px; border: 1px solid #e5e7eb; border-radius: 8px; padding: 0 8px; }
 .custom-range { display: flex; flex-direction: column; gap: 8px; margin: 8px 0; }
