@@ -1819,6 +1819,9 @@ setTimeout(() => {
   "--ww-data-grid_action-padding": this.content.actionPadding,
   "--ww-data-grid_action-border": this.content.actionBorder,
   "--ww-data-grid_action-borderRadius": this.content.actionBorderRadius,
+  ...(this.content.borderColor
+  ? { "--ww-data-grid_row-border-color": this.content.borderColor }
+  : {}),
   ...(this.content.actionFont
   ? { "--ww-data-grid_action-font": this.content.actionFont }
   : {
@@ -2399,8 +2402,16 @@ forceClearSelection() {
     }
 
     :deep(.ag-cell) {
-      border: none !important;
-      border-bottom: 1px solid var(--ag-border-color, #888) !important;
+      border-top: none !important;
+      border-right: none !important;
+      border-left: none !important;
+      border-bottom-width: 1px !important;
+      border-bottom-style: solid !important;
+      border-bottom-color: var(
+        --ww-data-grid_row-border-color,
+        var(--ag-row-border-color, var(--ag-border-color, #d9d9d9))
+      ) !important;
+
     }
 
     :deep(.ag-row) {
@@ -2415,7 +2426,13 @@ forceClearSelection() {
 
     :deep(.ag-row.ag-row-last .ag-cell),
     :deep(.ag-row:last-child .ag-cell) {
-      border-bottom: 1px solid var(--ag-border-color, #888) !important;
+      border-bottom-width: 1px !important;
+      border-bottom-style: solid !important;
+      border-bottom-color: var(
+        --ww-data-grid_row-border-color,
+        var(--ag-row-border-color, var(--ag-border-color, #d9d9d9))
+      ) !important;
+
     }
 
     // Inputs de edição compactos e centralizados (ajuste agressivo)
