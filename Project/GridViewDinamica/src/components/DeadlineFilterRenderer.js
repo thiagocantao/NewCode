@@ -1,3 +1,5 @@
+import * as VueRuntimeModule from "vue";
+
 /* CustomDatePicker + DeadlineFilterRenderer
    - Popup via Teleport para <body>
    - Anti-loop (syncLock)
@@ -8,10 +10,59 @@
 
 //import "./list-filter.css"; // opcional para o resto do filtro, o calendário não depende disso
 
+let cachedVueRuntime = null;
+function getVueRuntime() {
+  if (cachedVueRuntime) {
+    return cachedVueRuntime;
+  }
+
+  const candidates = [];
+
+  if (typeof window !== "undefined") {
+    const winVue = window?.Vue;
+    if (winVue) candidates.push(winVue);
+
+    try {
+      const parentWin = window.parent;
+      if (parentWin && parentWin !== window && parentWin.Vue) {
+        candidates.push(parentWin.Vue);
+      }
+    } catch (err) {
+      /* ignore cross-origin access */
+    }
+
+    try {
+      const frontWindow = window.wwLib?.getFrontWindow?.();
+      if (frontWindow?.Vue) {
+        candidates.push(frontWindow.Vue);
+      }
+    } catch (err) {
+      /* ignore wwLib access issues */
+    }
+  }
+
+  if (
+    VueRuntimeModule &&
+    typeof VueRuntimeModule.createApp === "function"
+  ) {
+    candidates.push(VueRuntimeModule);
+  }
+
+  const moduleDefault = VueRuntimeModule?.default;
+  if (moduleDefault && typeof moduleDefault.createApp === "function") {
+    candidates.push(moduleDefault);
+  }
+
+  cachedVueRuntime =
+    candidates.find(
+      (candidate) => candidate && typeof candidate.createApp === "function"
+    ) || null;
+
+  return cachedVueRuntime;
+}
+
 const CustomDatePicker = (() => {
-  const VueGlobal =
-    (typeof window !== "undefined" && window.Vue) ||
-    (typeof Vue !== "undefined" ? Vue : null);
+  const VueGlobal = getVueRuntime();
 
   if (!VueGlobal) {
     console.warn("[CustomDatePicker] Vue global não encontrado.");
@@ -688,9 +739,7 @@ export default class DeadlineFilterRenderer {
     this.searchContainer = null;
     this.filteredOptions = [...this.options];
 
-    this._Vue =
-      (typeof window !== "undefined" && window.Vue) ||
-      (typeof Vue !== "undefined" ? Vue : null);
+    this._Vue = getVueRuntime();
     this.fromApp = null;
     this.toApp = null;
   }
@@ -870,12 +919,17 @@ export default class DeadlineFilterRenderer {
     }
 
     const mountPicker = (mountEl, initial, onChange) => {
-      if (!this._Vue || !CustomDatePicker) {
+      const runtime = this._Vue || getVueRuntime();
+      if (runtime && runtime !== this._Vue) {
+        this._Vue = runtime;
+      }
+
+      if (!runtime || !CustomDatePicker) {
         mountEl.innerHTML =
           `<div class="dp-fallback" title="Vue indisponível">Select date</div>`;
         return { unmount: () => {} };
       }
-      const { createApp, h } = this._Vue;
+      const { createApp, h } = runtime;
       const app = createApp({
         data: () => ({ val: initial || "" }),
         render() {
