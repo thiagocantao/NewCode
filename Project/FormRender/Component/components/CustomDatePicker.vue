@@ -407,15 +407,15 @@ export default {
   border: 1px solid #acacad;
   border-radius: 8px;
   box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-  padding: 8px;
+  padding: 6px;
   z-index: 2147483647;
 }
-.dp-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 6px; }
+.dp-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 4px; }
 .dp-title { font-weight: 500; text-transform: capitalize; }
 .dp-nav { border: 1px solid #ccc; background: #f7f7f7; border-radius: 6px; padding: 2px 8px; cursor: pointer; }
 .dp-weekdays, .dp-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; }
-.dp-weekday { text-align: center; font-size: 12px; color: #666; padding: 4px 0; }
-.dp-cell { border: 0; background: transparent; border-radius: 6px; padding: 6px 0; cursor: pointer; align-items:center; text-align: center; justify-content: center;}
+.dp-weekday { text-align: center; font-size: 12px; color: #666; padding: 3px 0; }
+.dp-cell { border: 0; background: transparent; border-radius: 6px; padding: 5px 0; cursor: pointer; align-items:center; text-align: center; justify-content: center;}
 .dp-cell:hover { background: #f0f0f0; }
 .dp-cell.is-muted { color: #aaa; cursor: default; }
 .dp-cell.is-selected { background: #689d8c; color: #fff; }
