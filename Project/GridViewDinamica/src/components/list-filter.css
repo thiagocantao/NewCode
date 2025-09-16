@@ -195,7 +195,9 @@
 
 /* Specific styles for Deadline filter */
 .deadline-filter { max-width: none; max-height: none; overflow: visible; }
+
 .deadline-filter .field-search { padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid #ccc; }
+.deadline-filter .field-search .search-input { padding: 7px 36px 7px 13px; }
 .deadline-filter .filter-list { max-height: none; overflow: visible; }
 .deadline-filter .filter-item { width: 100%; padding: 12px 12px; margin-bottom: 8px; }
 
@@ -203,7 +205,10 @@
   border-top: 1px solid #ccc;
   margin-top: 12px;
   padding-top: 12px;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
 }
+
 .deadline-filter .filter-item.custom .arrow-icon {
   margin-left: auto;
   width: 28px;

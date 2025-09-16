@@ -771,6 +771,9 @@ export default class DeadlineFilterRenderer {
     this.eGui.innerHTML = `
       <div class="field-search">
         <input type="text" placeholder="Search..." class="search-input" />
+        <span class="search-icon" aria-hidden="true">
+          <i class="material-symbols-outlined-search">search</i>
+        </span>
       </div>
       <div class="filter-list"></div>
     `;
