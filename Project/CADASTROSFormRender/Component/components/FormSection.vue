@@ -322,36 +322,29 @@ export default {
 }
 
 .section-fields {
-  padding: 12px;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  column-gap: 24px;
+  row-gap: 16px;
+  justify-items: start;
+  align-items: stretch;
 }
 
 .form-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 16px;
+  display: contents;
+  margin: 0;
+  padding: 0;
 }
 
 .field-wrapper {
-  /* O gridColumn é definido inline via style */
-}
-
-.field-input {
   width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-.field-input:focus {
-  outline: none;
-  border-color: #4a90e2;
-}
-
-.field-input:disabled {
-  background-color: #f5f5f5;
-  cursor: not-allowed;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  /* O gridColumn é definido inline via style */
 }
 
 .action-icon-section {
