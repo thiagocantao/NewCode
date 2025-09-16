@@ -1812,6 +1812,13 @@ setTimeout(() => {
   };
   },
   cssVars() {
+  const { borderColor } = this.content;
+  const hasCustomBorder =
+    typeof borderColor === "string" && borderColor.trim() !== "";
+  const rowBorderColor = hasCustomBorder
+    ? borderColor
+    : "var(--ag-border-color, #888888)";
+
   return {
   "--ww-data-grid_action-backgroundColor":
   this.content.actionBackgroundColor,
@@ -1819,6 +1826,7 @@ setTimeout(() => {
   "--ww-data-grid_action-padding": this.content.actionPadding,
   "--ww-data-grid_action-border": this.content.actionBorder,
   "--ww-data-grid_action-borderRadius": this.content.actionBorderRadius,
+  "--ww-data-grid_row-border-color": rowBorderColor,
   ...(this.content.actionFont
   ? { "--ww-data-grid_action-font": this.content.actionFont }
   : {
@@ -2395,26 +2403,46 @@ forceClearSelection() {
 
     :deep(.ag-header-cell) {
       border: none !important;
-      border-bottom: 1px solid #888 !important;
+      border-bottom: 1px solid var(
+        --ww-data-grid_row-border-color,
+        #888888
+      ) !important;
     }
 
     :deep(.ag-cell) {
-      border: none !important;
-      border-bottom: 1px solid #888 !important;
+      border-top: none !important;
+      border-right: none !important;
+      border-left: none !important;
+      border-bottom: 1px solid var(
+        --ww-data-grid_row-border-color,
+        #888888
+      ) !important;
     }
 
     :deep(.ag-row) {
       border: none !important;
+      --ag-row-border-color: var(
+        --ww-data-grid_row-border-color,
+        #888888
+      );
     }
 
     :deep(.ag-row.ag-row-even),
     :deep(.ag-row.ag-row-odd) {
       border-top: none !important;
       border-bottom: none !important;
+      --ag-row-border-color: var(
+        --ww-data-grid_row-border-color,
+        #888888
+      );
     }
 
+    :deep(.ag-row.ag-row-last .ag-cell),
     :deep(.ag-row:last-child .ag-cell) {
-      border-bottom: none !important;
+      border-bottom: 1px solid var(
+        --ww-data-grid_row-border-color,
+        #888888
+      ) !important;
     }
 
     // Inputs de edição compactos e centralizados (ajuste agressivo)
@@ -2457,7 +2485,10 @@ forceClearSelection() {
       /* Remove arredondamento */
       box-shadow: none !important;
       /* Remove sombra */
-      border: 1px solid #888 !important;
+      border: 1px solid var(
+        --ww-data-grid_row-border-color,
+        #888888
+      ) !important;
       /* Remove borda */
       box-sizing: border-box !important;
       line-height: 1.2 !important;
