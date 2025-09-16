@@ -2400,7 +2400,7 @@ forceClearSelection() {
 
     :deep(.ag-cell) {
       border: none !important;
-      border-bottom: 1px solid #888 !important;
+      border-bottom: 1px solid var(--ag-border-color, #888) !important;
     }
 
     :deep(.ag-row) {
@@ -2413,8 +2413,9 @@ forceClearSelection() {
       border-bottom: none !important;
     }
 
+    :deep(.ag-row.ag-row-last .ag-cell),
     :deep(.ag-row:last-child .ag-cell) {
-      border-bottom: none !important;
+      border-bottom: 1px solid var(--ag-border-color, #888) !important;
     }
 
     // Inputs de edição compactos e centralizados (ajuste agressivo)
