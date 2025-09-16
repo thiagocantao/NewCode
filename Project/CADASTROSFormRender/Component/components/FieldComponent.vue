@@ -506,6 +506,7 @@ textarea.field-input {
   border: 1px solid var(--text-input-border);
   border-radius: 4px;
   background-color: var(--text-input-bg);
+
 }
 
 input.field-input {
@@ -520,10 +521,11 @@ input.field-input {
 
 input.field-input:focus,
 textarea.field-input:focus {
+  outline: none;
   border-color: var(--text-input-border-focus);
   box-shadow: none;
   background-color: #ffffff;
-  color: #787878;
+  color: #787878; 
 }
 
 input.field-input::placeholder,
@@ -595,6 +597,11 @@ textarea.field-input::placeholder {
   color: #787878;
   font-size: 14px;
   box-sizing: border-box;
+}
+
+
+.date-input :deep(.dp-input:focus) {
+  outline: none;
 }
 
 .date-input :deep(.dp-input::placeholder) {
@@ -874,6 +881,7 @@ textarea.field-input::placeholder {
   box-sizing: border-box;
   background: #f8f9fa;
   transition: border 0.2s;
+  outline: none !important;
   color: #787878;
 }
 
@@ -882,6 +890,11 @@ textarea.field-input::placeholder {
 .list-search-input:hover {
   border-color: #bdbdbd !important;
   background: #fff;
+}
+
+.list-search-input::placeholder {
+  color: #787878;
+  opacity: 1;
 }
 
 .list-search-input::placeholder {
