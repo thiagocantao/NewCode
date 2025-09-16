@@ -130,7 +130,7 @@
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  padding: 6px 0 6px 0;
+  padding: 6px 8px 6px 8px;
   border-radius: 8px;
   transition: background 0.15s;
   width: 100%;
@@ -153,7 +153,7 @@
 :is(.list-filter, .list-editor) .filter-item {
   display: flex;
   align-items: center;
-  padding: 6px 4px 6px 0;
+  padding: 6px 8px 6px 8px;
   font-size: 13px;
   font-family: Roboto, Arial, sans-serif;
   cursor: pointer;
@@ -197,7 +197,7 @@
 .deadline-filter { max-width: none; max-height: none; overflow: visible; }
 .deadline-filter .field-search { padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid #ccc; }
 .deadline-filter .filter-list { max-height: none; overflow: visible; }
-.deadline-filter .filter-item { width: 100%; padding: 12px 0; margin-bottom: 8px; }
+.deadline-filter .filter-item { width: 100%; padding: 12px 12px; margin-bottom: 8px; }
 
 .deadline-filter .filter-item.custom {
   border-top: 1px solid #ccc;
@@ -354,6 +354,10 @@
 .filter-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 8px; cursor: pointer; }
 .filter-item:hover { background: #f3f4f6; }
 .filter-item.selected { background: #e0e7ff; }
+.filter-item.custom.selected,
+.filter-item.clear.selected {
+  background: transparent;
+}
 .custom-header { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
 .custom-title { font-weight: 400; }
 .custom-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
