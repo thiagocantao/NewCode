@@ -1,8 +1,8 @@
 <template>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
-  <div class="form-builder-container"  :style="formHeightStyle">
+  <div class="form-builder-container" :class="{ 'has-custom-height': hasCustomFormHeight }" :style="formHeightStyle">
     <div class="form-builder">
-      <div class="form-sections-container scrollable" ref="formSectionsContainer">
+      <div :class="['form-sections-container', { scrollable: hasCustomFormHeight }]" ref="formSectionsContainer">
         <!-- Estado de carregamento -->
         <div v-if="isLoading" class="loading-container">
           <div class="loading-spinner"></div>
@@ -120,9 +120,20 @@ export default {
       }
     };
 
+    const hasCustomFormHeight = computed(() => {
+      const height = props.content.formHeight;
+      if (typeof height === 'number') {
+        return true;
+      }
+      if (typeof height === 'string') {
+        return height.trim() !== '';
+      }
+      return false;
+    });
+
     const formHeightStyle = computed(() => {
       const style = {};
-      if (props.content.formHeight) {
+      if (hasCustomFormHeight.value) {
         style.height = props.content.formHeight;
       }
       style.fontFamily = componentFontFamily.value || 'inherit';
@@ -380,7 +391,8 @@ export default {
       language,
       isLoading,
       renderKey,
-      formHeightStyle
+      formHeightStyle,
+      hasCustomFormHeight
     };
   }
 };
@@ -389,9 +401,12 @@ export default {
 <style scoped>
   .form-builder-container {
     display: flex;
-    overflow-y: auto;
     background-color: #f5f5f5;
     width: 100%;
+  }
+
+  .form-builder-container.has-custom-height {
+    overflow-y: auto;
   }
 
   .form-builder {
@@ -405,7 +420,6 @@ export default {
 
   .form-sections-container {
     flex: 1;
-    overflow-y: auto;
   }
 
   .no-sections {
