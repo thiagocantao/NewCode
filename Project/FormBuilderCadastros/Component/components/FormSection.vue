@@ -7,11 +7,19 @@ class="form-section"
 ref="sectionRef"
 >
 
-  <span
-    class="section-title section-title--metadata"
-    :data-section-id="section.id"
+
+  <div
+    class="section-header section-header--metadata"
     aria-hidden="true"
-  ></span>
+  >
+    <h4
+      class="section-title"
+      :data-section-id="section.id"
+    >
+      {{ sectionTitle }}
+    </h4>
+  </div>
+
 
   <div
     class="sortable-container grid-layout"
@@ -522,7 +530,8 @@ background-color: #f0f0f0;
 border: 1px solid #ddd;
 }
 
-.section-title--metadata {
+.section-header--metadata {
+
 display: none;
 }
 
