@@ -6,8 +6,6 @@ class="form-section"
 :data-section-id="section.id"
 ref="sectionRef"
 >
-
-
   <div
     class="section-header section-header--metadata"
     aria-hidden="true"
@@ -20,7 +18,6 @@ ref="sectionRef"
     </h4>
   </div>
 
-
   <div
     class="sortable-container grid-layout"
     :data-section-id="section.id"
@@ -28,6 +25,13 @@ ref="sectionRef"
     ref="sortableContainer"
     v-show="isExpanded"
   >
+    <div
+      v-if="!sectionFields.length"
+      class="empty-drop-target"
+      :data-section-id="section.id"
+    ></div>
+
+
     <DraggableField
       v-for="field in sectionFields"
       :key="field.id || field.field_id"
@@ -531,7 +535,6 @@ border: 1px solid #ddd;
 }
 
 .section-header--metadata {
-
 display: none;
 }
 
@@ -567,11 +570,15 @@ opacity: 1;
 }
 
 .sortable-container {
-min-height: 50px;
-border: 1px dashed #ccc;
-border-radius: 4px;
-padding: 10px;
-background-color: surface;
+  min-height: 50px;
+  border: 1px dashed #ccc;
+  border-radius: 4px;
+  padding: 16px;
+  background-color: surface;
+}
+
+.form-section.is-empty .sortable-container {
+  min-height: 120px;
 }
 
 .grid-layout {
@@ -635,12 +642,13 @@ border:0px;
 }
 
 .empty-drop-target {
-grid-column: 1 / -1;
-min-height: 40px;
-border: 1px dashed #ccc;
-border-radius: 4px;
-margin-top: 10px;
-background-color: rgba(0, 0, 0, 0.02);
+  grid-column: 1 / -1;
+  min-height: 80px;
+  border: 1px dashed #ccc;
+  border-radius: 4px;
+  margin-top: 10px;
+  background-color: rgba(0, 0, 0, 0.02);
+  pointer-events: none;
 }
 
 i.material-symbols-outlined {
