@@ -1,34 +1,46 @@
 <template> 
 
-<div 
-class="form-section" 
-:class="{ 'is-empty': !section.fields.length, 'expanded': isExpanded }" 
+<div
+class="form-section"
+:class="{ 'is-empty': !section.fields.length, 'expanded': isExpanded }"
 :data-section-id="section.id"
 ref="sectionRef"
 >
 
-<div 
-class="sortable-container grid-layout" 
-:data-section-id="section.id"
-:id="`sortable-${section.id}`"
-ref="sortableContainer"
-v-show="isExpanded"
->
-<DraggableField
-v-for="field in sectionFields"
-:key="field.id || field.field_id"
-:field="field"
-:show-properties="true"
-:show-actions="true"
-:is-editing="isEditing"
-:show-field-component="true"
-:is-in-form-section="true"
-:class="draggableField"
-@click="selectField(field)"
-@edit-field="$emit('edit-field', field)"
-@remove-field="$emit('remove-field', field, section.id)"
-/>
-</div>
+  <div
+    class="section-header section-header--metadata"
+    aria-hidden="true"
+  >
+    <h4
+      class="section-title"
+      :data-section-id="section.id"
+    >
+      {{ sectionTitle }}
+    </h4>
+  </div>
+
+  <div
+    class="sortable-container grid-layout"
+    :data-section-id="section.id"
+    :id="`sortable-${section.id}`"
+    ref="sortableContainer"
+    v-show="isExpanded"
+  >
+    <DraggableField
+      v-for="field in sectionFields"
+      :key="field.id || field.field_id"
+      :field="field"
+      :show-properties="true"
+      :show-actions="true"
+      :is-editing="isEditing"
+      :show-field-component="true"
+      :is-in-form-section="true"
+      :class="draggableField"
+      @click="selectField(field)"
+      @edit-field="$emit('edit-field', field)"
+      @remove-field="$emit('remove-field', field, section.id)"
+    />
+  </div>
 </div>
 </template>
 
@@ -514,6 +526,10 @@ borde: 1px solid #f5f5f5;
 .section-title[contenteditable="true"]:focus {
 background-color: #f0f0f0;
 border: 1px solid #ddd;
+}
+
+.section-header--metadata {
+display: none;
 }
 
 .section-actions {
