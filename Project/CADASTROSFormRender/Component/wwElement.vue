@@ -105,11 +105,28 @@ export default {
       return true;
     });
 
-    const formHeightStyle = computed(() => {
-      if (props.content.formHeight) {
-        return { height: props.content.formHeight };
+    const componentFontFamily = ref('');
+
+    const updateComponentFontFamily = () => {
+      try {
+        if (typeof window !== 'undefined' && window.wwLib?.wwVariable?.getValue) {
+          const typographySettings = window.wwLib.wwVariable.getValue('5e429bf8-2fe3-42e4-a41d-e3b4ac1b52fa');
+          componentFontFamily.value = typographySettings?.fontFamily || '';
+        } else {
+          componentFontFamily.value = '';
+        }
+      } catch (error) {
+        componentFontFamily.value = '';
       }
-      return {};
+    };
+
+    const formHeightStyle = computed(() => {
+      const style = {};
+      if (props.content.formHeight) {
+        style.height = props.content.formHeight;
+      }
+      style.fontFamily = componentFontFamily.value || 'inherit';
+      return style;
     });
 
     const loadFormData = () => {
@@ -311,6 +328,7 @@ export default {
       };
       const initializeComponent = async () => {
         try {
+          updateComponentFontFamily();
           loadFormData();
           loadFieldsData();
           await new Promise(resolve => setTimeout(resolve, 100));
@@ -329,7 +347,12 @@ export default {
       if (newContent !== oldContent) {
         loadFormData();
         loadFieldsData();
+        updateComponentFontFamily();
       }
+    }, { deep: true });
+
+    watch(() => props.wwEditorState, () => {
+      updateComponentFontFamily();
     }, { deep: true });
 
     // Watch para formSections para debug
