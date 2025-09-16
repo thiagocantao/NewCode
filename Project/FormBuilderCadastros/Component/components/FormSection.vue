@@ -7,6 +7,7 @@ class="form-section"
 ref="sectionRef"
 >
 
+
   <div
     class="section-header section-header--metadata"
     aria-hidden="true"
@@ -18,6 +19,7 @@ ref="sectionRef"
       {{ sectionTitle }}
     </h4>
   </div>
+
 
   <div
     class="sortable-container grid-layout"
@@ -529,6 +531,7 @@ border: 1px solid #ddd;
 }
 
 .section-header--metadata {
+
 display: none;
 }
 
