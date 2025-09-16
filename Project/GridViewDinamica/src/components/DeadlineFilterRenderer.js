@@ -1,3 +1,5 @@
+import * as VueRuntimeModule from "vue";
+
 /* CustomDatePicker + DeadlineFilterRenderer
    - Popup via Teleport para <body>
    - Anti-loop (syncLock)
@@ -6,12 +8,63 @@
    - ESTILO INLINE (imune a resets / CSS faltando)
 */
 
+const ROBOTO_FONT_FAMILY = "Roboto, Arial, sans-serif";
+
 //import "./list-filter.css"; // opcional para o resto do filtro, o calendário não depende disso
 
+let cachedVueRuntime = null;
+function getVueRuntime() {
+  if (cachedVueRuntime) {
+    return cachedVueRuntime;
+  }
+
+  const candidates = [];
+
+  if (typeof window !== "undefined") {
+    const winVue = window?.Vue;
+    if (winVue) candidates.push(winVue);
+
+    try {
+      const parentWin = window.parent;
+      if (parentWin && parentWin !== window && parentWin.Vue) {
+        candidates.push(parentWin.Vue);
+      }
+    } catch (err) {
+      /* ignore cross-origin access */
+    }
+
+    try {
+      const frontWindow = window.wwLib?.getFrontWindow?.();
+      if (frontWindow?.Vue) {
+        candidates.push(frontWindow.Vue);
+      }
+    } catch (err) {
+      /* ignore wwLib access issues */
+    }
+  }
+
+  if (
+    VueRuntimeModule &&
+    typeof VueRuntimeModule.createApp === "function"
+  ) {
+    candidates.push(VueRuntimeModule);
+  }
+
+  const moduleDefault = VueRuntimeModule?.default;
+  if (moduleDefault && typeof moduleDefault.createApp === "function") {
+    candidates.push(moduleDefault);
+  }
+
+  cachedVueRuntime =
+    candidates.find(
+      (candidate) => candidate && typeof candidate.createApp === "function"
+    ) || null;
+
+  return cachedVueRuntime;
+}
+
 const CustomDatePicker = (() => {
-  const VueGlobal =
-    (typeof window !== "undefined" && window.Vue) ||
-    (typeof Vue !== "undefined" ? Vue : null);
+  const VueGlobal = getVueRuntime();
 
   if (!VueGlobal) {
     console.warn("[CustomDatePicker] Vue global não encontrado.");
@@ -240,6 +293,8 @@ const CustomDatePicker = (() => {
         padding: "8px",
         userSelect: "none",
         boxSizing: "border-box",
+        fontFamily: ROBOTO_FONT_FAMILY,
+        fontSize: "13px",
       };
       const styleBackdrop = {
         position: "fixed",
@@ -253,7 +308,7 @@ const CustomDatePicker = (() => {
         justifyContent: "space-between",
         padding: "4px 4px 8px",
       };
-      const sTitle = { font: "600 14px/1.2 Inter, system-ui, Arial" };
+      const sTitle = { font: `600 13px/1.2 ${ROBOTO_FONT_FAMILY}` };
       const sNav = {
         minWidth: "28px",
         minHeight: "28px",
@@ -267,6 +322,7 @@ const CustomDatePicker = (() => {
         cursor: "pointer",
         lineHeight: "1",
         color: "#424242",
+        font: `600 13px/1 ${ROBOTO_FONT_FAMILY}`,
       };
       const sWeek = {
         display: "grid",
@@ -274,7 +330,7 @@ const CustomDatePicker = (() => {
         gap: "2px",
         padding: "4px 2px",
         color: "#6b7280",
-        font: "600 11px/1 Inter, sans-serif",
+        font: `600 13px/1 ${ROBOTO_FONT_FAMILY}`,
         textTransform: "uppercase",
         letterSpacing: ".02em",
       };
@@ -296,7 +352,7 @@ const CustomDatePicker = (() => {
         alignItems: "center",
         justifyContent: "center",
         cursor: "pointer",
-        font: "500 13px/1 Inter, sans-serif",
+        font: `500 13px/1 ${ROBOTO_FONT_FAMILY}`,
         lineHeight: "1",
       };
       const sCellMuted = { color: "#9ca3af" };
@@ -320,7 +376,7 @@ const CustomDatePicker = (() => {
         alignItems: "center",
         justifyContent: "center",
         cursor: "pointer",
-        font: "600 12px/1 Inter",
+        font: `600 13px/1 ${ROBOTO_FONT_FAMILY}`,
       };
 
       // ===== posicionamento =====
@@ -486,7 +542,7 @@ const CustomDatePicker = (() => {
               background: props.disabled ? "#f2f4f7" : "#fff",
               color: props.disabled ? "#98a2b3" : "inherit",
               cursor: props.disabled ? "not-allowed" : "pointer",
-              font: "14px/1.2 Roboto, Arial, sans-serif",
+              font: `13px/1.2 ${ROBOTO_FONT_FAMILY}`,
               boxSizing: "border-box",
             },
           }),
@@ -524,6 +580,8 @@ const CustomDatePicker = (() => {
                 {
                   class: "datepicker-pop",
                   ref: dpPopRef,
+                  role: "dialog",
+                  "aria-modal": "true",
                   style: {
                     ...stylePopupBase,
                     left: `${dpPopPos.value.left}px`,
@@ -608,7 +666,7 @@ const CustomDatePicker = (() => {
                           border: "1px solid #ccc",
                           borderRadius: "6px",
                           padding: "0 8px",
-                          font: "13px/1 Inter, Arial",
+                          font: `13px/1 ${ROBOTO_FONT_FAMILY}`,
                           boxSizing: "border-box",
                         },
                       }),
@@ -688,9 +746,7 @@ export default class DeadlineFilterRenderer {
     this.searchContainer = null;
     this.filteredOptions = [...this.options];
 
-    this._Vue =
-      (typeof window !== "undefined" && window.Vue) ||
-      (typeof Vue !== "undefined" ? Vue : null);
+    this._Vue = getVueRuntime();
     this.fromApp = null;
     this.toApp = null;
   }
@@ -851,31 +907,56 @@ export default class DeadlineFilterRenderer {
     const needTo =
       this.customMode === "before" || this.customMode === "between";
 
+    const makePickerRow = (labelText, mountClass) => {
+      const wrap = document.createElement("div");
+      wrap.className = "picker-row";
+
+      const labelEl = document.createElement("div");
+      labelEl.className = "picker-label";
+      labelEl.textContent = labelText;
+      labelEl.style.fontFamily = ROBOTO_FONT_FAMILY;
+      labelEl.style.fontSize = "13px";
+      labelEl.style.fontWeight = "500";
+      labelEl.style.lineHeight = "1.2";
+      labelEl.style.display = "block";
+      labelEl.style.marginBottom = "4px";
+
+      const mountEl = document.createElement("div");
+      mountEl.className = `picker-mount ${mountClass}`;
+
+      wrap.appendChild(labelEl);
+      wrap.appendChild(mountEl);
+      rangeHost.appendChild(wrap);
+
+      return mountEl;
+    };
+
+    let fromMount = null;
     if (needFrom) {
-      const fromWrap = document.createElement("div");
-      fromWrap.className = "picker-row";
-      fromWrap.innerHTML = `<div class="picker-label">From</div><div class="picker-mount from-mount"></div>`;
-      rangeHost.appendChild(fromWrap);
+      fromMount = makePickerRow("From", "from-mount");
     } else {
       this.customFrom = "";
     }
 
+    let toMount = null;
     if (needTo) {
-      const toWrap = document.createElement("div");
-      toWrap.className = "picker-row";
-      toWrap.innerHTML = `<div class="picker-label">To</div><div class="picker-mount to-mount"></div>`;
-      rangeHost.appendChild(toWrap);
+      toMount = makePickerRow("To", "to-mount");
     } else {
       this.customTo = "";
     }
 
     const mountPicker = (mountEl, initial, onChange) => {
-      if (!this._Vue || !CustomDatePicker) {
+      const runtime = this._Vue || getVueRuntime();
+      if (runtime && runtime !== this._Vue) {
+        this._Vue = runtime;
+      }
+
+      if (!runtime || !CustomDatePicker) {
         mountEl.innerHTML =
-          `<div class="dp-fallback" title="Vue indisponível">Select date</div>`;
+          `<div class="dp-fallback" title="Vue indisponível" style="font: 13px/1 ${ROBOTO_FONT_FAMILY};">Select date</div>`;
         return { unmount: () => {} };
       }
-      const { createApp, h } = this._Vue;
+      const { createApp, h } = runtime;
       const app = createApp({
         data: () => ({ val: initial || "" }),
         render() {
@@ -895,8 +976,7 @@ export default class DeadlineFilterRenderer {
       return app.mount(mountEl);
     };
 
-    if (needFrom) {
-      const fromMount = rangeHost.querySelector(".from-mount");
+    if (needFrom && fromMount) {
       const initFrom = this.customFrom || "";
       this.fromApp = mountPicker(fromMount, initFrom, (v) => {
         if (v !== this.customFrom) {
@@ -906,8 +986,7 @@ export default class DeadlineFilterRenderer {
       });
     }
 
-    if (needTo) {
-      const toMount = rangeHost.querySelector(".to-mount");
+    if (needTo && toMount) {
       const initTo = this.customTo || "";
       this.toApp = mountPicker(toMount, initTo, (v) => {
         if (v !== this.customTo) {

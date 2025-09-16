@@ -6,7 +6,6 @@ class="form-section"
 :data-section-id="section.id"
 ref="sectionRef"
 >
-
   <div
     class="section-header section-header--metadata"
     aria-hidden="true"
@@ -31,6 +30,7 @@ ref="sectionRef"
       class="empty-drop-target"
       :data-section-id="section.id"
     ></div>
+
 
     <DraggableField
       v-for="field in sectionFields"

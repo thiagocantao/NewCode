@@ -30,6 +30,8 @@
       class="datepicker-pop"
       :style="dpPopStyle"
       ref="dpPopRef"
+      role="dialog"
+      aria-modal="true"
     >
       <div class="dp-header">
         <button type="button" class="dp-nav" @click="prevMonth">&lt;</button>
