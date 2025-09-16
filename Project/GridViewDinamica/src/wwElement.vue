@@ -655,7 +655,14 @@ const remountComponent = () => {
   let beforeUnloadHandler = null;
 
   const handleDocumentClick = (e) => {
-    const selectors = ['.list-editor', '.list-filter', '.ag-popup', '[role="dialog"]'];
+    const selectors = [
+      '.list-editor',
+      '.list-filter',
+      '.ag-popup',
+      '.datepicker-pop',
+      '[role="dialog"]',
+      '[data-grid-popup]'
+    ];
     const anyPopup = selectors.some(sel => document.querySelector(sel));
     if (!anyPopup) return;
     const clickedInside = selectors.some(sel => e.target.closest(sel));
