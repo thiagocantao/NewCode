@@ -791,12 +791,15 @@ textarea.field-input::placeholder {
   font-size: 14px;
   white-space: pre-wrap;
   transition: background 0.3s, border-color 0.3s, color 0.3s;
+  outline: none;
 }
 
-.rich-text-input:focus {
-  border-color: var(--text-input-border-focus);
+.rich-text-input:focus,
+.rich-text-input:focus-visible {
+  border: 1px solid var(--text-input-border-focus);
   background-color: #ffffff;
   color: #787878;
+  outline: none;
 }
 
 .rich-text-input[data-placeholder]:empty::before {
