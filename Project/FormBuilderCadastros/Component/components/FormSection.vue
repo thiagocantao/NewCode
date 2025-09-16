@@ -31,7 +31,6 @@ ref="sectionRef"
       class="empty-drop-target"
       :data-section-id="section.id"
     ></div>
-
     <DraggableField
       v-for="field in sectionFields"
       :key="field.id || field.field_id"
