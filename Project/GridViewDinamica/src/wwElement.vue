@@ -2411,6 +2411,7 @@ forceClearSelection() {
         --ww-data-grid_row-border-color,
         var(--ag-row-border-color, var(--ag-border-color, #d9d9d9))
       ) !important;
+
     }
 
     :deep(.ag-row) {
@@ -2431,6 +2432,7 @@ forceClearSelection() {
         --ww-data-grid_row-border-color,
         var(--ag-row-border-color, var(--ag-border-color, #d9d9d9))
       ) !important;
+
     }
 
     // Inputs de edição compactos e centralizados (ajuste agressivo)
