@@ -398,7 +398,6 @@ export default {
     flex: 1;
     background-color: #fff;
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -406,13 +405,11 @@ export default {
 
   .form-sections-container {
     flex: 1;
-    padding: 16px;
     overflow-y: auto;
   }
 
   .no-sections {
     text-align: center;
-    padding: 20px;
     color: #666;
     font-style: italic;
     display: flex;
