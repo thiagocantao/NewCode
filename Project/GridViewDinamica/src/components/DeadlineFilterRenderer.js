@@ -582,6 +582,8 @@ const CustomDatePicker = (() => {
                   ref: dpPopRef,
                   role: "dialog",
                   "aria-modal": "true",
+                  "data-grid-popup": "datepicker",
+
                   style: {
                     ...stylePopupBase,
                     left: `${dpPopPos.value.left}px`,
