@@ -4,7 +4,11 @@
     :visible="!!error && showAlert"
     @close="showAlert = false"
   />
-  <div class="field-component" :class="[`field-type-${field.fieldType.toLowerCase()}`, { 'is-mandatory': field.is_mandatory }]">
+  <div
+    class="field-component"
+    :class="[`field-type-${field.fieldType.toLowerCase()}`, { 'is-mandatory': field.is_mandatory }]"
+    :style="componentStyleVars"
+  >
     <!-- Label do campo -->
     <label v-if="!field.is_hide_legend" class="field-label"> 
       {{ field.name }}
@@ -209,6 +213,23 @@ export default {
     };
   },
   computed: {
+    themeTokens() {
+      if (typeof window !== 'undefined' && window.wwLib?.wwVariable?.getValue) {
+        const value = window.wwLib.wwVariable.getValue('61c1b425-10e8-40dc-8f1f-b117c08b9726');
+        if (value && typeof value === 'object') {
+          return value;
+        }
+      }
+      return {};
+    },
+    componentStyleVars() {
+      const tokens = this.themeTokens || {};
+      return {
+        '--text-input-bg': tokens.inputBG || '#FFFFFF',
+        '--text-input-border': tokens.inputBorder || '#d1d5db',
+        '--text-input-border-focus': tokens.inputBorderInFocus || tokens.inputBorder || '#d1d5db'
+      };
+    },
     listOptions() {
       if (this.options && this.options.length > 0) {
         return this.options;
@@ -441,67 +462,102 @@ export default {
 
 <style scoped>
 .field-component {
-display: flex;
-flex-direction: column;
-width: 100%;
-margin-bottom: 5px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-bottom: 5px;
+  --text-input-bg: #ffffff;
+  --text-input-border: #d1d5db;
+  --text-input-border-focus: #bdbdbd;
 }
 
 .field-label {
-font-size: 13px;
-font-weight: 400;
-margin-bottom: 4px;
-color: #333;
+  font-size: 12px;
+  font-weight: 400;
+  margin-bottom: 4px;
+  color: #787878;
+  padding-left: 8px;
 }
 
 .required-indicator {
-color: #e53935;
-margin-left: 2px;
-font-weight: bold;
+  color: #e53935;
+  margin-left: 2px;
+  font-weight: bold;
 }
 
 .field-row {
-display: flex;
-align-items: center;
-width: 100%;
+  display: flex;
+  align-items: center;
+  width: 100%;
 }
 
 .field-input {
-flex: 1;
-min-width: 0; /* This prevents the input from overflowing its container */
-padding: 8px 12px;
-border: 1px solid #ddd;
-border-radius: 4px;
-font-size: 13px;
-background-color: #fff;
-width: 100%;
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  color: #787878;
+  font-size: 14px;
 }
 
-.field-input:focus {
+input.field-input,
+textarea.field-input {
+  padding: 8px;
+  border: 1px solid var(--text-input-border);
+  border-radius: 4px;
+  background-color: #ffffff;
+}
+
+input.field-input {
+  height: 36px;
+}
+
+.text-input,
+.decimal-input,
+.integer-input {
+  background-color: var(--text-input-bg);
+}
+
+input.field-input:focus,
+textarea.field-input:focus {
   outline: none;
-  border-color: #bdbdbd;
+  border-color: var(--text-input-border-focus);
   box-shadow: none;
+  background-color: #ffffff;
+  color: #787878;
+}
+
+input.field-input::placeholder,
+textarea.field-input::placeholder {
+  color: #787878;
+  opacity: 1;
+}
+
+.field-component input.field-input:disabled,
+.field-component textarea.field-input:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
 }
 
 .field-input[readonly] {
-background-color: #f5f5f5;
-cursor: not-allowed;
+  background-color: #f5f5f5;
+  cursor: not-allowed;
 }
 
 .field-tip {
-font-size: 12px;
-color: #666;
-margin-top: 4px;
-font-style: italic;
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
+  font-style: italic;
 }
 
 .is-required .field-label::after {
-content: "*";
-color: #e53935;
-margin-left: 2px;
+  content: "*";
+  color: #e53935;
+  margin-left: 2px;
 }
 
-.tooltip-text {  
+.tooltip-text {
   color: rgb(120, 120, 120);
   padding: 8px;
   border-radius: 4px;
@@ -511,18 +567,49 @@ margin-left: 2px;
 }
 
 .field-tooltip:hover .tooltip-text {
-  
+
 }
 
 /* Estilos específicos por tipo de campo */
 .date-input {
-  min-width: 150px;  
-  padding: 7px 12px; 
+  min-width: 150px;
+  padding: 0;
+  border: 1px solid var(--text-input-border);
+  border-radius: 4px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  background-color: var(--text-input-bg);
+  box-sizing: border-box;
+}
+
+.date-input:focus-within {
+  border-color: var(--text-input-border-focus);
+  background-color: #ffffff;
+}
+
+.date-input :deep(.dp-input) {
+  border: none;
+  background: transparent;
+  padding: 0 32px 0 8px;
+  height: 100%;
+  color: #787878;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.date-input :deep(.dp-input:focus) {
+  outline: none;
+}
+
+.date-input :deep(.dp-input::placeholder) {
+  color: #787878;
+  opacity: 1;
 }
 
 .decimal-input,
 .integer-input {
-  text-align: right; 
+  text-align: right;
 }
 
 .yes-no-container {
@@ -544,6 +631,7 @@ margin-left: 2px;
 .multiline-input {
   resize: vertical;
   min-height: 100px;
+  height: auto;
 }
 
 /* Estilos para campos obrigatórios */
@@ -772,6 +860,7 @@ margin-left: 2px;
   background: #f8f9fa;
   transition: border 0.2s;
   outline: none !important;
+  color: #787878;
 }
 
 .list-search-input:focus,
@@ -780,6 +869,11 @@ margin-left: 2px;
   border-color: #bdbdbd !important;
   background: #fff;
   outline: none !important;
+}
+
+.list-search-input::placeholder {
+  color: #787878;
+  opacity: 1;
 }
 
 .custom-dropdown-wrapper {
