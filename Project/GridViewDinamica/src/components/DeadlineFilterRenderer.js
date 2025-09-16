@@ -583,6 +583,7 @@ const CustomDatePicker = (() => {
                   role: "dialog",
                   "aria-modal": "true",
                   "data-grid-popup": "datepicker",
+
                   style: {
                     ...stylePopupBase,
                     left: `${dpPopPos.value.left}px`,
@@ -772,6 +773,9 @@ export default class DeadlineFilterRenderer {
     this.eGui.innerHTML = `
       <div class="field-search">
         <input type="text" placeholder="Search..." class="search-input" />
+        <span class="search-icon" aria-hidden="true">
+          <i class="material-symbols-outlined-search">search</i>
+        </span>
       </div>
       <div class="filter-list"></div>
     `;
@@ -810,11 +814,21 @@ export default class DeadlineFilterRenderer {
 
     this.listEl.innerHTML = this.filteredOptions
       .map((opt) => {
-        const selected = this.selected === opt.value ? " selected" : "";
-        const custom = opt.value === "custom" ? " custom" : "";
-        return `<div class="filter-item${selected}${custom}" data-value="${opt.value}">
+        const isCustom = opt.value === "custom";
+        const isClear = opt.value === "clear";
+        const classes = ["filter-item"];
+
+        if (isCustom) classes.push("custom");
+        if (isClear) classes.push("clear");
+        if (this.selected === opt.value && !isCustom && !isClear) {
+          classes.push("selected");
+        }
+
+        const arrow = isCustom ? '<span class="arrow-icon">›</span>' : "";
+
+        return `<div class="${classes.join(" ")}" data-value="${opt.value}">
           <span class="filter-label">${opt.label}</span>
-          ${opt.value === "custom" ? '<span class="arrow-icon">›</span>' : ""}
+          ${arrow}
         </div>`;
       })
       .join("");

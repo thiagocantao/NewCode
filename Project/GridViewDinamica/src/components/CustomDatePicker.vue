@@ -33,6 +33,7 @@
       role="dialog"
       aria-modal="true"
       data-grid-popup="datepicker"
+
     >
       <div class="dp-header">
         <button type="button" class="dp-nav" @click="prevMonth">&lt;</button>
