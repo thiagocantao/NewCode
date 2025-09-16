@@ -2398,19 +2398,14 @@ forceClearSelection() {
 
     :deep(.ag-header-cell) {
       border: none !important;
-      border-bottom: 1px solid #888 !important;
+      border-bottom: 1px solid #888888 !important;
     }
 
     :deep(.ag-cell) {
       border-top: none !important;
       border-right: none !important;
       border-left: none !important;
-      border-bottom-width: 1px !important;
-      border-bottom-style: solid !important;
-      border-bottom-color: var(
-        --ww-data-grid_row-border-color,
-        var(--ag-row-border-color, var(--ag-border-color, #d9d9d9))
-      ) !important;
+      border-bottom: 1px solid #888888 !important;
 
     }
 
@@ -2426,12 +2421,7 @@ forceClearSelection() {
 
     :deep(.ag-row.ag-row-last .ag-cell),
     :deep(.ag-row:last-child .ag-cell) {
-      border-bottom-width: 1px !important;
-      border-bottom-style: solid !important;
-      border-bottom-color: var(
-        --ww-data-grid_row-border-color,
-        var(--ag-row-border-color, var(--ag-border-color, #d9d9d9))
-      ) !important;
+      border-bottom: 1px solid #888888 !important;
 
     }
 
