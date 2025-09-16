@@ -248,7 +248,7 @@ export default {
       return (
         this.field.placeholder ||
         this.field.placeholder_translations?.pt_br ||
-        'Selecione uma opção'
+        'Select an option'
       );
     },
     listOptions() {
@@ -467,6 +467,7 @@ export default {
     }
   },
   mounted() {
+    console.log(wwLib);
     if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
       this.$refs.rte.innerHTML = this.localValue || '';
     }
@@ -790,13 +791,15 @@ textarea.field-input::placeholder {
   color: #787878;
   font-size: 14px;
   white-space: pre-wrap;
-  transition: background 0.3s, border-color 0.3s, color 0.3s;
+  transition: background 0.3s, border-color 0.3s, color 0.3s;  
+  outline: none !important;
 }
 
 .rich-text-input:focus {
   border-color: var(--text-input-border-focus);
   background-color: #ffffff;
   color: #787878;
+  outline: none !important;
 }
 
 .rich-text-input[data-placeholder]:empty::before {
