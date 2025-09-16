@@ -147,9 +147,9 @@
             :contenteditable="!field.is_readonly"
             dir="ltr"
             :class="['field-input', 'rich-text-input', { 'readonly-field': field.is_readonly }]"
+            :data-placeholder="field.placeholder || field.placeholder_translations?.pt_br || ''"
             @input="onContentEditableInput"
             @blur="updateValue"
-            style="min-height: 100px; border: 1px solid #ccc; border-radius: 0 0 6px 6px; padding: 8px; background: #fff;"
           ></div>
         </div>
       </template>
@@ -505,7 +505,8 @@ textarea.field-input {
   padding: 8px;
   border: 1px solid var(--text-input-border);
   border-radius: 4px;
-  background-color: #ffffff;
+  background-color: var(--text-input-bg);
+
 }
 
 input.field-input {
@@ -524,7 +525,7 @@ textarea.field-input:focus {
   border-color: var(--text-input-border-focus);
   box-shadow: none;
   background-color: #ffffff;
-  color: #787878;
+  color: #787878; 
 }
 
 input.field-input::placeholder,
@@ -597,6 +598,7 @@ textarea.field-input::placeholder {
   font-size: 14px;
   box-sizing: border-box;
 }
+
 
 .date-input :deep(.dp-input:focus) {
   outline: none;
@@ -737,7 +739,6 @@ textarea.field-input::placeholder {
   font-size: 15px;
   color: #333;
   transition: background 0.2s, border 0.2s;
-  outline: none;
   box-shadow: 0 1px 1px rgba(0,0,0,0.01);
   display: flex;
   align-items: center;
@@ -760,6 +761,28 @@ textarea.field-input::placeholder {
   overflow-x: auto;
   word-break: break-word;
   box-sizing: border-box;
+  min-height: 100px;
+  padding: 8px;
+  border: 1px solid var(--text-input-border);
+  border-radius: 4px;
+  background-color: var(--text-input-bg);
+  color: #787878;
+  font-size: 14px;
+  white-space: pre-wrap;
+  transition: background 0.3s, border-color 0.3s, color 0.3s;
+}
+
+.rich-text-input:focus {
+  border-color: var(--text-input-border-focus);
+  background-color: #ffffff;
+  color: #787878;
+}
+
+.rich-text-input[data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  color: #787878;
+  opacity: 1;
+  pointer-events: none;
 }
 
 .rich-text-input img,
@@ -803,7 +826,6 @@ textarea.field-input::placeholder {
   align-items: center;
   justify-content: center;
   transition: background 0.2s, border 0.2s;
-  outline: none;
   box-shadow: 0 1px 1px rgba(0,0,0,0.01);
   margin-left: 2px;
 }
@@ -868,7 +890,11 @@ textarea.field-input::placeholder {
 .list-search-input:hover {
   border-color: #bdbdbd !important;
   background: #fff;
-  outline: none !important;
+}
+
+.list-search-input::placeholder {
+  color: #787878;
+  opacity: 1;
 }
 
 .list-search-input::placeholder {
@@ -890,8 +916,7 @@ textarea.field-input::placeholder {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  
-height:34px;
+  height: 34px;
   font-size: 13px;
   transition: border 0.2s;
 }
