@@ -1,34 +1,52 @@
 <template> 
 
-<div 
-class="form-section" 
-:class="{ 'is-empty': !section.fields.length, 'expanded': isExpanded }" 
+<div
+class="form-section"
+:class="{ 'is-empty': !sectionFields.length, 'expanded': isExpanded }"
 :data-section-id="section.id"
 ref="sectionRef"
 >
 
-<div 
-class="sortable-container grid-layout" 
-:data-section-id="section.id"
-:id="`sortable-${section.id}`"
-ref="sortableContainer"
-v-show="isExpanded"
->
-<DraggableField
-v-for="field in sectionFields"
-:key="field.id || field.field_id"
-:field="field"
-:show-properties="true"
-:show-actions="true"
-:is-editing="isEditing"
-:show-field-component="true"
-:is-in-form-section="true"
-:class="draggableField"
-@click="selectField(field)"
-@edit-field="$emit('edit-field', field)"
-@remove-field="$emit('remove-field', field, section.id)"
-/>
-</div>
+  <div
+    class="section-header section-header--metadata"
+    aria-hidden="true"
+  >
+    <h4
+      class="section-title"
+      :data-section-id="section.id"
+    >
+      {{ sectionTitle }}
+    </h4>
+  </div>
+
+  <div
+    class="sortable-container grid-layout"
+    :data-section-id="section.id"
+    :id="`sortable-${section.id}`"
+    ref="sortableContainer"
+    v-show="isExpanded"
+  >
+    <div
+      v-if="!sectionFields.length"
+      class="empty-drop-target"
+      :data-section-id="section.id"
+    ></div>
+
+    <DraggableField
+      v-for="field in sectionFields"
+      :key="field.id || field.field_id"
+      :field="field"
+      :show-properties="true"
+      :show-actions="true"
+      :is-editing="isEditing"
+      :show-field-component="true"
+      :is-in-form-section="true"
+      :class="draggableField"
+      @click="selectField(field)"
+      @edit-field="$emit('edit-field', field)"
+      @remove-field="$emit('remove-field', field, section.id)"
+    />
+  </div>
 </div>
 </template>
 
@@ -64,6 +82,15 @@ setup(props, { emit }) {
     const sortableContainer = ref(null);
     const sortableInstance = ref(null);
 
+    const ensureSectionFieldsArray = () => {
+      if (!Array.isArray(props.section.fields)) {
+        props.section.fields = [];
+      }
+      return props.section.fields;
+    };
+
+    ensureSectionFieldsArray();
+
     const toggleFields = () => {
       isExpanded.value = !isExpanded.value;
     };
@@ -83,10 +110,12 @@ setup(props, { emit }) {
     });
 
     const sectionFields = computed(() => {
-      if (!props.section.fields) return [];
+      const fields = ensureSectionFieldsArray();
+
+      if (!fields.length) return [];
 
       // Ordena os campos pelo valor da propriedade position (ascendente)
-      const sortedFields = [...props.section.fields].sort((a, b) => {
+      const sortedFields = [...fields].sort((a, b) => {
         const posA = parseInt(a.position) || 0;
         const posB = parseInt(b.position) || 0;
         return posA - posB;
@@ -199,15 +228,18 @@ setup(props, { emit }) {
     };
 
     const onRemoveField = (field) => {
+      const fields = ensureSectionFieldsArray();
+      if (!fields.length) return;
+
       // Normaliza os IDs para comparação
       const normalize = f => f.id || f.ID || f.field_id;
       const fieldIdToRemove = normalize(field);
 
       // Captura o campo completo antes de remover
-      const removedField = props.section.fields.find(f => normalize(f) === fieldIdToRemove);
+      const removedField = fields.find(f => normalize(f) === fieldIdToRemove);
 
       // Remove do array da section
-      props.section.fields = props.section.fields.filter(f => normalize(f) !== fieldIdToRemove);
+      props.section.fields = fields.filter(f => normalize(f) !== fieldIdToRemove);
 
       // Emite evento para o pai atualizar o campo disponível, usando o id original
       if (removedField) {
@@ -256,13 +288,14 @@ setup(props, { emit }) {
             }
           },
           onEnd: (evt) => {
+            const fields = ensureSectionFieldsArray();
             if (evt && evt.to && evt.oldIndex !== undefined && evt.newIndex !== undefined && evt.oldIndex !== evt.newIndex) {
               // Reordene o array fields conforme a nova ordem
-              const movedField = props.section.fields.splice(evt.oldIndex, 1)[0];
-              props.section.fields.splice(evt.newIndex, 0, movedField);
+              const movedField = fields.splice(evt.oldIndex, 1)[0];
+              fields.splice(evt.newIndex, 0, movedField);
 
               // Atualize as posições dos campos conforme a nova ordem
-              props.section.fields.forEach((field, idx) => {
+              fields.forEach((field, idx) => {
                 field.position = idx + 1;
               });
 
@@ -272,8 +305,7 @@ setup(props, { emit }) {
           onAdd: (evt) => {
             if (!evt || !evt.to) return;
 
-            // Get the section ID - use a fallback for null IDs
-            const sectionId = evt.to.dataset.sectionId || `temp-${Date.now()}`;
+            const fields = ensureSectionFieldsArray();
 
             // Get the field data from the dragged element
             const fieldId = evt.item?.dataset?.fieldId;
@@ -300,7 +332,7 @@ setup(props, { emit }) {
 
             if (fieldId && fieldData) {
               // Verifica se o campo já existe na section (compara id, field_id e ID)
-              const alreadyExists = props.section.fields.some(
+              const alreadyExists = fields.some(
                 f => (f.field_id || f.ID || f.id) === (fieldData.ID || fieldData.field_id || fieldData.id)
               );
               if (alreadyExists) {
@@ -323,11 +355,8 @@ setup(props, { emit }) {
               };
 
               // Add the field to the section at the correct position
-              if (!props.section.fields) {
-                props.section.fields = [];
-              }
-              props.section.fields.splice(evt.newIndex, 0, newField);
-              props.section.fields = [...props.section.fields];
+              fields.splice(evt.newIndex, 0, newField);
+              props.section.fields = [...fields];
 
               // Atualize as posições dos campos conforme a nova ordem
               props.section.fields.forEach((field, idx) => {
@@ -424,6 +453,12 @@ setup(props, { emit }) {
       }
     });
 
+    watch(() => props.section.fields, (newFields) => {
+      if (!Array.isArray(newFields)) {
+        props.section.fields = [];
+      }
+    });
+
     watch(() => props.section, () => {
       // Use nextTick to ensure the DOM is updated
       nextTick(() => {
@@ -516,6 +551,10 @@ background-color: #f0f0f0;
 border: 1px solid #ddd;
 }
 
+.section-header--metadata {
+display: none;
+}
+
 .section-actions {
 display: none;
 gap: 5px;
@@ -548,11 +587,15 @@ opacity: 1;
 }
 
 .sortable-container {
-min-height: 50px;
-border: 1px dashed #ccc;
-border-radius: 4px;
-padding: 10px;
-background-color: surface;
+  min-height: 50px;
+  border: 1px dashed #ccc;
+  border-radius: 4px;
+  padding: 16px;
+  background-color: surface;
+}
+
+.form-section.is-empty .sortable-container {
+  min-height: 120px;
 }
 
 .grid-layout {
@@ -616,12 +659,13 @@ border:0px;
 }
 
 .empty-drop-target {
-grid-column: 1 / -1;
-min-height: 40px;
-border: 1px dashed #ccc;
-border-radius: 4px;
-margin-top: 10px;
-background-color: rgba(0, 0, 0, 0.02);
+  grid-column: 1 / -1;
+  min-height: 80px;
+  border: 1px dashed #ccc;
+  border-radius: 4px;
+  margin-top: 10px;
+  background-color: rgba(0, 0, 0, 0.02);
+  pointer-events: none;
 }
 
 i.material-symbols-outlined {
