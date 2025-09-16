@@ -208,6 +208,7 @@ export default class ListFilterRenderer {
     this.allValues = zipped.map(z => z.raw);
     this.formattedValues = zipped.map(z => z.formatted);
     this.filteredValues = [...this.allValues];
+    this.selectedValues = this.selectedValues.map(value => this.resolveRawValue(value));
   }
 
   filterValues() {
@@ -222,6 +223,63 @@ export default class ListFilterRenderer {
     this.renderFilterList();
   }
 
+  resolveRawValue(value) {
+    const directIndex = this.allValues.indexOf(value);
+    if (directIndex !== -1) return this.allValues[directIndex];
+
+    if (value === null) {
+      const nullIndex = this.allValues.indexOf(null);
+      return nullIndex !== -1 ? this.allValues[nullIndex] : value;
+    }
+
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      const lower = trimmed.toLowerCase();
+
+      if (lower === 'null') {
+        const nullIndex = this.allValues.indexOf(null);
+        if (nullIndex !== -1) return this.allValues[nullIndex];
+      }
+
+      if (lower === 'true' || lower === 'false') {
+        const boolValue = lower === 'true';
+        const boolIndex = this.allValues.indexOf(boolValue);
+        if (boolIndex !== -1) return this.allValues[boolIndex];
+      }
+
+      if (trimmed !== '') {
+        const numValue = Number(trimmed);
+        if (!Number.isNaN(numValue)) {
+          const numIndex = this.allValues.indexOf(numValue);
+          if (numIndex !== -1) return this.allValues[numIndex];
+        }
+      }
+
+      const strIndex = this.allValues.findIndex(raw => {
+        if (raw === value) return true;
+        if (typeof raw === 'number' || typeof raw === 'boolean') {
+          return String(raw) === trimmed;
+        }
+        return false;
+      });
+      if (strIndex !== -1) return this.allValues[strIndex];
+    }
+
+    if (typeof value === 'number') {
+      const strValue = String(value);
+      const strIndex = this.allValues.findIndex(raw => typeof raw === 'string' && raw === strValue);
+      if (strIndex !== -1) return this.allValues[strIndex];
+    }
+
+    if (typeof value === 'boolean') {
+      const boolStr = value ? 'true' : 'false';
+      const boolIndex = this.allValues.findIndex(raw => typeof raw === 'string' && raw.toLowerCase && raw.toLowerCase() === boolStr);
+      if (boolIndex !== -1) return this.allValues[boolIndex];
+    }
+
+    return value;
+  }
+
   renderFilterList() {
     this.selectAllCheckbox.checked =
       this.filteredValues.length > 0 &&
@@ -231,9 +289,10 @@ export default class ListFilterRenderer {
       const idx = this.allValues.indexOf(rawValue);
       const formattedValue = this.formattedValues[idx] || rawValue;
       const checked = this.selectedValues.includes(rawValue) ? 'checked' : '';
+      const itemClass = this.selectedValues.includes(rawValue) ? ' selected' : '';
       return `
-        <label class="filter-item${this.selectedValues.includes(rawValue) ? ' selected' : ''}">
-          <input type="checkbox" value="${rawValue}" ${checked} />
+        <label class="filter-item${itemClass}">
+          <input type="checkbox" value="${idx}" data-raw-index="${idx}" ${checked} />
           <span class="filter-label" title="">${formattedValue}</span>
         </label>
       `;
@@ -241,13 +300,17 @@ export default class ListFilterRenderer {
 
     this.filterList.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
       checkbox.addEventListener('change', (e) => {
-        const value = e.target.value;
+        const rawIndexAttr = e.target.getAttribute('data-raw-index');
+        const rawIndex = rawIndexAttr != null ? Number(rawIndexAttr) : -1;
+        const rawValue = (rawIndex >= 0 && rawIndex < this.allValues.length)
+          ? this.allValues[rawIndex]
+          : this.resolveRawValue(e.target.value);
         if (e.target.checked) {
-          if (!this.selectedValues.includes(value)) {
-            this.selectedValues.push(value);
+          if (!this.selectedValues.includes(rawValue)) {
+            this.selectedValues.push(rawValue);
           }
         } else {
-          this.selectedValues = this.selectedValues.filter(v => v !== value);
+          this.selectedValues = this.selectedValues.filter(v => v !== rawValue);
         }
         this.selectAllCheckbox.checked =
           this.filteredValues.length > 0 &&
@@ -290,8 +353,8 @@ export default class ListFilterRenderer {
   }
 
   setModel(model) {
-    if (model && model.values) {
-      this.selectedValues = model.values;
+    if (model && Array.isArray(model.values)) {
+      this.selectedValues = model.values.map(value => this.resolveRawValue(value));
     } else {
       this.selectedValues = [];
     }
