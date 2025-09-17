@@ -41,6 +41,12 @@
   import DateTimeCellEditor from "./components/DateTimeCellEditor.vue";
   import FixedListCellEditor from "./components/FixedListCellEditor.js";
   import ResponsibleUserCellEditor from "./components/ResponsibleUserCellEditor.js";
+  import {
+  applyGlobalGridFontFamily,
+  readTypographyVariable,
+  DEFAULT_FONT_FAMILY,
+  TYPOGRAPHY_VARIABLE_ID,
+  } from "./utils/fontFamily.js";
   // Editor customizado inline para listas
   class ListCellEditor {
     init(params) {
@@ -312,7 +318,74 @@
   const gridApi = shallowRef(null);
   const columnApi = shallowRef(null);
   const agGridRef = ref(null);
- 
+
+  const componentFontFamily = ref("");
+  const fallbackFontFamily = computed(() => {
+  const candidates = [
+  props.content?.cellFontFamily,
+  props.content?.headerFontFamily,
+  props.content?.actionFontFamily,
+  ];
+  const validCandidate = candidates.find(font =>
+  typeof font === "string" && font.trim().length > 0
+  );
+  return validCandidate || DEFAULT_FONT_FAMILY;
+  });
+  const resolvedFontFamily = computed(
+  () => componentFontFamily.value || fallbackFontFamily.value
+  );
+
+  const updateComponentFontFamily = () => {
+  componentFontFamily.value = readTypographyVariable();
+  };
+
+  let typographyUnsubscribe = null;
+
+  watch(
+  resolvedFontFamily,
+  value => {
+  applyGlobalGridFontFamily(value);
+  },
+  { immediate: true }
+  );
+
+  onMounted(() => {
+  updateComponentFontFamily();
+
+  if (
+  typeof window !== "undefined" &&
+  typeof window?.wwLib?.wwVariable?.subscribe === "function"
+  ) {
+  try {
+  typographyUnsubscribe = window.wwLib.wwVariable.subscribe(
+  TYPOGRAPHY_VARIABLE_ID,
+  () => {
+  updateComponentFontFamily();
+  }
+  );
+  } catch (error) {
+  console.warn(
+  "[GridViewDinamica] Failed to subscribe to typography variable",
+  error
+  );
+  typographyUnsubscribe = null;
+  }
+  }
+  });
+
+  onUnmounted(() => {
+  if (typeof typographyUnsubscribe === "function") {
+  try {
+  typographyUnsubscribe();
+  } catch (error) {
+  console.warn(
+  "[GridViewDinamica] Failed to unsubscribe typography listener",
+  error
+  );
+  }
+  }
+  });
+
 
   const { value: selectedRows, setValue: setSelectedRows } =
   wwLib.wwVariable.useComponentVariable({
@@ -1114,6 +1187,8 @@ setTimeout(() => {
   
       return {
       resolveMappingFormula,
+      componentFontFamily,
+      resolvedFontFamily,
       onGridReady,
       onRowSelected,
       onSelectionChanged,
@@ -1833,11 +1908,13 @@ setTimeout(() => {
   ? { "--ww-data-grid_action-font": this.content.actionFont }
   : {
   "--ww-data-grid_action-fontSize": this.content.actionFontSize,
-  "--ww-data-grid_action-fontFamily": this.content.actionFontFamily,
+  "--ww-data-grid_action-fontFamily": this.resolvedFontFamily,
   "--ww-data-grid_action-fontWeight": this.content.actionFontWeight,
   "--ww-data-grid_action-fontStyle": this.content.actionFontStyle,
   "--ww-data-grid_action-lineHeight": this.content.actionLineHeight,
   }),
+  "--grid-view-dinamica-font-family": this.resolvedFontFamily,
+  fontFamily: this.resolvedFontFamily,
   };
   },
   theme() {
@@ -1848,7 +1925,8 @@ setTimeout(() => {
   headerFontWeight: this.content.headerFontWeight,
   borderColor: this.content.borderColor,
   cellTextColor: this.content.cellColor,
-  cellFontFamily: this.content.cellFontFamily,
+  cellFontFamily: this.resolvedFontFamily,
+  headerFontFamily: this.resolvedFontFamily,
   dataFontSize: this.content.cellFontSize,
   oddRowBackgroundColor: this.content.rowAlternateColor,
   backgroundColor: this.content.rowBackgroundColor,
@@ -2466,7 +2544,7 @@ forceClearSelection() {
       min-height: 26px !important;
       max-height: 26px !important;
       font-size: 12px !important;
-      font-family: 'Roboto', Arial, sans-serif !important;
+      font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif) !important;
       padding: 0 8px !important;
       border-radius: 8 !important;
       /* Remove arredondamento */
@@ -2564,7 +2642,7 @@ forceClearSelection() {
   :deep(.ag-pager *),
   :deep(.ag-pagination),
   :deep(.ag-pagination *) {
-    font-family: 'Roboto', Arial, sans-serif !important;
+    font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif) !important;
     font-size: 12px !important;
   }
 
@@ -2588,7 +2666,7 @@ forceClearSelection() {
     border-radius: 999px !important;
     text-align: center;
     font-size: 12px !important;
-    font-family: 'Roboto', Arial, sans-serif !important;
+    font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif) !important;
     font-weight: bold !important;
     padding: 0 12px !important;
     height: 26px !important;

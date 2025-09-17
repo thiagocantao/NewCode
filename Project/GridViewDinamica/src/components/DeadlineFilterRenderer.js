@@ -1,4 +1,5 @@
 import * as VueRuntimeModule from "vue";
+import { readTypographyVariable, DEFAULT_FONT_FAMILY } from "../utils/fontFamily.js";
 
 /* CustomDatePicker + DeadlineFilterRenderer
    - Popup via Teleport para <body>
@@ -8,7 +9,7 @@ import * as VueRuntimeModule from "vue";
    - ESTILO INLINE (imune a resets / CSS faltando)
 */
 
-const ROBOTO_FONT_FAMILY = "Roboto, Arial, sans-serif";
+const getResolvedFontFamily = () => readTypographyVariable() || DEFAULT_FONT_FAMILY;
 
 //import "./list-filter.css"; // opcional para o resto do filtro, o calendário não depende disso
 
@@ -281,6 +282,8 @@ const CustomDatePicker = (() => {
         return cells;
       });
 
+      const fontFamily = getResolvedFontFamily();
+
       // ===== estilos inline (críticos) =====
       const stylePopupBase = {
         position: "fixed",
@@ -293,7 +296,7 @@ const CustomDatePicker = (() => {
         padding: "8px",
         userSelect: "none",
         boxSizing: "border-box",
-        fontFamily: ROBOTO_FONT_FAMILY,
+        fontFamily: fontFamily,
         fontSize: "13px",
       };
       const styleBackdrop = {
@@ -308,7 +311,7 @@ const CustomDatePicker = (() => {
         justifyContent: "space-between",
         padding: "4px 4px 8px",
       };
-      const sTitle = { font: `600 13px/1.2 ${ROBOTO_FONT_FAMILY}` };
+      const sTitle = { font: `600 13px/1.2 ${fontFamily}` };
       const sNav = {
         minWidth: "28px",
         minHeight: "28px",
@@ -322,7 +325,7 @@ const CustomDatePicker = (() => {
         cursor: "pointer",
         lineHeight: "1",
         color: "#424242",
-        font: `600 13px/1 ${ROBOTO_FONT_FAMILY}`,
+        font: `600 13px/1 ${fontFamily}`,
       };
       const sWeek = {
         display: "grid",
@@ -330,7 +333,7 @@ const CustomDatePicker = (() => {
         gap: "2px",
         padding: "4px 2px",
         color: "#6b7280",
-        font: `600 13px/1 ${ROBOTO_FONT_FAMILY}`,
+        font: `600 13px/1 ${fontFamily}`,
         textTransform: "uppercase",
         letterSpacing: ".02em",
       };
@@ -352,7 +355,7 @@ const CustomDatePicker = (() => {
         alignItems: "center",
         justifyContent: "center",
         cursor: "pointer",
-        font: `500 13px/1 ${ROBOTO_FONT_FAMILY}`,
+        font: `500 13px/1 ${fontFamily}`,
         lineHeight: "1",
       };
       const sCellMuted = { color: "#9ca3af" };
@@ -376,7 +379,7 @@ const CustomDatePicker = (() => {
         alignItems: "center",
         justifyContent: "center",
         cursor: "pointer",
-        font: `600 13px/1 ${ROBOTO_FONT_FAMILY}`,
+        font: `600 13px/1 ${fontFamily}`,
       };
 
       // ===== posicionamento =====
@@ -542,7 +545,7 @@ const CustomDatePicker = (() => {
               background: props.disabled ? "#f2f4f7" : "#fff",
               color: props.disabled ? "#98a2b3" : "inherit",
               cursor: props.disabled ? "not-allowed" : "pointer",
-              font: `13px/1.2 ${ROBOTO_FONT_FAMILY}`,
+              font: `13px/1.2 ${fontFamily}`,
               boxSizing: "border-box",
             },
           }),
@@ -668,7 +671,7 @@ const CustomDatePicker = (() => {
                           border: "1px solid #ccc",
                           borderRadius: "6px",
                           padding: "0 8px",
-                          font: `13px/1 ${ROBOTO_FONT_FAMILY}`,
+                          font: `13px/1 ${fontFamily}`,
                           boxSizing: "border-box",
                         },
                       }),
@@ -929,7 +932,7 @@ export default class DeadlineFilterRenderer {
       const labelEl = document.createElement("div");
       labelEl.className = "picker-label";
       labelEl.textContent = labelText;
-      labelEl.style.fontFamily = ROBOTO_FONT_FAMILY;
+      labelEl.style.fontFamily = getResolvedFontFamily();
       labelEl.style.fontSize = "13px";
       labelEl.style.fontWeight = "500";
       labelEl.style.lineHeight = "1.2";
@@ -967,8 +970,9 @@ export default class DeadlineFilterRenderer {
       }
 
       if (!runtime || !CustomDatePicker) {
+        const fallbackFont = getResolvedFontFamily();
         mountEl.innerHTML =
-          `<div class="dp-fallback" title="Vue indisponível" style="font: 13px/1 ${ROBOTO_FONT_FAMILY};">Select date</div>`;
+          `<div class="dp-fallback" title="Vue indisponível" style="font: 13px/1 ${fallbackFont};">Select date</div>`;
         return { unmount: () => {} };
       }
       const { createApp, h } = runtime;

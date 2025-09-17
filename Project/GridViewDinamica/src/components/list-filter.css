@@ -10,7 +10,7 @@
   border-radius: 15px;
   box-shadow: 0 2px 8px rgba(255, 255, 255, 0.067);
   font-size: 15px;
-  font-family: Roboto, Arial, sans-serif;
+  font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif);
   overflow: hidden;
   position: relative;
 }
@@ -50,7 +50,7 @@
 :is(.list-filter, .list-editor) .filter-list,
 :is(.list-filter, .list-editor) .filter-item,
 :is(.list-filter, .list-editor) .filter-label {
-  font-family: Roboto, Arial, sans-serif;
+  font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif);
   font-size: 13px;
 }
 
@@ -67,7 +67,7 @@
   border: 1px solid #ddd;
   border-radius: 20px;
   font-size: 13px;
-  font-family: Roboto, Arial, sans-serif;
+  font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif);
   outline: none;
   background: #fff;
   color: #444;
@@ -77,7 +77,7 @@
 :is(.list-filter, .list-editor) .search-input::placeholder {
   color: #aaa;
   font-size: 13px;
-  font-family: Roboto, Arial, sans-serif;
+  font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif);
 }
 
 :is(.list-filter, .list-editor) .search-icon {
@@ -120,7 +120,7 @@
   padding-bottom: 8px;
   border-bottom: 1px solid #e0e0e0;
   font-size: 13px;
-  font-family: Roboto, Arial, sans-serif;
+  font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif);
   color: #444;
   gap: 8px;
 }
@@ -155,7 +155,7 @@
   align-items: center;
   padding: 6px 8px 6px 8px;
   font-size: 13px;
-  font-family: Roboto, Arial, sans-serif;
+  font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif);
   cursor: pointer;
   gap: 8px;
   border-radius: 8px;
@@ -190,7 +190,7 @@
   display: inline-block;
   color: #444;
   font-size: 13px;
-  font-family: Roboto, Arial, sans-serif;
+  font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif);
 }
 
 /* Specific styles for Deadline filter */
@@ -248,7 +248,7 @@
   border: 1px solid #ddd;
   border-radius: 6px;
   font-size: 13px;
-  font-family: Roboto, Arial, sans-serif;
+  font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif);
   background: #fff;
   color: #444;
   box-sizing: border-box;
@@ -263,7 +263,7 @@
   border: 1px solid #ddd;
   border-radius: 6px;
   font-size: 13px;
-  font-family: Roboto, Arial, sans-serif;
+  font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif);
   color: #444;
   box-sizing: border-box;
 }
@@ -294,7 +294,7 @@
 
 /* ---- DatePicker base ---- */
 .dp-wrapper { position: relative; display: inline-flex; align-items: center; gap: 6px; }
-.dp-input { width: 160px; padding: 8px 10px; border: 1px solid #d0d5dd; border-radius: 8px; background: #fff; font: 14px/1.2 Roboto, Arial, sans-serif; cursor: pointer; }
+.dp-input { width: 160px; padding: 8px 10px; border: 1px solid #d0d5dd; border-radius: 8px; background: #fff; font: 14px/1.2 var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif); cursor: pointer; }
 .dp-input[disabled] { background: #f2f4f7; color: #98a2b3; cursor: not-allowed; }
 .dp-icon { border: 0; background: transparent; cursor: pointer; padding: 4px; border-radius: 6px; }
 .dp-icon:hover { background: #f2f4f7; }
