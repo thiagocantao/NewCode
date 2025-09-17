@@ -1060,17 +1060,20 @@ textarea.field-input::placeholder {
 }
 
 .custom-dropdown-option {
-  padding: 8px 12px;
+  padding: 0 12px;
   cursor: pointer;
   font-size: 13px;
   transition: background 0.15s;
-  color: #787878;
+  color: #000000;
+  height: 34px;
+  display: flex;
+  align-items: center;
+
 }
 
 .custom-dropdown-option.selected {
   background: #e3eafc;
   color: #787878;
-  font-weight: bold;
 }
 
 .custom-dropdown-option:hover {
@@ -1086,7 +1089,7 @@ textarea.field-input::placeholder {
 
 .custom-dropdown-selected .dropdown-arrow {
   font-size: 20px;
-  color: #bdbdbd;
+  color: #000000;
   margin-left: 8px;
 }
 
