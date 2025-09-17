@@ -18,19 +18,27 @@
       </template>
       <template v-else-if="field.fieldType === 'DEADLINE'">
         <div style="position:relative;">
-          <input
-            type="text"
-            :value="deadlineDiff"
-            readonly
+          <div
+            class="deadline-visual"
             :class="[
-              'deadline-visual',
               deadlineColorClass,
-              { 'readonly-field': field.is_readonly }
+              { 'readonly-field': field.is_readonly, 'deadline-empty': !deadlineHasValue }
             ]"
             :title="deadlineOriginalFormatted"
+            role="button"
+            :tabindex="field.is_readonly ? -1 : 0"
             @click="openDeadlinePicker"
-            style="cursor:pointer;"
-          />
+            @keydown.enter.prevent="openDeadlinePicker"
+            @keydown.space.prevent="openDeadlinePicker"
+          >
+            <template v-if="deadlineHasValue">
+              <span class="deadline-diff-display">{{ deadlineDiff }}</span>
+            </template>
+            <template v-else>
+              <span class="material-symbols-outlined deadline-empty-icon">calendar_month</span>
+              <span class="deadline-empty-text">Select</span>
+            </template>
+          </div>
           <CustomDatePicker ref="deadlineDatePicker" v-model="deadlineValue" :disabled="field.is_readonly"
             :show-time="true" @update:modelValue="onDeadlineChange"
             :class="['field-input', 'date-input', { error: error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
@@ -289,6 +297,11 @@ export default {
       if (!this.searchTerm) return this.listOptions;
       const term = this.searchTerm.toLowerCase();
       return this.listOptions.filter(opt => opt.label.toLowerCase().includes(term));
+    },
+    deadlineHasValue() {
+      if (this.field.fieldType !== 'DEADLINE') return false;
+      const val = this.localValue || this.field.value;
+      return !!(val && String(val).trim());
     },
     // Computed para DEADLINE: faz a conversão entre formatos
     deadlineValue: {
@@ -1000,15 +1013,44 @@ export default {
   }
 
   .deadline-visual {
-    border: none !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
     border-radius: 20px !important;
-    text-align: center;
     font-size: 12px;
-    transition: background .3s, color .3s;
+    transition: background .3s, color .3s, border-color .3s;
     width: 130px !important;
     height: 30px !important;
-    --text-input-border: none !important;
-    --text-input-border-focus: none !important;
+    border: 1.5px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .deadline-visual:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(55, 111, 208, 0.2);
+  }
+
+  .deadline-empty {
+    border-color: #d1d5db !important;
+    background: #ffffff !important;
+    color: #6b7280 !important;
+    font-weight: 500;
+  }
+
+  .deadline-empty-icon {
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  .deadline-empty-text {
+    line-height: 1;
+  }
+
+  .deadline-diff-display {
+    font-weight: bold;
   }
 
   .deadline-green {
