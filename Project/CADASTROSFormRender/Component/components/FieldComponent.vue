@@ -457,6 +457,7 @@ export default {
           this.updateDropdownDirection();
           this.addOutsideClickListeners();
         });
+
       }
     },
     onDropdownClick() {
