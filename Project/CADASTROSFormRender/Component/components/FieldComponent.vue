@@ -149,7 +149,7 @@
             <button type="button" @click="insertLink" title="Inserir link"><span class="material-symbols-outlined">link</span></button>
             <button type="button" @click="insertImage" title="Inserir imagem"><span class="material-symbols-outlined">image</span></button>
             <button type="button" class="color-btn" :style="{ color: currentColor }" title="Cor do texto">
-              <span style="font-weight:bold; font-size:16px;">A</span>
+              <span style="font-weight:bold; font-size:14px;">A</span>
               <input
                 type="color"
                 @mousedown="saveSelection"
@@ -246,7 +246,8 @@ export default {
       return {
         '--text-input-bg': tokens.inputBG || '#FFFFFF',
         '--text-input-border': tokens.inputBorder || '#d1d5db',
-        '--text-input-border-focus': tokens.inputBorderInFocus || tokens.inputBorder || '#d1d5db'
+        '--text-input-border-focus': tokens.inputBorderInFocus || tokens.inputBorder || '#d1d5db',
+        '--placeholder-color': tokens.normal || tokens.inputText || '#787878'
       };
     },
     dropdownPlaceholder() {
@@ -570,9 +571,11 @@ export default {
   flex-direction: column;
   width: 100%;
   margin-bottom: 5px;
+  font-size: 14px;
   --text-input-bg: #ffffff;
   --text-input-border: #d1d5db;
   --text-input-border-focus: #bdbdbd;
+  --placeholder-color: #787878;
 }
 
 .field-label {
@@ -634,7 +637,7 @@ textarea.field-input:focus {
 
 input.field-input::placeholder,
 textarea.field-input::placeholder {
-  color: #787878;
+  color: var(--placeholder-color, #787878);
   opacity: 1;
 }
 
@@ -650,7 +653,7 @@ textarea.field-input::placeholder {
 }
 
 .field-tip {
-  font-size: 12px;
+  font-size: 14px;
   color: #666;
   margin-top: 4px;
   font-style: italic;
@@ -666,7 +669,7 @@ textarea.field-input::placeholder {
   color: rgb(120, 120, 120);
   padding: 8px;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 14px;
   white-space: nowrap;
   z-index: 1;
 }
@@ -709,7 +712,7 @@ textarea.field-input::placeholder {
 }
 
 .date-input :deep(.dp-input::placeholder) {
-  color: #787878;
+  color: var(--placeholder-color, #787878);
   opacity: 1;
 }
 
@@ -753,7 +756,7 @@ textarea.field-input::placeholder {
 
 .field-feedback {
   margin-top: 6px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 400;
   border-radius: 4px;
   padding: 4px 8px;
@@ -771,7 +774,7 @@ textarea.field-input::placeholder {
 }
 
 .deadline-diff {
-  font-size: 12px;
+  font-size: 14px;
   color: #007bff;
   margin-top: 4px;
 }
@@ -779,7 +782,7 @@ textarea.field-input::placeholder {
 .deadline-visual {
   border-radius: 20px !important;
   text-align: center;
-  font-size: 12px;
+  font-size: 14px;
   transition: background 0.3s, color 0.3s;
 }
 .deadline-green {
@@ -840,7 +843,7 @@ textarea.field-input::placeholder {
   border-radius: 4px;
   padding: 3px 10px;
   cursor: pointer;
-  font-size: 15px;
+  font-size: 14px;
   color: #333;
   transition: background 0.2s, border 0.2s;
   box-shadow: 0 1px 1px rgba(0,0,0,0.01);
@@ -886,7 +889,7 @@ textarea.field-input::placeholder {
 
 .rich-text-input[data-placeholder]:empty::before {
   content: attr(data-placeholder);
-  color: #787878;
+  color: var(--placeholder-color, #787878);
   opacity: 1;
   pointer-events: none;
 }
@@ -927,7 +930,7 @@ textarea.field-input::placeholder {
   border-radius: 4px;
   padding: 3px 10px;
   cursor: pointer;
-  font-size: 15px;
+  font-size: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -999,12 +1002,12 @@ textarea.field-input::placeholder {
 }
 
 .list-search-input::placeholder {
-  color: #787878;
+  color: var(--placeholder-color, #787878);
   opacity: 1;
 }
 
 .list-search-input::placeholder {
-  color: #787878;
+  color: var(--placeholder-color, #787878);
   opacity: 1;
 }
 
@@ -1023,7 +1026,7 @@ textarea.field-input::placeholder {
   align-items: center;
   justify-content: space-between;
   height: 34px;
-  font-size: 13px;
+  font-size: 14px;
   transition: border 0.2s;
   color: #787878;
 }
@@ -1062,7 +1065,7 @@ textarea.field-input::placeholder {
 .custom-dropdown-option {
   padding: 0 12px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 14px;
   transition: background 0.15s;
   color: #000000;
   height: 34px;
@@ -1083,7 +1086,7 @@ textarea.field-input::placeholder {
 .custom-dropdown-no-options {
   padding: 8px 12px;
   color: #888;
-  font-size: 13px;
+  font-size: 14px;
   text-align: center;
 }
 
@@ -1094,7 +1097,7 @@ textarea.field-input::placeholder {
 }
 
 .custom-dropdown-selected .placeholder {
-  color: #aaa;
+  color: var(--placeholder-color, #787878);
 }
 
 .custom-dropdown-list.open-up {

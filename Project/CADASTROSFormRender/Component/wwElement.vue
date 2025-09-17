@@ -416,6 +416,7 @@ export default {
     display: flex;
     flex-direction: column;
     overflow: visible;
+    font-size: 14px;
   }
 
   .form-sections-container {

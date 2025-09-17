@@ -48,6 +48,7 @@ export default {
   max-width: 400px;
   width: 100%;
   padding: 20px 24px 24px 24px;
+  font-size: 14px;
 }
 .custom-alert-header {
   display: flex;
@@ -58,17 +59,17 @@ export default {
 .custom-alert-title {
   font-weight: 600;
   color: #3a4047;
-  font-size: 18px;
+  font-size: 14px;
 }
 .custom-alert-close {
-  font-size: 20px;
+  font-size: 14px;
   color: #888;
   cursor: pointer;
   font-weight: bold;
 }
 .custom-alert-body {
   color: #3a4047;
-  font-size: 15px;
+  font-size: 14px;
   min-height: 30px;
 }
-</style> 
+</style>
