@@ -1840,9 +1840,15 @@ setTimeout(() => {
                   return deadline.toLocaleString(lang);
                 }
                 const val = params.value;
+                if (!val) {
+                  return '<span class="deadline-visual deadline-empty"><span class="material-symbols-outlined deadline-empty-icon">calendar_month</span><span class="deadline-empty-text">Select</span></span>';
+                }
                 const diff = getDeadlineDiff(val);
                 const colorClass = getDeadlineColorClass(val);
                 const tooltip = getDeadlineOriginalFormatted(val);
+                if (!diff) {
+                  return `<span class="deadline-visual deadline-empty" title="${tooltip}"><span class="material-symbols-outlined deadline-empty-icon">calendar_month</span><span class="deadline-empty-text">Select</span></span>`;
+                }
                 return `<span class="deadline-visual ${colorClass}" title="${tooltip}">${diff}</span>`;
               };
             }
@@ -2801,5 +2807,22 @@ forceClearSelection() {
   :deep(.deadline-red) {
     background: #ff6f6f !important;
     color: #fff !important;
+  }
+
+  :deep(.deadline-empty) {
+    background: transparent !important;
+    border: 1px solid #c4c4c4 !important;
+    color: #6b7280 !important;
+    font-weight: 500 !important;
+    gap: 6px;
+  }
+
+  :deep(.deadline-empty .deadline-empty-icon) {
+    font-size: 18px !important;
+    line-height: 1;
+  }
+
+  :deep(.deadline-empty .deadline-empty-text) {
+    line-height: 1;
   }
 </style>
