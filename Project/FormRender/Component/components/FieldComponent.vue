@@ -116,6 +116,7 @@
             :class="{ open: dropdownOpen, 'readonly-field': field.is_readonly, error: error && field.is_mandatory }"
             @click="onDropdownClick" tabindex="0" @keydown.enter.prevent="!field.is_readonly && toggleDropdown()">
             <span v-if="selectedOption" @click.stop="onDropdownClick" style="pointer-events:auto">{{ selectedOption.label }}</span>
+            <span v-else class="placeholder" @click.stop="onDropdownClick" style="pointer-events:auto">{{ dropdownPlaceholder }}</span>
             <span class="material-symbols-outlined dropdown-arrow" @click.stop="onDropdownClick" style="pointer-events:auto">expand_more</span>
           </div>
           <div v-if="dropdownOpen" :class="['custom-dropdown-list', { 'open-up': dropdownOpenUp } ]" ref="dropdownList">
@@ -275,6 +276,13 @@ export default {
         '--text-input-border': tokens.inputBorder || '#d1d5db',
         '--text-input-border-focus': tokens.inputBorderInFocus || tokens.inputBorder || '#d1d5db'
       };
+    },
+    dropdownPlaceholder() {
+      return (
+        this.field.placeholder ||
+        this.field.placeholder_translations?.pt_br ||
+        'Selecione uma opção'
+      );
     },
     listOptions() {
       // Se temos opções passadas via prop (da API), usa essas
