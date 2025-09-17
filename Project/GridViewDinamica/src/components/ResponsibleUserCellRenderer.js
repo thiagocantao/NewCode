@@ -220,8 +220,8 @@ export default class ResponsibleUserCellRenderer {
     style.id = id;
     style.textContent = `
 .ru-cell { display:flex; align-items:center; height:100%; }
-.ru-text { font-size:13px; color:#374151; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.ru-label { margin-left: 8px; font-size: 13px; color: #374151; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ru-text { font-size:var(--grid-view-dinamica-font-size, 12px); font-family:var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif); color:#374151; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ru-label { margin-left: 8px; font-size: var(--grid-view-dinamica-font-size, 12px); font-family:var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif); color: #374151; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ru-single { display:flex; align-items:center; }
 .ru-duo { display:flex; align-items:center; position: relative; }
 .ru-avatar { display:inline-flex; }
@@ -240,7 +240,7 @@ export default class ResponsibleUserCellRenderer {
   background: #4B6CB7; display:flex; align-items:center; justify-content:center; overflow:hidden;
 }
 .ru-ava img {  object-fit:cover; border-radius:50%; }
-.ru-initial {  display:flex; align-items:center; justify-content:center; color:#fff; font-size:14px; }
+.ru-initial {  display:flex; align-items:center; justify-content:center; color:#fff; font-size:var(--grid-view-dinamica-font-size, 12px); font-family:var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif); }
 
 .ru-ava--group { background: #4B6CB7; }
 .ru-group-icon {

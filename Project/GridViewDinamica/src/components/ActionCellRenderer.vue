@@ -41,21 +41,28 @@ align-items: center;
 height: 100%;
 }
 .datagrid-btn {
-background-color: var(--ww-data-grid_action-backgroundColor, unset);
-color: var(--ww-data-grid_action-color, unset);
-padding: var(--ww-data-grid_action-padding, unset);
-border: var(--ww-data-grid_action-border, unset);
-&.with-font {
-font: var(--ww-data-grid_action-font);
-}
-&.without-font {
-font-size: var(--ww-data-grid_action-fontSize);
-font-family: var(--ww-data-grid_action-fontFamily);
-font-weight: var(--ww-data-grid_action-fontWeight);
-font-style: var(--ww-data-grid_action-fontStyle);
-line-height: var(--ww-data-grid_action-lineHeight, normal);
-}
-border-radius: var(--ww-data-grid_action-borderRadius);
-cursor: pointer;
+  background-color: var(--ww-data-grid_action-backgroundColor, unset);
+  color: var(--ww-data-grid_action-color, unset);
+  padding: var(--ww-data-grid_action-padding, unset);
+  border: var(--ww-data-grid_action-border, unset);
+  font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif);
+  font-size: var(--grid-view-dinamica-font-size, 12px);
+  font-weight: var(--ww-data-grid_action-fontWeight);
+  font-style: var(--ww-data-grid_action-fontStyle);
+  line-height: var(--ww-data-grid_action-lineHeight, normal);
+  &.with-font {
+    font: var(--ww-data-grid_action-font);
+    font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif) !important;
+    font-size: var(--grid-view-dinamica-font-size, 12px) !important;
+  }
+  &.without-font {
+    font-size: var(--grid-view-dinamica-font-size, 12px);
+    font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif);
+    font-weight: var(--ww-data-grid_action-fontWeight);
+    font-style: var(--ww-data-grid_action-fontStyle);
+    line-height: var(--ww-data-grid_action-lineHeight, normal);
+  }
+  border-radius: var(--ww-data-grid_action-borderRadius);
+  cursor: pointer;
 }
 </style>
