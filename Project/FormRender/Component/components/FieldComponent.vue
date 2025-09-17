@@ -17,7 +17,13 @@
           :class="['field-input', 'date-input', { error: error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]" />
       </template>
       <template v-else-if="field.fieldType === 'DEADLINE'">
-        <div style="position:relative;">
+        <div
+          class="deadline-wrapper"
+          :class="{
+            'deadline-empty': !hasDeadlineValue,
+            'readonly-field': field.is_readonly
+          }"
+        >
           <input
             type="text"
             :value="deadlineDiff"
@@ -25,16 +31,35 @@
             :class="[
               'deadline-visual',
               deadlineColorClass,
-              { 'readonly-field': field.is_readonly }
+              {
+                'readonly-field': field.is_readonly,
+                'is-empty': !hasDeadlineValue
+              }
             ]"
             :title="deadlineOriginalFormatted"
             @click="openDeadlinePicker"
-            style="cursor:pointer;"
           />
-          <CustomDatePicker ref="deadlineDatePicker" v-model="deadlineValue" :disabled="field.is_readonly"
-            :show-time="true" @update:modelValue="onDeadlineChange"
+          <div
+            v-if="!hasDeadlineValue"
+            class="deadline-placeholder"
+            @click="openDeadlinePicker"
+            role="button"
+            tabindex="0"
+            @keydown.enter.prevent="openDeadlinePicker"
+            @keydown.space.prevent="openDeadlinePicker"
+          >
+            <span class="material-symbols-outlined">calendar_month</span>
+            <span class="deadline-placeholder-label">Select</span>
+          </div>
+          <CustomDatePicker
+            ref="deadlineDatePicker"
+            v-model="deadlineValue"
+            :disabled="field.is_readonly"
+            :show-time="true"
+            @update:modelValue="onDeadlineChange"
             :class="['field-input', 'date-input', { error: error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
-            style="position:absolute;top:0;left:0;width:100%;height:0;overflow:hidden;" />
+            style="position:absolute;top:0;left:0;width:100%;height:0;overflow:hidden;"
+          />
 
         </div>
       </template>
@@ -316,6 +341,11 @@ export default {
         // v: '2025-06-30T00:00'
         this.localValue = v;
       }
+    },
+    hasDeadlineValue() {
+      if (this.field.fieldType !== 'DEADLINE') return true;
+      const val = this.localValue || this.field.value;
+      return !!val;
     },
     deadlineDiff() {
       if (this.field.fieldType !== 'DEADLINE') return '';
@@ -993,6 +1023,26 @@ export default {
     margin-top: 4px;
   }
 
+  .deadline-wrapper {
+    position: relative;
+    display: inline-flex;
+    width: 130px;
+    min-height: 30px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .deadline-wrapper.deadline-empty {
+    border: 1px solid #d1d5db;
+    border-radius: 20px;
+    background: #ffffff;
+    cursor: pointer;
+  }
+
+  .deadline-wrapper.deadline-empty.readonly-field {
+    cursor: not-allowed;
+  }
+
   .deadline-visual {
     border: none !important;
     border-radius: 20px !important;
@@ -1003,6 +1053,30 @@ export default {
     height: 30px !important;
     --text-input-border: none !important;
     --text-input-border-focus: none !important;
+    cursor: pointer;
+  }
+
+  .deadline-visual.is-empty {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .deadline-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: #787878;
+    font-size: 12px;
+    pointer-events: auto;
+    user-select: none;
+    cursor: inherit;
+  }
+
+  .deadline-placeholder .material-symbols-outlined {
+    font-size: 18px;
   }
 
   .deadline-green {
