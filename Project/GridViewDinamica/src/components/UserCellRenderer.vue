@@ -492,8 +492,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--grid-view-dinamica-font-size, 12px);
-  font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif);
+  font-size: 15px;
   font-weight: 400;
   background: transparent;
   color: #fff;
@@ -505,8 +504,7 @@ export default {
   font-size: 18px;
 }
 .user-cell__name {
-  font-size: var(--grid-view-dinamica-font-size, 12px);
-  font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif);
+  font-size: 12px;
   font-weight: 400;
   color: #444;
   white-space: nowrap;
@@ -525,8 +523,7 @@ export default {
   color: #fff;
   padding: 6px 10px;
   border-radius: 4px;
-  font-size: var(--grid-view-dinamica-font-size, 12px);
-  font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif);
+  font-size: 12px;
   white-space: nowrap;
   z-index: 1000;
   text-align: center;
