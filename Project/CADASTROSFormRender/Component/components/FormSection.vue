@@ -303,6 +303,7 @@ export default {
   margin-bottom: 0px;
   border: 0px;
   background-color: #fff;
+  font-size: 14px;
 }
 
 .section-header {
@@ -315,7 +316,7 @@ export default {
 
 .section-title {
   margin: 0;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 400;
   color: #333;
   flex: 1;
@@ -349,7 +350,7 @@ export default {
 
 .action-icon-section {
     cursor: pointer;
-    font-size: 15px;
+    font-size: 14px;
     opacity: .7;
     border-radius: 50%;
     background-color: #f5f5f5;

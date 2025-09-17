@@ -1,5 +1,5 @@
 <template>
-  <div class="field-properties-panel">
+  <div class="field-properties-panel" :style="styleVars">
     <div class="panel-header" v-if="selectedField">
       <h3>{{ title }}</h3>
     </div>
@@ -148,6 +148,20 @@ export default {
   setup(props, { emit }) {
     // Generate a unique ID for this instance
     const uniqueId = ref(`fp-${Date.now()}`);
+
+    const themeTokens = computed(() => {
+      if (typeof window !== 'undefined' && window.wwLib?.wwVariable?.getValue) {
+        const value = window.wwLib.wwVariable.getValue('61c1b425-10e8-40dc-8f1f-b117c08b9726');
+        if (value && typeof value === 'object') {
+          return value;
+        }
+      }
+      return {};
+    });
+
+    const styleVars = computed(() => ({
+      '--placeholder-color': themeTokens.value.normal || themeTokens.value.inputText || '#787878'
+    }));
     
     // Field properties
     const isRequired = ref(false);
@@ -246,7 +260,8 @@ export default {
       showOnly,
       updateFieldProperty,
       toggleTip,
-      updateTip
+      updateTip,
+      styleVars
     };
   }
 };
@@ -261,6 +276,7 @@ export default {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     font-family: Roboto-Regular, "Open Sans", Arial, sans-serif !important;
     height: calc(100vh - 150px);
+    font-size: 14px;
   }
 
   .panel-header {
@@ -270,7 +286,7 @@ export default {
   .panel-header h3 {
     line-height: 24px;
     color: rgb(48, 48, 48);
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 400;
     margin-bottom: 4px;
   }
@@ -408,6 +424,11 @@ export default {
     border: 1px solid #ddd;
     border-radius: 4px;
     resize: vertical;
+  }
+
+  .tip-textarea::placeholder {
+    color: var(--placeholder-color, #787878);
+    opacity: 1;
   }
 
   .empty-state {
