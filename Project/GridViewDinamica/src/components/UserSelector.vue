@@ -328,22 +328,25 @@ export default {
       return { groups: Array.from(groups, ([label, items]) => ({ label, items })), ungrouped };
     },
     nameStyle() {
+      const fallbackFont = "var(--grid-view-dinamica-font-family, inherit)";
       return {
-        fontFamily: this.nameFontFamily,
+        fontFamily: this.nameFontFamily || fallbackFont,
         fontSize: this.nameFontSize,
         fontWeight: this.nameFontWeight,
       };
     },
     initialStyle() {
+      const fallbackFont = "var(--grid-view-dinamica-font-family, inherit)";
       return {
-        fontFamily: this.initialFontFamily,
+        fontFamily: this.initialFontFamily || fallbackFont,
         fontSize: this.initialFontSize,
         fontWeight: this.initialFontWeight,
       };
     },
     inputStyle() {
+      const fallbackFont = "var(--grid-view-dinamica-font-family, inherit)";
       return {
-        fontFamily: this.inputFontFamily,
+        fontFamily: this.inputFontFamily || fallbackFont,
         fontSize: this.inputFontSize,
         fontWeight: this.inputFontWeight,
       };

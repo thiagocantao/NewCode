@@ -72,6 +72,7 @@
 
 <script>
 import { ref, computed, watch, onBeforeUnmount, nextTick } from 'vue';
+import { readTypographyVariable, DEFAULT_FONT_FAMILY } from '../utils/fontFamily.js';
 
 export default {
   name: 'DateTimeCellEditor',
@@ -84,6 +85,7 @@ export default {
   },
   emits: ['update:modelValue'],
   setup(props, { emit, expose }) {
+    const getFontFamily = () => readTypographyVariable() || DEFAULT_FONT_FAMILY;
     const colDef = (props.params && props.params.colDef) ? props.params.colDef : {};
     const tag = String(colDef.TagControl || colDef.tagControl || (colDef.context && colDef.context.TagControl) || '').toUpperCase();
     const fieldName = String(colDef.field || '').toLowerCase();
@@ -470,7 +472,7 @@ export default {
       padding: '8px',
       minWidth: '260px',
       maxWidth: '320px',
-      fontFamily: 'Roboto, sans-serif',
+      fontFamily: getFontFamily(),
       userSelect: 'none'
     }));
     const rowBetweenStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '6px' };
@@ -508,13 +510,12 @@ export default {
 </script>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@400&display=swap');
 
 .dp-wrapper {
   position: relative;
   width: 100%;
-  font-family: 'Roboto', sans-serif;
+  font-family: var(--grid-view-dinamica-font-family, Roboto, sans-serif);
   font-size: 14px;
   z-index: 1;
 }
@@ -525,7 +526,7 @@ export default {
   padding-right: 30px;
   height: 35px;
   cursor: pointer;
-  font-family: 'Roboto', sans-serif;
+  font-family: var(--grid-view-dinamica-font-family, Roboto, sans-serif);
   font-size: 13px;
   border: 1px solid #ccc;
   border-radius: 4px;
