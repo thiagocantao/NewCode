@@ -335,6 +335,7 @@
 
     return true;
   };
+
   
   export default {
   components: {
@@ -1131,6 +1132,7 @@ setTimeout(() => {
   if (shouldRevealSaveButton(event)) {
   updateHideSaveButtonVisibility(false);
   }
+
   ctx.emit("trigger-event", {
   name: "filterChanged",
   event: filterModel,
@@ -1150,6 +1152,7 @@ setTimeout(() => {
   if (shouldRevealSaveButton(event)) {
   updateHideSaveButtonVisibility(false);
   }
+
   ctx.emit("trigger-event", {
   name: "sortChanged",
   event: state.sort?.sortModel || [],
@@ -1168,6 +1171,7 @@ setTimeout(() => {
   if (shouldRevealSaveButton(event)) {
   updateHideSaveButtonVisibility(false);
   }
+
   ctx.emit("trigger-event", {
   name: "columnMoved",
   event: columnsPositionValue.value,
