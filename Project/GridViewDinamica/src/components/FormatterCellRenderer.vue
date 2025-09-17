@@ -227,7 +227,7 @@ if (
           return `
             <div class="deadline-bar-bg" style="width:100%;height:22px;position:relative;background:#f5f5f5;border-radius:8px;overflow:hidden;display:block;">
               <div class="deadline-bar-fill" style="position:absolute;left:0;top:0;height:100%;width:${percent}%;background:${cor};border-radius:8px;transition:width 0.4s;z-index:1;"></div>
-              <span class="deadline-label" style="position:absolute;left:0;top:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:12px;color:${textColor};font-weight:bold;font-family:${fontFamily};z-index:2;">${label}</span>
+              <span class="deadline-label" style="position:absolute;left:0;top:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:13px;color:${textColor};font-weight:bold;font-family:${fontFamily};z-index:2;">${label}</span>
               <div style="position:absolute;left:0;top:0;width:100%;height:100%;border:1.5px solid ${border};border-radius:8px;pointer-events:none;z-index:3;"></div>
             </div>
           `;
