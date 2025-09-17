@@ -4,7 +4,7 @@
       ref="dpInput"
       class="dp-input"
       type="text"
-      :value="displayDate"
+      :value="displayDate" 
       readonly
       :disabled="disabled"
       @pointerdown.stop.prevent="!disabled && openDp($event)"
@@ -78,9 +78,6 @@ export default {
   },
   emits: ['update:modelValue'],
   setup(props, { emit, expose }) {
-    const getFontFamily = () => readTypographyVariable() || DEFAULT_FONT_FAMILY;
-    const BASE_FONT_SIZE = '12px';
-
     const colDef = (props.params && props.params.colDef) ? props.params.colDef : {};
     const tag = String(colDef.TagControl || colDef.tagControl || (colDef.context && colDef.context.TagControl) || '').toUpperCase();
     const fieldName = String(colDef.field || '').toLowerCase();
@@ -467,41 +464,23 @@ export default {
       padding: '8px',
       minWidth: '260px',
       maxWidth: '320px',
-      fontFamily: getFontFamily(),
-      fontSize: BASE_FONT_SIZE,
-
+      fontFamily: 'Roboto, sans-serif',
       userSelect: 'none'
     }));
     const rowBetweenStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '6px' };
     const titleStyle = { fontWeight: 500, textTransform: 'capitalize', whiteSpace: 'nowrap' };
     const navBtnStyle = { border: '1px solid #ccc', background: '#f7f7f7', borderRadius: '6px', padding: '2px 8px', minWidth: '28px', minHeight: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', lineHeight: '1' };
     const gridHeaderStyle = { display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: '2px' };
-    const weekdayStyle = { textAlign: 'center', fontSize: BASE_FONT_SIZE, color: '#666', padding: '4px 0' };
+    const weekdayStyle = { textAlign: 'center', fontSize: '12px', color: '#666', padding: '4px 0' };
     const gridDaysStyle = { display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: '2px' };
     const dayBtnStyle = { border: '1px solid transparent', background: 'transparent', borderRadius: '6px', padding: '6px 0', minHeight: '30px', textAlign: 'center', lineHeight: '1', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '100%', cursor: 'pointer' };
     const daySelectedStyle = { background: '#e7f0ff', borderColor: '#84a9ff' };
     const dayTodayStyle = { outline: '1px dashed #aaa' };
     const dayMutedStyle = { color: '#bbb' };
     const timeWrapStyle = { marginTop: '6px' };
-    const timeInputStyle = {
-      width: '100%',
-      padding: '6px',
-      border: '1px solid #ccc',
-      borderRadius: '6px',
-      fontSize: BASE_FONT_SIZE,
-      fontFamily: getFontFamily()
-    };
+    const timeInputStyle = { width: '100%', padding: '6px', border: '1px solid #ccc', borderRadius: '6px' };
     const actionsRowStyle = { marginTop: '8px', display: 'flex', gap: '6px', justifyContent: 'flex-end', flexWrap: 'wrap' };
-    const actionBtnStyle = {
-      border: '1px solid #ccc',
-      background: '#f7f7f7',
-      borderRadius: '6px',
-      padding: '4px 8px',
-      minHeight: '28px',
-      cursor: 'pointer',
-      fontSize: BASE_FONT_SIZE,
-      fontFamily: getFontFamily()
-    };
+    const actionBtnStyle = { border: '1px solid #ccc', background: '#f7f7f7', borderRadius: '6px', padding: '4px 8px', minHeight: '28px', cursor: 'pointer' };
 
     return {
       dpWrapper, dpInput, dpPopRef,
@@ -523,45 +502,50 @@ export default {
 </script>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@400&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@400&display=swap');
 
-.dp-wrapper {
-  position: relative;
-  width: 100%;
-  font-family: var(--grid-view-dinamica-font-family, Roboto, sans-serif);
-  font-size: var(--grid-view-dinamica-font-size, 12px);
-  z-index: 1;
-}
-.dp-input {
-  display: block;
-  width: 100%;
-  padding-left: 5px;
-  padding-right: 30px;
-  height: 35px;
-  cursor: pointer;
-  font-family: var(--grid-view-dinamica-font-family, Roboto, sans-serif);
-  font-size: var(--grid-view-dinamica-font-size, 12px);
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  background: #fff;
-  outline: transparent;
-}
-.dp-icon {
-  position: absolute;
-  right: 6px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 24px;
-  height: 24px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: 0;
-  padding: 0;
-  cursor: pointer;
-  color: #888;
-}
-.dp-icon:hover { color: #555; }
+  .dp-wrapper {
+    position: relative;
+    width: 100%;
+    font-family: 'Roboto', sans-serif;
+    font-size: 14px;
+    z-index: 1;
+  }
 
+  .dp-input {
+    display: block;
+    width: 100%;
+    padding-left: 5px;
+    padding-right: 30px;
+    height: 35px;
+    cursor: pointer;
+    font-family: 'Roboto', sans-serif;
+    font-size: 13px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #fff;
+    outline: transparent;
+  }
+
+  .dp-icon {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    color: #888;
+  }
+
+  .dp-icon:hover {
+    color: #555;
+  }
 </style>
