@@ -457,6 +457,7 @@ export default {
           this.updateDropdownDirection();
           this.addOutsideClickListeners();
         });
+
       }
     },
     onDropdownClick() {
@@ -1024,7 +1025,7 @@ textarea.field-input::placeholder {
   height: 34px;
   font-size: 13px;
   transition: border 0.2s;
-  color: #000000;
+  color: #787878;
 }
 
 .custom-dropdown-selected.open {
@@ -1067,12 +1068,12 @@ textarea.field-input::placeholder {
   height: 34px;
   display: flex;
   align-items: center;
+
 }
 
 .custom-dropdown-option.selected {
   background: #e3eafc;
-  color: #000000;
-  font-weight: bold;
+  color: #787878;
 }
 
 .custom-dropdown-option:hover {
