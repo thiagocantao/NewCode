@@ -336,12 +336,99 @@
     return true;
   };
 
+  const initialGridState = ref({
+    filters: {},
+    sort: [],
+    columns: [],
+  });
+
+  const normalizeFilterModel = model => {
+    if (!model || typeof model !== 'object') return {};
+    const clone = JSON.parse(JSON.stringify(model));
+    return Object.keys(clone)
+      .sort()
+      .reduce((acc, key) => {
+        acc[key] = clone[key];
+        return acc;
+      }, {});
+  };
+
+  const normalizeSortModel = model => {
+    if (!Array.isArray(model)) return [];
+    return model
+      .map(item => ({
+        colId: item?.colId != null ? String(item.colId) : null,
+        sort: item?.sort ?? null,
+      }))
+      .filter(item => item.colId != null);
+  };
+
+  const getCurrentColumnOrder = () => {
+    if (!gridApi.value || typeof gridApi.value.getAllGridColumns !== 'function') return [];
+    return gridApi.value
+      .getAllGridColumns()
+      .map(col => col?.getColId?.())
+      .filter(colId => colId != null);
+  };
+
+  const getNormalizedGridState = () => {
+    if (!gridApi.value) {
+      return {
+        filters: {},
+        sort: [],
+        columns: [],
+      };
+    }
+
+    const filters = normalizeFilterModel(gridApi.value.getFilterModel?.() || {});
+    const sort = normalizeSortModel(gridApi.value.getSortModel?.() || []);
+    const columns = getCurrentColumnOrder();
+
+    return { filters, sort, columns };
+  };
+
+  let captureInitialStateTimeout = null;
+
+  const captureInitialGridState = () => {
+    if (!gridApi.value) return;
+    initialGridState.value = getNormalizedGridState();
+  };
+
+  const scheduleCaptureInitialGridState = (delay = 0) => {
+    if (captureInitialStateTimeout) {
+      clearTimeout(captureInitialStateTimeout);
+    }
+    captureInitialStateTimeout = setTimeout(() => {
+      captureInitialStateTimeout = null;
+      captureInitialGridState();
+    }, delay);
+  };
+
+  const isGridStatePristine = () => {
+    if (!gridApi.value) return true;
+    const current = getNormalizedGridState();
+    const initial = initialGridState.value || { filters: {}, sort: [], columns: [] };
+
+    const filtersEqual = JSON.stringify(current.filters) === JSON.stringify(initial.filters);
+    const sortEqual = JSON.stringify(current.sort) === JSON.stringify(initial.sort);
+    const columnsEqual = JSON.stringify(current.columns) === JSON.stringify(initial.columns);
+
+    return filtersEqual && sortEqual && columnsEqual;
+  };
+
   const syncHideSaveButtonVisibility = (event) => {
-    updateHideSaveButtonVisibility(!shouldRevealSaveButton(event));
+    if (!shouldRevealSaveButton(event)) {
+      updateHideSaveButtonVisibility(true);
+      scheduleCaptureInitialGridState(50);
+      return;
+    }
+
+    updateHideSaveButtonVisibility(isGridStatePristine());
   };
 
   const resetHideSaveButtonVisibility = () => {
     updateHideSaveButtonVisibility(true);
+    scheduleCaptureInitialGridState(100);
   };
   
   export default {
@@ -818,22 +905,23 @@ const remountComponent = () => {
     loadAllColumnOptions();
     applyColumnOrderFromPosition();
     // Se estamos num ciclo de remount que deve respeitar a WW variable, reaplique
-setTimeout(() => {
-  if (forceExternalSortNextMount.value) {
-    applyExternalSortAndSync();
-  }
-}, 0);
+    setTimeout(() => {
+      if (forceExternalSortNextMount.value) {
+        applyExternalSortAndSync();
+      }
+    }, 0);
+    resetHideSaveButtonVisibility();
   }, { deep: true });
 
   watch(() => props.content?.rowData, () => {
     loadAllColumnOptions();
     applyColumnOrderFromPosition();
     // Se estamos num ciclo de remount que deve respeitar a WW variable, reaplique
-setTimeout(() => {
-  if (forceExternalSortNextMount.value) {
-    applyExternalSortAndSync();
-  }
-}, 0);
+    setTimeout(() => {
+      if (forceExternalSortNextMount.value) {
+        applyExternalSortAndSync();
+      }
+    }, 0);
     resetHideSaveButtonVisibility();
   }, { deep: true });
 
@@ -855,6 +943,10 @@ setTimeout(() => {
       beforeUnloadHandler = null;
     }
     document.removeEventListener('click', handleDocumentClick, true);
+    if (captureInitialStateTimeout) {
+      clearTimeout(captureInitialStateTimeout);
+      captureInitialStateTimeout = null;
+    }
   });
   
     const onGridReady = (params) => {
@@ -867,6 +959,7 @@ setTimeout(() => {
       restoreGridState();
       setTimeout(restoreGridState, 0);
       setTimeout(restoreGridState, 150);
+      setTimeout(() => scheduleCaptureInitialGridState(0), 220);
 
 
 
@@ -1101,6 +1194,7 @@ setTimeout(() => {
     ([filters]) => {
       if (!gridApi.value) return;
       gridApi.value.setFilterModel(filters || null);
+      scheduleCaptureInitialGridState(50);
     },
     { deep: true, immediate: true }
   );
@@ -1113,6 +1207,7 @@ setTimeout(() => {
         state: sort || [],
         defaultState: { sort: null },
       });
+      scheduleCaptureInitialGridState(50);
     },
     { deep: true, immediate: true }
   );
