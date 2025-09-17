@@ -17,13 +17,7 @@
           :class="['field-input', 'date-input', { error: error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]" />
       </template>
       <template v-else-if="field.fieldType === 'DEADLINE'">
-        <div
-          class="deadline-wrapper"
-          :class="{
-            'deadline-empty': !hasDeadlineValue,
-            'readonly-field': field.is_readonly
-          }"
-        >
+        <div style="position:relative;">
           <input
             type="text"
             :value="deadlineDiff"
@@ -31,35 +25,16 @@
             :class="[
               'deadline-visual',
               deadlineColorClass,
-              {
-                'readonly-field': field.is_readonly,
-                'is-empty': !hasDeadlineValue
-              }
+              { 'readonly-field': field.is_readonly }
             ]"
             :title="deadlineOriginalFormatted"
             @click="openDeadlinePicker"
+            style="cursor:pointer;"
           />
-          <div
-            v-if="!hasDeadlineValue"
-            class="deadline-placeholder"
-            @click="openDeadlinePicker"
-            role="button"
-            tabindex="0"
-            @keydown.enter.prevent="openDeadlinePicker"
-            @keydown.space.prevent="openDeadlinePicker"
-          >
-            <span class="material-symbols-outlined">calendar_month</span>
-            <span class="deadline-placeholder-label">Select</span>
-          </div>
-          <CustomDatePicker
-            ref="deadlineDatePicker"
-            v-model="deadlineValue"
-            :disabled="field.is_readonly"
-            :show-time="true"
-            @update:modelValue="onDeadlineChange"
+          <CustomDatePicker ref="deadlineDatePicker" v-model="deadlineValue" :disabled="field.is_readonly"
+            :show-time="true" @update:modelValue="onDeadlineChange"
             :class="['field-input', 'date-input', { error: error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
-            style="position:absolute;top:0;left:0;width:100%;height:0;overflow:hidden;"
-          />
+            style="position:absolute;top:0;left:0;width:100%;height:0;overflow:hidden;" />
 
         </div>
       </template>
@@ -116,7 +91,6 @@
             :class="{ open: dropdownOpen, 'readonly-field': field.is_readonly, error: error && field.is_mandatory }"
             @click="onDropdownClick" tabindex="0" @keydown.enter.prevent="!field.is_readonly && toggleDropdown()">
             <span v-if="selectedOption" @click.stop="onDropdownClick" style="pointer-events:auto">{{ selectedOption.label }}</span>
-            <span v-else class="placeholder" @click.stop="onDropdownClick" style="pointer-events:auto">{{ dropdownPlaceholder }}</span>
             <span class="material-symbols-outlined dropdown-arrow" @click.stop="onDropdownClick" style="pointer-events:auto">expand_more</span>
           </div>
           <div v-if="dropdownOpen" :class="['custom-dropdown-list', { 'open-up': dropdownOpenUp } ]" ref="dropdownList">
@@ -277,13 +251,6 @@ export default {
         '--text-input-border-focus': tokens.inputBorderInFocus || tokens.inputBorder || '#d1d5db'
       };
     },
-    dropdownPlaceholder() {
-      return (
-        this.field.placeholder ||
-        this.field.placeholder_translations?.pt_br ||
-        'Selecione uma opção'
-      );
-    },
     listOptions() {
       // Se temos opções passadas via prop (da API), usa essas
       if (this.options && this.options.length > 0) {
@@ -349,11 +316,6 @@ export default {
         // v: '2025-06-30T00:00'
         this.localValue = v;
       }
-    },
-    hasDeadlineValue() {
-      if (this.field.fieldType !== 'DEADLINE') return true;
-      const val = this.localValue || this.field.value;
-      return !!val;
     },
     deadlineDiff() {
       if (this.field.fieldType !== 'DEADLINE') return '';
@@ -863,7 +825,9 @@ export default {
     width: 100%;
     box-sizing: border-box;
     color: #787878;
-    font-size: 14px;
+    font-size: 0.845rem;
+    letter-spacing: 0px;
+    text-overflow: ellipsis;
   }
 
   input.field-input,
@@ -875,7 +839,7 @@ export default {
   }
 
   input.field-input {
-    height: 36px;
+    height: 34px;
   }
 
   .text-input,
@@ -939,7 +903,7 @@ export default {
     padding: 0;
     border: 1px solid var(--text-input-border);
     border-radius: 4px;
-    height: 36px;
+    height: 34px;
     display: flex;
     align-items: center;
     background-color: var(--text-input-bg);
@@ -957,7 +921,9 @@ export default {
     padding: 0 32px 0 8px;
     height: 100%;
     color: #787878;
-    font-size: 14px;
+    font-size: 0.845rem;
+    letter-spacing: 0px;
+    text-overflow: ellipsis;
     box-sizing: border-box;
   }
 
@@ -1006,7 +972,9 @@ export default {
 
   .field-feedback {
     margin-top: 6px;
-    font-size: 13px;
+    font-size: 0.845rem;
+    letter-spacing: 0px;
+    text-overflow: ellipsis;
     font-weight: 400;
     border-radius: 4px;
     padding: 4px 8px;
@@ -1031,26 +999,6 @@ export default {
     margin-top: 4px;
   }
 
-  .deadline-wrapper {
-    position: relative;
-    display: inline-flex;
-    width: 130px;
-    min-height: 30px;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .deadline-wrapper.deadline-empty {
-    border: 1px solid #d1d5db;
-    border-radius: 20px;
-    background: #ffffff;
-    cursor: pointer;
-  }
-
-  .deadline-wrapper.deadline-empty.readonly-field {
-    cursor: not-allowed;
-  }
-
   .deadline-visual {
     border: none !important;
     border-radius: 20px !important;
@@ -1061,30 +1009,6 @@ export default {
     height: 30px !important;
     --text-input-border: none !important;
     --text-input-border-focus: none !important;
-    cursor: pointer;
-  }
-
-  .deadline-visual.is-empty {
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  .deadline-placeholder {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    color: #787878;
-    font-size: 12px;
-    pointer-events: auto;
-    user-select: none;
-    cursor: inherit;
-  }
-
-  .deadline-placeholder .material-symbols-outlined {
-    font-size: 18px;
   }
 
   .deadline-green {
@@ -1182,7 +1106,9 @@ export default {
     border-radius: 4px;
     background-color: var(--text-input-bg);
     color: #787878;
-    font-size: 14px;
+    font-size: 0.845rem;
+    letter-spacing: 0px;
+    text-overflow: ellipsis;
     white-space: pre-wrap;
     transition: background .3s, border-color .3s, color .3s;
     outline: none !important;
@@ -1293,7 +1219,9 @@ export default {
     border: 1.5px solid #bdbdbd !important;
     border-radius: 20px;
     padding: 7px 38px 7px 12px;
-    font-size: 14px;
+    font-size: 0.845rem;
+    letter-spacing: 0px;
+    text-overflow: ellipsis;
     width: 100%;
     box-sizing: border-box;
     background: #f8f9fa;
@@ -1323,7 +1251,9 @@ export default {
     align-items: center;
     justify-content: space-between;
     height: 34px;
-    font-size: 14px;
+    font-size: 0.845rem;
+    letter-spacing: 0px;
+    text-overflow: ellipsis;
     transition: border .2s;
     color: #787878 !important;
   }
@@ -1363,7 +1293,9 @@ export default {
   .custom-dropdown-option {
     padding: 8px 12px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 0.845rem;
+    letter-spacing: 0px;
+    text-overflow: ellipsis;
     transition: background 0.15s;
   }
 
