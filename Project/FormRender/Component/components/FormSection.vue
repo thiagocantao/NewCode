@@ -342,7 +342,7 @@ export default {
 
 <style scoped>
 .form-section {
-  margin-bottom: 24px;
+  margin-bottom: 16px;
   border: 0px;
   background-color: #fff;
 }
@@ -351,7 +351,7 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px;
+  padding: 0px;
   cursor: pointer;
 }
 
@@ -364,17 +364,28 @@ export default {
 }
 
 .section-fields {
-  padding: 16px;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  column-gap: 24px;
+  row-gap: 16px;
+  justify-items: start;
+  align-items: stretch;
 }
 
 .form-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 16px;
+  display: contents;
+  margin: 0;
+  padding: 0;
 }
 
 .field-wrapper {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   /* O gridColumn é definido inline via style */
 }
 

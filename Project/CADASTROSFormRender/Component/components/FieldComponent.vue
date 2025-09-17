@@ -628,6 +628,7 @@ input.field-input {
 
 input.field-input:focus,
 textarea.field-input:focus {
+
   outline: none;
   border-color: var(--text-input-border-focus);
   box-shadow: none;
@@ -637,7 +638,9 @@ textarea.field-input:focus {
 
 input.field-input::placeholder,
 textarea.field-input::placeholder {
+
   color: var(--placeholder-color, #787878);
+
   opacity: 1;
 }
 
@@ -653,7 +656,7 @@ textarea.field-input::placeholder {
 }
 
 .field-tip {
-  font-size: 14px;
+  font-size: 12px;
   color: #666;
   margin-top: 4px;
   font-style: italic;
@@ -707,12 +710,14 @@ textarea.field-input::placeholder {
 }
 
 
+
 .date-input :deep(.dp-input:focus) {
   outline: none;
 }
 
 .date-input :deep(.dp-input::placeholder) {
   color: var(--placeholder-color, #787878);
+
   opacity: 1;
 }
 
@@ -878,6 +883,7 @@ textarea.field-input::placeholder {
   white-space: pre-wrap;
   transition: background 0.3s, border-color 0.3s, color 0.3s;  
   outline: none !important;
+
 }
 
 .rich-text-input:focus {
@@ -885,11 +891,14 @@ textarea.field-input::placeholder {
   background-color: #ffffff;
   color: #787878;
   outline: none !important;
+
 }
 
 .rich-text-input[data-placeholder]:empty::before {
   content: attr(data-placeholder);
+
   color: var(--placeholder-color, #787878);
+
   opacity: 1;
   pointer-events: none;
 }
@@ -1002,14 +1011,11 @@ textarea.field-input::placeholder {
 }
 
 .list-search-input::placeholder {
+
   color: var(--placeholder-color, #787878);
   opacity: 1;
 }
 
-.list-search-input::placeholder {
-  color: var(--placeholder-color, #787878);
-  opacity: 1;
-}
 
 .custom-dropdown-wrapper {
   position: relative;
@@ -1025,7 +1031,7 @@ textarea.field-input::placeholder {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 34px;
+  height: 36px;
   font-size: 14px;
   transition: border 0.2s;
   color: #787878;
