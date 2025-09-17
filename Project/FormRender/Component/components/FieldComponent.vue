@@ -40,7 +40,7 @@
             </template>
           </div>
           <CustomDatePicker ref="deadlineDatePicker" v-model="deadlineValue" :disabled="field.is_readonly"
-            :show-time="true" @update:modelValue="onDeadlineChange"
+            :show-time="true" :open-up-offset="60" @update:modelValue="onDeadlineChange"
             :class="['field-input', 'date-input', { error: error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
             style="position:absolute;top:0;left:0;width:100%;height:0;overflow:hidden;" />
 
@@ -99,6 +99,7 @@
             :class="{ open: dropdownOpen, 'readonly-field': field.is_readonly, error: error && field.is_mandatory }"
             @click="onDropdownClick" tabindex="0" @keydown.enter.prevent="!field.is_readonly && toggleDropdown()">
             <span v-if="selectedOption" @click.stop="onDropdownClick" style="pointer-events:auto">{{ selectedOption.label }}</span>
+            <span v-else class="placeholder" @click.stop="onDropdownClick" style="pointer-events:auto">{{ dropdownPlaceholder }}</span>
             <span class="material-symbols-outlined dropdown-arrow" @click.stop="onDropdownClick" style="pointer-events:auto">expand_more</span>
           </div>
           <div v-if="dropdownOpen" :class="['custom-dropdown-list', { 'open-up': dropdownOpenUp } ]" ref="dropdownList">
@@ -256,8 +257,16 @@ export default {
       return {
         '--text-input-bg': tokens.inputBG || '#FFFFFF',
         '--text-input-border': tokens.inputBorder || '#d1d5db',
-        '--text-input-border-focus': tokens.inputBorderInFocus || tokens.inputBorder || '#d1d5db'
+        '--text-input-border-focus': tokens.inputBorderInFocus || tokens.inputBorder || '#d1d5db',
+        '--placeholder-color': tokens.normal || tokens.inputText || '#787878'
       };
+    },
+    dropdownPlaceholder() {
+      return (
+        this.field.placeholder ||
+        this.field.placeholder_translations?.pt_br ||
+        'Select an option'
+      );
     },
     listOptions() {
       // Se temos opções passadas via prop (da API), usa essas
@@ -1365,7 +1374,7 @@ export default {
   }
 
   .custom-dropdown-selected .placeholder {
-    color: #aaa;
+    color: var(--placeholder-color, #787878);
   }
 
   .custom-dropdown-list.open-up {
