@@ -603,10 +603,7 @@ export default class ResponsibleUserCellEditor {
   position: relative;
   width: auto;
   display: inline-block;
-  font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif);
-}
-.user-selector-dropdown * {
-  font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif);
+  font-family: inherit;
 }
 .user-selector__dropdown {
   position: relative;
@@ -625,7 +622,7 @@ export default class ResponsibleUserCellEditor {
   top: 4px;
   right: 4px;
   cursor: pointer;
-  font-size: var(--grid-view-dinamica-font-size, 12px);
+  font-size: 16px;
   color: #6b7280;
   z-index: 20;
 }
@@ -645,7 +642,7 @@ export default class ResponsibleUserCellEditor {
   width: 100%;
   padding: 8px 36px 8px 12px;
   border-radius: 20px;
-  font-size: var(--grid-view-dinamica-font-size, 12px);            /* 14px */
+  font-size: 14px;            /* 14px */
   border: 1px solid #E0E0E0 !important;
   background: #fff;
   outline: none !important;
@@ -664,7 +661,7 @@ export default class ResponsibleUserCellEditor {
   right: 22px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: var(--grid-view-dinamica-font-size, 12px);
+  font-size: 20px;
   color: #888;
   pointer-events: none;
   display: flex;
@@ -681,16 +678,16 @@ export default class ResponsibleUserCellEditor {
 }
 .user-selector__back {
   cursor: pointer;
-  font-size: var(--grid-view-dinamica-font-size, 12px);
+  font-size: 18px;
   color: #444;
 }
 .user-selector__group-title {
   flex: 1;
-  font-size: var(--grid-view-dinamica-font-size, 12px);            /* 14px */
+  font-size: 14px;            /* 14px */
   font-weight: 400;           /* sem bold */
 }
 .user-selector__group-count {
-  font-size: var(--grid-view-dinamica-font-size, 12px);
+  font-size: 12px;
   padding: 0 12px 8px;
   color: #888;
 }
@@ -701,7 +698,7 @@ export default class ResponsibleUserCellEditor {
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: #bdbdbd transparent;
-  font-size: var(--grid-view-dinamica-font-size, 12px); 
+  font-size: 14px; 
 }
 .user-selector__list::-webkit-scrollbar { width: 6px; background: transparent; border-radius: 12px; }
 .user-selector__list::-webkit-scrollbar-thumb { background: #bdbdbd; border-radius: 12px; }
@@ -712,7 +709,7 @@ export default class ResponsibleUserCellEditor {
 .user-selector__group-label {
   padding: 4px 12px;
   color: #444;
-  font-size: var(--grid-view-dinamica-font-size, 12px);            /* 14px */
+  font-size: 14px;            /* 14px */
   font-weight: 400;           /* sem bold */
 }
 
@@ -743,7 +740,7 @@ export default class ResponsibleUserCellEditor {
 
 /* Nome do usuário/grupo */
 .user-selector__name {
-  font-size: var(--grid-view-dinamica-font-size, 12px);            /* 13px */
+  font-size: 13px;            /* 13px */
   font-weight: 400;           /* sem bold */
   color: #444;
   white-space: nowrap;
@@ -797,14 +794,14 @@ export default class ResponsibleUserCellEditor {
 .user-selector__initial {
   width: 100%; height: 100%;
   display: flex; align-items: center; justify-content: center;
-  font-size: var(--grid-view-dinamica-font-size, 12px);            /* 14px */
+  font-size: 15px;            /* 14px */
   font-weight: 400;           /* sem bold */
   background: transparent; color: #fff; border-radius: 50%; letter-spacing: .5px;
 }
 
 /* Ícone de grupo (centralizado) */
 .user-selector__group-icon {
-  font-size: var(--grid-view-dinamica-font-size, 12px);            /* ajuste aqui se quiser 12/16/20 */
+  font-size: 14px;            /* ajuste aqui se quiser 12/16/20 */
   line-height: 1;
   display: inline-block;
   color: #fff;
@@ -816,7 +813,7 @@ export default class ResponsibleUserCellEditor {
 /* Chevron direita */
 .user-selector__chevron {
   margin-left: auto;
-  font-size: var(--grid-view-dinamica-font-size, 12px);
+  font-size: 18px;
   color: #888;
   cursor: pointer;
 }
@@ -826,7 +823,7 @@ export default class ResponsibleUserCellEditor {
   color: #aaa;
   text-align: center;
   padding: 8px 0;
-  font-size: var(--grid-view-dinamica-font-size, 12px);
+  font-size: 14px;
 }
 `;
     document.head.appendChild(style);
