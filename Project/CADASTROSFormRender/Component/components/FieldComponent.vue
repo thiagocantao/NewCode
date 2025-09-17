@@ -1025,6 +1025,7 @@ textarea.field-input::placeholder {
   height: 34px;
   font-size: 13px;
   transition: border 0.2s;
+  color: #787878;
 }
 
 .custom-dropdown-selected.open {
@@ -1063,11 +1064,12 @@ textarea.field-input::placeholder {
   cursor: pointer;
   font-size: 13px;
   transition: background 0.15s;
+  color: #787878;
 }
 
 .custom-dropdown-option.selected {
   background: #e3eafc;
-  color: #699d8c;
+  color: #787878;
   font-weight: bold;
 }
 
