@@ -228,6 +228,7 @@ export default {
       currentColor: '#699d8c',
       savedSelection: null,
       isUserInput: false,
+      outsideClickHandler: null,
     };
   },
   computed: {
@@ -448,14 +449,15 @@ export default {
     },
     toggleDropdown() {
       if (this.field.is_readonly) return;
-      this.dropdownOpen = !this.dropdownOpen;
       if (this.dropdownOpen) {
-        this.$nextTick(this.updateDropdownDirection);
+        this.closeDropdown();
       } else {
-        this.dropdownOpenUp = false;
-        if (this.$refs.dropdownList) {
-          this.$refs.dropdownList.style.maxHeight = '';
-        }
+        this.dropdownOpen = true;
+        this.$nextTick(() => {
+          this.updateDropdownDirection();
+          this.addOutsideClickListeners();
+        });
+
       }
     },
     onDropdownClick() {
@@ -464,7 +466,36 @@ export default {
     selectDropdownOption(option) {
       this.localValue = option.value;
       this.$emit('update:value', option.value);
+      this.closeDropdown();
+    },
+    closeDropdown() {
+      if (!this.dropdownOpen) {
+        this.removeOutsideClickListeners();
+        return;
+      }
       this.dropdownOpen = false;
+      this.dropdownOpenUp = false;
+      if (this.$refs.dropdownList) {
+        this.$refs.dropdownList.style.maxHeight = '';
+      }
+      this.removeOutsideClickListeners();
+    },
+    addOutsideClickListeners() {
+      if (this.outsideClickHandler) return;
+      this.outsideClickHandler = event => {
+        const wrapper = this.$refs.dropdownWrapper;
+        if (!wrapper || !this.dropdownOpen) return;
+        if (wrapper.contains(event.target)) return;
+        this.closeDropdown();
+      };
+      document.addEventListener('mousedown', this.outsideClickHandler);
+      document.addEventListener('touchstart', this.outsideClickHandler);
+    },
+    removeOutsideClickListeners() {
+      if (!this.outsideClickHandler) return;
+      document.removeEventListener('mousedown', this.outsideClickHandler);
+      document.removeEventListener('touchstart', this.outsideClickHandler);
+      this.outsideClickHandler = null;
     },
     updateDropdownDirection() {
       if (typeof window === 'undefined') return;
@@ -528,6 +559,7 @@ export default {
     }
   },
   beforeDestroy() {
+    this.removeOutsideClickListeners();
   }
 };
 </script>
