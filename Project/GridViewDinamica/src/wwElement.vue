@@ -1140,6 +1140,7 @@ setTimeout(() => {
   ) {
   setFilters(filterModel);
   syncHideSaveButtonVisibility(event);
+
   ctx.emit("trigger-event", {
   name: "filterChanged",
   event: filterModel,
@@ -1157,6 +1158,7 @@ setTimeout(() => {
   ) {
   setSort(state.sort?.sortModel || []);
   syncHideSaveButtonVisibility(event);
+
   ctx.emit("trigger-event", {
   name: "sortChanged",
   event: state.sort?.sortModel || [],
@@ -1173,6 +1175,7 @@ setTimeout(() => {
   const current = JSON.stringify(columnsPositionValue.value || []);
   if (prev !== current) {
   syncHideSaveButtonVisibility(event);
+
   ctx.emit("trigger-event", {
   name: "columnMoved",
   event: columnsPositionValue.value,
