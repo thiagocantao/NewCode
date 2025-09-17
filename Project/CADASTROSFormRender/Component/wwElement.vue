@@ -415,7 +415,7 @@ export default {
     border-radius: 8px;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .form-sections-container {
