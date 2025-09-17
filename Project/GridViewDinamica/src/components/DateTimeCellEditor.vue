@@ -2,7 +2,7 @@
   <div class="dp-wrapper" ref="dpWrapper">
     <input
       ref="dpInput"
-      class="dp-input" 
+      class="dp-input"
       type="text"
       :value="displayDate"
       readonly
@@ -27,13 +27,7 @@
 
     <!-- Teleport to body -->
     <teleport to="body">
-      <div
-        v-if="dpOpen"
-        ref="dpPopRef"
-        role="dialog"
-        aria-modal="true"
-        :style="popRootStyle"
-      >
+      <div v-if="dpOpen" ref="dpPopRef" role="dialog" aria-modal="true" :style="popRootStyle">
         <div :style="rowBetweenStyle">
           <button type="button" :style="navBtnStyle" @click="prevMonth" aria-label="Mês anterior">&lt;</button>
           <div :style="titleStyle">{{ monthLabel }}</div>
@@ -72,7 +66,6 @@
 
 <script>
 import { ref, computed, watch, onBeforeUnmount, nextTick } from 'vue';
-import { readTypographyVariable, DEFAULT_FONT_FAMILY } from '../utils/fontFamily.js';
 
 export default {
   name: 'DateTimeCellEditor',
@@ -85,7 +78,6 @@ export default {
   },
   emits: ['update:modelValue'],
   setup(props, { emit, expose }) {
-    const getFontFamily = () => readTypographyVariable() || DEFAULT_FONT_FAMILY;
     const colDef = (props.params && props.params.colDef) ? props.params.colDef : {};
     const tag = String(colDef.TagControl || colDef.tagControl || (colDef.context && colDef.context.TagControl) || '').toUpperCase();
     const fieldName = String(colDef.field || '').toLowerCase();
@@ -110,9 +102,14 @@ export default {
     const dpPopStyle = ref({});
     const selectedDate = ref('');
     const timePart = ref('00:00');
+
+    // Valor original (o que estava na célula ao abrir)
     const originalValue = ref('');
+    // Flag de alteração efetiva
+    const changed = ref(false);
+    // Ponto de ancoragem do popup (coordenadas do clique)
     const anchorPoint = ref(null);
-    // evita validação imediata ao entrar em edição
+    // Evita emitir antes de qualquer interação
     const readyToEmit = ref(false);
 
     function toYMD(date) {
@@ -131,7 +128,8 @@ export default {
 
     function applyValue(val){
       const v = val || '';
-      originalValue.value = String(v);
+      originalValue.value = String(v); // define apenas na carga inicial/reload
+      changed.value = false;           // reset do estado de alteração
 
       if (!v) {
         selectedDate.value = '';
@@ -156,8 +154,8 @@ export default {
       }
       selectedDate.value = String(v);
     }
-    // defina o valor inicial de forma síncrona para evitar campo vazio ao montar
 
+    // Valor inicial: modelValue > params.value > params.data[field]
     const initVal =
       props.modelValue !== undefined &&
       props.modelValue !== null &&
@@ -172,7 +170,6 @@ export default {
                 : undefined)
           );
     applyValue(initVal);
-
 
     watch(
       () => {
@@ -189,7 +186,6 @@ export default {
       v => {
         applyValue(v);
       }
-
     );
 
     const dpMonth = ref(0);
@@ -247,43 +243,39 @@ export default {
       return cells;
     });
 
-    function emitValue(){
-      if(!readyToEmit.value) return;
+    // ---------- construir “valor atual” sem efeitos colaterais ----------
+    function buildCurrentValue() {
+      if (!selectedDate.value) return '';
+      if (!isShowTime.value) return selectedDate.value;
 
-      let newVal = '';
-      if(selectedDate.value){
-        if(!isShowTime.value){
-          newVal = selectedDate.value;
+      const orig = originalValue.value || '';
+      if (/t/i.test(orig)) {
+        return `${selectedDate.value}T${timePart.value}`;
+      } else {
+        const baseDate = new Date(`${selectedDate.value}T${timePart.value}`);
+        const mm = String(baseDate.getMonth() + 1).padStart(2,'0');
+        const dd = String(baseDate.getDate()).padStart(2,'0');
+        const yyyy = baseDate.getFullYear();
+        const min = String(baseDate.getMinutes()).padStart(2,'0');
+        if (/am|pm/i.test(orig)) {
+          let hh = baseDate.getHours();
+          const ampm = hh >= 12 ? 'PM' : 'AM';
+          hh = hh % 12; if (hh === 0) hh = 12;
+          const hh12 = String(hh).padStart(2,'0');
+          return `${mm}/${dd}/${yyyy} ${hh12}:${min} ${ampm}`;
+        } else if (orig.includes('/')) {
+          const hh = String(baseDate.getHours()).padStart(2,'0');
+          return `${mm}/${dd}/${yyyy} ${hh}:${min}`;
         } else {
-          const orig = originalValue.value || '';
-          if(/t/i.test(orig)){
-            newVal = `${selectedDate.value}T${timePart.value}`;
-          } else {
-            const baseDate = new Date(`${selectedDate.value}T${timePart.value}`);
-            const mm = String(baseDate.getMonth() + 1).padStart(2,'0');
-            const dd = String(baseDate.getDate()).padStart(2,'0');
-            const yyyy = baseDate.getFullYear();
-            const min = String(baseDate.getMinutes()).padStart(2,'0');
-            if(/am|pm/i.test(orig)){
-              let hh = baseDate.getHours();
-              const ampm = hh >= 12 ? 'PM' : 'AM';
-              hh = hh % 12; if(hh === 0) hh = 12;
-              const hh12 = String(hh).padStart(2,'0');
-              newVal = `${mm}/${dd}/${yyyy} ${hh12}:${min} ${ampm}`;
-            } else if(orig.includes('/')){
-              const hh = String(baseDate.getHours()).padStart(2,'0');
-              newVal = `${mm}/${dd}/${yyyy} ${hh}:${min}`;
-            } else {
-              newVal = `${selectedDate.value} ${timePart.value}`;
-            }
-          }
+          return `${selectedDate.value} ${timePart.value}`;
         }
-
       }
+    }
 
-      if(newVal === originalValue.value) return;
+    function emitValue(){
+      if (!readyToEmit.value) return;
+      const newVal = buildCurrentValue();
       emit('update:modelValue', newVal);
-      originalValue.value = newVal;
     }
 
     function finalizeEditing(){
@@ -384,9 +376,9 @@ export default {
     }
     function selectDay(d){
       if(!d.inMonth) return;
-      // Apenas seleciona o dia e mantém o calendário aberto
       selectedDate.value = d.dateStr;
       readyToEmit.value = true;
+      changed.value = true;
       emitValue();
     }
     function onPickToday(){
@@ -397,28 +389,31 @@ export default {
         timePart.value = `${p(now.getHours())}:${p(now.getMinutes())}`;
       }
       readyToEmit.value = true;
+      changed.value = true;
       emitValue();
       closeDp();
-      finalizeEditing(); // Today => finaliza
+      finalizeEditing();
     }
     function onClear(){
       selectedDate.value = '';
       if(isShowTime.value) timePart.value = '00:00';
       readyToEmit.value = true;
+      changed.value = true;
       emitValue();
-
       closeDp();
-      finalizeEditing(); // Clear => finaliza
+      finalizeEditing();
     }
     function onApply(){
       readyToEmit.value = true;
+      changed.value = true;
       emitValue();
       closeDp();
-      finalizeEditing(); // Select => finaliza
+      finalizeEditing();
     }
     function onTimeInput(e){
       timePart.value = e.target.value;
       readyToEmit.value = true;
+      changed.value = true;
       emitValue();
     }
 
@@ -433,33 +428,30 @@ export default {
       openDp,
       afterGuiAttached(params){
         try {
-          // define o valor inicial do editor com o conteúdo da célula
           const initVal = params?.value ?? (params?.colDef?.field ? params?.data?.[params.colDef.field] : undefined);
           applyValue(initVal);
-
           const ev = params && params.event;
-          if (props.autoOpen) {
-            openDp(ev);
-          }
+          if (props.autoOpen) openDp(ev);
         } catch (e) {}
       },
+      // Se não houve alteração, devolve original; se houve, devolve o valor construído
       getValue(){
-        return originalValue.value || '';
+        return changed.value ? (buildCurrentValue() || '') : (originalValue.value || '');
       },
       isPopup(){ return true; },
       isCancelBeforeStart(){ return false; },
-      isCancelAfterEnd(){ return false; }
+      // Cancela apenas se não houve mudança alguma
+      isCancelAfterEnd(){ return !changed.value; }
     });
 
     const displayDate = computed(() => {
       if (!selectedDate.value) return '';
       return isShowTime.value
         ? `${selectedDate.value} ${timePart.value}`
-        : selectedDate.value;
-
+       : selectedDate.value;
     });
 
-    // === Inline CSS objects (to defeat external overrides) ===
+    // === Inline CSS objects (para evitar overrides externos) ===
     const popRootStyle = computed(() => ({
       position: 'fixed',
       left: dpPopStyle.value.left || '0px',
@@ -472,7 +464,7 @@ export default {
       padding: '8px',
       minWidth: '260px',
       maxWidth: '320px',
-      fontFamily: getFontFamily(),
+      fontFamily: 'Roboto, sans-serif',
       userSelect: 'none'
     }));
     const rowBetweenStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '6px' };
@@ -510,44 +502,50 @@ export default {
 </script>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@400&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@400&display=swap');
 
-.dp-wrapper {
-  position: relative;
-  width: 100%;
-  font-family: var(--grid-view-dinamica-font-family, Roboto, sans-serif);
-  font-size: 14px;
-  z-index: 1;
-}
-.dp-input {
-  display: block;
-  width: 100%;
-  padding-left: 5px;
-  padding-right: 30px;
-  height: 35px;
-  cursor: pointer;
-  font-family: var(--grid-view-dinamica-font-family, Roboto, sans-serif);
-  font-size: 13px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  background: #fff;
-  outline: transparent;
-}
-.dp-icon {
-  position: absolute;
-  right: 6px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 24px;
-  height: 24px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: 0;
-  padding: 0;
-  cursor: pointer;
-  color: #888;
-}
-.dp-icon:hover { color: #555; }
+  .dp-wrapper {
+    position: relative;
+    width: 100%;
+    font-family: 'Roboto', sans-serif;
+    font-size: 14px;
+    z-index: 1;
+  }
+
+  .dp-input {
+    display: block;
+    width: 100%;
+    padding-left: 5px;
+    padding-right: 30px;
+    height: 35px;
+    cursor: pointer;
+    font-family: 'Roboto', sans-serif;
+    font-size: 13px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #fff;
+    outline: transparent;
+  }
+
+  .dp-icon {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    color: #888;
+  }
+
+  .dp-icon:hover {
+    color: #555;
+  }
 </style>
