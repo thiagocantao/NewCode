@@ -84,7 +84,11 @@
       </template>
 
       <template v-else-if="field.fieldType === 'SIMPLE_LIST' || field.fieldType === 'CONTROLLED_LIST' || field.fieldType === 'LIST'">
-        <div class="custom-dropdown-wrapper" :class="{ 'readonly-field': field.is_readonly, 'dropdown-open': dropdownOpen }">
+        <div
+          class="custom-dropdown-wrapper"
+          :class="{ 'readonly-field': field.is_readonly, 'dropdown-open': dropdownOpen }"
+          ref="dropdownWrapper"
+        >
           <div
             class="custom-dropdown-selected"
             :class="{ 'open': dropdownOpen, 'readonly-field': field.is_readonly }"
@@ -447,6 +451,11 @@ export default {
       this.dropdownOpen = !this.dropdownOpen;
       if (this.dropdownOpen) {
         this.$nextTick(this.updateDropdownDirection);
+      } else {
+        this.dropdownOpenUp = false;
+        if (this.$refs.dropdownList) {
+          this.$refs.dropdownList.style.maxHeight = '';
+        }
       }
     },
     onDropdownClick() {
@@ -458,12 +467,53 @@ export default {
       this.dropdownOpen = false;
     },
     updateDropdownDirection() {
+      if (typeof window === 'undefined') return;
       const list = this.$refs.dropdownList;
-      if (!list) return;
-      const rect = list.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const spaceAbove = rect.top;
-      this.dropdownOpenUp = spaceBelow < 0 && spaceAbove > spaceBelow;
+      const wrapper = this.$refs.dropdownWrapper;
+      if (!list || !wrapper) return;
+
+      const DEFAULT_MAX_HEIGHT = 220;
+      const wrapperRect = wrapper.getBoundingClientRect();
+      list.style.maxHeight = '';
+
+      let spaceBelow = window.innerHeight - wrapperRect.bottom;
+      let spaceAbove = wrapperRect.top;
+
+      let currentAncestor = wrapper.parentElement;
+      while (currentAncestor) {
+        const style = window.getComputedStyle(currentAncestor);
+        const overflowY = style.overflowY;
+        const overflow = style.overflow;
+
+        if (
+          ['auto', 'scroll', 'hidden'].includes(overflowY) ||
+          ['auto', 'scroll', 'hidden'].includes(overflow)
+        ) {
+          const ancestorRect = currentAncestor.getBoundingClientRect();
+          spaceBelow = Math.min(spaceBelow, ancestorRect.bottom - wrapperRect.bottom);
+          spaceAbove = Math.min(spaceAbove, wrapperRect.top - ancestorRect.top);
+        }
+
+        if (currentAncestor === document.documentElement) {
+          break;
+        }
+
+        currentAncestor = currentAncestor.parentElement;
+      }
+
+      spaceBelow = Math.max(spaceBelow, 0);
+      spaceAbove = Math.max(spaceAbove, 0);
+
+      const naturalHeight = Math.min(list.scrollHeight, DEFAULT_MAX_HEIGHT);
+      const shouldOpenUp = spaceBelow < naturalHeight && spaceAbove > spaceBelow;
+      this.dropdownOpenUp = shouldOpenUp;
+
+      const availableSpace = shouldOpenUp ? spaceAbove : spaceBelow;
+      const finalHeight = availableSpace > 0
+        ? Math.min(naturalHeight, availableSpace)
+        : naturalHeight;
+
+      list.style.maxHeight = `${finalHeight}px`;
     }
   },
   mounted() {
@@ -958,7 +1008,7 @@ textarea.field-input::placeholder {
 }
 
 .custom-dropdown-wrapper.dropdown-open {
-  z-index: 10000;
+  z-index: 99999;
 }
 
 .custom-dropdown-list {
@@ -969,7 +1019,7 @@ textarea.field-input::placeholder {
   border: 1px solid #d1d5db;
   border-radius: 0 0 6px 6px;
   box-shadow: 0 4px 16px rgba(105,157,140,0.10);
-  z-index: 10000;
+  z-index: 99999;
   max-height: 220px;
   overflow-y: auto;
   margin-top: 2px;
