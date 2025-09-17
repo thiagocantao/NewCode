@@ -47,6 +47,9 @@
   DEFAULT_FONT_FAMILY,
   TYPOGRAPHY_VARIABLE_ID,
   } from "./utils/fontFamily.js";
+
+  const GRID_BASE_FONT_SIZE = 12;
+  const GRID_BASE_FONT_SIZE_PX = `${GRID_BASE_FONT_SIZE}px`;
   // Editor customizado inline para listas
   class ListCellEditor {
     init(params) {
@@ -1894,6 +1897,7 @@ setTimeout(() => {
   };
   },
   cssVars() {
+  const baseFontSize = GRID_BASE_FONT_SIZE_PX;
   return {
   "--ww-data-grid_action-backgroundColor":
   this.content.actionBackgroundColor,
@@ -1906,28 +1910,29 @@ setTimeout(() => {
   : {}),
   ...(this.content.actionFont
   ? { "--ww-data-grid_action-font": this.content.actionFont }
-  : {
-  "--ww-data-grid_action-fontSize": this.content.actionFontSize,
+  : {}),
+  "--ww-data-grid_action-fontSize": baseFontSize,
   "--ww-data-grid_action-fontFamily": this.resolvedFontFamily,
   "--ww-data-grid_action-fontWeight": this.content.actionFontWeight,
   "--ww-data-grid_action-fontStyle": this.content.actionFontStyle,
   "--ww-data-grid_action-lineHeight": this.content.actionLineHeight,
-  }),
   "--grid-view-dinamica-font-family": this.resolvedFontFamily,
+  "--grid-view-dinamica-font-size": baseFontSize,
   fontFamily: this.resolvedFontFamily,
+  fontSize: baseFontSize,
   };
   },
   theme() {
   return themeQuartz.withParams({
   headerBackgroundColor: "#F5F6FA",
   headerTextColor: this.content.headerTextColor,
-  headerFontSize: this.content.headerFontSize,
+  headerFontSize: GRID_BASE_FONT_SIZE,
   headerFontWeight: this.content.headerFontWeight,
   borderColor: this.content.borderColor,
   cellTextColor: this.content.cellColor,
   cellFontFamily: this.resolvedFontFamily,
   headerFontFamily: this.resolvedFontFamily,
-  dataFontSize: this.content.cellFontSize,
+  dataFontSize: GRID_BASE_FONT_SIZE,
   oddRowBackgroundColor: this.content.rowAlternateColor,
   backgroundColor: this.content.rowBackgroundColor,
   rowHoverColor: this.content.rowHoverColor,
@@ -2355,6 +2360,35 @@ forceClearSelection() {
 <style scoped lang="scss">
   .ww-datagrid {
     position: relative;
+    font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif);
+    font-size: var(--grid-view-dinamica-font-size, 12px);
+
+    :deep(.ag-theme-quartz),
+    :deep(.ag-theme-quartz *),
+    :deep(.ag-theme-quartz .ag-cell),
+    :deep(.ag-theme-quartz .ag-header-cell),
+    :deep(.ag-theme-quartz .ag-floating-filter),
+    :deep(.ag-theme-quartz .ag-menu),
+    :deep(.ag-theme-quartz .ag-overlay),
+    :deep(.ag-theme-quartz .ag-status-bar),
+    :deep(.ag-theme-quartz .ag-paging-panel),
+    :deep(.ag-theme-quartz .ag-tooltip),
+    :deep(.ag-theme-quartz input),
+    :deep(.ag-theme-quartz select),
+    :deep(.ag-theme-quartz textarea),
+    :deep(.ag-theme-quartz button) {
+      font-family: var(
+        --grid-view-dinamica-font-family,
+        Roboto,
+        Arial,
+        sans-serif
+      ) !important;
+      font-size: var(--grid-view-dinamica-font-size, 12px) !important;
+    }
+
+    :deep(.ag-theme-quartz .material-symbols-outlined) {
+      font-family: "Material Symbols Outlined", sans-serif !important;
+    }
 
     /* wwEditor:start */
     &.editing {
@@ -2543,7 +2577,7 @@ forceClearSelection() {
       height: 26px !important;
       min-height: 26px !important;
       max-height: 26px !important;
-      font-size: 12px !important;
+      font-size: var(--grid-view-dinamica-font-size, 12px) !important;
       font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif) !important;
       padding: 0 8px !important;
       border-radius: 8 !important;
@@ -2643,7 +2677,7 @@ forceClearSelection() {
   :deep(.ag-pagination),
   :deep(.ag-pagination *) {
     font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif) !important;
-    font-size: 12px !important;
+    font-size: var(--grid-view-dinamica-font-size, 12px) !important;
   }
 
   // Remover bordas externas da grid
@@ -2665,7 +2699,7 @@ forceClearSelection() {
   :deep(.deadline-visual) {
     border-radius: 999px !important;
     text-align: center;
-    font-size: 12px !important;
+    font-size: var(--grid-view-dinamica-font-size, 12px) !important;
     font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif) !important;
     font-weight: bold !important;
     padding: 0 12px !important;
