@@ -65,7 +65,8 @@ export default {
     modelValue: { type: String, default: '' },
     disabled: { type: Boolean, default: false },
     showTime: { type: Boolean, default: false },
-    error: { type: Boolean, default: false }
+    error: { type: Boolean, default: false },
+    openUpOffset: { type: Number, default: 0 }
   },
   emits: ['update:modelValue'],
   setup(props, { emit }) {
@@ -235,6 +236,8 @@ export default {
         openUp = spaceAbove > spaceBelow;
       }
 
+      const gap = 4;
+      const offset = typeof props.openUpOffset === 'number' ? props.openUpOffset : 0;
       const style = {
         position: 'fixed',
         left: `${left}px`,
@@ -245,9 +248,10 @@ export default {
       };
 
       if (openUp) {
-        style.bottom = `${Math.round(viewportHeight - rect.top + 4)}px`;
+        const bottomValue = viewportHeight - rect.top + gap - offset;
+        style.bottom = `${Math.max(0, Math.round(bottomValue))}px`;
       } else {
-        style.top = `${Math.round(rect.bottom + 4)}px`;
+        style.top = `${Math.round(rect.bottom + gap)}px`;
       }
 
       dpPopStyle.value = style;
