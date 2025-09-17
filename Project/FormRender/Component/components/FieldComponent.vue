@@ -240,6 +240,10 @@ export default {
       return {};
     },
     componentStyleVars() {
+      if (this.field && this.field.fieldType === 'DEADLINE') {
+        return {};
+      }
+
       const tokens = this.themeTokens || {};
       return {
         '--text-input-bg': tokens.inputBG || '#FFFFFF',
@@ -787,6 +791,9 @@ export default {
     flex-direction: column;
     width: 100%;
     margin-bottom: 5px;
+  }
+
+  .field-component:not(.field-type-deadline) {
     --text-input-bg: #ffffff;
     --text-input-border: #d1d5db;
     --text-input-border-focus: #bdbdbd;
