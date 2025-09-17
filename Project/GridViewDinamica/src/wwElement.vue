@@ -287,6 +287,54 @@
   // TODO: maybe register less modules
   // TODO: maybe register modules per grid instead of globally
   ModuleRegistry.registerModules([AllCommunityModule]);
+
+  const HIDE_SAVE_BUTTON_VARIABLE_ID = "09c5aacd-b697-4e04-9571-d5db1f671877";
+
+  const updateHideSaveButtonVisibility = (value) => {
+    try {
+      const wwVariable = window?.wwLib?.wwVariable;
+      if (!wwVariable) return;
+
+      if (typeof wwVariable.setValue === "function") {
+        wwVariable.setValue(HIDE_SAVE_BUTTON_VARIABLE_ID, value);
+        return;
+      }
+
+      if (typeof wwVariable.updateValue === "function") {
+        wwVariable.updateValue(HIDE_SAVE_BUTTON_VARIABLE_ID, value);
+        return;
+      }
+
+      if (typeof wwVariable.setComponentValue === "function") {
+        wwVariable.setComponentValue(HIDE_SAVE_BUTTON_VARIABLE_ID, value);
+      }
+    } catch (error) {
+      console.warn(
+        "[GridViewDinamica] Failed to update escondeBotaoSalvarGrid variable",
+        error
+      );
+    }
+  };
+
+  const shouldRevealSaveButton = (event) => {
+    if (!event) return true;
+
+    if (event.afterDataChange) return false;
+
+    const ignoreSources = [
+      "api",
+      "columnEverythingChanged",
+      "gridInitializing",
+      "rowDataChanged",
+      "rowDataUpdated",
+    ];
+
+    if (event.source && ignoreSources.includes(event.source)) {
+      return false;
+    }
+
+    return true;
+  };
   
   export default {
   components: {
@@ -1080,6 +1128,9 @@ setTimeout(() => {
   JSON.stringify(filterValue.value || {})
   ) {
   setFilters(filterModel);
+  if (shouldRevealSaveButton(event)) {
+  updateHideSaveButtonVisibility(false);
+  }
   ctx.emit("trigger-event", {
   name: "filterChanged",
   event: filterModel,
@@ -1096,6 +1147,9 @@ setTimeout(() => {
   JSON.stringify(sortValue.value || [])
   ) {
   setSort(state.sort?.sortModel || []);
+  if (shouldRevealSaveButton(event)) {
+  updateHideSaveButtonVisibility(false);
+  }
   ctx.emit("trigger-event", {
   name: "sortChanged",
   event: state.sort?.sortModel || [],
@@ -1111,6 +1165,9 @@ setTimeout(() => {
   updateColumnsPosition();
   const current = JSON.stringify(columnsPositionValue.value || []);
   if (prev !== current) {
+  if (shouldRevealSaveButton(event)) {
+  updateHideSaveButtonVisibility(false);
+  }
   ctx.emit("trigger-event", {
   name: "columnMoved",
   event: columnsPositionValue.value,
