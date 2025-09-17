@@ -290,6 +290,40 @@
 
   const HIDE_SAVE_BUTTON_VARIABLE_ID = "09c5aacd-b697-4e04-9571-d5db1f671877";
 
+  export default {
+  components: {
+  AgGridVue,
+  ActionCellRenderer,
+  ImageCellRenderer,
+  WewebCellRenderer,
+  FormatterCellRenderer, // Add this line
+  UserCellRenderer,
+  ListCellEditor, // registrar editor customizado
+  FixedListCellEditor,
+  ResponsibleUserCellEditor,
+  DateTimeCellEditor,
+  },
+  props: {
+  content: {
+  type: Object,
+  required: true,
+  },
+  uid: {
+  type: String,
+  required: true,
+  },
+  /* wwEditor:start */
+  wwEditorState: { type: Object, required: true },
+  /* wwEditor:end */
+  },
+  emits: ["trigger-event", "update:content:effect"],
+  setup(props, ctx) {
+  const { resolveMappingFormula } = wwLib.wwFormula.useFormula();
+  
+  const gridApi = shallowRef(null);
+  const columnApi = shallowRef(null);
+  const agGridRef = ref(null);
+
   const updateHideSaveButtonVisibility = (value) => {
     try {
       const wwVariable = window?.wwLib?.wwVariable;
@@ -430,40 +464,6 @@
     updateHideSaveButtonVisibility(true);
     scheduleCaptureInitialGridState(100);
   };
-  
-  export default {
-  components: {
-  AgGridVue,
-  ActionCellRenderer,
-  ImageCellRenderer,
-  WewebCellRenderer,
-  FormatterCellRenderer, // Add this line
-  UserCellRenderer,
-  ListCellEditor, // registrar editor customizado
-  FixedListCellEditor,
-  ResponsibleUserCellEditor,
-  DateTimeCellEditor,
-  },
-  props: {
-  content: {
-  type: Object,
-  required: true,
-  },
-  uid: {
-  type: String,
-  required: true,
-  },
-  /* wwEditor:start */
-  wwEditorState: { type: Object, required: true },
-  /* wwEditor:end */
-  },
-  emits: ["trigger-event", "update:content:effect"],
-  setup(props, ctx) {
-  const { resolveMappingFormula } = wwLib.wwFormula.useFormula();
-  
-  const gridApi = shallowRef(null);
-  const columnApi = shallowRef(null);
-  const agGridRef = ref(null);
 
   const componentFontFamily = ref("");
   const fallbackFontFamily = computed(() => {
