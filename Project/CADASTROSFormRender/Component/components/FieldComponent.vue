@@ -84,7 +84,11 @@
       </template>
 
       <template v-else-if="field.fieldType === 'SIMPLE_LIST' || field.fieldType === 'CONTROLLED_LIST' || field.fieldType === 'LIST'">
-        <div class="custom-dropdown-wrapper" :class="{ 'readonly-field': field.is_readonly, 'dropdown-open': dropdownOpen }">
+        <div
+          class="custom-dropdown-wrapper"
+          :class="{ 'readonly-field': field.is_readonly, 'dropdown-open': dropdownOpen }"
+          ref="dropdownWrapper"
+        >
           <div
             class="custom-dropdown-selected"
             :class="{ 'open': dropdownOpen, 'readonly-field': field.is_readonly }"
@@ -224,6 +228,7 @@ export default {
       currentColor: '#699d8c',
       savedSelection: null,
       isUserInput: false,
+      outsideClickHandler: null,
     };
   },
   computed: {
@@ -444,9 +449,14 @@ export default {
     },
     toggleDropdown() {
       if (this.field.is_readonly) return;
-      this.dropdownOpen = !this.dropdownOpen;
       if (this.dropdownOpen) {
-        this.$nextTick(this.updateDropdownDirection);
+        this.closeDropdown();
+      } else {
+        this.dropdownOpen = true;
+        this.$nextTick(() => {
+          this.updateDropdownDirection();
+          this.addOutsideClickListeners();
+        });
       }
     },
     onDropdownClick() {
@@ -455,15 +465,85 @@ export default {
     selectDropdownOption(option) {
       this.localValue = option.value;
       this.$emit('update:value', option.value);
+      this.closeDropdown();
+    },
+    closeDropdown() {
+      if (!this.dropdownOpen) {
+        this.removeOutsideClickListeners();
+        return;
+      }
       this.dropdownOpen = false;
+      this.dropdownOpenUp = false;
+      if (this.$refs.dropdownList) {
+        this.$refs.dropdownList.style.maxHeight = '';
+      }
+      this.removeOutsideClickListeners();
+    },
+    addOutsideClickListeners() {
+      if (this.outsideClickHandler) return;
+      this.outsideClickHandler = event => {
+        const wrapper = this.$refs.dropdownWrapper;
+        if (!wrapper || !this.dropdownOpen) return;
+        if (wrapper.contains(event.target)) return;
+        this.closeDropdown();
+      };
+      document.addEventListener('mousedown', this.outsideClickHandler);
+      document.addEventListener('touchstart', this.outsideClickHandler);
+    },
+    removeOutsideClickListeners() {
+      if (!this.outsideClickHandler) return;
+      document.removeEventListener('mousedown', this.outsideClickHandler);
+      document.removeEventListener('touchstart', this.outsideClickHandler);
+      this.outsideClickHandler = null;
     },
     updateDropdownDirection() {
+      if (typeof window === 'undefined') return;
       const list = this.$refs.dropdownList;
-      if (!list) return;
-      const rect = list.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const spaceAbove = rect.top;
-      this.dropdownOpenUp = spaceBelow < 0 && spaceAbove > spaceBelow;
+      const wrapper = this.$refs.dropdownWrapper;
+      if (!list || !wrapper) return;
+
+      const DEFAULT_MAX_HEIGHT = 220;
+      const wrapperRect = wrapper.getBoundingClientRect();
+      list.style.maxHeight = '';
+
+      let spaceBelow = window.innerHeight - wrapperRect.bottom;
+      let spaceAbove = wrapperRect.top;
+
+      let currentAncestor = wrapper.parentElement;
+      while (currentAncestor) {
+        const style = window.getComputedStyle(currentAncestor);
+        const overflowY = style.overflowY;
+        const overflow = style.overflow;
+
+        if (
+          ['auto', 'scroll', 'hidden'].includes(overflowY) ||
+          ['auto', 'scroll', 'hidden'].includes(overflow)
+        ) {
+          const ancestorRect = currentAncestor.getBoundingClientRect();
+          spaceBelow = Math.min(spaceBelow, ancestorRect.bottom - wrapperRect.bottom);
+          spaceAbove = Math.min(spaceAbove, wrapperRect.top - ancestorRect.top);
+        }
+
+        if (currentAncestor === document.documentElement) {
+          break;
+        }
+
+        currentAncestor = currentAncestor.parentElement;
+      }
+
+      spaceBelow = Math.max(spaceBelow, 0);
+      spaceAbove = Math.max(spaceAbove, 0);
+
+      const naturalHeight = Math.min(list.scrollHeight, DEFAULT_MAX_HEIGHT);
+      const shouldOpenUp = spaceBelow < naturalHeight && spaceAbove > spaceBelow;
+      this.dropdownOpenUp = shouldOpenUp;
+
+      const availableSpace = shouldOpenUp ? spaceAbove : spaceBelow;
+      const finalHeight = availableSpace > 0
+        ? Math.min(naturalHeight, availableSpace)
+        : naturalHeight;
+
+      list.style.maxHeight = `${finalHeight}px`;
     }
   },
   mounted() {
@@ -478,6 +558,7 @@ export default {
     }
   },
   beforeDestroy() {
+    this.removeOutsideClickListeners();
   }
 };
 </script>
@@ -958,7 +1039,7 @@ textarea.field-input::placeholder {
 }
 
 .custom-dropdown-wrapper.dropdown-open {
-  z-index: 10000;
+  z-index: 99999;
 }
 
 .custom-dropdown-list {
@@ -969,7 +1050,7 @@ textarea.field-input::placeholder {
   border: 1px solid #d1d5db;
   border-radius: 0 0 6px 6px;
   box-shadow: 0 4px 16px rgba(105,157,140,0.10);
-  z-index: 10000;
+  z-index: 99999;
   max-height: 220px;
   overflow-y: auto;
   margin-top: 2px;
