@@ -5,7 +5,7 @@
 class="action-icon-section" 
 @click="toggleFields"
 >
-<i class="material-symbols-outlined">{{ isExpanded ? 'keyboard_arrow_up' : 'keyboard_arrow_down' }}</i>
+<i class="material-symbols-outlined-arrow">{{ isExpanded ? 'keyboard_arrow_up' : 'keyboard_arrow_down' }}</i>
 </span>
       <h3 class="section-title">{{ sectionTitle }}</h3> 
     </div>
@@ -342,7 +342,7 @@ export default {
 
 <style scoped>
 .form-section {
-  margin-bottom: 16px;
+  margin-bottom: 40px;
   border: 0px;
   background-color: #fff;
 }
@@ -365,13 +365,13 @@ export default {
 
 .section-fields {
   margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  column-gap: 24px;
-  row-gap: 16px;
-  justify-items: start;
-  align-items: stretch;
+    padding: 15px 0px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    column-gap: 24px;
+    row-gap: 16px;
+    justify-items: start;
+    align-items: stretch;
 }
 
 .form-row {
@@ -414,8 +414,8 @@ export default {
     border-radius: 50%;
     background-color: #f5f5f5;
     border-color: #f5f5f5;
-    width: 29px;
-    height: 29px;
+    width: 25px;
+    height: 25px;
     padding: 2px;
     margin-right: 10px;
     align-items: center;
@@ -436,6 +436,25 @@ export default {
   background-size: 200% 100%;
   animation: loading 1.5s infinite;
   border-radius: 4px;
+}
+
+.material-symbols-outlined-arrow {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 20px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+    align-items: center;
+    justify-content: center !important;
+    color: #787878;
 }
 
 @keyframes loading {
