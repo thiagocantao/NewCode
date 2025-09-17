@@ -1,6 +1,7 @@
 <template>
   <div class="dp-wrapper" ref="dpWrapper">
     <input
+      ref="dpInput"
       :class="['dp-input', { error }]"
       type="text"
       :value="displayDate"
@@ -23,7 +24,7 @@
     >
       <span class="material-symbols-outlined">calendar_month</span>
     </button>
-    <div v-if="dpOpen" class="datepicker-pop" :style="dpPopStyle">
+    <div v-if="dpOpen" class="datepicker-pop" :style="dpPopStyle" ref="dpPop">
       <div class="dp-header">
         <button type="button" class="dp-nav" @click="prevMonth">&lt;</button>
         <div class="dp-title">{{ monthLabel }}</div>
@@ -108,6 +109,8 @@ export default {
     const dpInput = ref(null);
     const dpOpen = ref(false);
     const dpPopStyle = ref({});
+    const dpPop = ref(null);
+    const POPUP_Z_INDEX = 2147483647;
     const selectedDate = ref('');
     const timePart = ref('00:00');
 
@@ -205,17 +208,49 @@ export default {
 
     function updatePopoverPosition() {
       const wrap = dpWrapper.value;
-      if (!wrap) return;
+      const pop = dpPop.value;
+      if (!wrap || !pop) return;
+
       const rect = wrap.getBoundingClientRect();
-      const left = Math.round(rect.left);
-      const bottom = Math.round(window.innerHeight - rect.top + 4);
-      dpPopStyle.value = {
+      const viewportHeight = window.innerHeight;
+      const viewportWidth = window.innerWidth;
+      const desiredMinWidth = Math.max(rect.width, 230);
+      const popRect = pop.getBoundingClientRect();
+      const popHeight = popRect.height;
+      let left = Math.round(rect.left);
+
+      if (left + desiredMinWidth > viewportWidth) {
+        left = Math.max(0, Math.round(viewportWidth - desiredMinWidth - 4));
+      }
+
+      const spaceAbove = rect.top;
+      const spaceBelow = viewportHeight - rect.bottom;
+      let openUp;
+
+      if (spaceBelow >= popHeight) {
+        openUp = false;
+      } else if (spaceAbove >= popHeight) {
+        openUp = true;
+      } else {
+        openUp = spaceAbove > spaceBelow;
+      }
+
+      const style = {
         position: 'fixed',
         left: `${left}px`,
-        bottom: `${bottom}px`,
-        minWidth: `${Math.max(rect.width, 230)}px`,
-        zIndex: 2147483647
+        minWidth: `${desiredMinWidth}px`,
+        zIndex: POPUP_Z_INDEX,
+        top: 'auto',
+        bottom: 'auto'
       };
+
+      if (openUp) {
+        style.bottom = `${Math.round(viewportHeight - rect.top + 4)}px`;
+      } else {
+        style.top = `${Math.round(rect.bottom + 4)}px`;
+      }
+
+      dpPopStyle.value = style;
     }
 
     function openDp(){
@@ -292,6 +327,7 @@ export default {
       dpInput,
       dpOpen,
       dpPopStyle,
+      dpPop,
       openDp,
       prevMonth,
       nextMonth,
@@ -371,15 +407,15 @@ export default {
   border: 1px solid #acacad;
   border-radius: 8px;
   box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-  padding: 8px;
+  padding: 6px;
   z-index: 2147483647;
 }
-.dp-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 6px; }
+.dp-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 4px; }
 .dp-title { font-weight: 500; text-transform: capitalize; }
 .dp-nav { border: 1px solid #ccc; background: #f7f7f7; border-radius: 6px; padding: 2px 8px; cursor: pointer; }
 .dp-weekdays, .dp-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; }
-.dp-weekday { text-align: center; font-size: 12px; color: #666; padding: 4px 0; }
-.dp-cell { border: 0; background: transparent; border-radius: 6px; padding: 6px 0; cursor: pointer; align-items:center; text-align: center; justify-content: center;}
+.dp-weekday { text-align: center; font-size: 12px; color: #666; padding: 3px 0; }
+.dp-cell { border: 0; background: transparent; border-radius: 6px; padding: 5px 0; cursor: pointer; align-items:center; text-align: center; justify-content: center;}
 .dp-cell:hover { background: #f0f0f0; }
 .dp-cell.is-muted { color: #aaa; cursor: default; }
 .dp-cell.is-selected { background: #689d8c; color: #fff; }

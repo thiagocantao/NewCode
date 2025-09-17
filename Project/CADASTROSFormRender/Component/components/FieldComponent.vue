@@ -84,7 +84,11 @@
       </template>
 
       <template v-else-if="field.fieldType === 'SIMPLE_LIST' || field.fieldType === 'CONTROLLED_LIST' || field.fieldType === 'LIST'">
-        <div class="custom-dropdown-wrapper" :class="{ 'readonly-field': field.is_readonly, 'dropdown-open': dropdownOpen }">
+        <div
+          class="custom-dropdown-wrapper"
+          :class="{ 'readonly-field': field.is_readonly, 'dropdown-open': dropdownOpen }"
+          ref="dropdownWrapper"
+        >
           <div
             class="custom-dropdown-selected"
             :class="{ 'open': dropdownOpen, 'readonly-field': field.is_readonly }"
@@ -92,7 +96,21 @@
             tabindex="0"
             @keydown.enter.prevent="!field.is_readonly && toggleDropdown()"
           >
-            <span v-if="selectedOption" @click.stop="onDropdownClick" style="pointer-events:auto">{{ selectedOption.label }}</span>
+            <span
+              v-if="selectedOption"
+              @click.stop="onDropdownClick"
+              style="pointer-events:auto"
+            >
+              {{ selectedOption.label }}
+            </span>
+            <span
+              v-else
+              class="placeholder"
+              @click.stop="onDropdownClick"
+              style="pointer-events:auto"
+            >
+              {{ dropdownPlaceholder }}
+            </span>
             <span class="material-symbols-outlined dropdown-arrow" @click.stop="onDropdownClick" style="pointer-events:auto">expand_more</span>
           </div>
           <div v-if="dropdownOpen" :class="['custom-dropdown-list', { 'open-up': dropdownOpenUp } ]" ref="dropdownList">
@@ -131,7 +149,7 @@
             <button type="button" @click="insertLink" title="Inserir link"><span class="material-symbols-outlined">link</span></button>
             <button type="button" @click="insertImage" title="Inserir imagem"><span class="material-symbols-outlined">image</span></button>
             <button type="button" class="color-btn" :style="{ color: currentColor }" title="Cor do texto">
-              <span style="font-weight:bold; font-size:16px;">A</span>
+              <span style="font-weight:bold; font-size:14px;">A</span>
               <input
                 type="color"
                 @mousedown="saveSelection"
@@ -182,7 +200,7 @@
 
 <script>
 import CustomAlert from './CustomAlert.vue';
-import CustomDatePicker from '../../../CustomDatePicker/CustomDatePicker.vue';
+import CustomDatePicker from './CustomDatePicker.vue';
 
 export default {
   name: 'FieldComponent',
@@ -210,6 +228,7 @@ export default {
       currentColor: '#699d8c',
       savedSelection: null,
       isUserInput: false,
+      outsideClickHandler: null,
     };
   },
   computed: {
@@ -227,8 +246,16 @@ export default {
       return {
         '--text-input-bg': tokens.inputBG || '#FFFFFF',
         '--text-input-border': tokens.inputBorder || '#d1d5db',
-        '--text-input-border-focus': tokens.inputBorderInFocus || tokens.inputBorder || '#d1d5db'
+        '--text-input-border-focus': tokens.inputBorderInFocus || tokens.inputBorder || '#d1d5db',
+        '--placeholder-color': tokens.normal || tokens.inputText || '#787878'
       };
+    },
+    dropdownPlaceholder() {
+      return (
+        this.field.placeholder ||
+        this.field.placeholder_translations?.pt_br ||
+        'Select an option'
+      );
     },
     listOptions() {
       if (this.options && this.options.length > 0) {
@@ -423,9 +450,15 @@ export default {
     },
     toggleDropdown() {
       if (this.field.is_readonly) return;
-      this.dropdownOpen = !this.dropdownOpen;
       if (this.dropdownOpen) {
-        this.$nextTick(this.updateDropdownDirection);
+        this.closeDropdown();
+      } else {
+        this.dropdownOpen = true;
+        this.$nextTick(() => {
+          this.updateDropdownDirection();
+          this.addOutsideClickListeners();
+        });
+
       }
     },
     onDropdownClick() {
@@ -434,18 +467,89 @@ export default {
     selectDropdownOption(option) {
       this.localValue = option.value;
       this.$emit('update:value', option.value);
+      this.closeDropdown();
+    },
+    closeDropdown() {
+      if (!this.dropdownOpen) {
+        this.removeOutsideClickListeners();
+        return;
+      }
       this.dropdownOpen = false;
+      this.dropdownOpenUp = false;
+      if (this.$refs.dropdownList) {
+        this.$refs.dropdownList.style.maxHeight = '';
+      }
+      this.removeOutsideClickListeners();
+    },
+    addOutsideClickListeners() {
+      if (this.outsideClickHandler) return;
+      this.outsideClickHandler = event => {
+        const wrapper = this.$refs.dropdownWrapper;
+        if (!wrapper || !this.dropdownOpen) return;
+        if (wrapper.contains(event.target)) return;
+        this.closeDropdown();
+      };
+      document.addEventListener('mousedown', this.outsideClickHandler);
+      document.addEventListener('touchstart', this.outsideClickHandler);
+    },
+    removeOutsideClickListeners() {
+      if (!this.outsideClickHandler) return;
+      document.removeEventListener('mousedown', this.outsideClickHandler);
+      document.removeEventListener('touchstart', this.outsideClickHandler);
+      this.outsideClickHandler = null;
     },
     updateDropdownDirection() {
+      if (typeof window === 'undefined') return;
       const list = this.$refs.dropdownList;
-      if (!list) return;
-      const rect = list.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const spaceAbove = rect.top;
-      this.dropdownOpenUp = spaceBelow < 0 && spaceAbove > spaceBelow;
+      const wrapper = this.$refs.dropdownWrapper;
+      if (!list || !wrapper) return;
+
+      const DEFAULT_MAX_HEIGHT = 220;
+      const wrapperRect = wrapper.getBoundingClientRect();
+      list.style.maxHeight = '';
+
+      let spaceBelow = window.innerHeight - wrapperRect.bottom;
+      let spaceAbove = wrapperRect.top;
+
+      let currentAncestor = wrapper.parentElement;
+      while (currentAncestor) {
+        const style = window.getComputedStyle(currentAncestor);
+        const overflowY = style.overflowY;
+        const overflow = style.overflow;
+
+        if (
+          ['auto', 'scroll', 'hidden'].includes(overflowY) ||
+          ['auto', 'scroll', 'hidden'].includes(overflow)
+        ) {
+          const ancestorRect = currentAncestor.getBoundingClientRect();
+          spaceBelow = Math.min(spaceBelow, ancestorRect.bottom - wrapperRect.bottom);
+          spaceAbove = Math.min(spaceAbove, wrapperRect.top - ancestorRect.top);
+        }
+
+        if (currentAncestor === document.documentElement) {
+          break;
+        }
+
+        currentAncestor = currentAncestor.parentElement;
+      }
+
+      spaceBelow = Math.max(spaceBelow, 0);
+      spaceAbove = Math.max(spaceAbove, 0);
+
+      const naturalHeight = Math.min(list.scrollHeight, DEFAULT_MAX_HEIGHT);
+      const shouldOpenUp = spaceBelow < naturalHeight && spaceAbove > spaceBelow;
+      this.dropdownOpenUp = shouldOpenUp;
+
+      const availableSpace = shouldOpenUp ? spaceAbove : spaceBelow;
+      const finalHeight = availableSpace > 0
+        ? Math.min(naturalHeight, availableSpace)
+        : naturalHeight;
+
+      list.style.maxHeight = `${finalHeight}px`;
     }
   },
   mounted() {
+    console.log(wwLib);
     if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
       this.$refs.rte.innerHTML = this.localValue || '';
     }
@@ -456,6 +560,7 @@ export default {
     }
   },
   beforeDestroy() {
+    this.removeOutsideClickListeners();
   }
 };
 </script>
@@ -466,9 +571,11 @@ export default {
   flex-direction: column;
   width: 100%;
   margin-bottom: 5px;
+  font-size: 14px;
   --text-input-bg: #ffffff;
   --text-input-border: #d1d5db;
   --text-input-border-focus: #bdbdbd;
+  --placeholder-color: #787878;
 }
 
 .field-label {
@@ -506,6 +613,7 @@ textarea.field-input {
   border: 1px solid var(--text-input-border);
   border-radius: 4px;
   background-color: var(--text-input-bg);
+
 }
 
 input.field-input {
@@ -520,15 +628,19 @@ input.field-input {
 
 input.field-input:focus,
 textarea.field-input:focus {
+
+  outline: none;
   border-color: var(--text-input-border-focus);
   box-shadow: none;
   background-color: #ffffff;
-  color: #787878;
+  color: #787878; 
 }
 
 input.field-input::placeholder,
 textarea.field-input::placeholder {
-  color: #787878;
+
+  color: var(--placeholder-color, #787878);
+
   opacity: 1;
 }
 
@@ -560,7 +672,7 @@ textarea.field-input::placeholder {
   color: rgb(120, 120, 120);
   padding: 8px;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 14px;
   white-space: nowrap;
   z-index: 1;
 }
@@ -597,8 +709,15 @@ textarea.field-input::placeholder {
   box-sizing: border-box;
 }
 
+
+
+.date-input :deep(.dp-input:focus) {
+  outline: none;
+}
+
 .date-input :deep(.dp-input::placeholder) {
-  color: #787878;
+  color: var(--placeholder-color, #787878);
+
   opacity: 1;
 }
 
@@ -642,7 +761,7 @@ textarea.field-input::placeholder {
 
 .field-feedback {
   margin-top: 6px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 400;
   border-radius: 4px;
   padding: 4px 8px;
@@ -660,7 +779,7 @@ textarea.field-input::placeholder {
 }
 
 .deadline-diff {
-  font-size: 12px;
+  font-size: 14px;
   color: #007bff;
   margin-top: 4px;
 }
@@ -668,7 +787,7 @@ textarea.field-input::placeholder {
 .deadline-visual {
   border-radius: 20px !important;
   text-align: center;
-  font-size: 12px;
+  font-size: 14px;
   transition: background 0.3s, color 0.3s;
 }
 .deadline-green {
@@ -729,7 +848,7 @@ textarea.field-input::placeholder {
   border-radius: 4px;
   padding: 3px 10px;
   cursor: pointer;
-  font-size: 15px;
+  font-size: 14px;
   color: #333;
   transition: background 0.2s, border 0.2s;
   box-shadow: 0 1px 1px rgba(0,0,0,0.01);
@@ -762,18 +881,24 @@ textarea.field-input::placeholder {
   color: #787878;
   font-size: 14px;
   white-space: pre-wrap;
-  transition: background 0.3s, border-color 0.3s, color 0.3s;
+  transition: background 0.3s, border-color 0.3s, color 0.3s;  
+  outline: none !important;
+
 }
 
 .rich-text-input:focus {
   border-color: var(--text-input-border-focus);
   background-color: #ffffff;
   color: #787878;
+  outline: none !important;
+
 }
 
 .rich-text-input[data-placeholder]:empty::before {
   content: attr(data-placeholder);
-  color: #787878;
+
+  color: var(--placeholder-color, #787878);
+
   opacity: 1;
   pointer-events: none;
 }
@@ -814,7 +939,7 @@ textarea.field-input::placeholder {
   border-radius: 4px;
   padding: 3px 10px;
   cursor: pointer;
-  font-size: 15px;
+  font-size: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -874,6 +999,7 @@ textarea.field-input::placeholder {
   box-sizing: border-box;
   background: #f8f9fa;
   transition: border 0.2s;
+  outline: none !important;
   color: #787878;
 }
 
@@ -885,9 +1011,11 @@ textarea.field-input::placeholder {
 }
 
 .list-search-input::placeholder {
-  color: #787878;
+
+  color: var(--placeholder-color, #787878);
   opacity: 1;
 }
+
 
 .custom-dropdown-wrapper {
   position: relative;
@@ -903,9 +1031,10 @@ textarea.field-input::placeholder {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 34px;
-  font-size: 13px;
+  height: 36px;
+  font-size: 14px;
   transition: border 0.2s;
+  color: #787878;
 }
 
 .custom-dropdown-selected.open {
@@ -921,7 +1050,7 @@ textarea.field-input::placeholder {
 }
 
 .custom-dropdown-wrapper.dropdown-open {
-  z-index: 10000;
+  z-index: 99999;
 }
 
 .custom-dropdown-list {
@@ -932,7 +1061,7 @@ textarea.field-input::placeholder {
   border: 1px solid #d1d5db;
   border-radius: 0 0 6px 6px;
   box-shadow: 0 4px 16px rgba(105,157,140,0.10);
-  z-index: 10000;
+  z-index: 99999;
   max-height: 220px;
   overflow-y: auto;
   margin-top: 2px;
@@ -940,16 +1069,20 @@ textarea.field-input::placeholder {
 }
 
 .custom-dropdown-option {
-  padding: 8px 12px;
+  padding: 0 12px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 14px;
   transition: background 0.15s;
+  color: #000000;
+  height: 34px;
+  display: flex;
+  align-items: center;
+
 }
 
 .custom-dropdown-option.selected {
   background: #e3eafc;
-  color: #699d8c;
-  font-weight: bold;
+  color: #787878;
 }
 
 .custom-dropdown-option:hover {
@@ -959,18 +1092,18 @@ textarea.field-input::placeholder {
 .custom-dropdown-no-options {
   padding: 8px 12px;
   color: #888;
-  font-size: 13px;
+  font-size: 14px;
   text-align: center;
 }
 
 .custom-dropdown-selected .dropdown-arrow {
   font-size: 20px;
-  color: #bdbdbd;
+  color: #000000;
   margin-left: 8px;
 }
 
 .custom-dropdown-selected .placeholder {
-  color: #aaa;
+  color: var(--placeholder-color, #787878);
 }
 
 .custom-dropdown-list.open-up {

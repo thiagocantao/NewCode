@@ -1,8 +1,8 @@
 <template>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
-  <div class="form-builder-container"  :style="formHeightStyle">
+  <div class="form-builder-container" :class="{ 'has-custom-height': hasCustomFormHeight }" :style="formHeightStyle">
     <div class="form-builder">
-      <div class="form-sections-container scrollable" ref="formSectionsContainer">
+      <div :class="['form-sections-container', { scrollable: hasCustomFormHeight }]" ref="formSectionsContainer">
         <!-- Estado de carregamento -->
         <div v-if="isLoading" class="loading-container">
           <div class="loading-spinner"></div>
@@ -105,11 +105,39 @@ export default {
       return true;
     });
 
-    const formHeightStyle = computed(() => {
-      if (props.content.formHeight) {
-        return { height: props.content.formHeight };
+    const componentFontFamily = ref('');
+
+    const updateComponentFontFamily = () => {
+      try {
+        if (typeof window !== 'undefined' && window.wwLib?.wwVariable?.getValue) {
+          const typographySettings = window.wwLib.wwVariable.getValue('5e429bf8-2fe3-42e4-a41d-e3b4ac1b52fa');
+          componentFontFamily.value = typographySettings?.fontFamily || '';
+        } else {
+          componentFontFamily.value = '';
+        }
+      } catch (error) {
+        componentFontFamily.value = '';
       }
-      return {};
+    };
+
+    const hasCustomFormHeight = computed(() => {
+      const height = props.content.formHeight;
+      if (typeof height === 'number') {
+        return true;
+      }
+      if (typeof height === 'string') {
+        return height.trim() !== '';
+      }
+      return false;
+    });
+
+    const formHeightStyle = computed(() => {
+      const style = {};
+      if (hasCustomFormHeight.value) {
+        style.height = props.content.formHeight;
+      }
+      style.fontFamily = componentFontFamily.value || 'inherit';
+      return style;
     });
 
     const loadFormData = () => {
@@ -311,6 +339,7 @@ export default {
       };
       const initializeComponent = async () => {
         try {
+          updateComponentFontFamily();
           loadFormData();
           loadFieldsData();
           await new Promise(resolve => setTimeout(resolve, 100));
@@ -329,7 +358,12 @@ export default {
       if (newContent !== oldContent) {
         loadFormData();
         loadFieldsData();
+        updateComponentFontFamily();
       }
+    }, { deep: true });
+
+    watch(() => props.wwEditorState, () => {
+      updateComponentFontFamily();
     }, { deep: true });
 
     // Watch para formSections para debug
@@ -357,7 +391,8 @@ export default {
       language,
       isLoading,
       renderKey,
-      formHeightStyle
+      formHeightStyle,
+      hasCustomFormHeight
     };
   }
 };
@@ -366,30 +401,30 @@ export default {
 <style scoped>
   .form-builder-container {
     display: flex;
-    overflow-y: auto;
     background-color: #f5f5f5;
     width: 100%;
+  }
+
+  .form-builder-container.has-custom-height {
+    overflow-y: auto;
   }
 
   .form-builder {
     flex: 1;
     background-color: #fff;
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow: visible;
+    font-size: 14px;
   }
 
   .form-sections-container {
     flex: 1;
-    padding: 16px;
-    overflow-y: auto;
   }
 
   .no-sections {
     text-align: center;
-    padding: 20px;
     color: #666;
     font-style: italic;
     display: flex;
