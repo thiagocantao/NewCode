@@ -315,6 +315,27 @@
       );
     }
   };
+
+  const shouldRevealSaveButton = (event) => {
+    if (!event) return true;
+
+    if (event.afterDataChange) return false;
+
+    const ignoreSources = [
+      "api",
+      "columnEverythingChanged",
+      "gridInitializing",
+      "rowDataChanged",
+      "rowDataUpdated",
+    ];
+
+    if (event.source && ignoreSources.includes(event.source)) {
+      return false;
+    }
+
+    return true;
+  };
+
   
   export default {
   components: {
@@ -1108,7 +1129,10 @@ setTimeout(() => {
   JSON.stringify(filterValue.value || {})
   ) {
   setFilters(filterModel);
+  if (shouldRevealSaveButton(event)) {
   updateHideSaveButtonVisibility(false);
+  }
+
   ctx.emit("trigger-event", {
   name: "filterChanged",
   event: filterModel,
@@ -1125,7 +1149,10 @@ setTimeout(() => {
   JSON.stringify(sortValue.value || [])
   ) {
   setSort(state.sort?.sortModel || []);
+  if (shouldRevealSaveButton(event)) {
   updateHideSaveButtonVisibility(false);
+  }
+
   ctx.emit("trigger-event", {
   name: "sortChanged",
   event: state.sort?.sortModel || [],
@@ -1141,7 +1168,10 @@ setTimeout(() => {
   updateColumnsPosition();
   const current = JSON.stringify(columnsPositionValue.value || []);
   if (prev !== current) {
+  if (shouldRevealSaveButton(event)) {
   updateHideSaveButtonVisibility(false);
+  }
+
   ctx.emit("trigger-event", {
   name: "columnMoved",
   event: columnsPositionValue.value,
