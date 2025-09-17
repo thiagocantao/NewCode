@@ -336,6 +336,13 @@
     return true;
   };
 
+  const syncHideSaveButtonVisibility = (event) => {
+    updateHideSaveButtonVisibility(!shouldRevealSaveButton(event));
+  };
+
+  const resetHideSaveButtonVisibility = () => {
+    updateHideSaveButtonVisibility(true);
+  };
   
   export default {
   components: {
@@ -827,6 +834,7 @@ setTimeout(() => {
     applyExternalSortAndSync();
   }
 }, 0);
+    resetHideSaveButtonVisibility();
   }, { deep: true });
 
 
@@ -852,6 +860,8 @@ setTimeout(() => {
     const onGridReady = (params) => {
       gridApi.value = params.api;
       columnApi.value = params.columnApi;
+
+      resetHideSaveButtonVisibility();
 
       // Restaura imediatamente e também em pequenos delays
       restoreGridState();
@@ -1129,9 +1139,7 @@ setTimeout(() => {
   JSON.stringify(filterValue.value || {})
   ) {
   setFilters(filterModel);
-  if (shouldRevealSaveButton(event)) {
-  updateHideSaveButtonVisibility(false);
-  }
+  syncHideSaveButtonVisibility(event);
 
   ctx.emit("trigger-event", {
   name: "filterChanged",
@@ -1149,9 +1157,7 @@ setTimeout(() => {
   JSON.stringify(sortValue.value || [])
   ) {
   setSort(state.sort?.sortModel || []);
-  if (shouldRevealSaveButton(event)) {
-  updateHideSaveButtonVisibility(false);
-  }
+  syncHideSaveButtonVisibility(event);
 
   ctx.emit("trigger-event", {
   name: "sortChanged",
@@ -1168,9 +1174,7 @@ setTimeout(() => {
   updateColumnsPosition();
   const current = JSON.stringify(columnsPositionValue.value || []);
   if (prev !== current) {
-  if (shouldRevealSaveButton(event)) {
-  updateHideSaveButtonVisibility(false);
-  }
+  syncHideSaveButtonVisibility(event);
 
   ctx.emit("trigger-event", {
   name: "columnMoved",
