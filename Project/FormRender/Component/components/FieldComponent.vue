@@ -1,10 +1,8 @@
 <template>
   <CustomAlert v-if="autoSaveEnabled" :message="error" :visible="!!error && showAlert" @close="showAlert = false" />
-  <div
-    class="field-component"
+  <div class="field-component"
     :class="[`field-type-${field.fieldType.toLowerCase()}`, { 'is-mandatory': field.is_mandatory }]"
-    :style="componentStyleVars"
-  >
+    :style="componentStyleVars">
     <!-- Label do campo -->
     <label v-if="!field.is_hide_legend" class="field-label">
       {{ field.name }}
@@ -14,13 +12,9 @@
     <!-- Campos de entrada baseados no tipo -->
     <div class="field-input-container">
       <template v-if="field.fieldType === 'DATE'">
-        <CustomDatePicker
-          v-model="localValue"
-          :disabled="field.is_readonly"
-          @update:modelValue="onDateChange"
+        <CustomDatePicker v-model="localValue" :disabled="field.is_readonly" @update:modelValue="onDateChange"
           :error="error && field.is_mandatory"
-          :class="['field-input', 'date-input', { error: error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
-        />
+          :class="['field-input', 'date-input', { error: error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]" />
       </template>
       <template v-else-if="field.fieldType === 'DEADLINE'">
         <div style="position:relative;">
@@ -29,8 +23,6 @@
             :value="deadlineDiff"
             readonly
             :class="[
-              'field-input',
-              'date-input',
               'deadline-visual',
               deadlineColorClass,
               { 'readonly-field': field.is_readonly }
@@ -39,15 +31,10 @@
             @click="openDeadlinePicker"
             style="cursor:pointer;"
           />
-          <CustomDatePicker
-            ref="deadlineDatePicker"
-            v-model="deadlineValue"
-            :disabled="field.is_readonly"
-            :show-time="true"
-            @update:modelValue="onDeadlineChange"
+          <CustomDatePicker ref="deadlineDatePicker" v-model="deadlineValue" :disabled="field.is_readonly"
+            :show-time="true" @update:modelValue="onDeadlineChange"
             :class="['field-input', 'date-input', { error: error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
-            style="position:absolute;top:0;left:0;width:100%;height:0;overflow:hidden;"
-          />
+            style="position:absolute;top:0;left:0;width:100%;height:0;overflow:hidden;" />
 
         </div>
       </template>
@@ -100,7 +87,8 @@
       <template
         v-else-if="field.fieldType === 'SIMPLE_LIST' || field.fieldType === 'CONTROLLED_LIST' || field.fieldType === 'LIST'">
         <div class="custom-dropdown-wrapper" :class="{ 'readonly-field': field.is_readonly }">
-          <div class="custom-dropdown-selected" :class="{ open: dropdownOpen, 'readonly-field': field.is_readonly, error: error && field.is_mandatory }"
+          <div class="custom-dropdown-selected"
+            :class="{ open: dropdownOpen, 'readonly-field': field.is_readonly, error: error && field.is_mandatory }"
             @click="onDropdownClick" tabindex="0" @keydown.enter.prevent="!field.is_readonly && toggleDropdown()">
             <span v-if="selectedOption" @click.stop="onDropdownClick" style="pointer-events:auto">{{ selectedOption.label }}</span>
             <span class="material-symbols-outlined dropdown-arrow" @click.stop="onDropdownClick" style="pointer-events:auto">expand_more</span>
@@ -140,15 +128,10 @@
               <input type="color" @input="setColor($event)" :value="currentColor" class="color-input" title="Cor do texto" />
             </button>
           </div>
-          <div
-            ref="rte"
-            :contenteditable="!field.is_readonly"
-            dir="ltr"
+          <div ref="rte" :contenteditable="!field.is_readonly" dir="ltr"
             :class="['field-input', 'rich-text-input', { 'readonly-field': field.is_readonly }]"
             :data-placeholder="field.placeholder || field.placeholder_translations?.pt_br || ''"
-            @input="onContentEditableInput"
-            @blur="updateValue"
-          >
+            @input="onContentEditableInput" @blur="updateValue">
           </div>
         </div>
       </template>
@@ -1004,28 +987,36 @@ export default {
   }
 
   .deadline-visual {
+    border: none !important;
     border-radius: 20px !important;
     text-align: center;
     font-size: 12px;
-    transition: background 0.3s, color 0.3s;
+    transition: background .3s, color .3s;
+    width: 130px !important;
+    height: 30px !important;
+    --text-input-border: none !important;
+    --text-input-border-focus: none !important;
   }
 
   .deadline-green {
-    background: #e6ffed !important;
-    color: #1b5e20 !important;
-    border: 1.5px solid #1b5e20 !important;
+    background: rgb(131, 176, 244) !important;
+    color: #ffffff !important;
+    border: 1.5px solid rgb(131, 176, 244) !important;
+    font-weight: bold;
   }
 
   .deadline-yellow {
     background: #fffbe6 !important;
     color: #b59f00 !important;
     border: 1.5px solid #b59f00 !important;
+    font-weight: bold;
   }
 
   .deadline-red {
     background: #ffdddd !important;
     color: #b71c1c !important;
     border: 1.5px solid #b71c1c !important;
+    font-weight: bold;
   }
 
   .deadline-picker-popup {
@@ -1104,7 +1095,8 @@ export default {
     color: #787878;
     font-size: 14px;
     white-space: pre-wrap;
-    transition: background 0.3s, border-color 0.3s, color 0.3s;
+    transition: background .3s, border-color .3s, color .3s;
+    outline: none !important;
   }
 
   .rich-text-input:focus {
@@ -1217,6 +1209,7 @@ export default {
     box-sizing: border-box;
     background: #f8f9fa;
     transition: border 0.2s;
+    outline:none;
   }
 
   .list-search-input:focus,
@@ -1240,10 +1233,10 @@ export default {
     display: flex;
     align-items: center;
     justify-content: space-between;
-
     height: 34px;
-    font-size: 13px;
-    transition: border 0.2s;
+    font-size: 14px;
+    transition: border .2s;
+    color: #787878 !important;
   }
 
   .custom-dropdown-selected.open {
