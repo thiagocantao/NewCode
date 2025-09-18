@@ -431,6 +431,7 @@
 
   const scheduleCaptureInitialGridState = (delay = 0) => {
     suppressRevealUntilCapture = true;
+
     if (captureInitialStateTimeout) {
       clearTimeout(captureInitialStateTimeout);
     }
@@ -463,6 +464,7 @@
       throw error;
     }
   };
+
 
   const isGridStatePristine = () => {
     if (!gridApi.value) return true;
@@ -1238,6 +1240,7 @@ const remountComponent = () => {
       runWithSuppressedReveal(() => {
         gridApi.value.setFilterModel(filters || null);
       }, { recaptureDelay: 50 });
+
     },
     { deep: true, immediate: true }
   );
@@ -1252,6 +1255,7 @@ const remountComponent = () => {
           defaultState: { sort: null },
         });
       }, { recaptureDelay: 50 });
+
     },
     { deep: true, immediate: true }
   );
