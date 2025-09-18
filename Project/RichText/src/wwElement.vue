@@ -282,6 +282,51 @@
                     <div class="icon" v-html="iconHTMLs.image"></div>
                 </button>
 
+                <span
+                    class="separator"
+                    v-if="selectedImage && isEditable && !isHtmlMode"
+                ></span>
+
+                <div
+                    v-if="selectedImage && isEditable && !isHtmlMode"
+                    class="ww-rich-text__image-resize"
+                    ref="imageResizePanel"
+                >
+                    <label class="ww-rich-text__image-resize-field">
+                        <span>Largura (px)</span>
+                        <input
+                            type="number"
+                            min="1"
+                            step="1"
+                            v-model="imageResizeInputs.width"
+                            @change="applySelectedImageWidth"
+                            @focus="handleImageResizeFocus"
+                            @blur="handleImageResizeBlur"
+                        />
+                    </label>
+                    <label class="ww-rich-text__image-resize-field">
+                        <span>Altura (px)</span>
+                        <input
+                            type="number"
+                            min="1"
+                            step="1"
+                            v-model="imageResizeInputs.height"
+                            @change="applySelectedImageHeight"
+                            @focus="handleImageResizeFocus"
+                            @blur="handleImageResizeBlur"
+                        />
+                    </label>
+                    <button
+                        type="button"
+                        class="ww-rich-text__image-resize-reset"
+                        @click="resetSelectedImageSize"
+                        @focus="handleImageResizeFocus"
+                        @blur="handleImageResizeBlur"
+                    >
+                        Redefinir
+                    </button>
+                </div>
+
                 <!-- HTML editor -->
                 <button
                     type="button"
@@ -463,6 +508,22 @@ const AlignableImage = Image.extend({
                     return { 'data-supabase-attachment': attributes.supabaseAttachmentId };
                 },
             },
+            width: {
+                default: null,
+                parseHTML: element => element.getAttribute('width') || element.style.width || null,
+                renderHTML: attributes => {
+                    if (!attributes.width) return {};
+                    return { width: attributes.width };
+                },
+            },
+            height: {
+                default: null,
+                parseHTML: element => element.getAttribute('height') || element.style.height || null,
+                renderHTML: attributes => {
+                    if (!attributes.height) return {};
+                    return { height: attributes.height };
+                },
+            },
         };
     },
 });
@@ -578,6 +639,13 @@ export default {
         supabase: null,
         supabaseAuth: null,
         isUploadingImage: false,
+        selectedImage: null,
+        imageResizeInputs: {
+            width: '',
+            height: '',
+        },
+        imageSelectionRetries: 0,
+        isEditingImageSize: false,
     }),
 
     watch: {
@@ -603,6 +671,7 @@ export default {
         },
         isEditable(value) {
             if (!this.richEditor) return;
+            if (!value) this.clearSelectedImage({ force: true });
             this.richEditor.setEditable(value && !this.isHtmlMode);
         },
         variableValue(value, oldValue) {
@@ -679,6 +748,7 @@ export default {
         },
         isHtmlMode(value) {
             if (!this.richEditor) return;
+            if (value) this.clearSelectedImage({ force: true });
             this.richEditor.setEditable(!value && this.isEditable);
         },
     },
@@ -1002,6 +1072,240 @@ export default {
                 this.iconHTMLs = {};
             }
         },
+        parseSizeValue(value) {
+            if (value === null || value === undefined) return null;
+            if (typeof value === 'number') {
+                return Number.isFinite(value) ? value : null;
+            }
+            if (typeof value !== 'string') return null;
+            const trimmed = value.trim();
+            if (!trimmed || trimmed.endsWith('%')) return null;
+            const normalized = trimmed.toLowerCase().endsWith('px')
+                ? trimmed.slice(0, -2)
+                : trimmed;
+            const numeric = Number.parseFloat(normalized);
+            return Number.isFinite(numeric) ? numeric : null;
+        },
+        clearSelectedImage(options) {
+            const force = Boolean(options && options.force);
+
+            if (!force && this.isEditingImageSize) {
+                return;
+            }
+
+            if (!this.selectedImage && !this.imageResizeInputs.width && !this.imageResizeInputs.height) {
+                if (force) this.isEditingImageSize = false;
+                return;
+            }
+            this.selectedImage = null;
+            this.imageResizeInputs = { width: '', height: '' };
+            this.imageSelectionRetries = 0;
+            this.isEditingImageSize = false;
+        },
+        handleEditorSelectionUpdate() {
+            if (!this.richEditor || this.isHtmlMode || !this.isEditable) {
+                this.clearSelectedImage();
+                return;
+            }
+
+            const { state, view } = this.richEditor;
+            if (!state || !view) {
+                this.clearSelectedImage();
+                return;
+            }
+
+            const { selection } = state;
+            const isImageSelection = selection instanceof NodeSelection && selection.node?.type?.name === 'image';
+
+            if (!isImageSelection) {
+                if (this.isEditingImageSize && this.selectedImage) {
+                    return;
+                }
+                this.clearSelectedImage();
+                return;
+            }
+
+            const pos = selection.from;
+            const attrs = selection.node.attrs || {};
+            const domNode = typeof view.nodeDOM === 'function' ? view.nodeDOM(pos) : null;
+
+            let width = this.parseSizeValue(attrs.width);
+            let height = this.parseSizeValue(attrs.height);
+
+            let naturalWidth = null;
+            let naturalHeight = null;
+
+            if (domNode instanceof HTMLImageElement) {
+                naturalWidth = domNode.naturalWidth || null;
+                naturalHeight = domNode.naturalHeight || null;
+
+                if (!width) {
+                    const rect = domNode.getBoundingClientRect();
+                    width = rect?.width || domNode.width || domNode.clientWidth || naturalWidth;
+                }
+
+                if (!height) {
+                    const rect = domNode.getBoundingClientRect();
+                    height = rect?.height || domNode.height || domNode.clientHeight || naturalHeight;
+                }
+            } else if (domNode && typeof domNode.getBoundingClientRect === 'function') {
+                const rect = domNode.getBoundingClientRect();
+                if (!width && rect?.width) width = rect.width;
+                if (!height && rect?.height) height = rect.height;
+            }
+
+            if (!width && this.selectedImage?.width) width = this.selectedImage.width;
+            if (!height && this.selectedImage?.height) height = this.selectedImage.height;
+
+            if (width) width = Math.max(1, Math.round(width));
+            if (height) height = Math.max(1, Math.round(height));
+
+            const ratio = naturalWidth && naturalHeight
+                ? naturalWidth / naturalHeight
+                : width && height
+                ? width / height
+                : this.selectedImage?.ratio || null;
+
+            this.selectedImage = {
+                pos,
+                width: width || null,
+                height: height || null,
+                naturalWidth: naturalWidth ? Math.round(naturalWidth) : null,
+                naturalHeight: naturalHeight ? Math.round(naturalHeight) : null,
+                ratio: ratio && Number.isFinite(ratio) ? ratio : null,
+            };
+
+            const missingDimensions = !width || !height;
+
+            if (missingDimensions) {
+                if (this.imageSelectionRetries < 5 && typeof window !== 'undefined') {
+                    const retryCount = this.imageSelectionRetries + 1;
+                    this.imageSelectionRetries = retryCount;
+                    window.setTimeout(() => {
+                        const currentSelection = this.richEditor?.state?.selection;
+                        if (
+                            currentSelection instanceof NodeSelection &&
+                            currentSelection.from === pos
+                        ) {
+                            this.handleEditorSelectionUpdate();
+                        }
+                    }, retryCount * 100);
+                }
+            } else {
+                this.imageSelectionRetries = 0;
+            }
+
+            this.imageResizeInputs = {
+                width: width ? String(width) : '',
+                height: height ? String(height) : '',
+            };
+        },
+        handleImageResizeFocus() {
+            this.isEditingImageSize = true;
+        },
+        handleImageResizeBlur() {
+            if (typeof window === 'undefined') return;
+
+            window.setTimeout(() => {
+                const panel = this.$refs.imageResizePanel;
+                const activeElement = window.document?.activeElement;
+                const isInsidePanel = panel && activeElement instanceof HTMLElement && panel.contains(activeElement);
+
+                if (isInsidePanel) {
+                    return;
+                }
+
+                this.isEditingImageSize = false;
+
+                if (this.richEditor?.isActive?.('image')) {
+                    this.handleEditorSelectionUpdate();
+                    return;
+                }
+
+                this.clearSelectedImage({ force: true });
+            }, 0);
+        },
+        applySelectedImageWidth() {
+            if (!this.selectedImage || !this.isEditable || this.isHtmlMode) return;
+            const width = Number(this.imageResizeInputs.width);
+            if (!width || width <= 0) {
+                this.imageResizeInputs.width = this.selectedImage.width ? String(this.selectedImage.width) : '';
+                return;
+            }
+            this.updateSelectedImageSize({ width });
+        },
+        applySelectedImageHeight() {
+            if (!this.selectedImage || !this.isEditable || this.isHtmlMode) return;
+            const height = Number(this.imageResizeInputs.height);
+            if (!height || height <= 0) {
+                this.imageResizeInputs.height = this.selectedImage.height ? String(this.selectedImage.height) : '';
+                return;
+            }
+            this.updateSelectedImageSize({ height });
+        },
+        updateSelectedImageSize({ width = null, height = null } = {}) {
+            if (!this.selectedImage || !this.richEditor) return;
+
+            let newWidth = width != null ? Math.round(width) : null;
+            let newHeight = height != null ? Math.round(height) : null;
+            const ratio = this.selectedImage.ratio && this.selectedImage.ratio > 0 ? this.selectedImage.ratio : null;
+
+            if (newWidth != null && (newHeight == null || newHeight <= 0)) {
+                if (ratio) {
+                    newHeight = Math.max(1, Math.round(newWidth / ratio));
+                } else if (this.selectedImage.height) {
+                    newHeight = this.selectedImage.height;
+                }
+            }
+
+            if (newHeight != null && (newWidth == null || newWidth <= 0)) {
+                if (ratio) {
+                    newWidth = Math.max(1, Math.round(newHeight * ratio));
+                } else if (this.selectedImage.width) {
+                    newWidth = this.selectedImage.width;
+                }
+            }
+
+            if (!newWidth || !newHeight) return;
+
+            this.selectedImage = {
+                ...this.selectedImage,
+                width: newWidth,
+                height: newHeight,
+            };
+
+            this.imageResizeInputs = {
+                width: String(newWidth),
+                height: String(newHeight),
+            };
+
+            this.richEditor
+                .chain()
+                .focus()
+                .updateAttributes('image', { width: newWidth, height: newHeight })
+                .run();
+        },
+        resetSelectedImageSize() {
+            if (!this.selectedImage || !this.richEditor || !this.isEditable || this.isHtmlMode) return;
+
+            this.richEditor.chain().focus().updateAttributes('image', { width: null, height: null }).run();
+
+            const width = this.selectedImage.naturalWidth || '';
+            const height = this.selectedImage.naturalHeight || '';
+
+            this.imageResizeInputs = {
+                width: width ? String(width) : '',
+                height: height ? String(height) : '',
+            };
+
+            this.imageSelectionRetries = 0;
+
+            if (typeof window !== 'undefined') {
+                window.setTimeout(() => {
+                    this.handleEditorSelectionUpdate();
+                }, 0);
+            }
+        },
         isTextAlignActive(textAlign) {
             if (!this.richEditor) return false;
 
@@ -1228,7 +1532,13 @@ export default {
         loadEditor() {
             if (this.loading) return;
             this.loading = true;
-            if (this.richEditor) this.richEditor.destroy();
+            this.clearSelectedImage({ force: true });
+            if (this.richEditor) {
+                this.richEditor.off?.('selectionUpdate', this.handleEditorSelectionUpdate);
+                this.richEditor.off?.('transaction', this.handleEditorSelectionUpdate);
+                this.richEditor.off?.('blur', this.clearSelectedImage);
+                this.richEditor.destroy();
+            }
             this.richEditor = new Editor({
                 content: String(this.content.initialValue ?? ''),
                 editable: this.isEditable,
@@ -1288,6 +1598,7 @@ export default {
                     this.setMentions(this.richEditor.getJSON().content.reduce(extractMentions, []));
                     this.htmlEditorValue = this.getContent();
                     this.refreshSupabaseImageUrls();
+                    this.handleEditorSelectionUpdate();
                 },
                 onUpdate: this.handleOnUpdate,
                 editorProps: {
@@ -1310,6 +1621,10 @@ export default {
                     },
                 },
             });
+            this.richEditor.on('selectionUpdate', this.handleEditorSelectionUpdate);
+            this.richEditor.on('transaction', this.handleEditorSelectionUpdate);
+            this.richEditor.on('blur', this.clearSelectedImage);
+            this.handleEditorSelectionUpdate();
             this.loading = false;
         },
         handleOnUpdate() {
@@ -1600,11 +1915,17 @@ export default {
         this.loadIcons();
     },
     beforeUnmount() {
-        if (this.richEditor) this.richEditor.destroy();
+        if (this.richEditor) {
+            this.richEditor.off?.('selectionUpdate', this.handleEditorSelectionUpdate);
+            this.richEditor.off?.('transaction', this.handleEditorSelectionUpdate);
+            this.richEditor.off?.('blur', this.clearSelectedImage);
+            this.richEditor.destroy();
+        }
         if (this.debounce) {
             clearTimeout(this.debounce);
             this.debounce = null;
         }
+        this.clearSelectedImage({ force: true });
     },
 };
 </script>
@@ -1757,6 +2078,57 @@ export default {
                 pointer-events: none;
                 z-index: 0;
             }
+        }
+    }
+
+    &__image-resize {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 4px;
+        flex-wrap: wrap;
+    }
+
+    &__image-resize-field {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 12px;
+        color: var(--menu-color);
+
+        span {
+            white-space: nowrap;
+        }
+
+        input {
+            width: 72px;
+            padding: 4px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 12px;
+            color: inherit;
+            background-color: #fff;
+            box-shadow: none;
+        }
+    }
+
+    &__image-resize-reset {
+        border: 1px solid #d1d5db;
+        background-color: transparent;
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-size: 12px;
+        cursor: pointer;
+        color: var(--menu-color);
+        transition: background-color 0.2s ease;
+
+        &:hover {
+            background-color: rgba(0, 0, 0, 0.04);
+        }
+
+        &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
     }
 
