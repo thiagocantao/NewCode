@@ -1004,7 +1004,6 @@ export default {
 
             if (options.src) {
                 this.richEditor.chain().focus().setImage(options).run();
-
                 return;
             }
 
@@ -1084,6 +1083,7 @@ export default {
                 input.click();
             });
         },
+
         focusEditor() {
             this.richEditor.chain().focus().run();
         },
