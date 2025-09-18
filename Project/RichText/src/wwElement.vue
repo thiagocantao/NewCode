@@ -1,9 +1,13 @@
 <template>
-    <div class="ww-rich-text" :class="{ '-readonly': isReadonly, editing: isEditing }" data-capture>
+    <div
+        class="ww-rich-text"
+        :class="{ '-readonly': isReadonly, editing: isEditing, 'html-mode': isHtmlMode }"
+        data-capture
+    >
         <template v-if="richEditor">
             <div class="ww-rich-text__menu native-menu" v-if="!hideMenu && !content.customMenu" :style="menuStyles">
                 <!-- Texte type (normal, ...) -->
-                <select id="rich-size" v-model="currentTextType" :disabled="!isEditable" v-if="menu.textType">
+                <select id="rich-size" v-model="currentTextType" :disabled="!isEditable || isHtmlMode" v-if="menu.textType">
                     <option v-for="option in textTypeOptions" :key="option.value" :value="option.value">
                         {{ option.label }}
                     </option>
@@ -17,7 +21,7 @@
                     class="ww-rich-text__menu-item"
                     @click="toggleBold"
                     :class="{ 'is-active': richEditor.isActive('bold') }"
-                    :disabled="!isEditable"
+                    :disabled="!isEditable || isHtmlMode"
                     v-if="menu.bold"
                     title="Bold"
                 >
@@ -28,7 +32,7 @@
                     class="ww-rich-text__menu-item"
                     @click="toggleItalic"
                     :class="{ 'is-active': richEditor.isActive('italic') }"
-                    :disabled="!isEditable"
+                    :disabled="!isEditable || isHtmlMode"
                     v-if="menu.italic"
                     title="Italic"
                 >
@@ -39,7 +43,7 @@
                     class="ww-rich-text__menu-item"
                     @click="toggleUnderline"
                     :class="{ 'is-active': richEditor.isActive('underline') }"
-                    :disabled="!isEditable"
+                    :disabled="!isEditable || isHtmlMode"
                     v-if="menu.underline"
                     title="Underline"
                 >
@@ -50,7 +54,7 @@
                     class="ww-rich-text__menu-item"
                     @click="toggleStrike"
                     :class="{ 'is-active': richEditor.isActive('strike') }"
-                    :disabled="!isEditable"
+                    :disabled="!isEditable || isHtmlMode"
                     v-if="menu.strike"
                     title="Strikethrough"
                 >
@@ -66,7 +70,7 @@
                     class="ww-rich-text__menu-item"
                     @click="setTextAlign('left')"
                     :class="{ 'is-active': isTextAlignActive('left') }"
-                    :disabled="!isEditable"
+                    :disabled="!isEditable || isHtmlMode"
                     v-if="menu.alignLeft"
                     title="Align left"
                 >
@@ -78,7 +82,7 @@
                     class="ww-rich-text__menu-item"
                     @click="setTextAlign('center')"
                     :class="{ 'is-active': isTextAlignActive('center') }"
-                    :disabled="!isEditable"
+                    :disabled="!isEditable || isHtmlMode"
                     v-if="menu.alignCenter"
                     title="Align center"
                 >
@@ -90,7 +94,7 @@
                     class="ww-rich-text__menu-item"
                     @click="setTextAlign('right')"
                     :class="{ 'is-active': isTextAlignActive('right') }"
-                    :disabled="!isEditable"
+                    :disabled="!isEditable || isHtmlMode"
                     v-if="menu.alignRight"
                     title="Align right"
                 >
@@ -102,7 +106,7 @@
                     class="ww-rich-text__menu-item"
                     @click="setTextAlign('justify')"
                     :class="{ 'is-active': isTextAlignActive('justify') }"
-                    :disabled="!isEditable"
+                    :disabled="!isEditable || isHtmlMode"
                     v-if="menu.alignJustify"
                     title="Align justify"
                 >
@@ -129,7 +133,7 @@
                         @input="setColor($event.target.value)"
                         :value="richEditor.getAttributes('textStyle').color"
                         style="display: none"
-                        :disabled="!isEditable"
+                        :disabled="!isEditable || isHtmlMode"
                     />
                 </label>
 
@@ -141,7 +145,7 @@
                     class="ww-rich-text__menu-item"
                     @click="toggleBulletList"
                     :class="{ 'is-active': richEditor.isActive('bulletList') }"
-                    :disabled="!isEditable"
+                    :disabled="!isEditable || isHtmlMode"
                     v-if="menu.bulletList"
                     title="Bullet list"
                 >
@@ -152,7 +156,7 @@
                     class="ww-rich-text__menu-item"
                     @click="toggleOrderedList"
                     :class="{ 'is-active': richEditor.isActive('orderedList') }"
-                    :disabled="!isEditable"
+                    :disabled="!isEditable || isHtmlMode"
                     v-if="menu.orderedList"
                     title="Ordered list"
                 >
@@ -163,7 +167,7 @@
                     class="ww-rich-text__menu-item"
                     @click="toggleTaskList"
                     :class="{ 'is-active': richEditor.isActive('taskList') }"
-                    :disabled="!isEditable"
+                    :disabled="!isEditable || isHtmlMode"
                     v-if="menu.taskList"
                 >
                     <div class="icon" v-html="iconHTMLs['check-square']"></div>
@@ -177,7 +181,7 @@
                     class="ww-rich-text__menu-item"
                     :class="{ 'is-highlighted': richEditor.isActive('table') }"
                     @click="insertTable"
-                    :disabled="!isEditable"
+                    :disabled="!isEditable || isHtmlMode"
                     v-if="menu.table"
                 >
                     <table-icon icon="table-insert" />
@@ -187,7 +191,7 @@
                     class="ww-rich-text__menu-item"
                     :class="{ 'is-highlighted': richEditor.isActive('table') }"
                     @click="insertRow('before')"
-                    :disabled="!isEditable"
+                    :disabled="!isEditable || isHtmlMode"
                     v-if="menu.table && richEditor.isActive('table')"
                 >
                     <table-icon icon="row-insert-before" />
@@ -197,7 +201,7 @@
                     class="ww-rich-text__menu-item"
                     :class="{ 'is-highlighted': richEditor.isActive('table') }"
                     @click="insertRow('after')"
-                    :disabled="!isEditable"
+                    :disabled="!isEditable || isHtmlMode"
                     v-if="menu.table && richEditor.isActive('table')"
                 >
                     <table-icon icon="row-insert-after" />
@@ -207,7 +211,7 @@
                     class="ww-rich-text__menu-item"
                     :class="{ 'is-highlighted': richEditor.isActive('table') }"
                     @click="insertColumn('before')"
-                    :disabled="!isEditable"
+                    :disabled="!isEditable || isHtmlMode"
                     v-if="menu.table && richEditor.isActive('table')"
                 >
                     <table-icon icon="column-inster-before" />
@@ -217,7 +221,7 @@
                     class="ww-rich-text__menu-item"
                     :class="{ 'is-highlighted': richEditor.isActive('table') }"
                     @click="insertColumn('after')"
-                    :disabled="!isEditable"
+                    :disabled="!isEditable || isHtmlMode"
                     v-if="menu.table && richEditor.isActive('table')"
                 >
                     <table-icon icon="column-insert-after" />
@@ -227,7 +231,7 @@
                     class="ww-rich-text__menu-item"
                     :class="{ 'is-highlighted': richEditor.isActive('table') }"
                     @click="deleteRow"
-                    :disabled="!isEditable"
+                    :disabled="!isEditable || isHtmlMode"
                     v-if="menu.table && richEditor.isActive('table')"
                 >
                     <table-icon icon="row-delete" />
@@ -237,7 +241,7 @@
                     class="ww-rich-text__menu-item"
                     :class="{ 'is-highlighted': richEditor.isActive('table') }"
                     @click="deleteColumn"
-                    :disabled="!isEditable"
+                    :disabled="!isEditable || isHtmlMode"
                     v-if="menu.table && richEditor.isActive('table')"
                 >
                     <table-icon icon="column-delete" />
@@ -247,7 +251,7 @@
                     class="ww-rich-text__menu-item"
                     :class="{ 'is-highlighted': richEditor.isActive('table') }"
                     @click="deleteTable"
-                    :disabled="!isEditable"
+                    :disabled="!isEditable || isHtmlMode"
                     v-if="menu.table && richEditor.isActive('table')"
                 >
                     <table-icon icon="table-delete" />
@@ -261,7 +265,7 @@
                     class="ww-rich-text__menu-item"
                     @click="setLink()"
                     :class="{ 'is-active': richEditor.isActive('link') }"
-                    :disabled="!isEditable"
+                    :disabled="!isEditable || isHtmlMode"
                     v-if="menu.link"
                 >
                     <div class="icon" v-html="iconHTMLs.link"></div>
@@ -272,10 +276,23 @@
                     type="button"
                     class="ww-rich-text__menu-item"
                     @click="setImage()"
-                    :disabled="!isEditable"
+                    :disabled="!isEditable || isHtmlMode"
                     v-if="menu.image"
                 >
                     <div class="icon" v-html="iconHTMLs.image"></div>
+                </button>
+
+                <!-- HTML editor -->
+                <button
+                    type="button"
+                    class="ww-rich-text__menu-item"
+                    @click="toggleHtmlMode"
+                    :class="{ 'is-active': isHtmlMode }"
+                    :disabled="!isEditable && !isHtmlMode"
+                    v-if="menu.htmlEditor"
+                    title="HTML editor"
+                >
+                    <div class="icon" v-html="iconHTMLs.htmlEditor"></div>
                 </button>
 
                 <!-- Code -->
@@ -284,7 +301,7 @@
                     class="ww-rich-text__menu-item"
                     @click="toggleCodeBlock"
                     :class="{ 'is-active': richEditor.isActive('codeBlock') }"
-                    :disabled="!isEditable"
+                    :disabled="!isEditable || isHtmlMode"
                     v-if="menu.codeBlock"
                 >
                     <div class="icon" v-html="iconHTMLs.code"></div>
@@ -296,7 +313,7 @@
                     class="ww-rich-text__menu-item"
                     @click="toggleBlockquote"
                     :class="{ 'is-active': richEditor.isActive('blockquote') }"
-                    :disabled="!isEditable"
+                    :disabled="!isEditable || isHtmlMode"
                     v-if="menu.blockquote"
                     title="Blockquote"
                 >
@@ -308,7 +325,7 @@
                     type="button"
                     class="ww-rich-text__menu-item"
                     @click="insertInlineMath()"
-                    :disabled="!isEditable"
+                    :disabled="!isEditable || isHtmlMode"
                     v-if="menu.inlineMath"
                     title="Inline math"
                 >
@@ -318,7 +335,7 @@
                     type="button"
                     class="ww-rich-text__menu-item"
                     @click="insertBlockMath()"
-                    :disabled="!isEditable"
+                    :disabled="!isEditable || isHtmlMode"
                     v-if="menu.blockMath"
                     title="Block math"
                 >
@@ -342,7 +359,7 @@
                     type="button"
                     class="ww-rich-text__menu-item"
                     @click="undo"
-                    :disabled="!isEditable"
+                    :disabled="!isEditable || isHtmlMode"
                     v-if="menu.undo"
                     title="Undo"
                 >
@@ -352,7 +369,7 @@
                     type="button"
                     class="ww-rich-text__menu-item"
                     @click="redo"
-                    :disabled="!isEditable"
+                    :disabled="!isEditable || isHtmlMode"
                     v-if="menu.redo"
                     title="Redo"
                 >
@@ -360,8 +377,20 @@
                 </button>
             </div>
             <wwElement class="ww-rich-text__menu" v-else-if="content.customMenu" v-bind="content.customMenuElement" />
-
-            <editor-content class="ww-rich-text__input" :editor="richEditor" :style="richStyles" />
+            <editor-content
+                v-if="!isHtmlMode"
+                class="ww-rich-text__input"
+                :editor="richEditor"
+                :style="richStyles"
+            />
+            <div v-else class="ww-rich-text__html-wrapper" :style="richStyles">
+                <textarea
+                    class="ww-rich-text__html-textarea"
+                    :value="htmlEditorValue"
+                    :disabled="!isEditable"
+                    @input="handleHtmlInput"
+                ></textarea>
+            </div>
         </template>
     </div>
 </template>
@@ -456,7 +485,7 @@ export default {
             uid: props.uid,
             name: 'value',
             type: 'string',
-            defaultValue: computed(() => String(props.content.initialValue || '')),
+            defaultValue: computed(() => String(props.content.initialValue ?? '')),
         });
 
         const { value: variableMentions, setValue: setMentions } = wwLib.wwVariable.useComponentVariable({
@@ -510,25 +539,49 @@ export default {
         richEditor: null,
         loading: false,
         iconHTMLs: {},
+        isHtmlMode: false,
+        htmlEditorValue: '',
+        isDebouncing: false,
+        debounce: null,
     }),
 
     watch: {
         'content.initialValue'(value) {
+            if (!this.richEditor) {
+                const stringValue = String(value ?? '');
+                this.setValue(stringValue);
+                this.htmlEditorValue = stringValue;
+                this.$emit('trigger-event', { name: 'initValueChange', event: { value } });
+                return;
+            }
             if (value !== this.getContent()) {
-                this.richEditor.commands.setContent(value);
-                this.setValue(value);
+                this.richEditor.commands.setContent(value ?? '');
+                this.setValue(value ?? '');
             }
             this.$emit('trigger-event', { name: 'initValueChange', event: { value } });
 
             if (this.isReadonly) this.handleOnUpdate();
+            this.htmlEditorValue = String(value ?? '');
         },
         isEditable(value) {
-            this.richEditor.setEditable(value);
+            if (!this.richEditor) return;
+            this.richEditor.setEditable(value && !this.isHtmlMode);
         },
         variableValue(value, oldValue) {
-            if (value !== this.getContent()) this.richEditor.commands.setContent(value);
-            // If format changed
-            if (value !== this.getContent()) this.setValue(this.getContent());
+            if (!this.richEditor) {
+                this.htmlEditorValue = String(value ?? '');
+                return;
+            }
+
+            this.htmlEditorValue = String(value ?? '');
+
+            if (this.isHtmlMode) return;
+
+            const currentContent = this.getContent();
+            if (value !== currentContent) {
+                this.richEditor.commands.setContent(value ?? '');
+                this.setValue(this.getContent());
+            }
         },
         /* wwEditor:start */
         editorConfig() {
@@ -582,6 +635,10 @@ export default {
             handler(value) {
                 this.setStates(value);
             },
+        },
+        isHtmlMode(value) {
+            if (!this.richEditor) return;
+            this.richEditor.setEditable(!value && this.isEditable);
         },
     },
     computed: {
@@ -673,6 +730,7 @@ export default {
                 link: this.content.parameterLink ?? true,
                 image: this.content.parameterImage ?? false,
                 codeBlock: this.content.parameterCodeBlock ?? true,
+                htmlEditor: this.content.parameterHtmlEditor ?? false,
                 blockquote: this.content.parameterQuote ?? true,
                 inlineMath: this.content.parameterInlineMath ?? false,
                 blockMath: this.content.parameterBlockMath ?? false,
@@ -858,6 +916,7 @@ export default {
                     'lucide/list-checks',
                     'lucide/link',
                     'lucide/image',
+                    'lucide/file-code',
                     'lucide/code',
                     'lucide/quote',
                     'lucide/square-function',
@@ -890,12 +949,13 @@ export default {
                     'check-square': results[11],
                     link: results[12],
                     image: results[13],
-                    code: results[14],
-                    quote: results[15],
-                    'square-function': results[16],
-                    sigma: results[17],
-                    undo: results[18],
-                    redo: results[19],
+                    htmlEditor: results[14],
+                    code: results[15],
+                    quote: results[16],
+                    'square-function': results[17],
+                    sigma: results[18],
+                    undo: results[19],
+                    redo: results[20],
                 };
             } catch (e) {
                 this.iconHTMLs = {};
@@ -926,7 +986,7 @@ export default {
             this.loading = true;
             if (this.richEditor) this.richEditor.destroy();
             this.richEditor = new Editor({
-                content: String(this.content.initialValue || ''),
+                content: String(this.content.initialValue ?? ''),
                 editable: this.isEditable,
                 autofocus: this.editorConfig.autofocus,
                 onFocus: ({ editor, event }) => {
@@ -982,6 +1042,7 @@ export default {
                 onCreate: () => {
                     this.setValue(this.getContent());
                     this.setMentions(this.richEditor.getJSON().content.reduce(extractMentions, []));
+                    this.htmlEditorValue = this.getContent();
                 },
                 onUpdate: this.handleOnUpdate,
                 editorProps: {
@@ -1008,21 +1069,13 @@ export default {
         },
         handleOnUpdate() {
             let htmlValue = this.getContent();
-            if (this.variableValue === htmlValue) return;
-            this.setValue(htmlValue);
-            if (this.content.debounce) {
-                this.isDebouncing = true;
-                if (this.debounce) {
-                    clearTimeout(this.debounce);
-                }
-                this.debounce = setTimeout(() => {
-                    this.$emit('trigger-event', { name: 'change', event: { value: this.variableValue } });
-                    this.isDebouncing = false;
-                }, this.delay);
-            } else {
-                this.$emit('trigger-event', { name: 'change', event: { value: this.variableValue } });
+            if (this.variableValue === htmlValue) {
+                this.htmlEditorValue = htmlValue;
+                return;
             }
+            this.emitValueChange(htmlValue);
             this.setMentions(this.richEditor.getJSON().content.reduce(extractMentions, []));
+            this.htmlEditorValue = htmlValue;
         },
         setLink(url) {
             if (this.richEditor.isActive('link')) {
@@ -1227,6 +1280,64 @@ export default {
         deleteTable() {
             this.richEditor.chain().focus().deleteTable().run();
         },
+        emitValueChange(value) {
+            this.setValue(value);
+            if (this.content.debounce) {
+                this.isDebouncing = true;
+                if (this.debounce) {
+                    clearTimeout(this.debounce);
+                }
+                this.debounce = setTimeout(() => {
+                    this.$emit('trigger-event', { name: 'change', event: { value: this.variableValue } });
+                    this.isDebouncing = false;
+                }, this.delay);
+            } else {
+                this.$emit('trigger-event', { name: 'change', event: { value: this.variableValue } });
+            }
+        },
+        toggleHtmlMode() {
+            if (!this.richEditor) return;
+
+            if (!this.isHtmlMode) {
+                this.htmlEditorValue = this.getContent();
+                this.isHtmlMode = true;
+                return;
+            }
+
+            const value = this.htmlEditorValue ?? '';
+
+            try {
+                this.richEditor.commands.setContent(value);
+                this.isHtmlMode = false;
+                this.$nextTick(() => {
+                    this.richEditor.commands.focus();
+                });
+            } catch (error) {
+                // eslint-disable-next-line no-console
+                console.error(error);
+            }
+        },
+        handleHtmlInput(event) {
+            const value = event?.target?.value ?? '';
+            const currentValue = this.variableValue ?? '';
+            if (value === currentValue) {
+                this.htmlEditorValue = value;
+                return;
+            }
+
+            this.htmlEditorValue = value;
+            this.emitValueChange(value);
+            this.updateMentionsFromHtml(value);
+        },
+        updateMentionsFromHtml(html) {
+            if (typeof window === 'undefined' || !window.document) return;
+            const container = window.document.createElement('div');
+            container.innerHTML = html;
+            const mentions = Array.from(container.querySelectorAll('[data-type="mention"]'))
+                .map(element => element.getAttribute('data-id'))
+                .filter(Boolean);
+            this.setMentions(mentions);
+        },
     },
     mounted() {
         this.loadEditor();
@@ -1234,6 +1345,10 @@ export default {
     },
     beforeUnmount() {
         if (this.richEditor) this.richEditor.destroy();
+        if (this.debounce) {
+            clearTimeout(this.debounce);
+            this.debounce = null;
+        }
     },
 };
 </script>
@@ -1272,6 +1387,32 @@ export default {
         &:last-child {
             display: none;
         }
+    }
+
+    &__html-wrapper {
+        display: flex;
+        flex: 1;
+        width: 100%;
+    }
+
+    &__html-textarea {
+        flex: 1;
+        width: 100%;
+        resize: none;
+        border: none;
+        padding: 8px;
+        font-family: 'JetBrainsMono', monospace;
+        font-size: 14px;
+        line-height: 1.5;
+        color: var(--p-color);
+        background-color: transparent;
+        outline: none;
+        box-sizing: border-box;
+    }
+
+    &__html-textarea:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
     }
 
     &__menu {

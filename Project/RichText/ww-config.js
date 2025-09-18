@@ -83,6 +83,7 @@ export default {
                 'parameterLink',
                 'parameterImage',
                 'parameterCodeBlock',
+                'parameterHtmlEditor',
                 'parameterQuote',
                 'parameterUndo',
                 'parameterRedo',
@@ -1499,6 +1500,28 @@ export default {
                 ],
             },
             defaultValue: true,
+        },
+        parameterHtmlEditor: {
+            section: 'settings',
+            hidden: content => content.customMenu,
+            label: {
+                en: 'HTML editor',
+            },
+            type: 'TextRadioGroup',
+            options: {
+                choices: [
+                    {
+                        value: true,
+                        label: 'Show',
+                    },
+                    {
+                        value: false,
+                        default: true,
+                        label: 'Hide',
+                    },
+                ],
+            },
+            defaultValue: false,
         },
         parameterQuote: {
             section: 'settings',
