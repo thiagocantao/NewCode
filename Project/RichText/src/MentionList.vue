@@ -1,17 +1,28 @@
 <template>
-    <div class="items">
-        <template v-if="items.length">
-            <button
-                class="item"
-                :class="{ 'is-selected': index === selectedIndex }"
-                v-for="(item, index) in items"
-                :key="index"
-                @click="selectItem(index)"
-            >
-                {{ item.label }}
-            </button>
-        </template>
-        <div class="item" v-else>No result</div>
+    <div class="mention-list">
+        <label class="search" aria-label="Buscar menções">
+            <span class="material-symbols-outlined search__icon" aria-hidden="true">search</span>
+            <input
+                v-model="searchTerm"
+                type="text"
+                class="search__input"
+                placeholder="Buscar..."
+            />
+        </label>
+        <div class="items">
+            <template v-if="filteredItems.length">
+                <button
+                    class="item"
+                    :class="{ 'is-selected': index === selectedIndex }"
+                    v-for="(item, index) in filteredItems"
+                    :key="index"
+                    @click="selectItem(index)"
+                >
+                    {{ item.label }}
+                </button>
+            </template>
+            <div class="item item--empty" v-else>Nenhum resultado</div>
+        </div>
     </div>
 </template>
 
@@ -32,12 +43,27 @@ export default {
     data() {
         return {
             selectedIndex: 0,
+            searchTerm: '',
         };
     },
 
     watch: {
         items() {
             this.selectedIndex = 0;
+        },
+        searchTerm() {
+            this.selectedIndex = 0;
+        },
+    },
+
+    computed: {
+        filteredItems() {
+            const query = this.searchTerm.trim().toLowerCase();
+            if (!query) {
+                return this.items;
+            }
+
+            return this.items.filter(item => item.label.toLowerCase().includes(query));
         },
     },
 
@@ -59,11 +85,13 @@ export default {
         },
 
         upHandler() {
-            this.selectedIndex = (this.selectedIndex + this.items.length - 1) % this.items.length;
+            if (!this.filteredItems.length) return;
+            this.selectedIndex = (this.selectedIndex + this.filteredItems.length - 1) % this.filteredItems.length;
         },
 
         downHandler() {
-            this.selectedIndex = (this.selectedIndex + 1) % this.items.length;
+            if (!this.filteredItems.length) return;
+            this.selectedIndex = (this.selectedIndex + 1) % this.filteredItems.length;
         },
 
         enterHandler() {
@@ -71,7 +99,7 @@ export default {
         },
 
         selectItem(index) {
-            const item = this.items[index];
+            const item = this.filteredItems[index];
 
             if (item) {
                 this.command({ id: item.id, label: item.label });
@@ -82,17 +110,55 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.items {
-    padding: 0.2rem;
+.mention-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
     position: relative;
     border-radius: 0.5rem;
     background: #fff;
     color: rgba(0, 0, 0, 0.8);
-    overflow: hidden;
     font-size: 0.9rem;
     box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05), 0px 10px 20px rgba(0, 0, 0, 0.1);
+    padding: 0.75rem;
+    min-width: 220px;
+}
+
+.search {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 999px;
+    padding: 0.35rem 0.75rem;
+    background: rgba(0, 0, 0, 0.04);
+}
+
+.search__icon {
+    font-size: 1.1rem;
+    color: rgba(0, 0, 0, 0.55);
+}
+
+.search__input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 0.85rem;
+    color: inherit;
+    padding: 0;
+}
+
+.search__input::placeholder {
+    color: rgba(0, 0, 0, 0.45);
+}
+
+.items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
     max-height: 150px;
-    overflow: auto;
+    overflow-y: auto;
 }
 
 .item {
@@ -101,12 +167,19 @@ export default {
     width: 100%;
     text-align: left;
     background: transparent;
-    border-radius: 0.4rem;
+    border-radius: 0.5rem;
     border: 1px solid transparent;
-    padding: 0.2rem 0.4rem;
+    padding: 0.35rem 0.5rem;
+    transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
 
     &.is-selected {
-        border-color: #000;
+        border-color: rgba(0, 0, 0, 0.25);
+        background: rgba(0, 0, 0, 0.05);
     }
+}
+
+.item--empty {
+    text-align: center;
+    color: rgba(0, 0, 0, 0.4);
 }
 </style>
