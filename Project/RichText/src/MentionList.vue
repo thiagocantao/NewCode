@@ -13,7 +13,7 @@
             <template v-if="filteredItems.length">
                 <button
                     class="item"
-                    :class="{ 'is-selected': index === selectedIndex }"
+
                     v-for="(item, index) in filteredItems"
                     :key="index"
                     @click="selectItem(index)"
@@ -131,7 +131,8 @@ export default {
     border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 999px;
     padding: 0.35rem 0.75rem;
-    background: rgba(0, 0, 0, 0.04);
+    background: #fff;
+
 }
 
 .search__icon {
@@ -157,7 +158,7 @@ export default {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
-    max-height: 150px;
+    max-height: 280px;
     overflow-y: auto;
 }
 
@@ -172,8 +173,9 @@ export default {
     padding: 0.35rem 0.5rem;
     transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
 
-    &.is-selected {
-        border-color: rgba(0, 0, 0, 0.25);
+    &:hover {
+        border-color: rgba(0, 0, 0, 0.12);
+
         background: rgba(0, 0, 0, 0.05);
     }
 }
