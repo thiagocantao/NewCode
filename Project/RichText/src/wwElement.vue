@@ -276,7 +276,7 @@
                     type="button"
                     class="ww-rich-text__menu-item"
                     @click="setImage()"
-                    :disabled="!isEditable || isHtmlMode"
+                    :disabled="!isEditable || isHtmlMode || isUploadingImage"
                     v-if="menu.image"
                 >
                     <div class="icon" v-html="iconHTMLs.image"></div>
@@ -439,6 +439,30 @@ const AlignableImage = Image.extend({
                     };
                 },
             },
+            supabasePath: {
+                default: null,
+                parseHTML: element => element.getAttribute('data-supabase-path') || null,
+                renderHTML: attributes => {
+                    if (!attributes.supabasePath) return {};
+                    return { 'data-supabase-path': attributes.supabasePath };
+                },
+            },
+            supabaseBucket: {
+                default: null,
+                parseHTML: element => element.getAttribute('data-supabase-bucket') || null,
+                renderHTML: attributes => {
+                    if (!attributes.supabaseBucket) return {};
+                    return { 'data-supabase-bucket': attributes.supabaseBucket };
+                },
+            },
+            supabaseAttachmentId: {
+                default: null,
+                parseHTML: element => element.getAttribute('data-supabase-attachment') || null,
+                renderHTML: attributes => {
+                    if (!attributes.supabaseAttachmentId) return {};
+                    return { 'data-supabase-attachment': attributes.supabaseAttachmentId };
+                },
+            },
         };
     },
 });
@@ -463,6 +487,12 @@ const TAGS_MAP = {
     h5: 5,
     h6: 6,
 };
+
+const WORKSPACE_VAR_ID = '744511f1-3309-41da-a9fd-0721e7dd2f99';
+const TICKET_VAR_ID = '7bebd888-f31e-49e7-bef2-4052c8cb6cf5';
+const IMAGE_BUCKET = 'ticket';
+
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 export default {
     components: {
@@ -543,6 +573,10 @@ export default {
         htmlEditorValue: '',
         isDebouncing: false,
         debounce: null,
+        supabasePlugin: null,
+        supabase: null,
+        supabaseAuth: null,
+        isUploadingImage: false,
     }),
 
     watch: {
@@ -557,6 +591,9 @@ export default {
             if (value !== this.getContent()) {
                 this.richEditor.commands.setContent(value ?? '');
                 this.setValue(value ?? '');
+                this.$nextTick(() => {
+                    this.refreshSupabaseImageUrls();
+                });
             }
             this.$emit('trigger-event', { name: 'initValueChange', event: { value } });
 
@@ -581,6 +618,9 @@ export default {
             if (value !== currentContent) {
                 this.richEditor.commands.setContent(value ?? '');
                 this.setValue(this.getContent());
+                this.$nextTick(() => {
+                    this.refreshSupabaseImageUrls();
+                });
             }
         },
         /* wwEditor:start */
@@ -981,6 +1021,206 @@ export default {
 
             return imageAlign === textAlign;
         },
+        refreshSupabaseInstances() {
+            this.supabasePlugin = window?.wwLib?.wwPlugins?.supabase || null;
+            this.supabase = this.supabasePlugin?.instance || null;
+            this.supabaseAuth = window?.wwLib?.wwPlugins?.supabaseAuth?.publicInstance || null;
+        },
+        getWeWebVariable(id) {
+            return window?.wwLib?.wwVariable?.getValue?.(id);
+        },
+        async ensureAuthReady(maxMs = 4000) {
+            try {
+                if (!this.supabaseAuth?.auth?.getUser) return true;
+                const start = Date.now();
+                while (Date.now() - start < maxMs) {
+                    const { data, error } = await this.supabaseAuth.auth.getUser();
+                    if (data?.user && !error) return true;
+                    await sleep(200);
+                }
+            } catch (e) {
+                console.warn('[RichText] ensureAuthReady error:', e);
+            }
+            return true;
+        },
+        async waitForStorage(maxMs = 4000) {
+            const start = Date.now();
+            while (Date.now() - start < maxMs) {
+                if (this.supabase && this.supabase.storage) return true;
+                await sleep(100);
+            }
+            return false;
+        },
+        guessContentType(name, fallback = 'application/octet-stream') {
+            const ext = (String(name).split('.').pop() || '').toLowerCase();
+            if (ext === 'txt' || ext === 'log') return 'text/plain';
+            if (ext === 'json') return 'application/json';
+            if (ext === 'csv') return 'text/csv';
+            if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(ext)) {
+                const normalized = ext === 'jpg' ? 'jpeg' : ext;
+                return `image/${normalized}`;
+            }
+            if (ext === 'pdf') return 'application/pdf';
+            return fallback;
+        },
+        async getFreshSignedUrl(file, { forceDownloadName, transformImage } = {}) {
+            if (!file?.bucket || !file?.storagePath || !this.supabase?.storage) return null;
+            await this.ensureAuthReady();
+            const options = {};
+            if (transformImage && file.isImage) options.transform = transformImage;
+            if (forceDownloadName) options.download = forceDownloadName;
+            try {
+                const { data, error } = await this.supabase.storage
+                    .from(file.bucket)
+                    .createSignedUrl(file.storagePath, 60 * 60, options);
+                if (error) {
+                    console.warn('[RichText] createSignedUrl failed:', error);
+                    return null;
+                }
+                return data?.signedUrl || null;
+            } catch (e) {
+                console.warn('[RichText] createSignedUrl error:', e);
+                return null;
+            }
+        },
+        async uploadImageToSupabase(file) {
+            if (!file) throw new Error('Nenhuma imagem selecionada.');
+
+            const extension = (file.name.split('.').pop() || '').toLowerCase();
+            const isImage =
+                file.type?.startsWith('image/') || ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(extension);
+            if (!isImage) throw new Error('Selecione um arquivo de imagem.');
+
+            this.refreshSupabaseInstances();
+
+            const WorkspaceID = this.getWeWebVariable(WORKSPACE_VAR_ID);
+            const TicketID = this.getWeWebVariable(TICKET_VAR_ID);
+
+            const { data: userData, error: authErr } = this.supabaseAuth?.auth?.getUser
+                ? await this.supabaseAuth.auth.getUser()
+                : { data: { user: null }, error: null };
+
+            if (this.supabaseAuth && (authErr || !userData?.user)) {
+                throw new Error(
+                    authErr
+                        ? `Erro ao obter usuário do Supabase Auth: ${authErr.message || authErr}`
+                        : 'Usuário não autenticado no Supabase.'
+                );
+            }
+
+            const storageReady = await this.waitForStorage(4000);
+            if (!storageReady || !this.supabase?.storage) {
+                throw new Error('Supabase Storage não está pronto. Tente novamente em alguns segundos.');
+            }
+
+            const unique =
+                (window.crypto?.randomUUID ? window.crypto.randomUUID() : Date.now().toString(36)) +
+                (extension ? `.${extension}` : '');
+            const pathObject = `${WorkspaceID || 'no-workspace'}/${TicketID || 'no-ticket'}/${unique}`;
+
+            try {
+                if (this.supabasePlugin?.callPostgresFunction && this.supabase?.rpc) {
+                    const { data: allowed, error: rpcCheckErr } = await this.supabase.rpc('rls_user_in_path_workspace', {
+                        obj_name: pathObject,
+                    });
+                    if (rpcCheckErr) {
+                        console.warn('[RichText] rls_user_in_path_workspace error:', rpcCheckErr);
+                    } else if (allowed === false) {
+                        throw new Error('Você não tem permissão para salvar a imagem neste workspace.');
+                    }
+                }
+            } catch (e) {
+                if (e instanceof Error) throw e;
+                throw new Error(String(e));
+            }
+
+            const contentType = this.guessContentType(file.name, file.type || 'application/octet-stream');
+
+            const { error: upErr } = await this.supabase.storage
+                .from(IMAGE_BUCKET)
+                .upload(pathObject, file, {
+                    cacheControl: '3600',
+                    upsert: false,
+                    contentType,
+                });
+            if (upErr) {
+                throw new Error(`Erro no upload para o Supabase Storage: ${upErr.message || upErr}`);
+            }
+
+            let signedUrl = await this.getFreshSignedUrl(
+                { bucket: IMAGE_BUCKET, storagePath: pathObject, isImage: true },
+                { transformImage: { width: 1200, resize: 'contain' } }
+            );
+
+            if (!signedUrl && this.supabase?.storage?.from) {
+                try {
+                    const { data: publicData } = this.supabase.storage.from(IMAGE_BUCKET).getPublicUrl(pathObject);
+                    if (publicData?.publicUrl) signedUrl = publicData.publicUrl;
+                } catch (e) {
+                    console.warn('[RichText] getPublicUrl failed:', e);
+                }
+            }
+
+            if (!signedUrl) {
+                throw new Error('Não foi possível gerar o link da imagem.');
+            }
+
+            return {
+                url: signedUrl,
+                bucket: IMAGE_BUCKET,
+                storagePath: pathObject,
+            };
+        },
+        notifyError(message) {
+            if (!message) return;
+            if (wwLib?.wwNotification?.open) {
+                wwLib.wwNotification.open({ text: message, type: 'error', duration: 4000 });
+            } else {
+                console.error(message);
+            }
+        },
+        async refreshSupabaseImageUrls() {
+            if (!this.richEditor) return;
+            this.refreshSupabaseInstances();
+
+            const nodes = [];
+            this.richEditor.state.doc.descendants((node, pos) => {
+                if (node.type.name !== 'image') return;
+                const bucket = node.attrs.supabaseBucket;
+                const storagePath = node.attrs.supabasePath;
+                if (bucket && storagePath) {
+                    nodes.push({ pos, bucket, storagePath });
+                }
+            });
+
+            if (!nodes.length) return;
+
+            const storageReady = await this.waitForStorage(1500);
+            if (!storageReady || !this.supabase?.storage) {
+                window?.setTimeout?.(() => this.refreshSupabaseImageUrls(), 1000);
+                return;
+            }
+            await this.ensureAuthReady();
+
+            for (const nodeInfo of nodes) {
+                const signedUrl = await this.getFreshSignedUrl(
+                    { bucket: nodeInfo.bucket, storagePath: nodeInfo.storagePath, isImage: true },
+                    { transformImage: { width: 1200, resize: 'contain' } }
+                );
+                if (!signedUrl) continue;
+
+                this.richEditor.commands.command(({ state, tr, dispatch }) => {
+                    const node = state.doc.nodeAt(nodeInfo.pos);
+                    if (!node) return false;
+                    if (node.attrs.src === signedUrl) return true;
+                    const newAttrs = { ...node.attrs, src: signedUrl };
+                    tr.setNodeMarkup(nodeInfo.pos, undefined, newAttrs);
+                    if (!dispatch) return false;
+                    dispatch(tr);
+                    return true;
+                });
+            }
+        },
         loadEditor() {
             if (this.loading) return;
             this.loading = true;
@@ -1043,6 +1283,7 @@ export default {
                     this.setValue(this.getContent());
                     this.setMentions(this.richEditor.getJSON().content.reduce(extractMentions, []));
                     this.htmlEditorValue = this.getContent();
+                    this.refreshSupabaseImageUrls();
                 },
                 onUpdate: this.handleOnUpdate,
                 editorProps: {
@@ -1124,10 +1365,26 @@ export default {
                 windowRef = window;
             }
 
-            const imageData = await this.getImageFromDevice(windowRef);
-            if (!imageData) return;
+            const imageFile = await this.getImageFromDevice(windowRef);
+            if (!imageFile) return;
 
-            this.richEditor.chain().focus().setImage({ src: imageData }).run();
+            this.isUploadingImage = true;
+            try {
+                const { url, bucket, storagePath } = await this.uploadImageToSupabase(imageFile);
+                const imageOptions = {
+                    src: url,
+                    alt: options.alt || imageFile.name,
+                    title: options.title || '',
+                    supabaseBucket: bucket,
+                    supabasePath: storagePath,
+                };
+
+                this.richEditor.chain().focus().setImage(imageOptions).run();
+            } catch (error) {
+                this.notifyError(error?.message || String(error));
+            } finally {
+                this.isUploadingImage = false;
+            }
         },
         getImageFromDevice(windowRef) {
             if (!windowRef || !windowRef.document) return Promise.resolve(null);
@@ -1164,15 +1421,7 @@ export default {
 
                 const onChange = () => {
                     const file = input.files && input.files[0];
-                    if (!file) {
-                        finalize(null);
-                        return;
-                    }
-
-                    const reader = new windowRef.FileReader();
-                    reader.addEventListener('load', () => finalize(reader.result), { once: true });
-                    reader.addEventListener('error', () => finalize(null), { once: true });
-                    reader.readAsDataURL(file);
+                    finalize(file || null);
                 };
 
                 input.addEventListener('change', onChange, { once: true });
@@ -1340,6 +1589,7 @@ export default {
         },
     },
     mounted() {
+        this.refreshSupabaseInstances();
         this.loadEditor();
         this.loadIcons();
     },
