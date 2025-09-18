@@ -13,6 +13,7 @@
             <template v-if="filteredItems.length">
                 <button
                     class="item"
+
                     v-for="(item, index) in filteredItems"
                     :key="index"
                     @click="selectItem(index)"
@@ -131,6 +132,7 @@ export default {
     border-radius: 999px;
     padding: 0.35rem 0.75rem;
     background: #fff;
+
 }
 
 .search__icon {
@@ -156,7 +158,7 @@ export default {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
-    max-height: 220px;
+    max-height: 280px;
     overflow-y: auto;
 }
 
@@ -173,6 +175,7 @@ export default {
 
     &:hover {
         border-color: rgba(0, 0, 0, 0.12);
+
         background: rgba(0, 0, 0, 0.05);
     }
 }

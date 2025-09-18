@@ -1083,6 +1083,7 @@ export default {
                 input.click();
             });
         },
+
         focusEditor() {
             this.richEditor.chain().focus().run();
         },
