@@ -489,6 +489,7 @@ const TAGS_MAP = {
 };
 
 const WORKSPACE_VAR_ID = '744511f1-3309-41da-a9fd-0721e7dd2f99';
+
 const TICKET_VAR_ID = '7bebd888-f31e-49e7-bef2-4052c8cb6cf5';
 const IMAGE_BUCKET = 'ticket';
 
@@ -1094,6 +1095,7 @@ export default {
             this.refreshSupabaseInstances();
 
             const WorkspaceID = this.getWeWebVariable(WORKSPACE_VAR_ID);
+
             const TicketID = this.getWeWebVariable(TICKET_VAR_ID);
 
             const { data: userData, error: authErr } = this.supabaseAuth?.auth?.getUser
@@ -1147,6 +1149,7 @@ export default {
                 throw new Error(`Erro no upload para o Supabase Storage: ${upErr.message || upErr}`);
             }
 
+
             let signedUrl = await this.getFreshSignedUrl(
                 { bucket: IMAGE_BUCKET, storagePath: pathObject, isImage: true },
                 { transformImage: { width: 1200, resize: 'contain' } }
@@ -1169,6 +1172,7 @@ export default {
                 url: signedUrl,
                 bucket: IMAGE_BUCKET,
                 storagePath: pathObject,
+
             };
         },
         notifyError(message) {
@@ -1371,6 +1375,7 @@ export default {
             this.isUploadingImage = true;
             try {
                 const { url, bucket, storagePath } = await this.uploadImageToSupabase(imageFile);
+
                 const imageOptions = {
                     src: url,
                     alt: options.alt || imageFile.name,
@@ -1378,6 +1383,7 @@ export default {
                     supabaseBucket: bucket,
                     supabasePath: storagePath,
                 };
+
 
                 this.richEditor.chain().focus().setImage(imageOptions).run();
             } catch (error) {
