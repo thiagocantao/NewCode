@@ -2,9 +2,9 @@
   <div class="dp-wrapper" ref="dpWrapper">
     <input
       ref="dpInput"
-      class="dp-input"
+      :class="['dp-input', { 'dp-input--hidden': hideInlineInput }]"
       type="text"
-      :value="displayDate" 
+      :value="displayDate"
       readonly
       :disabled="disabled"
       @pointerdown.stop.prevent="!disabled && openDp($event)"
@@ -16,7 +16,7 @@
     <button
       v-if="!disabled"
       type="button"
-      class="dp-icon"
+      :class="['dp-icon', { 'dp-icon--hidden': hideInlineInput }]"
       @pointerdown.stop.prevent="openDp($event)"
       @mousedown.stop.prevent="openDp($event)"
       @click.stop.prevent="openDp($event)"
@@ -83,6 +83,7 @@ export default {
     const fieldName = String(colDef.field || '').toLowerCase();
     const cellType = String(colDef.cellDataType || colDef.cellType || '').toLowerCase();
     const isShowTime = ref(tag === 'DEADLINE' || fieldName === 'deadline' || cellType === 'datetime' || props.showTime === true);
+    const hideInlineInput = computed(() => tag === 'DEADLINE' || fieldName === 'deadline' || cellType === 'datetime' || cellType === 'date');
 
     const ww = window.wwLib?.wwVariable;
     const lang = ww?.getValue('aa44dc4c-476b-45e9-a094-16687e063342') || navigator.language;
@@ -294,6 +295,8 @@ export default {
       return { x: nx, y: ny };
     }
 
+    const POPUP_VERTICAL_OFFSET = 30;
+
     function updatePopoverPosition() {
       const pop = dpPopRef.value;
       if (!pop) return;
@@ -308,6 +311,8 @@ export default {
         baseLeft = rect.left;
         baseTop = rect.bottom;
       }
+
+      baseTop -= POPUP_VERTICAL_OFFSET;
 
       const prevVis = pop.style.visibility;
       const prevDisp = pop.style.display;
@@ -491,6 +496,7 @@ export default {
       displayDate, labelToday, labelSelect, labelClear,
       timePart, onTimeInput,
       showTime: isShowTime.value, disabled: props.disabled,
+      hideInlineInput,
 
       popRootStyle, rowBetweenStyle, titleStyle, navBtnStyle,
       gridHeaderStyle, weekdayStyle, gridDaysStyle,
@@ -528,6 +534,14 @@ export default {
     outline: transparent;
   }
 
+  .dp-input--hidden {
+    opacity: 0;
+    background: transparent;
+    border-color: transparent;
+    color: transparent;
+    caret-color: transparent;
+  }
+
   .dp-icon {
     position: absolute;
     right: 6px;
@@ -547,5 +561,9 @@ export default {
 
   .dp-icon:hover {
     color: #555;
+  }
+
+  .dp-icon--hidden {
+    display: none;
   }
 </style>
