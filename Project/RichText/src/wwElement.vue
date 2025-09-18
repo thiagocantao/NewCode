@@ -301,6 +301,7 @@
                             step="1"
                             v-model="imageResizeInputs.width"
                             @change="applySelectedImageWidth"
+                            @mousedown="handleImageResizePointerDown"
                             @focus="handleImageResizeFocus"
                             @blur="handleImageResizeBlur"
 
@@ -314,6 +315,7 @@
                             step="1"
                             v-model="imageResizeInputs.height"
                             @change="applySelectedImageHeight"
+                            @mousedown="handleImageResizePointerDown"
                             @focus="handleImageResizeFocus"
                             @blur="handleImageResizeBlur"
 
@@ -322,6 +324,7 @@
                     <button
                         type="button"
                         class="ww-rich-text__image-resize-reset"
+                        @mousedown="handleImageResizePointerDown"
                         @click="resetSelectedImageSize"
                         @focus="handleImageResizeFocus"
                         @blur="handleImageResizeBlur"
@@ -1213,6 +1216,10 @@ export default {
         handleImageResizeFocus() {
             this.isEditingImageSize = true;
         },
+        handleImageResizePointerDown() {
+            this.isEditingImageSize = true;
+        },
+
         handleImageResizeBlur() {
             if (typeof window === 'undefined') return;
 
