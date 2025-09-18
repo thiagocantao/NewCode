@@ -172,7 +172,8 @@ export default {
     border: 1px solid transparent;
     padding: 0.35rem 0.5rem;
     transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
-
+    cursor:pointer;
+    
     &:hover {
         border-color: rgba(0, 0, 0, 0.12);
 
