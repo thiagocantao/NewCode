@@ -65,7 +65,7 @@
                     type="button"
                     class="ww-rich-text__menu-item"
                     @click="setTextAlign('left')"
-                    :class="{ 'is-active': richEditor.isActive({ textAlign: 'left' }) }"
+                    :class="{ 'is-active': isTextAlignActive('left') }"
                     :disabled="!isEditable"
                     v-if="menu.alignLeft"
                     title="Align left"
@@ -77,7 +77,7 @@
                     type="button"
                     class="ww-rich-text__menu-item"
                     @click="setTextAlign('center')"
-                    :class="{ 'is-active': richEditor.isActive({ textAlign: 'center' }) }"
+                    :class="{ 'is-active': isTextAlignActive('center') }"
                     :disabled="!isEditable"
                     v-if="menu.alignCenter"
                     title="Align center"
@@ -89,7 +89,7 @@
                     type="button"
                     class="ww-rich-text__menu-item"
                     @click="setTextAlign('right')"
-                    :class="{ 'is-active': richEditor.isActive({ textAlign: 'right' }) }"
+                    :class="{ 'is-active': isTextAlignActive('right') }"
                     :disabled="!isEditable"
                     v-if="menu.alignRight"
                     title="Align right"
@@ -101,7 +101,7 @@
                     type="button"
                     class="ww-rich-text__menu-item"
                     @click="setTextAlign('justify')"
-                    :class="{ 'is-active': richEditor.isActive({ textAlign: 'justify' }) }"
+                    :class="{ 'is-active': isTextAlignActive('justify') }"
                     :disabled="!isEditable"
                     v-if="menu.alignJustify"
                     title="Align justify"
@@ -369,6 +369,7 @@
 <script>
 import 'katex/dist/katex.min.css';
 import { Editor, EditorContent } from '@tiptap/vue-3';
+import { NodeSelection } from '@tiptap/pm/state';
 import StarterKit from '@tiptap/starter-kit';
 import Mention from '@tiptap/extension-mention';
 import TextStyle from '@tiptap/extension-text-style';
@@ -390,6 +391,28 @@ import { computed, inject } from 'vue';
 import suggestion from './suggestion.js';
 import { Markdown } from 'tiptap-markdown';
 import TableIcon from './icons/table-icon.vue';
+
+const AlignableImage = Image.extend({
+    addAttributes() {
+        const parentAttributes = this.parent?.() ?? {};
+
+        return {
+            ...parentAttributes,
+            textAlign: {
+                default: null,
+                parseHTML: element =>
+                    element.getAttribute('data-align') || element.style.textAlign || element.getAttribute('align') || null,
+                renderHTML: attributes => {
+                    if (!attributes.textAlign) return {};
+
+                    return {
+                        'data-align': attributes.textAlign,
+                    };
+                },
+            },
+        };
+    },
+});
 
 function extractMentions(acc, currentNode) {
     if (currentNode.type === 'mention') {
@@ -878,6 +901,26 @@ export default {
                 this.iconHTMLs = {};
             }
         },
+        isTextAlignActive(textAlign) {
+            if (!this.richEditor) return false;
+
+            if (this.richEditor.isActive({ textAlign })) return true;
+
+            if (!this.richEditor.isActive('image')) return false;
+
+            const imageAttributes = this.richEditor.getAttributes('image') || {};
+            const imageAlign = imageAttributes.textAlign;
+
+            if (textAlign === 'left') {
+                return !imageAlign || imageAlign === 'left';
+            }
+
+            if (textAlign === 'justify') {
+                return false;
+            }
+
+            return imageAlign === textAlign;
+        },
         loadEditor() {
             if (this.loading) return;
             this.loading = true;
@@ -919,7 +962,7 @@ export default {
                         placeholder: this.editorConfig.placeholder,
                     }),
                     Markdown.configure({ breaks: true }),
-                    Image.configure({ ...this.editorConfig.image }),
+                    AlignableImage.configure({ ...this.editorConfig.image }),
                     this.editorConfig.mention.enabled &&
                         Mention.configure({
                             HTMLAttributes: {
@@ -943,6 +986,15 @@ export default {
                 onUpdate: this.handleOnUpdate,
                 editorProps: {
                     handleClickOn: (view, pos, node) => {
+                        if (node.type.name === 'image') {
+                            const { state, dispatch } = view;
+                            const selection = NodeSelection.create(state.doc, pos);
+
+                            dispatch(state.tr.setSelection(selection));
+
+                            return true;
+                        }
+
                         if (node.type.name === 'mention') {
                             this.$emit('trigger-event', {
                                 name: 'mention:click',
@@ -1116,6 +1168,12 @@ export default {
             this.richEditor.chain().focus().toggleStrike().run();
         },
         setTextAlign(textAlign) {
+            if (this.richEditor.isActive('image') && !this.editorConfig.image?.inline) {
+                const alignValue = ['center', 'right'].includes(textAlign) ? textAlign : null;
+                this.richEditor.chain().focus().updateAttributes('image', { textAlign: alignValue }).run();
+                return;
+            }
+
             this.richEditor.chain().focus().setTextAlign(textAlign).run();
         },
         setColor(color) {
@@ -1531,6 +1589,27 @@ export default {
         img {
             max-width: var(--img-max-width);
             max-height: var(--img-max-height);
+        }
+
+        img[data-align='center'],
+        img[data-align='right'],
+        img[data-align='left'] {
+            display: block;
+        }
+
+        img[data-align='center'] {
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        img[data-align='right'] {
+            margin-left: auto;
+            margin-right: 0;
+        }
+
+        img[data-align='left'] {
+            margin-left: 0;
+            margin-right: auto;
         }
 
         ul[data-type='taskList'] {
