@@ -290,6 +290,8 @@
                 <div
                     v-if="selectedImage && isEditable && !isHtmlMode"
                     class="ww-rich-text__image-resize"
+                    ref="imageResizePanel"
+
                 >
                     <label class="ww-rich-text__image-resize-field">
                         <span>Largura (px)</span>
@@ -299,6 +301,9 @@
                             step="1"
                             v-model="imageResizeInputs.width"
                             @change="applySelectedImageWidth"
+                            @focus="handleImageResizeFocus"
+                            @blur="handleImageResizeBlur"
+
                         />
                     </label>
                     <label class="ww-rich-text__image-resize-field">
@@ -309,12 +314,18 @@
                             step="1"
                             v-model="imageResizeInputs.height"
                             @change="applySelectedImageHeight"
+                            @focus="handleImageResizeFocus"
+                            @blur="handleImageResizeBlur"
+
                         />
                     </label>
                     <button
                         type="button"
                         class="ww-rich-text__image-resize-reset"
                         @click="resetSelectedImageSize"
+                        @focus="handleImageResizeFocus"
+                        @blur="handleImageResizeBlur"
+
                     >
                         Redefinir
                     </button>
@@ -638,6 +649,8 @@ export default {
             height: '',
         },
         imageSelectionRetries: 0,
+        isEditingImageSize: false,
+
     }),
 
     watch: {
@@ -663,7 +676,8 @@ export default {
         },
         isEditable(value) {
             if (!this.richEditor) return;
-            if (!value) this.clearSelectedImage();
+            if (!value) this.clearSelectedImage({ force: true });
+
             this.richEditor.setEditable(value && !this.isHtmlMode);
         },
         variableValue(value, oldValue) {
@@ -740,7 +754,8 @@ export default {
         },
         isHtmlMode(value) {
             if (!this.richEditor) return;
-            if (value) this.clearSelectedImage();
+            if (value) this.clearSelectedImage({ force: true });
+
             this.richEditor.setEditable(!value && this.isEditable);
         },
     },
@@ -1078,13 +1093,23 @@ export default {
             const numeric = Number.parseFloat(normalized);
             return Number.isFinite(numeric) ? numeric : null;
         },
-        clearSelectedImage() {
+        clearSelectedImage(options) {
+            const force = Boolean(options && options.force);
+
+            if (!force && this.isEditingImageSize) {
+                return;
+            }
+
             if (!this.selectedImage && !this.imageResizeInputs.width && !this.imageResizeInputs.height) {
+                if (force) this.isEditingImageSize = false;
+
                 return;
             }
             this.selectedImage = null;
             this.imageResizeInputs = { width: '', height: '' };
             this.imageSelectionRetries = 0;
+            this.isEditingImageSize = false;
+
         },
         handleEditorSelectionUpdate() {
             if (!this.richEditor || this.isHtmlMode || !this.isEditable) {
@@ -1099,7 +1124,13 @@ export default {
             }
 
             const { selection } = state;
-            if (!(selection instanceof NodeSelection) || selection.node?.type?.name !== 'image') {
+            const isImageSelection = selection instanceof NodeSelection && selection.node?.type?.name === 'image';
+
+            if (!isImageSelection) {
+                if (this.isEditingImageSize && this.selectedImage) {
+                    return;
+                }
+
                 this.clearSelectedImage();
                 return;
             }
@@ -1179,6 +1210,32 @@ export default {
                 height: height ? String(height) : '',
             };
         },
+        handleImageResizeFocus() {
+            this.isEditingImageSize = true;
+        },
+        handleImageResizeBlur() {
+            if (typeof window === 'undefined') return;
+
+            window.setTimeout(() => {
+                const panel = this.$refs.imageResizePanel;
+                const activeElement = window.document?.activeElement;
+                const isInsidePanel = panel && activeElement instanceof HTMLElement && panel.contains(activeElement);
+
+                if (isInsidePanel) {
+                    return;
+                }
+
+                this.isEditingImageSize = false;
+
+                if (this.richEditor?.isActive?.('image')) {
+                    this.handleEditorSelectionUpdate();
+                    return;
+                }
+
+                this.clearSelectedImage({ force: true });
+            }, 0);
+        },
+
         applySelectedImageWidth() {
             if (!this.selectedImage || !this.isEditable || this.isHtmlMode) return;
             const width = Number(this.imageResizeInputs.width);
@@ -1486,7 +1543,8 @@ export default {
         loadEditor() {
             if (this.loading) return;
             this.loading = true;
-            this.clearSelectedImage();
+            this.clearSelectedImage({ force: true });
+
             if (this.richEditor) {
                 this.richEditor.off?.('selectionUpdate', this.handleEditorSelectionUpdate);
                 this.richEditor.off?.('transaction', this.handleEditorSelectionUpdate);
@@ -1879,7 +1937,8 @@ export default {
             clearTimeout(this.debounce);
             this.debounce = null;
         }
-        this.clearSelectedImage();
+        this.clearSelectedImage({ force: true });
+
     },
 };
 </script>
