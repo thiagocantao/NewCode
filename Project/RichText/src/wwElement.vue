@@ -996,14 +996,15 @@ export default {
             // update link
             this.richEditor.chain().focus().extendMarkRange('link').setLink({ href: selectedUrl }).run();
         },
-        async setImage(src, alt = '', title = '') {
-            if (this.content.customMenu) {
-                this.richEditor.commands.setImage({ src, alt, title });
-                return;
-            }
+        async setImage(srcOrOptions, alt = '', title = '') {
+            const options =
+                srcOrOptions && typeof srcOrOptions === 'object'
+                    ? { ...srcOrOptions }
+                    : { src: srcOrOptions, alt, title };
 
-            if (src) {
-                this.richEditor.chain().focus().setImage({ src, alt, title }).run();
+            if (options.src) {
+                this.richEditor.chain().focus().setImage(options).run();
+
                 return;
             }
 
