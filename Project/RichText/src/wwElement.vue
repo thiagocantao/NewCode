@@ -996,20 +996,92 @@ export default {
             // update link
             this.richEditor.chain().focus().extendMarkRange('link').setLink({ href: selectedUrl }).run();
         },
-        setImage(src, alt = '', title = '') {
-            if (this.content.customMenu) this.richEditor.commands.setImage({ src, alt, title });
-            else {
-                let url;
-                /* wwEditor:start */
-                url = wwLib.getEditorWindow().prompt('Image URL');
-                /* wwEditor:end */
-                /* wwFront:start */
-                url = wwLib.getFrontWindow().prompt('Image URL');
-                /* wwFront:end */
+        async setImage(srcOrOptions, alt = '', title = '') {
+            const options =
+                srcOrOptions && typeof srcOrOptions === 'object'
+                    ? { ...srcOrOptions }
+                    : { src: srcOrOptions, alt, title };
 
-                if (!url) return;
-                this.richEditor.chain().focus().setImage({ src: url }).run();
+            if (options.src) {
+                this.richEditor.chain().focus().setImage(options).run();
+                return;
             }
+
+            let windowRef;
+            /* wwEditor:start */
+            windowRef = wwLib.getEditorWindow();
+            /* wwEditor:end */
+            /* wwFront:start */
+            windowRef = wwLib.getFrontWindow();
+            /* wwFront:end */
+
+            if (!windowRef && typeof window !== 'undefined') {
+                windowRef = window;
+            }
+
+            const imageData = await this.getImageFromDevice(windowRef);
+            if (!imageData) return;
+
+            this.richEditor.chain().focus().setImage({ src: imageData }).run();
+        },
+        getImageFromDevice(windowRef) {
+            if (!windowRef || !windowRef.document) return Promise.resolve(null);
+
+            return new Promise(resolve => {
+                const documentRef = windowRef.document;
+                const input = documentRef.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.style.display = 'none';
+
+                let resolved = false;
+                const finalize = value => {
+                    if (resolved) return;
+                    resolved = true;
+                    cleanup();
+                    resolve(value);
+                };
+
+                function onWindowFocus() {
+                    windowRef.setTimeout(() => {
+                        if (!resolved && (!input.files || !input.files.length)) {
+                            finalize(null);
+                        }
+                    }, 0);
+                }
+
+                function cleanup() {
+                    windowRef.removeEventListener('focus', onWindowFocus, true);
+                    if (input.parentNode) {
+                        input.parentNode.removeChild(input);
+                    }
+                }
+
+                const onChange = () => {
+                    const file = input.files && input.files[0];
+                    if (!file) {
+                        finalize(null);
+                        return;
+                    }
+
+                    const reader = new windowRef.FileReader();
+                    reader.addEventListener('load', () => finalize(reader.result), { once: true });
+                    reader.addEventListener('error', () => finalize(null), { once: true });
+                    reader.readAsDataURL(file);
+                };
+
+                input.addEventListener('change', onChange, { once: true });
+                windowRef.addEventListener('focus', onWindowFocus, { once: true, capture: true });
+
+                const parent = documentRef.body || documentRef.documentElement;
+                if (!parent) {
+                    finalize(null);
+                    return;
+                }
+
+                parent.appendChild(input);
+                input.click();
+            });
         },
         focusEditor() {
             this.richEditor.chain().focus().run();
