@@ -488,9 +488,8 @@ const TAGS_MAP = {
     h6: 6,
 };
 
-const LANGUAGE_VAR_ID = 'aa44dc4c-476b-45e9-a094-16687e063342';
 const WORKSPACE_VAR_ID = '744511f1-3309-41da-a9fd-0721e7dd2f99';
-const LOGGED_USER_VAR_ID = 'fc54ab80-1a04-4cfe-a504-793bdcfce5dd';
+
 const TICKET_VAR_ID = '7bebd888-f31e-49e7-bef2-4052c8cb6cf5';
 const IMAGE_BUCKET = 'ticket';
 
@@ -1095,9 +1094,8 @@ export default {
 
             this.refreshSupabaseInstances();
 
-            const language = this.getWeWebVariable(LANGUAGE_VAR_ID);
             const WorkspaceID = this.getWeWebVariable(WORKSPACE_VAR_ID);
-            const LoggedUserID = this.getWeWebVariable(LOGGED_USER_VAR_ID);
+
             const TicketID = this.getWeWebVariable(TICKET_VAR_ID);
 
             const { data: userData, error: authErr } = this.supabaseAuth?.auth?.getUser
@@ -1151,40 +1149,6 @@ export default {
                 throw new Error(`Erro no upload para o Supabase Storage: ${upErr.message || upErr}`);
             }
 
-            let attachmentId = null;
-            if (this.supabasePlugin?.callPostgresFunction) {
-                const rpcBody = {
-                    p_action: 'insert',
-                    p_workspace_id: WorkspaceID ?? null,
-                    p_ticket_id: TicketID ?? null,
-                    p_loggeruserid: LoggedUserID ?? null,
-                    p_filename: file.name,
-                    p_fileextension: extension || null,
-                    p_filesize: file.size,
-                    p_mimetype: contentType || null,
-                    p_bucket: IMAGE_BUCKET,
-                    p_objectpath: pathObject,
-                    p_attachment_id: null,
-                };
-
-                const { data: rpcData, error: rpcError } = await this.supabasePlugin.callPostgresFunction({
-                    functionName: 'postticketattachment',
-                    params: rpcBody,
-                });
-
-                if (rpcError) {
-                    console.warn('[RichText] postticketattachment failed:', rpcError);
-                } else if (Array.isArray(rpcData)) {
-                    attachmentId = rpcData[0]?.p_attachment_id || rpcData[0]?.attachment_id || null;
-                } else if (rpcData) {
-                    attachmentId = rpcData?.p_attachment_id || rpcData?.attachment_id || null;
-                }
-
-                this.$emit('trigger-event', {
-                    name: 'imageUpload',
-                    event: { value: { ...rpcBody, p_attachment_id: attachmentId, language, file } },
-                });
-            }
 
             let signedUrl = await this.getFreshSignedUrl(
                 { bucket: IMAGE_BUCKET, storagePath: pathObject, isImage: true },
@@ -1208,7 +1172,7 @@ export default {
                 url: signedUrl,
                 bucket: IMAGE_BUCKET,
                 storagePath: pathObject,
-                attachmentId,
+
             };
         },
         notifyError(message) {
@@ -1410,7 +1374,8 @@ export default {
 
             this.isUploadingImage = true;
             try {
-                const { url, bucket, storagePath, attachmentId } = await this.uploadImageToSupabase(imageFile);
+                const { url, bucket, storagePath } = await this.uploadImageToSupabase(imageFile);
+
                 const imageOptions = {
                     src: url,
                     alt: options.alt || imageFile.name,
@@ -1418,9 +1383,7 @@ export default {
                     supabaseBucket: bucket,
                     supabasePath: storagePath,
                 };
-                if (attachmentId) {
-                    imageOptions.supabaseAttachmentId = String(attachmentId);
-                }
+
 
                 this.richEditor.chain().focus().setImage(imageOptions).run();
             } catch (error) {
