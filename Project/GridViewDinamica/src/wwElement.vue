@@ -351,24 +351,155 @@
   };
 
   let suppressRevealUntilCapture = false;
+  let pendingInitialGridState = null;
+
+  const PROGRAMMATIC_EVENT_SOURCES = new Set([
+    "api",
+    "columnEverythingChanged",
+    "gridInitializing",
+    "rowDataChanged",
+    "rowDataUpdated",
+  ]);
+
+  const isProgrammaticEvent = event => {
+    if (!event || !event.source) return false;
+    return PROGRAMMATIC_EVENT_SOURCES.has(event.source);
+  };
 
   const shouldRevealSaveButton = (event) => {
-    if (suppressRevealUntilCapture) return false;
+    const programmatic = isProgrammaticEvent(event);
 
-    if (!event) return true;
-
-    const ignoreSources = [
-      "columnEverythingChanged",
-      "gridInitializing",
-      "rowDataChanged",
-      "rowDataUpdated",
-    ];
-
-    if (event.source && ignoreSources.includes(event.source)) {
+    if (suppressRevealUntilCapture && !event) {
       return false;
     }
 
-    return true;
+    if (suppressRevealUntilCapture && programmatic) {
+      return false;
+    }
+
+    if (!event) return true;
+
+    return !programmatic;
+  };
+
+  const initialGridState = ref({
+    filters: {},
+    sort: [],
+    columns: [],
+  });
+
+
+  const normalizeFilterModel = model => {
+    if (!model || typeof model !== 'object') return {};
+    const clone = JSON.parse(JSON.stringify(model));
+    return Object.keys(clone)
+      .sort()
+      .reduce((acc, key) => {
+        acc[key] = clone[key];
+        return acc;
+      }, {});
+  };
+
+  const normalizeSortModel = model => {
+    if (!Array.isArray(model)) return [];
+    return model
+      .map(item => ({
+        colId: item?.colId != null ? String(item.colId) : null,
+        sort: item?.sort ?? null,
+      }))
+      .filter(item => item.colId != null);
+  };
+
+  const getCurrentColumnOrder = () => {
+    if (!gridApi.value || typeof gridApi.value.getAllGridColumns !== 'function') return [];
+    return gridApi.value
+      .getAllGridColumns()
+      .map(col => col?.getColId?.())
+      .filter(colId => colId != null);
+  };
+
+  const getNormalizedGridState = () => {
+    if (!gridApi.value) {
+      return {
+        filters: {},
+        sort: [],
+        columns: [],
+      };
+    }
+
+    const filters = normalizeFilterModel(gridApi.value.getFilterModel?.() || {});
+    const sort = normalizeSortModel(gridApi.value.getSortModel?.() || []);
+    const columns = getCurrentColumnOrder();
+
+    return { filters, sort, columns };
+  };
+
+  let captureInitialStateTimeout = null;
+
+  const captureInitialGridState = () => {
+    if (!gridApi.value) return;
+    initialGridState.value = getNormalizedGridState();
+  };
+
+  const scheduleCaptureInitialGridState = (delay = 0) => {
+    if (captureInitialStateTimeout) {
+      clearTimeout(captureInitialStateTimeout);
+      captureInitialStateTimeout = null;
+    }
+
+    pendingInitialGridState = getNormalizedGridState();
+    suppressRevealUntilCapture = true;
+
+    const finalizeCapture = () => {
+      captureInitialStateTimeout = null;
+
+      if (pendingInitialGridState) {
+        initialGridState.value = pendingInitialGridState;
+        pendingInitialGridState = null;
+      } else {
+        captureInitialGridState();
+      }
+
+      suppressRevealUntilCapture = false;
+    };
+
+    const timeoutDelay = typeof delay === "number" && delay > 0 ? delay : 0;
+    captureInitialStateTimeout = setTimeout(finalizeCapture, timeoutDelay);
+  };
+
+  const runWithSuppressedReveal = (operation, { recaptureDelay = 50 } = {}) => {
+    suppressRevealUntilCapture = true;
+    const finalize = () => {
+      if (typeof recaptureDelay === "number") {
+        scheduleCaptureInitialGridState(recaptureDelay);
+      } else {
+        suppressRevealUntilCapture = false;
+      }
+    };
+
+    try {
+      const result = operation?.();
+      if (result && typeof result.then === "function") {
+        return result.finally(finalize);
+      }
+      finalize();
+      return result;
+    } catch (error) {
+      finalize();
+      throw error;
+    }
+  };
+
+  const isGridStatePristine = () => {
+    if (!gridApi.value) return true;
+    const current = getNormalizedGridState();
+    const initial = initialGridState.value || { filters: {}, sort: [], columns: [] };
+
+    const filtersEqual = JSON.stringify(current.filters) === JSON.stringify(initial.filters);
+    const sortEqual = JSON.stringify(current.sort) === JSON.stringify(initial.sort);
+    const columnsEqual = JSON.stringify(current.columns) === JSON.stringify(initial.columns);
+
+    return filtersEqual && sortEqual && columnsEqual;
   };
 
   const initialGridState = ref({
@@ -989,6 +1120,9 @@ const remountComponent = () => {
       clearTimeout(captureInitialStateTimeout);
       captureInitialStateTimeout = null;
     }
+    pendingInitialGridState = null;
+    suppressRevealUntilCapture = false;
+
   });
   
     const onGridReady = (params) => {
