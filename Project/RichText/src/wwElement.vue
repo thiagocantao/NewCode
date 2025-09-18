@@ -315,6 +315,14 @@
             </div>
             <wwElement class="ww-rich-text__menu" v-else-if="content.customMenu" v-bind="content.customMenuElement" />
 
+            <input
+                ref="imageInput"
+                type="file"
+                accept="image/*"
+                style="display: none"
+                @change="handleImageFileChange"
+            />
+
             <editor-content class="ww-rich-text__input" :editor="richEditor" :style="richStyles" />
         </template>
     </div>
@@ -884,19 +892,45 @@ export default {
             this.richEditor.chain().focus().extendMarkRange('link').setLink({ href: selectedUrl }).run();
         },
         setImage(src, alt = '', title = '') {
-            if (this.content.customMenu) this.richEditor.commands.setImage({ src, alt, title });
-            else {
-                let url;
-                /* wwEditor:start */
-                url = wwLib.getEditorWindow().prompt('Image URL');
-                /* wwEditor:end */
-                /* wwFront:start */
-                url = wwLib.getFrontWindow().prompt('Image URL');
-                /* wwFront:end */
-
-                if (!url) return;
-                this.richEditor.chain().focus().setImage({ src: url }).run();
+            if (this.content.customMenu) {
+                if (src) {
+                    this.richEditor.commands.setImage({ src, alt, title });
+                }
+                return;
             }
+
+            if (src) {
+                this.richEditor.chain().focus().setImage({ src, alt, title }).run();
+                return;
+            }
+
+            const imageInput = this.$refs.imageInput;
+            if (!imageInput) return;
+            imageInput.click();
+        },
+        handleImageFileChange(event) {
+            const [file] = event.target.files || [];
+            if (!file) {
+                event.target.value = '';
+                return;
+            }
+
+            if (file.type && !file.type.startsWith('image/')) {
+                event.target.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = () => {
+                if (typeof reader.result === 'string') {
+                    this.setImage(reader.result);
+                }
+                event.target.value = '';
+            };
+            reader.onerror = () => {
+                event.target.value = '';
+            };
+            reader.readAsDataURL(file);
         },
         focusEditor() {
             this.richEditor.chain().focus().run();
