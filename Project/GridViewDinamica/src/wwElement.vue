@@ -350,13 +350,14 @@
     }
   };
 
+  let suppressRevealUntilCapture = false;
+
   const shouldRevealSaveButton = (event) => {
+    if (suppressRevealUntilCapture) return false;
+
     if (!event) return true;
 
-    if (event.afterDataChange) return false;
-
     const ignoreSources = [
-      "api",
       "columnEverythingChanged",
       "gridInitializing",
       "rowDataChanged",
@@ -429,14 +430,41 @@
   };
 
   const scheduleCaptureInitialGridState = (delay = 0) => {
+    suppressRevealUntilCapture = true;
+
     if (captureInitialStateTimeout) {
       clearTimeout(captureInitialStateTimeout);
     }
     captureInitialStateTimeout = setTimeout(() => {
       captureInitialStateTimeout = null;
       captureInitialGridState();
+      suppressRevealUntilCapture = false;
     }, delay);
   };
+
+  const runWithSuppressedReveal = (operation, { recaptureDelay = 50 } = {}) => {
+    suppressRevealUntilCapture = true;
+    const finalize = () => {
+      if (typeof recaptureDelay === "number") {
+        scheduleCaptureInitialGridState(recaptureDelay);
+      } else {
+        suppressRevealUntilCapture = false;
+      }
+    };
+
+    try {
+      const result = operation?.();
+      if (result && typeof result.then === "function") {
+        return result.finally(finalize);
+      }
+      finalize();
+      return result;
+    } catch (error) {
+      finalize();
+      throw error;
+    }
+  };
+
 
   const isGridStatePristine = () => {
     if (!gridApi.value) return true;
@@ -627,15 +655,18 @@ function applyExternalSortAndSync() {
   if (!external.length) return;
 
   // 1) Aplicar columnState de sort (reseta sort nas demais colunas)
-  columnApi.value.applyColumnState({
-    state: external.map(e => ({ colId: e.colId, sort: e.sort, sortIndex: e.sortIndex })),
-    defaultState: { sort: null },
-    applyOrder: false
-  });
-
-  // 2) Aplicar sortModel (garante sincronismo visual/eventos)
   const sortModel = external.map(e => ({ colId: e.colId, sort: e.sort }));
-  gridApi.value.setSortModel(sortModel);
+
+  runWithSuppressedReveal(() => {
+    columnApi.value.applyColumnState({
+      state: external.map(e => ({ colId: e.colId, sort: e.sort, sortIndex: e.sortIndex })),
+      defaultState: { sort: null },
+      applyOrder: false
+    });
+
+    // 2) Aplicar sortModel (garante sincronismo visual/eventos)
+    gridApi.value.setSortModel(sortModel);
+  });
 
   // 3) Atualizar variável local `sort`
   setSort(sortModel);
@@ -677,12 +708,21 @@ const remountComponent = () => {
       const raw = localStorage.getItem(storageKey);
       if (!raw) return;
       const state = JSON.parse(raw);
-      if (state.columnState && Array.isArray(state.columnState) && state.columnState.length) {
-        columnApi.value.applyColumnState({ state: state.columnState, applyOrder: true });
+      const hasColumnState = Array.isArray(state.columnState) && state.columnState.length;
+      const hasFilterModel = state.filterModel && typeof state.filterModel === 'object';
+
+      if (!hasColumnState && !hasFilterModel) {
+        return;
       }
-      if (state.filterModel && typeof state.filterModel === 'object') {
-        gridApi.value.setFilterModel(state.filterModel);
-      }
+
+      runWithSuppressedReveal(() => {
+        if (hasColumnState) {
+          columnApi.value.applyColumnState({ state: state.columnState, applyOrder: true });
+        }
+        if (hasFilterModel) {
+          gridApi.value.setFilterModel(state.filterModel);
+        }
+      });
     } catch (e) {
       console.warn('Failed to restore grid state', e);
     }
@@ -864,7 +904,9 @@ const remountComponent = () => {
       .map((col, idx) => ({ colId: col.id || col.field, order: idx }))
       .filter(s => s.colId);
     if (state.length) {
-      columnApi.value.applyColumnState({ state, applyOrder: true });
+      runWithSuppressedReveal(() => {
+        columnApi.value.applyColumnState({ state, applyOrder: true });
+      });
       // Atualiza variáveis e persiste nova ordem
       updateColumnsPosition();
     }
@@ -1142,9 +1184,11 @@ const remountComponent = () => {
         });
         
         // Aplicar o novo estado
-        gridApi.value.applyColumnState({
-          state: columnState,
-          applyOrder: true
+        runWithSuppressedReveal(() => {
+          gridApi.value.applyColumnState({
+            state: columnState,
+            applyOrder: true
+          });
         });
       }
     } catch (error) {
@@ -1193,8 +1237,10 @@ const remountComponent = () => {
     [() => props.content.initialFilters, () => gridApi.value],
     ([filters]) => {
       if (!gridApi.value) return;
-      gridApi.value.setFilterModel(filters || null);
-      scheduleCaptureInitialGridState(50);
+      runWithSuppressedReveal(() => {
+        gridApi.value.setFilterModel(filters || null);
+      }, { recaptureDelay: 50 });
+
     },
     { deep: true, immediate: true }
   );
@@ -1203,11 +1249,13 @@ const remountComponent = () => {
     [() => props.content.initialSort, () => gridApi.value],
     ([sort]) => {
       if (!gridApi.value) return;
-      gridApi.value.applyColumnState({
-        state: sort || [],
-        defaultState: { sort: null },
-      });
-      scheduleCaptureInitialGridState(50);
+      runWithSuppressedReveal(() => {
+        gridApi.value.applyColumnState({
+          state: sort || [],
+          defaultState: { sort: null },
+        });
+      }, { recaptureDelay: 50 });
+
     },
     { deep: true, immediate: true }
   );
