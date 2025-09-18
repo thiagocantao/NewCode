@@ -369,6 +369,7 @@
 <script>
 import 'katex/dist/katex.min.css';
 import { Editor, EditorContent } from '@tiptap/vue-3';
+import { NodeSelection } from '@tiptap/pm/state';
 import StarterKit from '@tiptap/starter-kit';
 import Mention from '@tiptap/extension-mention';
 import TextStyle from '@tiptap/extension-text-style';
@@ -985,6 +986,15 @@ export default {
                 onUpdate: this.handleOnUpdate,
                 editorProps: {
                     handleClickOn: (view, pos, node) => {
+                        if (node.type.name === 'image') {
+                            const { state, dispatch } = view;
+                            const selection = NodeSelection.create(state.doc, pos);
+
+                            dispatch(state.tr.setSelection(selection));
+
+                            return true;
+                        }
+
                         if (node.type.name === 'mention') {
                             this.$emit('trigger-event', {
                                 name: 'mention:click',
