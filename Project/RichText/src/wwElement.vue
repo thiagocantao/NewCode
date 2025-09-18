@@ -1004,6 +1004,7 @@ export default {
 
             if (options.src) {
                 this.richEditor.chain().focus().setImage(options).run();
+
                 return;
             }
 
