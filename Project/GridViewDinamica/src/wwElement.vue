@@ -1058,27 +1058,61 @@ const remountComponent = () => {
   const applyColumnOrderFromPosition = () => {
     const colApi = getColApi();
     if (!colApi || !props.content || !Array.isArray(props.content.columns)) return;
+
+    const includeSelectionColumn =
+      props.content?.rowSelection === 'multiple' && !props.content?.disableCheckboxes;
+
     const ordered = [...props.content.columns].sort((a, b) => {
       const aPos = a.PositionInGrid ?? a.positionInGrid ?? a.PositionField ?? 0;
       const bPos = b.PositionInGrid ?? b.positionInGrid ?? b.PositionField ?? 0;
       return aPos - bPos;
     });
-    const state = ordered
-      .map((col, idx) => ({ colId: col.id || col.field, order: idx }))
-      .filter(s => s.colId);
+
+    let state = ordered
+      .map((col, idx) => {
+        const colId = col.id || col.field;
+        if (!colId) return null;
+        const pinned = col.pinned === 'left' || col.pinned === 'right' ? col.pinned : undefined;
+        return {
+          colId,
+          order: includeSelectionColumn ? idx + 1 : idx,
+          ...(pinned ? { pinned } : {}),
+        };
+      })
+      .filter(Boolean);
+
+    if (includeSelectionColumn) {
+      state = [
+        {
+          colId: 'ag-Grid-SelectionColumn',
+          order: 0,
+          pinned: 'left',
+          suppressSizeToFit: true,
+          suppressAutoSize: true,
+        },
+        ...state,
+      ];
+    }
+
     if (state.length) {
       runWithSuppressedReveal(() => {
-        colApi?.applyColumnState?.({ state, applyOrder: true });
+        const columnStateConfig = {
+          state,
+          applyOrder: true,
+        };
+
+        if (includeSelectionColumn) {
+          columnStateConfig.defaultState = { pinned: null };
+        }
+
+        colApi?.applyColumnState?.(columnStateConfig);
       });
       // Atualiza variáveis e persiste nova ordem
       updateColumnsPosition();
-      if (
-        props.content?.rowSelection === 'multiple' &&
-        !props.content?.disableCheckboxes
-      ) {
-        setTimeout(() => {
-          forceSelectionColumnFirst();
-        }, 50);
+
+      if (includeSelectionColumn) {
+        defer(() => forceSelectionColumnFirst());
+
       }
     }
   };
