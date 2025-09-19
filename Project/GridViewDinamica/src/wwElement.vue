@@ -402,12 +402,32 @@
 
   const normalizeSortModel = model => {
     if (!Array.isArray(model)) return [];
+
+    // Preserve sort priority when AG Grid supplies explicit indexes (multi-column sorting).
+    const containsSortIndex = model.some(entry => entry && entry.sortIndex != null);
+
     return model
-      .map(item => ({
-        colId: item?.colId != null ? String(item.colId) : null,
-        sort: item?.sort ?? null,
-      }))
-      .filter(item => item.colId != null);
+      .map((item, idx) => {
+        const colId = item?.colId != null ? String(item.colId) : null;
+        if (colId == null) return null;
+
+        const normalized = {
+          colId,
+          sort: item?.sort ?? null,
+        };
+
+        if (item?.sortIndex != null) {
+          const parsedIndex = Number(item.sortIndex);
+          if (Number.isFinite(parsedIndex)) {
+            normalized.sortIndex = parsedIndex;
+          }
+        } else if (containsSortIndex) {
+          normalized.sortIndex = idx;
+        }
+
+        return normalized;
+      })
+      .filter(item => item && item.colId != null);
   };
 
   const getCurrentColumnOrder = () => {
@@ -428,7 +448,33 @@
     }
 
     const filters = normalizeFilterModel(gridApi.value.getFilterModel?.() || {});
-    const sort = normalizeSortModel(gridApi.value.getSortModel?.() || []);
+    let sort = normalizeSortModel(gridApi.value.getSortModel?.() || []);
+
+    // Some row-models do not expose the current sort model via the grid API,
+    // but the column state still reflects active sorts. Fall back to that state
+    // when the direct API call reports no sorting information.
+    if (
+      sort.length === 0 &&
+      columnApi.value &&
+      typeof columnApi.value.getColumnState === "function"
+    ) {
+      const columnStateSorts = columnApi.value
+        .getColumnState()
+        .filter(col => col && col.sort)
+        .sort((a, b) => {
+          const aIndex = a?.sortIndex != null ? a.sortIndex : Number.MAX_SAFE_INTEGER;
+          const bIndex = b?.sortIndex != null ? b.sortIndex : Number.MAX_SAFE_INTEGER;
+          return aIndex - bIndex;
+        })
+        .map(col => ({
+          colId: col?.colId,
+          sort: col?.sort,
+          sortIndex: col?.sortIndex,
+        }));
+
+      sort = normalizeSortModel(columnStateSorts);
+    }
+
     const columns = getCurrentColumnOrder();
 
     return { filters, sort, columns };
@@ -509,13 +555,36 @@
   };
 
   const syncHideSaveButtonVisibility = (event) => {
-    if (!shouldRevealSaveButton(event)) {
+    const isRowDataSourceChange =
+      event?.source === "rowDataChanged" || event?.source === "rowDataUpdated";
+
+    if (isRowDataSourceChange) {
       updateHideSaveButtonVisibility(true);
       scheduleCaptureInitialGridState(50);
       return;
     }
 
-    updateHideSaveButtonVisibility(isGridStatePristine());
+    const pristine = isGridStatePristine();
+    const programmatic = isProgrammaticEvent(event);
+
+    if (!shouldRevealSaveButton(event)) {
+      if (suppressRevealUntilCapture) {
+        updateHideSaveButtonVisibility(true);
+        scheduleCaptureInitialGridState(50);
+        return;
+      }
+
+      if (programmatic && !pristine) {
+        updateHideSaveButtonVisibility(false);
+        return;
+      }
+
+      updateHideSaveButtonVisibility(pristine);
+      scheduleCaptureInitialGridState(50);
+      return;
+    }
+
+    updateHideSaveButtonVisibility(pristine);
   };
 
   const resetHideSaveButtonVisibility = () => {
