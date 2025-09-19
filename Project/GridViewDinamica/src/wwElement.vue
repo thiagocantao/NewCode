@@ -484,7 +484,9 @@
 
   const captureInitialGridState = () => {
     if (!gridApi.value) return;
-    initialGridState.value = getNormalizedGridState();
+    const snapshot = getNormalizedGridState();
+    initialGridState.value = snapshot;
+    pendingInitialGridState = snapshot;
   };
 
   const scheduleCaptureInitialGridState = (delay = 0) => {
@@ -493,29 +495,27 @@
       captureInitialStateTimeout = null;
     }
 
-    pendingInitialGridState = getNormalizedGridState();
     suppressRevealUntilCapture = true;
+    pendingInitialGridState = null;
 
     const finalizeCapture = () => {
       captureInitialStateTimeout = null;
 
-      if (pendingInitialGridState) {
-        initialGridState.value = pendingInitialGridState;
-        pendingInitialGridState = null;
-      } else {
-        captureInitialGridState();
+      try {
+        const nextState = getNormalizedGridState();
+        pendingInitialGridState = nextState;
+        initialGridState.value = nextState;
+      } finally {
+        suppressRevealUntilCapture = false;
+
+        // Depois de recapturar o estado inicial, sincroniza imediatamente
+        // a visibilidade do botão para refletir o novo snapshot.
+        updateHideSaveButtonVisibility(isGridStatePristine());
       }
-
-      suppressRevealUntilCapture = false;
-
-      // Depois de recapturar o estado inicial, sincroniza imediatamente
-      // a visibilidade do botão para refletir o novo snapshot.
-      updateHideSaveButtonVisibility(isGridStatePristine());
     };
 
     const timeoutDelay = typeof delay === "number" && delay > 0 ? delay : 0;
     captureInitialStateTimeout = setTimeout(finalizeCapture, timeoutDelay);
-
   };
 
   const runWithSuppressedReveal = (operation, { recaptureDelay = 50 } = {}) => {
