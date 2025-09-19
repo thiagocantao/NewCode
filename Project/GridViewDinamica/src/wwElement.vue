@@ -290,60 +290,6 @@
 
   const HIDE_SAVE_BUTTON_VARIABLE_ID = "09c5aacd-b697-4e04-9571-d5db1f671877";
 
-  const updateHideSaveButtonVisibility = (value) => {
-    try {
-      const wwVariable = window?.wwLib?.wwVariable;
-      if (!wwVariable) return;
-
-      if (typeof wwVariable.setValue === "function") {
-        wwVariable.setValue(HIDE_SAVE_BUTTON_VARIABLE_ID, value);
-        return;
-      }
-
-      if (typeof wwVariable.updateValue === "function") {
-        wwVariable.updateValue(HIDE_SAVE_BUTTON_VARIABLE_ID, value);
-        return;
-      }
-
-      if (typeof wwVariable.setComponentValue === "function") {
-        wwVariable.setComponentValue(HIDE_SAVE_BUTTON_VARIABLE_ID, value);
-      }
-    } catch (error) {
-      console.warn(
-        "[GridViewDinamica] Failed to update escondeBotaoSalvarGrid variable",
-        error
-      );
-    }
-  };
-
-  const shouldRevealSaveButton = (event) => {
-    if (!event) return true;
-
-    if (event.afterDataChange) return false;
-
-    const ignoreSources = [
-      "api",
-      "columnEverythingChanged",
-      "gridInitializing",
-      "rowDataChanged",
-      "rowDataUpdated",
-    ];
-
-    if (event.source && ignoreSources.includes(event.source)) {
-      return false;
-    }
-
-    return true;
-  };
-
-  const syncHideSaveButtonVisibility = (event) => {
-    updateHideSaveButtonVisibility(!shouldRevealSaveButton(event));
-  };
-
-  const resetHideSaveButtonVisibility = () => {
-    updateHideSaveButtonVisibility(true);
-  };
-  
   export default {
   components: {
   AgGridVue,
@@ -377,6 +323,202 @@
   const gridApi = shallowRef(null);
   const columnApi = shallowRef(null);
   const agGridRef = ref(null);
+
+  const updateHideSaveButtonVisibility = (value) => {
+    try {
+      const wwVariable = window?.wwLib?.wwVariable;
+      if (!wwVariable) return;
+
+      if (typeof wwVariable.setValue === "function") {
+        wwVariable.setValue(HIDE_SAVE_BUTTON_VARIABLE_ID, value);
+        return;
+      }
+
+      if (typeof wwVariable.updateValue === "function") {
+        wwVariable.updateValue(HIDE_SAVE_BUTTON_VARIABLE_ID, value);
+        return;
+      }
+
+      if (typeof wwVariable.setComponentValue === "function") {
+        wwVariable.setComponentValue(HIDE_SAVE_BUTTON_VARIABLE_ID, value);
+      }
+    } catch (error) {
+      console.warn(
+        "[GridViewDinamica] Failed to update escondeBotaoSalvarGrid variable",
+        error
+      );
+    }
+  };
+
+  let suppressRevealUntilCapture = false;
+  let pendingInitialGridState = null;
+
+  const PROGRAMMATIC_EVENT_SOURCES = new Set([
+    "api",
+    "columnEverythingChanged",
+    "gridInitializing",
+    "rowDataChanged",
+    "rowDataUpdated",
+  ]);
+
+  const isProgrammaticEvent = event => {
+    if (!event || !event.source) return false;
+    return PROGRAMMATIC_EVENT_SOURCES.has(event.source);
+  };
+
+  const shouldRevealSaveButton = (event) => {
+    const programmatic = isProgrammaticEvent(event);
+
+    if (suppressRevealUntilCapture && !event) {
+      return false;
+    }
+
+    if (suppressRevealUntilCapture && programmatic) {
+      return false;
+    }
+
+    if (!event) return true;
+
+    return !programmatic;
+  };
+
+  const initialGridState = ref({
+    filters: {},
+    sort: [],
+    columns: [],
+  });
+
+  const normalizeFilterModel = model => {
+    if (!model || typeof model !== 'object') return {};
+    const clone = JSON.parse(JSON.stringify(model));
+    return Object.keys(clone)
+      .sort()
+      .reduce((acc, key) => {
+        acc[key] = clone[key];
+        return acc;
+      }, {});
+  };
+
+  const normalizeSortModel = model => {
+    if (!Array.isArray(model)) return [];
+    return model
+      .map(item => ({
+        colId: item?.colId != null ? String(item.colId) : null,
+        sort: item?.sort ?? null,
+      }))
+      .filter(item => item.colId != null);
+  };
+
+  const getCurrentColumnOrder = () => {
+    if (!gridApi.value || typeof gridApi.value.getAllGridColumns !== 'function') return [];
+    return gridApi.value
+      .getAllGridColumns()
+      .map(col => col?.getColId?.())
+      .filter(colId => colId != null);
+  };
+
+  const getNormalizedGridState = () => {
+    if (!gridApi.value) {
+      return {
+        filters: {},
+        sort: [],
+        columns: [],
+      };
+    }
+
+    const filters = normalizeFilterModel(gridApi.value.getFilterModel?.() || {});
+    const sort = normalizeSortModel(gridApi.value.getSortModel?.() || []);
+    const columns = getCurrentColumnOrder();
+
+    return { filters, sort, columns };
+  };
+
+  let captureInitialStateTimeout = null;
+
+  const captureInitialGridState = () => {
+    if (!gridApi.value) return;
+    initialGridState.value = getNormalizedGridState();
+  };
+
+  const scheduleCaptureInitialGridState = (delay = 0) => {
+    if (captureInitialStateTimeout) {
+      clearTimeout(captureInitialStateTimeout);
+      captureInitialStateTimeout = null;
+    }
+
+    pendingInitialGridState = getNormalizedGridState();
+    suppressRevealUntilCapture = true;
+
+    const finalizeCapture = () => {
+      captureInitialStateTimeout = null;
+
+      if (pendingInitialGridState) {
+        initialGridState.value = pendingInitialGridState;
+        pendingInitialGridState = null;
+      } else {
+        captureInitialGridState();
+      }
+
+      suppressRevealUntilCapture = false;
+
+      // Depois de recapturar o estado inicial, sincroniza imediatamente
+      // a visibilidade do botão para refletir o novo snapshot.
+      updateHideSaveButtonVisibility(isGridStatePristine());
+    };
+
+    const timeoutDelay = typeof delay === "number" && delay > 0 ? delay : 0;
+    captureInitialStateTimeout = setTimeout(finalizeCapture, timeoutDelay);
+  };
+
+  const runWithSuppressedReveal = (operation, { recaptureDelay = 50 } = {}) => {
+    suppressRevealUntilCapture = true;
+    const finalize = () => {
+      if (typeof recaptureDelay === "number") {
+        scheduleCaptureInitialGridState(recaptureDelay);
+      } else {
+        suppressRevealUntilCapture = false;
+      }
+    };
+
+    try {
+      const result = operation?.();
+      if (result && typeof result.then === "function") {
+        return result.finally(finalize);
+      }
+      finalize();
+      return result;
+    } catch (error) {
+      finalize();
+      throw error;
+    }
+  };
+
+  const isGridStatePristine = () => {
+    if (!gridApi.value) return true;
+    const current = getNormalizedGridState();
+    const initial = initialGridState.value || { filters: {}, sort: [], columns: [] };
+
+    const filtersEqual = JSON.stringify(current.filters) === JSON.stringify(initial.filters);
+    const sortEqual = JSON.stringify(current.sort) === JSON.stringify(initial.sort);
+    const columnsEqual = JSON.stringify(current.columns) === JSON.stringify(initial.columns);
+
+    return filtersEqual && sortEqual && columnsEqual;
+  };
+
+  const syncHideSaveButtonVisibility = (event) => {
+    if (!shouldRevealSaveButton(event)) {
+      updateHideSaveButtonVisibility(true);
+      scheduleCaptureInitialGridState(50);
+      return;
+    }
+
+    updateHideSaveButtonVisibility(isGridStatePristine());
+  };
+
+  const resetHideSaveButtonVisibility = () => {
+    updateHideSaveButtonVisibility(true);
+    scheduleCaptureInitialGridState(100);
+  };
 
   const componentFontFamily = ref("");
   const fallbackFontFamily = computed(() => {
@@ -540,15 +682,18 @@ function applyExternalSortAndSync() {
   if (!external.length) return;
 
   // 1) Aplicar columnState de sort (reseta sort nas demais colunas)
-  columnApi.value.applyColumnState({
-    state: external.map(e => ({ colId: e.colId, sort: e.sort, sortIndex: e.sortIndex })),
-    defaultState: { sort: null },
-    applyOrder: false
-  });
-
-  // 2) Aplicar sortModel (garante sincronismo visual/eventos)
   const sortModel = external.map(e => ({ colId: e.colId, sort: e.sort }));
-  gridApi.value.setSortModel(sortModel);
+
+  runWithSuppressedReveal(() => {
+    columnApi.value.applyColumnState({
+      state: external.map(e => ({ colId: e.colId, sort: e.sort, sortIndex: e.sortIndex })),
+      defaultState: { sort: null },
+      applyOrder: false
+    });
+
+    // 2) Aplicar sortModel (garante sincronismo visual/eventos)
+    gridApi.value.setSortModel(sortModel);
+  });
 
   // 3) Atualizar variável local `sort`
   setSort(sortModel);
@@ -590,12 +735,21 @@ const remountComponent = () => {
       const raw = localStorage.getItem(storageKey);
       if (!raw) return;
       const state = JSON.parse(raw);
-      if (state.columnState && Array.isArray(state.columnState) && state.columnState.length) {
-        columnApi.value.applyColumnState({ state: state.columnState, applyOrder: true });
+      const hasColumnState = Array.isArray(state.columnState) && state.columnState.length;
+      const hasFilterModel = state.filterModel && typeof state.filterModel === 'object';
+
+      if (!hasColumnState && !hasFilterModel) {
+        return;
       }
-      if (state.filterModel && typeof state.filterModel === 'object') {
-        gridApi.value.setFilterModel(state.filterModel);
-      }
+
+      runWithSuppressedReveal(() => {
+        if (hasColumnState) {
+          columnApi.value.applyColumnState({ state: state.columnState, applyOrder: true });
+        }
+        if (hasFilterModel) {
+          gridApi.value.setFilterModel(state.filterModel);
+        }
+      });
     } catch (e) {
       console.warn('Failed to restore grid state', e);
     }
@@ -777,7 +931,9 @@ const remountComponent = () => {
       .map((col, idx) => ({ colId: col.id || col.field, order: idx }))
       .filter(s => s.colId);
     if (state.length) {
-      columnApi.value.applyColumnState({ state, applyOrder: true });
+      runWithSuppressedReveal(() => {
+        columnApi.value.applyColumnState({ state, applyOrder: true });
+      });
       // Atualiza variáveis e persiste nova ordem
       updateColumnsPosition();
     }
@@ -818,22 +974,23 @@ const remountComponent = () => {
     loadAllColumnOptions();
     applyColumnOrderFromPosition();
     // Se estamos num ciclo de remount que deve respeitar a WW variable, reaplique
-setTimeout(() => {
-  if (forceExternalSortNextMount.value) {
-    applyExternalSortAndSync();
-  }
-}, 0);
+    setTimeout(() => {
+      if (forceExternalSortNextMount.value) {
+        applyExternalSortAndSync();
+      }
+    }, 0);
+    resetHideSaveButtonVisibility();
   }, { deep: true });
 
   watch(() => props.content?.rowData, () => {
     loadAllColumnOptions();
     applyColumnOrderFromPosition();
     // Se estamos num ciclo de remount que deve respeitar a WW variable, reaplique
-setTimeout(() => {
-  if (forceExternalSortNextMount.value) {
-    applyExternalSortAndSync();
-  }
-}, 0);
+    setTimeout(() => {
+      if (forceExternalSortNextMount.value) {
+        applyExternalSortAndSync();
+      }
+    }, 0);
     resetHideSaveButtonVisibility();
   }, { deep: true });
 
@@ -855,6 +1012,12 @@ setTimeout(() => {
       beforeUnloadHandler = null;
     }
     document.removeEventListener('click', handleDocumentClick, true);
+    if (captureInitialStateTimeout) {
+      clearTimeout(captureInitialStateTimeout);
+      captureInitialStateTimeout = null;
+    }
+    pendingInitialGridState = null;
+    suppressRevealUntilCapture = false;
   });
   
     const onGridReady = (params) => {
@@ -867,6 +1030,7 @@ setTimeout(() => {
       restoreGridState();
       setTimeout(restoreGridState, 0);
       setTimeout(restoreGridState, 150);
+      setTimeout(() => scheduleCaptureInitialGridState(0), 220);
 
 
 
@@ -1049,9 +1213,11 @@ setTimeout(() => {
         });
         
         // Aplicar o novo estado
-        gridApi.value.applyColumnState({
-          state: columnState,
-          applyOrder: true
+        runWithSuppressedReveal(() => {
+          gridApi.value.applyColumnState({
+            state: columnState,
+            applyOrder: true
+          });
         });
       }
     } catch (error) {
@@ -1100,7 +1266,9 @@ setTimeout(() => {
     [() => props.content.initialFilters, () => gridApi.value],
     ([filters]) => {
       if (!gridApi.value) return;
-      gridApi.value.setFilterModel(filters || null);
+      runWithSuppressedReveal(() => {
+        gridApi.value.setFilterModel(filters || null);
+      }, { recaptureDelay: 50 });
     },
     { deep: true, immediate: true }
   );
@@ -1109,10 +1277,12 @@ setTimeout(() => {
     [() => props.content.initialSort, () => gridApi.value],
     ([sort]) => {
       if (!gridApi.value) return;
-      gridApi.value.applyColumnState({
-        state: sort || [],
-        defaultState: { sort: null },
-      });
+      runWithSuppressedReveal(() => {
+        gridApi.value.applyColumnState({
+          state: sort || [],
+          defaultState: { sort: null },
+        });
+      }, { recaptureDelay: 50 });
     },
     { deep: true, immediate: true }
   );
