@@ -571,6 +571,7 @@
       userInteractedDuringCapture = true;
     }
 
+
     if (isRowDataSourceChange) {
       updateHideSaveButtonVisibility(true);
 
