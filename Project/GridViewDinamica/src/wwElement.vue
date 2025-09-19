@@ -352,6 +352,7 @@
 
   let suppressRevealUntilCapture = false;
   let pendingInitialGridState = null;
+  let userInteractedDuringCapture = false;
 
   const PROGRAMMATIC_EVENT_SOURCES = new Set([
     "api",
@@ -484,7 +485,9 @@
 
   const captureInitialGridState = () => {
     if (!gridApi.value) return;
-    initialGridState.value = getNormalizedGridState();
+    const snapshot = getNormalizedGridState();
+    initialGridState.value = snapshot;
+    pendingInitialGridState = snapshot;
   };
 
   const scheduleCaptureInitialGridState = (delay = 0) => {
@@ -493,29 +496,33 @@
       captureInitialStateTimeout = null;
     }
 
-    pendingInitialGridState = getNormalizedGridState();
     suppressRevealUntilCapture = true;
+    pendingInitialGridState = getNormalizedGridState();
+    userInteractedDuringCapture = false;
 
     const finalizeCapture = () => {
       captureInitialStateTimeout = null;
 
-      if (pendingInitialGridState) {
-        initialGridState.value = pendingInitialGridState;
-        pendingInitialGridState = null;
-      } else {
-        captureInitialGridState();
+      try {
+        const nextState = getNormalizedGridState();
+        if (userInteractedDuringCapture && pendingInitialGridState) {
+          initialGridState.value = pendingInitialGridState;
+        } else {
+          pendingInitialGridState = nextState;
+          initialGridState.value = nextState;
+        }
+      } finally {
+        suppressRevealUntilCapture = false;
+        userInteractedDuringCapture = false;
+
+        // Depois de recapturar o estado inicial, sincroniza imediatamente
+        // a visibilidade do botão para refletir o novo snapshot.
+        updateHideSaveButtonVisibility(isGridStatePristine());
       }
-
-      suppressRevealUntilCapture = false;
-
-      // Depois de recapturar o estado inicial, sincroniza imediatamente
-      // a visibilidade do botão para refletir o novo snapshot.
-      updateHideSaveButtonVisibility(isGridStatePristine());
     };
 
     const timeoutDelay = typeof delay === "number" && delay > 0 ? delay : 0;
     captureInitialStateTimeout = setTimeout(finalizeCapture, timeoutDelay);
-
   };
 
   const runWithSuppressedReveal = (operation, { recaptureDelay = 50 } = {}) => {
@@ -555,8 +562,14 @@
   };
 
   const syncHideSaveButtonVisibility = (event) => {
+    const isSortEvent = event?.type === "sortChanged";
     const isRowDataSourceChange =
-      event?.source === "rowDataChanged" || event?.source === "rowDataUpdated";
+      !isSortEvent &&
+      (event?.source === "rowDataChanged" || event?.source === "rowDataUpdated");
+
+    if (captureInitialStateTimeout && event && !isProgrammaticEvent(event)) {
+      userInteractedDuringCapture = true;
+    }
 
     if (isRowDataSourceChange) {
       updateHideSaveButtonVisibility(true);
