@@ -571,9 +571,6 @@
       userInteractedDuringCapture = true;
     }
 
-    if (captureInitialStateTimeout && event && !isProgrammaticEvent(event)) {
-      userInteractedDuringCapture = true;
-    }
 
     if (isRowDataSourceChange) {
       updateHideSaveButtonVisibility(true);
@@ -1414,22 +1411,23 @@ const remountComponent = () => {
   };
   
   const onSortChanged = (event) => {
-  if (!gridApi.value) return;
-  const state = gridApi.value.getState();
-  if (
-  JSON.stringify(state.sort?.sortModel || []) !==
-  JSON.stringify(sortValue.value || [])
-  ) {
-  setSort(state.sort?.sortModel || []);
-  syncHideSaveButtonVisibility(event);
+    if (!gridApi.value) return;
 
-  ctx.emit("trigger-event", {
-  name: "sortChanged",
-  event: state.sort?.sortModel || [],
-  });
-  }
-  updateColumnsSort();
-  saveGridState();
+    const { sort: normalizedSort } = getNormalizedGridState();
+    const previousSort = normalizeSortModel(sortValue.value || []);
+
+    if (JSON.stringify(normalizedSort) !== JSON.stringify(previousSort)) {
+      setSort(normalizedSort);
+      syncHideSaveButtonVisibility(event);
+
+      ctx.emit("trigger-event", {
+        name: "sortChanged",
+        event: normalizedSort,
+      });
+    }
+
+    updateColumnsSort();
+    saveGridState();
   };
 
   const onColumnMoved = (event) => {
