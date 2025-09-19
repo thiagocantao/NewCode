@@ -1151,6 +1151,7 @@ const remountComponent = () => {
   watch(() => props.content?.columns, () => {
     loadAllColumnOptions();
     applyColumnOrderFromPosition();
+    updateColumnsPosition({ fallbackToContent: true });
     // Se estamos num ciclo de remount que deve respeitar a WW variable, reaplique
     setTimeout(() => {
       if (forceExternalSortNextMount.value) {
@@ -1163,6 +1164,7 @@ const remountComponent = () => {
   watch(() => props.content?.rowData, () => {
     loadAllColumnOptions();
     applyColumnOrderFromPosition();
+    updateColumnsPosition({ fallbackToContent: true });
     // Se estamos num ciclo de remount que deve respeitar a WW variable, reaplique
     setTimeout(() => {
       if (forceExternalSortNextMount.value) {
@@ -1547,16 +1549,83 @@ const remountComponent = () => {
   const { createElement } = wwLib.wwElement.useCreate();
   /* wwEditor:end */
   
-  function updateColumnsPosition() {
-  if (!gridApi.value) return;
-  const allColumns = gridApi.value.getAllGridColumns();
-  const positions = allColumns.map((col, idx) => ({
-  FieldID: col.getColDef().id,
-  PositionField: idx + 1,
-  IsDeleted: false
-  })).filter(col => col.FieldID);
-  setColumnsPosition(positions);
-  saveGridState();
+  function buildColumnsPositionFromContentColumns() {
+    if (!props.content || !Array.isArray(props.content.columns)) {
+      return [];
+    }
+
+    const orderedColumns = [...props.content.columns].sort((a, b) => {
+      const getPosition = column =>
+        column.PositionInGrid ??
+        column.positionInGrid ??
+        column.PositionField ??
+        column.positionField ??
+        0;
+
+      return getPosition(a) - getPosition(b);
+    });
+
+    let order = 1;
+    return orderedColumns
+      .map(column => {
+        const fieldId =
+          column.FieldID ??
+          column.FieldId ??
+          column.Field ??
+          column.id ??
+          column.field ??
+          column.FieldDB;
+
+        if (!fieldId) {
+          return null;
+        }
+
+        return {
+          FieldID: String(fieldId),
+          PositionField: order++,
+          IsDeleted: false,
+        };
+      })
+      .filter(Boolean);
+  }
+
+  function updateColumnsPosition(options = {}) {
+    const { fallbackToContent = false } = options;
+
+    if (gridApi.value && typeof gridApi.value.getAllGridColumns === "function") {
+      const allColumns = gridApi.value.getAllGridColumns();
+      const positions = allColumns
+        .map((column, idx) => {
+          const colDef = typeof column.getColDef === "function" ? column.getColDef() : column.colDef || {};
+          const fieldId =
+            colDef?.id ??
+            colDef?.colId ??
+            (typeof column.getColId === "function" ? column.getColId() : undefined) ??
+            colDef?.field;
+
+          if (!fieldId) {
+            return null;
+          }
+
+          return {
+            FieldID: String(fieldId),
+            PositionField: idx + 1,
+            IsDeleted: false,
+          };
+        })
+        .filter(Boolean);
+
+      setColumnsPosition(positions);
+      saveGridState();
+
+      if (positions.length || !fallbackToContent) {
+        return;
+      }
+    }
+
+    if (fallbackToContent) {
+      setColumnsPosition(buildColumnsPositionFromContentColumns());
+    }
   }
   
   function updateColumnsSort() {
