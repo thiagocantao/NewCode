@@ -1058,20 +1058,61 @@ const remountComponent = () => {
   const applyColumnOrderFromPosition = () => {
     const colApi = getColApi();
     if (!colApi || !props.content || !Array.isArray(props.content.columns)) return;
+
+    const includeSelectionColumn =
+      props.content?.rowSelection === 'multiple' && !props.content?.disableCheckboxes;
+
     const ordered = [...props.content.columns].sort((a, b) => {
       const aPos = a.PositionInGrid ?? a.positionInGrid ?? a.PositionField ?? 0;
       const bPos = b.PositionInGrid ?? b.positionInGrid ?? b.PositionField ?? 0;
       return aPos - bPos;
     });
-    const state = ordered
-      .map((col, idx) => ({ colId: col.id || col.field, order: idx }))
-      .filter(s => s.colId);
+
+    let state = ordered
+      .map((col, idx) => {
+        const colId = col.id || col.field;
+        if (!colId) return null;
+        const pinned = col.pinned === 'left' || col.pinned === 'right' ? col.pinned : undefined;
+        return {
+          colId,
+          order: includeSelectionColumn ? idx + 1 : idx,
+          ...(pinned ? { pinned } : {}),
+        };
+      })
+      .filter(Boolean);
+
+    if (includeSelectionColumn) {
+      state = [
+        {
+          colId: 'ag-Grid-SelectionColumn',
+          order: 0,
+          pinned: 'left',
+          suppressSizeToFit: true,
+          suppressAutoSize: true,
+        },
+        ...state,
+      ];
+    }
+
     if (state.length) {
       runWithSuppressedReveal(() => {
-        colApi?.applyColumnState?.({ state, applyOrder: true });
+        const columnStateConfig = {
+          state,
+          applyOrder: true,
+        };
+
+        if (includeSelectionColumn) {
+          columnStateConfig.defaultState = { pinned: null };
+        }
+
+        colApi?.applyColumnState?.(columnStateConfig);
       });
       // Atualiza variáveis e persiste nova ordem
       updateColumnsPosition();
+
+      if (includeSelectionColumn) {
+        defer(() => forceSelectionColumnFirst());
+      }
     }
   };
 
@@ -1109,6 +1150,7 @@ const remountComponent = () => {
   watch(() => props.content?.columns, () => {
     loadAllColumnOptions();
     applyColumnOrderFromPosition();
+    updateColumnsPosition({ fallbackToContent: true });
     // Se estamos num ciclo de remount que deve respeitar a WW variable, reaplique
     setTimeout(() => {
       if (forceExternalSortNextMount.value) {
@@ -1121,6 +1163,7 @@ const remountComponent = () => {
   watch(() => props.content?.rowData, () => {
     loadAllColumnOptions();
     applyColumnOrderFromPosition();
+    updateColumnsPosition({ fallbackToContent: true });
     // Se estamos num ciclo de remount que deve respeitar a WW variable, reaplique
     setTimeout(() => {
       if (forceExternalSortNextMount.value) {
@@ -1329,9 +1372,9 @@ const remountComponent = () => {
   }
   
   // Função para forçar a coluna de seleção a ser a primeira
-  const forceSelectionColumnFirst = () => {
+  function forceSelectionColumnFirst() {
     if (!gridApi.value) return;
-    
+
     try {
       // Tentar reposicionar usando API do AG-Grid
       const columnState = gridApi.value.getColumnState();
@@ -1369,17 +1412,17 @@ const remountComponent = () => {
     } catch (error) {
       console.warn('Erro ao reposicionar coluna de seleção:', error);
     }
-    
+
     // Fallback: reposicionamento direto no DOM
     setTimeout(() => {
       forceSelectionColumnFirstDOM();
     }, 100);
-  };
-  
+  }
+
   // Função para reposicionar a coluna de seleção diretamente no DOM
-  const forceSelectionColumnFirstDOM = () => {
+  function forceSelectionColumnFirstDOM() {
     if (!gridApi.value) return;
-    
+
     try {
       const gridElement = agGridRef.value?.$el;
       if (!gridElement) return;
@@ -1406,7 +1449,7 @@ const remountComponent = () => {
     } catch (error) {
       console.warn('Erro ao reposicionar coluna de seleção no DOM:', error);
     }
-  };
+  }
   
   watch(
     [() => props.content.initialFilters, () => gridApi.value],
@@ -1505,16 +1548,83 @@ const remountComponent = () => {
   const { createElement } = wwLib.wwElement.useCreate();
   /* wwEditor:end */
   
-  function updateColumnsPosition() {
-  if (!gridApi.value) return;
-  const allColumns = gridApi.value.getAllGridColumns();
-  const positions = allColumns.map((col, idx) => ({
-  FieldID: col.getColDef().id,
-  PositionField: idx + 1,
-  IsDeleted: false
-  })).filter(col => col.FieldID);
-  setColumnsPosition(positions);
-  saveGridState();
+  function buildColumnsPositionFromContentColumns() {
+    if (!props.content || !Array.isArray(props.content.columns)) {
+      return [];
+    }
+
+    const orderedColumns = [...props.content.columns].sort((a, b) => {
+      const getPosition = column =>
+        column.PositionInGrid ??
+        column.positionInGrid ??
+        column.PositionField ??
+        column.positionField ??
+        0;
+
+      return getPosition(a) - getPosition(b);
+    });
+
+    let order = 1;
+    return orderedColumns
+      .map(column => {
+        const fieldId =
+          column.FieldID ??
+          column.FieldId ??
+          column.Field ??
+          column.id ??
+          column.field ??
+          column.FieldDB;
+
+        if (!fieldId) {
+          return null;
+        }
+
+        return {
+          FieldID: String(fieldId),
+          PositionField: order++,
+          IsDeleted: false,
+        };
+      })
+      .filter(Boolean);
+  }
+
+  function updateColumnsPosition(options = {}) {
+    const { fallbackToContent = false } = options;
+
+    if (gridApi.value && typeof gridApi.value.getAllGridColumns === "function") {
+      const allColumns = gridApi.value.getAllGridColumns();
+      const positions = allColumns
+        .map((column, idx) => {
+          const colDef = typeof column.getColDef === "function" ? column.getColDef() : column.colDef || {};
+          const fieldId =
+            colDef?.id ??
+            colDef?.colId ??
+            (typeof column.getColId === "function" ? column.getColId() : undefined) ??
+            colDef?.field;
+
+          if (!fieldId) {
+            return null;
+          }
+
+          return {
+            FieldID: String(fieldId),
+            PositionField: idx + 1,
+            IsDeleted: false,
+          };
+        })
+        .filter(Boolean);
+
+      setColumnsPosition(positions);
+      saveGridState();
+
+      if (positions.length || !fallbackToContent) {
+        return;
+      }
+    }
+
+    if (fallbackToContent) {
+      setColumnsPosition(buildColumnsPositionFromContentColumns());
+    }
   }
   
   function updateColumnsSort() {
