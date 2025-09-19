@@ -485,26 +485,25 @@ else Promise.resolve().then(fn);
     // Some row-models do not expose the current sort model via the grid API,
     // but the column state still reflects active sorts. Fall back to that state
     // when the direct API call reports no sorting information.
-    if (
-      sort.length === 0 &&
-      columnApi.value &&
-      typeof columnApi.value.getColumnState === "function"
-    ) {
-      const columnStateSorts = columnApi.value
-        .getColumnState()
-        .filter(col => col && col.sort)
-        .sort((a, b) => {
-          const aIndex = a?.sortIndex != null ? a.sortIndex : Number.MAX_SAFE_INTEGER;
-          const bIndex = b?.sortIndex != null ? b.sortIndex : Number.MAX_SAFE_INTEGER;
-          return aIndex - bIndex;
-        })
-        .map(col => ({
-          colId: col?.colId,
-          sort: col?.sort,
-          sortIndex: col?.sortIndex,
-        }));
+    if (sort.length === 0) {
+      const colApi = getColApi();
+      if (colApi && typeof colApi.getColumnState === "function") {
+        const columnStateSorts = colApi
+          .getColumnState()
+          .filter(col => col && col.sort)
+          .sort((a, b) => {
+            const aIndex = a?.sortIndex != null ? a.sortIndex : Number.MAX_SAFE_INTEGER;
+            const bIndex = b?.sortIndex != null ? b.sortIndex : Number.MAX_SAFE_INTEGER;
+            return aIndex - bIndex;
+          })
+          .map(col => ({
+            colId: col?.colId,
+            sort: col?.sort,
+            sortIndex: col?.sortIndex,
+          }));
 
-      sort = normalizeSortModel(columnStateSorts);
+        sort = normalizeSortModel(columnStateSorts);
+      }
     }
 
     const columns = getCurrentColumnOrder();
@@ -802,7 +801,8 @@ function getExternalSortFromWW() {
  * - Persiste no localStorage via saveGridState()
  */
 function applyExternalSortAndSync() {
-  if (!gridApi.value || !columnApi.value) return;
+  const colApi = getColApi();
+  if (!gridApi.value || !colApi) return;
   const external = getExternalSortFromWW();
   if (!external.length) return;
 
@@ -810,7 +810,7 @@ function applyExternalSortAndSync() {
   const sortModel = external.map(e => ({ colId: e.colId, sort: e.sort }));
 
   runWithSuppressedReveal(() => {
-    getColApi()?.applyColumnState?.({
+    colApi?.applyColumnState?.({
       state: external.map(e => ({ colId: e.colId, sort: e.sort, sortIndex: e.sortIndex })),
       defaultState: { sort: null },
       applyOrder: false
@@ -842,11 +842,12 @@ const remountComponent = () => {
   const storageKey = `GridViewDinamicaState_${props.uid}`;
 
   function saveGridState() {
-    if (!gridApi.value || !columnApi.value) return;
+    const colApi = getColApi();
+    if (!gridApi.value || !colApi) return;
     try {
       const state = {
         filterModel: gridApi.value.getFilterModel(),
-        columnState: getColApi()?.getColumnState?.(),
+        columnState: colApi?.getColumnState?.(),
       };
       localStorage.setItem(storageKey, JSON.stringify(state));
     } catch (e) {
@@ -855,7 +856,8 @@ const remountComponent = () => {
   }
 
   function restoreGridState() {
-    if (!gridApi.value || !columnApi.value) return;
+    const colApi = getColApi();
+    if (!gridApi.value || !colApi) return;
     try {
       const raw = localStorage.getItem(storageKey);
       if (!raw) return;
@@ -869,7 +871,7 @@ const remountComponent = () => {
 
       runWithSuppressedReveal(() => {
         if (hasColumnState) {
-          getColApi()?.applyColumnState?.({ state: state.columnState, applyOrder: true });
+          colApi?.applyColumnState?.({ state: state.columnState, applyOrder: true });
         }
         if (hasFilterModel) {
           gridApi.value.setFilterModel(state.filterModel);
@@ -884,7 +886,8 @@ const remountComponent = () => {
     try {
       localStorage.removeItem(storageKey);
     } catch {}
-    if (columnApi.value) getColApi()?.resetColumnState?.();
+    const colApi = getColApi();
+    colApi?.resetColumnState?.();
     if (gridApi.value) gridApi.value.setFilterModel(null);
   }
   // ================================================================
@@ -1046,7 +1049,8 @@ const remountComponent = () => {
 
   // Reaplica a ordem das colunas baseada na propriedade PositionInGrid
   const applyColumnOrderFromPosition = () => {
-    if (!columnApi.value || !props.content || !Array.isArray(props.content.columns)) return;
+    const colApi = getColApi();
+    if (!colApi || !props.content || !Array.isArray(props.content.columns)) return;
     const ordered = [...props.content.columns].sort((a, b) => {
       const aPos = a.PositionInGrid ?? a.positionInGrid ?? a.PositionField ?? 0;
       const bPos = b.PositionInGrid ?? b.positionInGrid ?? b.PositionField ?? 0;
@@ -1057,7 +1061,7 @@ const remountComponent = () => {
       .filter(s => s.colId);
     if (state.length) {
       runWithSuppressedReveal(() => {
-        getColApi()?.applyColumnState?.({ state, applyOrder: true });
+        colApi?.applyColumnState?.({ state, applyOrder: true });
       });
       // Atualiza variáveis e persiste nova ordem
       updateColumnsPosition();
