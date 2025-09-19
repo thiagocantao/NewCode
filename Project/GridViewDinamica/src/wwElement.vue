@@ -381,9 +381,88 @@
 
     if (!event) {
       return true;
+
     }
 
-    return true;
+    const filters = normalizeFilterModel(gridApi.value.getFilterModel?.() || {});
+    const sort = normalizeSortModel(gridApi.value.getSortModel?.() || []);
+    const columns = getCurrentColumnOrder();
+
+    return { filters, sort, columns };
+  };
+
+  let captureInitialStateTimeout = null;
+
+  const captureInitialGridState = () => {
+    if (!gridApi.value) return;
+    initialGridState.value = getNormalizedGridState();
+  };
+
+  const scheduleCaptureInitialGridState = (delay = 0) => {
+    if (captureInitialStateTimeout) {
+      clearTimeout(captureInitialStateTimeout);
+      captureInitialStateTimeout = null;
+    }
+
+    pendingInitialGridState = getNormalizedGridState();
+    suppressRevealUntilCapture = true;
+
+    const finalizeCapture = () => {
+      captureInitialStateTimeout = null;
+
+      if (pendingInitialGridState) {
+        initialGridState.value = pendingInitialGridState;
+        pendingInitialGridState = null;
+      } else {
+        captureInitialGridState();
+      }
+
+      suppressRevealUntilCapture = false;
+
+      // Depois de recapturar o estado inicial, sincroniza imediatamente
+      // a visibilidade do botão para refletir o novo snapshot.
+      updateHideSaveButtonVisibility(isGridStatePristine());
+    };
+
+    const timeoutDelay = typeof delay === "number" && delay > 0 ? delay : 0;
+    captureInitialStateTimeout = setTimeout(finalizeCapture, timeoutDelay);
+
+  };
+
+  const runWithSuppressedReveal = (operation, { recaptureDelay = 50 } = {}) => {
+    suppressRevealUntilCapture = true;
+    const finalize = () => {
+      if (typeof recaptureDelay === "number") {
+        scheduleCaptureInitialGridState(recaptureDelay);
+      } else {
+        suppressRevealUntilCapture = false;
+      }
+    };
+
+    try {
+      const result = operation?.();
+      if (result && typeof result.then === "function") {
+        return result.finally(finalize);
+      }
+      finalize();
+      return result;
+    } catch (error) {
+      finalize();
+      throw error;
+    }
+  };
+
+
+  const isGridStatePristine = () => {
+    if (!gridApi.value) return true;
+    const current = getNormalizedGridState();
+    const initial = initialGridState.value || { filters: {}, sort: [], columns: [] };
+
+    const filtersEqual = JSON.stringify(current.filters) === JSON.stringify(initial.filters);
+    const sortEqual = JSON.stringify(current.sort) === JSON.stringify(initial.sort);
+    const columnsEqual = JSON.stringify(current.columns) === JSON.stringify(initial.columns);
+
+    return filtersEqual && sortEqual && columnsEqual;
   };
 
   const initialGridState = ref({
