@@ -1072,6 +1072,14 @@ const remountComponent = () => {
       });
       // Atualiza variáveis e persiste nova ordem
       updateColumnsPosition();
+      if (
+        props.content?.rowSelection === 'multiple' &&
+        !props.content?.disableCheckboxes
+      ) {
+        setTimeout(() => {
+          forceSelectionColumnFirst();
+        }, 50);
+      }
     }
   };
 
@@ -1329,9 +1337,9 @@ const remountComponent = () => {
   }
   
   // Função para forçar a coluna de seleção a ser a primeira
-  const forceSelectionColumnFirst = () => {
+  function forceSelectionColumnFirst() {
     if (!gridApi.value) return;
-    
+
     try {
       // Tentar reposicionar usando API do AG-Grid
       const columnState = gridApi.value.getColumnState();
@@ -1369,17 +1377,17 @@ const remountComponent = () => {
     } catch (error) {
       console.warn('Erro ao reposicionar coluna de seleção:', error);
     }
-    
+
     // Fallback: reposicionamento direto no DOM
     setTimeout(() => {
       forceSelectionColumnFirstDOM();
     }, 100);
-  };
-  
+  }
+
   // Função para reposicionar a coluna de seleção diretamente no DOM
-  const forceSelectionColumnFirstDOM = () => {
+  function forceSelectionColumnFirstDOM() {
     if (!gridApi.value) return;
-    
+
     try {
       const gridElement = agGridRef.value?.$el;
       if (!gridElement) return;
@@ -1406,7 +1414,7 @@ const remountComponent = () => {
     } catch (error) {
       console.warn('Erro ao reposicionar coluna de seleção no DOM:', error);
     }
-  };
+  }
   
   watch(
     [() => props.content.initialFilters, () => gridApi.value],
