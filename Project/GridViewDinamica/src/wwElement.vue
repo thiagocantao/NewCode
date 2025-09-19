@@ -1112,6 +1112,7 @@ const remountComponent = () => {
 
       if (includeSelectionColumn) {
         defer(() => forceSelectionColumnFirst());
+
       }
     }
   };
