@@ -50,6 +50,13 @@
 
   const GRID_BASE_FONT_SIZE = 12;
   const GRID_BASE_FONT_SIZE_PX = `${GRID_BASE_FONT_SIZE}px`;
+  const PINNED_HEADER_DATASET_FLAG = 'wwPinnedHeaderBlockApplied';
+  const stopPinnedHeaderMouseDown = event => {
+    event.stopPropagation();
+  };
+  const preventPinnedHeaderDragStart = event => {
+    event.preventDefault();
+  };
   // Editor customizado inline para listas
   class ListCellEditor {
     init(params) {
@@ -1192,8 +1199,23 @@ const remountComponent = () => {
       params.api.addEventListener('columnResized', saveGridState);
       params.api.addEventListener('columnEverythingChanged', saveGridState);
 
+      const applyPinnedHeaderBlock = () => {
+        const gridElement = agGridRef.value?.$el;
+        if (!gridElement) return;
+
+        gridElement
+          .querySelectorAll('.ag-header-cell.ag-pinned-left, .ag-header-cell.ag-pinned-right')
+          .forEach(cell => {
+            if (!('dataset' in cell)) return;
+            if (cell.dataset[PINNED_HEADER_DATASET_FLAG]) return;
+            cell.dataset[PINNED_HEADER_DATASET_FLAG] = 'true';
+            cell.addEventListener('mousedown', stopPinnedHeaderMouseDown, true);
+            cell.addEventListener('dragstart', preventPinnedHeaderDragStart, true);
+          });
+      };
+
     // Impedir mover colunas para posição de pinned
-    
+
     params.api.addEventListener('columnMoved', (event) => {
       const api = (params.columnApi && typeof params.columnApi.getAllGridColumns === 'function')
         ? params.columnApi
