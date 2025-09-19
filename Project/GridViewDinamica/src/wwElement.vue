@@ -509,13 +509,27 @@
   };
 
   const syncHideSaveButtonVisibility = (event) => {
+    const pristine = isGridStatePristine();
+    const programmatic = isProgrammaticEvent(event);
+
     if (!shouldRevealSaveButton(event)) {
-      updateHideSaveButtonVisibility(true);
+      if (suppressRevealUntilCapture) {
+        updateHideSaveButtonVisibility(true);
+        scheduleCaptureInitialGridState(50);
+        return;
+      }
+
+      if (programmatic && !pristine) {
+        updateHideSaveButtonVisibility(false);
+        return;
+      }
+
+      updateHideSaveButtonVisibility(pristine);
       scheduleCaptureInitialGridState(50);
       return;
     }
 
-    updateHideSaveButtonVisibility(isGridStatePristine());
+    updateHideSaveButtonVisibility(pristine);
   };
 
   const resetHideSaveButtonVisibility = () => {
