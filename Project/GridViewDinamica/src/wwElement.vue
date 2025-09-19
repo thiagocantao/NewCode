@@ -388,6 +388,7 @@
     columns: [],
   });
 
+
   const normalizeFilterModel = model => {
     if (!model || typeof model !== 'object') return {};
     const clone = JSON.parse(JSON.stringify(model));
@@ -468,6 +469,7 @@
 
     const timeoutDelay = typeof delay === "number" && delay > 0 ? delay : 0;
     captureInitialStateTimeout = setTimeout(finalizeCapture, timeoutDelay);
+
   };
 
   const runWithSuppressedReveal = (operation, { recaptureDelay = 50 } = {}) => {
@@ -492,6 +494,7 @@
       throw error;
     }
   };
+
 
   const isGridStatePristine = () => {
     if (!gridApi.value) return true;
@@ -1018,6 +1021,7 @@ const remountComponent = () => {
     }
     pendingInitialGridState = null;
     suppressRevealUntilCapture = false;
+
   });
   
     const onGridReady = (params) => {
@@ -1269,6 +1273,7 @@ const remountComponent = () => {
       runWithSuppressedReveal(() => {
         gridApi.value.setFilterModel(filters || null);
       }, { recaptureDelay: 50 });
+
     },
     { deep: true, immediate: true }
   );
@@ -1283,6 +1288,7 @@ const remountComponent = () => {
           defaultState: { sort: null },
         });
       }, { recaptureDelay: 50 });
+
     },
     { deep: true, immediate: true }
   );
