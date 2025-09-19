@@ -500,6 +500,7 @@
     pendingInitialGridState = getNormalizedGridState();
     userInteractedDuringCapture = false;
 
+
     const finalizeCapture = () => {
       captureInitialStateTimeout = null;
 
@@ -514,6 +515,7 @@
       } finally {
         suppressRevealUntilCapture = false;
         userInteractedDuringCapture = false;
+
 
         // Depois de recapturar o estado inicial, sincroniza imediatamente
         // a visibilidade do botão para refletir o novo snapshot.
