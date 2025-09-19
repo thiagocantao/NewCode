@@ -555,6 +555,16 @@
   };
 
   const syncHideSaveButtonVisibility = (event) => {
+    const isRowDataSourceChange =
+      event?.source === "rowDataChanged" || event?.source === "rowDataUpdated";
+
+    if (isRowDataSourceChange) {
+      updateHideSaveButtonVisibility(true);
+
+      scheduleCaptureInitialGridState(50);
+      return;
+    }
+
     const pristine = isGridStatePristine();
     const programmatic = isProgrammaticEvent(event);
 
@@ -574,6 +584,7 @@
       scheduleCaptureInitialGridState(50);
       return;
     }
+
 
     updateHideSaveButtonVisibility(pristine);
   };
