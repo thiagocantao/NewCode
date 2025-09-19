@@ -322,7 +322,38 @@
   
   const gridApi = shallowRef(null);
   const columnApi = shallowRef(null);
+
+  // Unified Column API accessor for AG Grid v31+ (no columnApi) and older versions
+  const getColApi = () => {
+    if (columnApi.value && (
+        typeof columnApi.value.applyColumnState === 'function' ||
+        typeof columnApi.value.getColumnState === 'function' ||
+        typeof columnApi.value.resetColumnState === 'function' ||
+        typeof columnApi.value.moveColumns === 'function' ||
+        typeof columnApi.value.getAllGridColumns === 'function'
+      )) {
+      return columnApi.value;
+    }
+    return gridApi.value || null;
+  };
+
   const agGridRef = ref(null);
+
+// Executa após o AG Grid consolidar sort/columnState
+function microtask(fn) {
+if (typeof queueMicrotask === 'function') queueMicrotask(fn);
+else Promise.resolve().then(fn);
+}
+
+  // Run after grid has applied header/column state updates
+  function deferAfterGridUpdate(fn) {
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => setTimeout(fn, 0));
+    } else {
+      setTimeout(fn, 0);
+    }
+  }
+
 
   const updateHideSaveButtonVisibility = (value) => {
     try {
@@ -525,6 +556,16 @@
     captureInitialStateTimeout = setTimeout(finalizeCapture, timeoutDelay);
   };
 
+// Executa após o ciclo do AG Grid consolidar o sort/columnState
+function defer(fn, delay = 0) {
+  if (typeof window?.requestAnimationFrame === 'function' && delay === 0) {
+    requestAnimationFrame(() => fn());
+  } else {
+    setTimeout(fn, delay);
+  }
+}
+
+
   const runWithSuppressedReveal = (operation, { recaptureDelay = 50 } = {}) => {
     suppressRevealUntilCapture = true;
     const finalize = () => {
@@ -562,46 +603,42 @@
   };
 
   const syncHideSaveButtonVisibility = (event) => {
-    const isSortEvent = event?.type === "sortChanged";
-    const isRowDataSourceChange =
-      !isSortEvent &&
-      (event?.source === "rowDataChanged" || event?.source === "rowDataUpdated");
-
-    if (captureInitialStateTimeout && event && !isProgrammaticEvent(event)) {
-      userInteractedDuringCapture = true;
-    }
-
-
-    if (isRowDataSourceChange) {
-      updateHideSaveButtonVisibility(true);
-
-      scheduleCaptureInitialGridState(50);
-      return;
-    }
-
-    const pristine = isGridStatePristine();
-    const programmatic = isProgrammaticEvent(event);
-
-    if (!shouldRevealSaveButton(event)) {
-      if (suppressRevealUntilCapture) {
-        updateHideSaveButtonVisibility(true);
-        scheduleCaptureInitialGridState(50);
-        return;
-      }
-
-      if (programmatic && !pristine) {
-        updateHideSaveButtonVisibility(false);
-        return;
-      }
-
-      updateHideSaveButtonVisibility(pristine);
-      scheduleCaptureInitialGridState(50);
-      return;
-    }
-
-
-    updateHideSaveButtonVisibility(pristine);
+  // Sort é tratado exclusivamente em onSortChanged
+  if (event?.type === "sortChanged") return;
+  
+  const isRowDataSourceChange =
+  event?.source === "rowDataChanged" || event?.source === "rowDataUpdated";
+  
+  if (captureInitialStateTimeout && event && !isProgrammaticEvent(event)) {
+  userInteractedDuringCapture = true;
+  }
+  
+  if (isRowDataSourceChange) {
+  updateHideSaveButtonVisibility(true);
+  scheduleCaptureInitialGridState(50);
+  return;
+  }
+  
+  const pristine = isGridStatePristine();
+  
+  if (!shouldRevealSaveButton(event)) {
+  if (suppressRevealUntilCapture) {
+  updateHideSaveButtonVisibility(true);
+  scheduleCaptureInitialGridState(50);
+  return;
+  }
+  if (isProgrammaticEvent(event) && !pristine) {
+  updateHideSaveButtonVisibility(false);
+  return;
+  }
+  updateHideSaveButtonVisibility(pristine);
+  scheduleCaptureInitialGridState(50);
+  return;
+  }
+  
+  updateHideSaveButtonVisibility(pristine);
   };
+
 
   const resetHideSaveButtonVisibility = () => {
     updateHideSaveButtonVisibility(true);
@@ -773,7 +810,7 @@ function applyExternalSortAndSync() {
   const sortModel = external.map(e => ({ colId: e.colId, sort: e.sort }));
 
   runWithSuppressedReveal(() => {
-    columnApi.value.applyColumnState({
+    getColApi()?.applyColumnState?.({
       state: external.map(e => ({ colId: e.colId, sort: e.sort, sortIndex: e.sortIndex })),
       defaultState: { sort: null },
       applyOrder: false
@@ -809,7 +846,7 @@ const remountComponent = () => {
     try {
       const state = {
         filterModel: gridApi.value.getFilterModel(),
-        columnState: columnApi.value.getColumnState(),
+        columnState: getColApi()?.getColumnState?.(),
       };
       localStorage.setItem(storageKey, JSON.stringify(state));
     } catch (e) {
@@ -832,7 +869,7 @@ const remountComponent = () => {
 
       runWithSuppressedReveal(() => {
         if (hasColumnState) {
-          columnApi.value.applyColumnState({ state: state.columnState, applyOrder: true });
+          getColApi()?.applyColumnState?.({ state: state.columnState, applyOrder: true });
         }
         if (hasFilterModel) {
           gridApi.value.setFilterModel(state.filterModel);
@@ -847,7 +884,7 @@ const remountComponent = () => {
     try {
       localStorage.removeItem(storageKey);
     } catch {}
-    if (columnApi.value) columnApi.value.resetColumnState();
+    if (columnApi.value) getColApi()?.resetColumnState?.();
     if (gridApi.value) gridApi.value.setFilterModel(null);
   }
   // ================================================================
@@ -1020,7 +1057,7 @@ const remountComponent = () => {
       .filter(s => s.colId);
     if (state.length) {
       runWithSuppressedReveal(() => {
-        columnApi.value.applyColumnState({ state, applyOrder: true });
+        getColApi()?.applyColumnState?.({ state, applyOrder: true });
       });
       // Atualiza variáveis e persiste nova ordem
       updateColumnsPosition();
@@ -1152,41 +1189,35 @@ const remountComponent = () => {
       params.api.addEventListener('columnEverythingChanged', saveGridState);
 
     // Impedir mover colunas para posição de pinned
+    
     params.api.addEventListener('columnMoved', (event) => {
-      if (!params.columnApi || typeof params.columnApi.getAllGridColumns !== 'function') return;
-      // Obter todas as colunas na ordem atual
-      const allColumns = params.columnApi.getAllGridColumns();
-      // Encontrar o índice da primeira coluna pinned
-      const firstPinnedIdx = allColumns.findIndex(col => col.getPinned() === 'left');
+      const api = (params.columnApi && typeof params.columnApi.getAllGridColumns === 'function')
+        ? params.columnApi
+        : (params.api && typeof params.api.getAllGridColumns === 'function')
+          ? params.api
+          : null;
+      if (!api) return;
+
+      const allColumns = api.getAllGridColumns();
+      const firstPinnedIdx = allColumns.findIndex(col => col.getPinned && col.getPinned() === 'left');
       if (firstPinnedIdx > 0) {
-        // Se houver colunas não-pinned antes da primeira pinned, reverter
-        const hasNonPinnedBefore = allColumns.slice(0, firstPinnedIdx).some(col => col.getPinned() !== 'left');
+        const hasNonPinnedBefore = allColumns
+          .slice(0, firstPinnedIdx)
+          .some(col => (col.getPinned && col.getPinned() !== 'left'));
         if (hasNonPinnedBefore) {
-          // Restaurar ordem: mover todas as pinned para o início
-          const pinnedCols = allColumns.filter(col => col.getPinned() === 'left');
-          const nonPinnedCols = allColumns.filter(col => col.getPinned() !== 'left');
-          const newOrder = [...pinnedCols, ...nonPinnedCols].map(col => col.getColId());
-          params.columnApi.moveColumns(newOrder, 0);
+          const pinnedCols = allColumns.filter(col => col.getPinned && col.getPinned() === 'left');
+          const nonPinnedCols = allColumns.filter(col => !col.getPinned || col.getPinned() !== 'left');
+          const newOrder = [...pinnedCols, ...nonPinnedCols].map(col => col.getColId && col.getColId());
+          if (typeof (params.columnApi?.moveColumns) === 'function') {
+            params.columnApi.moveColumns(newOrder, 0);
+          } else if (typeof (params.api?.moveColumns) === 'function') {
+            params.api.moveColumns(newOrder, 0);
+          }
         }
       }
     });
 
-    // Protege colunas pinned
-    params.api.addEventListener('columnPinned', restorePinnedColumns);
-    params.api.addEventListener('columnMoved', restorePinnedColumns);
-    params.api.addEventListener('columnVisible', restorePinnedColumns);
-    params.api.addEventListener('columnEverythingChanged', restorePinnedColumns);
-    // Bloqueio via JS para headers pinned (reaplicado em todos os eventos relevantes)
-    function applyPinnedHeaderBlock() {
-      const gridElement = agGridRef.value?.$el;
-      if (gridElement) {
-        gridElement.querySelectorAll('.ag-header-cell.ag-pinned-left, .ag-header-cell.ag-pinned-right')
-          .forEach(cell => {
-            cell.addEventListener('mousedown', e => e.stopPropagation(), true);
-            cell.addEventListener('dragstart', e => e.preventDefault(), true);
-          });
-      }
-    }
+    
     params.api.addEventListener('columnPinned', applyPinnedHeaderBlock);
     params.api.addEventListener('columnMoved', applyPinnedHeaderBlock);
     params.api.addEventListener('columnVisible', applyPinnedHeaderBlock);
@@ -1251,8 +1282,8 @@ const remountComponent = () => {
   };
   
   function restorePinnedColumns() {
-    if (!columnApi.value) return;
-    const state = columnApi.value.getColumnState();
+    if (!getColApi()) return;
+    const state = getColApi()?.getColumnState?.();
     // Restaurar pinned e ordem das colunas pinned
     const pinnedLeft = [];
     const pinnedRight = [];
@@ -1268,7 +1299,7 @@ const remountComponent = () => {
       }
     });
     const newState = [...pinnedLeft, ...others, ...pinnedRight];
-    columnApi.value.applyColumnState({ state: newState, applyOrder: true });
+    getColApi()?.applyColumnState?.({ state: newState, applyOrder: true });
   }
   
   // Função para forçar a coluna de seleção a ser a primeira
@@ -1413,21 +1444,20 @@ const remountComponent = () => {
   const onSortChanged = (event) => {
     if (!gridApi.value) return;
 
-    const { sort: normalizedSort } = getNormalizedGridState();
-    const previousSort = normalizeSortModel(sortValue.value || []);
-
-    if (JSON.stringify(normalizedSort) !== JSON.stringify(previousSort)) {
-      setSort(normalizedSort);
-      syncHideSaveButtonVisibility(event);
-
-      ctx.emit("trigger-event", {
-        name: "sortChanged",
-        event: normalizedSort,
-      });
+    if (suppressRevealUntilCapture) {
+      updateHideSaveButtonVisibility(true);
+      return;
     }
 
-    updateColumnsSort();
-    saveGridState();
+    deferAfterGridUpdate(() => {
+      const { sort: normalizedSort } = getNormalizedGridState();
+      setSort(normalizedSort);
+      updateColumnsSort();
+      saveGridState();
+      const pristine = isGridStatePristine();
+      updateHideSaveButtonVisibility(pristine);
+      ctx.emit("trigger-event", { name: "sortChanged", event: normalizedSort });
+    });
   };
 
   const onColumnMoved = (event) => {
@@ -1462,15 +1492,20 @@ const remountComponent = () => {
   }
   
   function updateColumnsSort() {
-  if (!columnApi.value) return;
-  const sortArray = columnApi.value.getColumnState()
-  .filter(col => col.sort)
-  .map(col => ({
-  id: col.colId,
-  isASC: col.sort === 'asc'
-  }));
+  const api = (columnApi.value && typeof columnApi.value.getColumnState === 'function')
+    ? columnApi.value
+    : (gridApi.value && typeof gridApi.value.getColumnState === 'function')
+      ? gridApi.value
+      : null;
+  if (!api) return;
+  const sortArray = (api.getColumnState() || [])
+    .filter(col => col.sort)
+    .map(col => ({
+      id: col.colId,
+      isASC: col.sort === 'asc'
+    }));
   setColumnsSort(sortArray);
-  }
+}
   
       const onFirstDataRendered = () => {
       updateColumnsPosition();
