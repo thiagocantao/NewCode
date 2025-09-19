@@ -560,6 +560,7 @@
 
     if (isRowDataSourceChange) {
       updateHideSaveButtonVisibility(true);
+
       scheduleCaptureInitialGridState(50);
       return;
     }
@@ -583,6 +584,7 @@
       scheduleCaptureInitialGridState(50);
       return;
     }
+
 
     updateHideSaveButtonVisibility(pristine);
   };
