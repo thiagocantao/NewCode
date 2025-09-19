@@ -352,6 +352,7 @@
 
   let suppressRevealUntilCapture = false;
   let pendingInitialGridState = null;
+  let userInteractedDuringCapture = false;
 
   const PROGRAMMATIC_EVENT_SOURCES = new Set([
     "api",
@@ -496,17 +497,25 @@
     }
 
     suppressRevealUntilCapture = true;
-    pendingInitialGridState = null;
+    pendingInitialGridState = getNormalizedGridState();
+    userInteractedDuringCapture = false;
+
 
     const finalizeCapture = () => {
       captureInitialStateTimeout = null;
 
       try {
         const nextState = getNormalizedGridState();
-        pendingInitialGridState = nextState;
-        initialGridState.value = nextState;
+        if (userInteractedDuringCapture && pendingInitialGridState) {
+          initialGridState.value = pendingInitialGridState;
+        } else {
+          pendingInitialGridState = nextState;
+          initialGridState.value = nextState;
+        }
       } finally {
         suppressRevealUntilCapture = false;
+        userInteractedDuringCapture = false;
+
 
         // Depois de recapturar o estado inicial, sincroniza imediatamente
         // a visibilidade do botão para refletir o novo snapshot.
@@ -557,6 +566,10 @@
   const syncHideSaveButtonVisibility = (event) => {
     const isRowDataSourceChange =
       event?.source === "rowDataChanged" || event?.source === "rowDataUpdated";
+
+    if (captureInitialStateTimeout && event && !isProgrammaticEvent(event)) {
+      userInteractedDuringCapture = true;
+    }
 
     if (isRowDataSourceChange) {
       updateHideSaveButtonVisibility(true);
