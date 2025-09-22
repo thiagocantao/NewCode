@@ -140,10 +140,11 @@ export default {
     const normalizeBoolean = value => {
       if (typeof value === 'string') {
         const normalized = value.trim().toLowerCase();
-        if (['true', '1', 'yes', 'y', 'on'].includes(normalized)) {
+        if (['true', '1', 'yes', 'y', 'on', 'sim', 's', 'verdadeiro', 'v'].includes(normalized)) {
           return true;
         }
-        if (['false', '0', 'no', 'n', 'off', ''].includes(normalized)) {
+        if (['false', '0', 'no', 'n', 'off', '', 'nao', 'não', 'na', 'falso', 'f'].includes(normalized)) {
+
           return false;
         }
       }
@@ -315,7 +316,6 @@ export default {
     };
 
     const applyFormValidity = valid => {
-
       if (formIsValid && typeof formIsValid === 'object' && 'value' in formIsValid) {
         formIsValid.value = valid;
       }
