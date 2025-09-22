@@ -265,6 +265,7 @@ export default {
     };
 
     const computeFormValidity = () => {
+
       let valid = true;
 
       formSections.value.forEach(section => {
@@ -291,6 +292,7 @@ export default {
       if (formIsValid && typeof formIsValid === 'object' && 'value' in formIsValid) {
         formIsValid.value = valid;
       }
+
       setFormIsValid(valid);
       return valid;
     };
@@ -317,6 +319,7 @@ export default {
         setFormData(formState);
 
         refreshFormValidity();
+
 
         emit('trigger-event', {
           name: 'fieldsUpdated',
@@ -482,6 +485,7 @@ export default {
       });
 
       const computedValid = computeFormValidity();
+
       if (!computedValid) {
         valid = false;
       }
@@ -489,6 +493,7 @@ export default {
       if (formIsValid && typeof formIsValid === 'object' && 'value' in formIsValid) {
         formIsValid.value = valid;
       }
+
       setFormIsValid(valid);
       return valid;
     };
