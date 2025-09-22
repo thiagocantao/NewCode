@@ -659,6 +659,7 @@ export default {
     initializeFormValidityTracking() {
       this.getValidityRegistry(true);
       this.ensureFormValidityVariable();
+
       this.currentFieldKey = this.getFieldKey();
       this.syncFormValidityState();
     },
@@ -683,6 +684,7 @@ export default {
         return;
       }
       this.ensureFormValidityVariable();
+
       if (this.formIsValidVariable?.setValue) {
         try {
           this.formIsValidVariable.setValue(value);
