@@ -492,6 +492,12 @@ export default {
       deep: true,
       immediate: true
     },
+    componentUid: {
+      handler() {
+        this.ensureFormValidityVariable();
+      },
+      immediate: true
+    },
     error(val) {
       this.showAlert = this.autoSaveEnabled && !!val;
     },
@@ -624,23 +630,36 @@ export default {
         key: this.formValidityRegistryKey
       };
     },
+    ensureFormValidityVariable() {
+      if (typeof window === 'undefined' || !this.componentUid) {
+        return;
+      }
+      const hasHandle = this.formIsValidVariable && (
+        typeof this.formIsValidVariable.setValue === 'function' ||
+        (this.formIsValidVariable.value && typeof this.formIsValidVariable.value === 'object')
+      );
+      if (hasHandle) {
+        return;
+      }
+      const wwVariable = window.wwLib?.wwVariable;
+      if (!wwVariable?.useComponentVariable) {
+        return;
+      }
+      try {
+        this.formIsValidVariable = wwVariable.useComponentVariable({
+          uid: this.componentUid,
+          name: 'formIsValid',
+          type: 'boolean',
+          defaultValue: true
+        });
+      } catch (error) {
+        this.formIsValidVariable = null;
+      }
+    },
     initializeFormValidityTracking() {
       this.getValidityRegistry(true);
-      if (!this.formIsValidVariable && this.componentUid && typeof window !== 'undefined') {
-        const wwVariable = window.wwLib?.wwVariable;
-        if (wwVariable?.useComponentVariable) {
-          try {
-            this.formIsValidVariable = wwVariable.useComponentVariable({
-              uid: this.componentUid,
-              name: 'formIsValid',
-              type: 'boolean',
-              defaultValue: true
-            });
-          } catch (error) {
-            this.formIsValidVariable = null;
-          }
-        }
-      }
+      this.ensureFormValidityVariable();
+
       this.currentFieldKey = this.getFieldKey();
       this.syncFormValidityState();
     },
@@ -664,6 +683,8 @@ export default {
         this.isFormValid = value;
         return;
       }
+      this.ensureFormValidityVariable();
+
       if (this.formIsValidVariable?.setValue) {
         try {
           this.formIsValidVariable.setValue(value);
@@ -671,26 +692,9 @@ export default {
         } catch (error) {
         }
       }
-      const wwVariable = window.wwLib?.wwVariable;
-      if (!wwVariable) {
-        return;
-      }
-      if (this.componentUid) {
-        if (typeof wwVariable.setComponentValue === 'function') {
-          wwVariable.setComponentValue(this.componentUid, 'formIsValid', value);
-          return;
-        }
-        if (typeof wwVariable.updateComponentValue === 'function') {
-          wwVariable.updateComponentValue(this.componentUid, 'formIsValid', value);
-          return;
-        }
-      }
-      if (typeof wwVariable.setValue === 'function') {
-        wwVariable.setValue('formIsValid', value);
-        return;
-      }
-      if (typeof wwVariable.updateValue === 'function') {
-        wwVariable.updateValue('formIsValid', value);
+      const refValue = this.formIsValidVariable?.value;
+      if (refValue && typeof refValue === 'object' && 'value' in refValue) {
+        refValue.value = value;
       }
     },
     removeFieldKeyFromRegistry(fieldKey) {
