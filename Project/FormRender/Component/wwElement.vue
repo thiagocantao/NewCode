@@ -315,6 +315,7 @@ export default {
     };
 
     const applyFormValidity = valid => {
+
       if (formIsValid && typeof formIsValid === 'object' && 'value' in formIsValid) {
         formIsValid.value = valid;
       }
