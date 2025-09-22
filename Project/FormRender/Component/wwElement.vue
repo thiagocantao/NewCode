@@ -107,6 +107,13 @@ export default {
       defaultValue: {}
     });
 
+    const { value: formIsValid, setValue: setFormIsValid } = wwLib.wwVariable.useComponentVariable({
+      uid: props.uid,
+      name: 'formIsValid',
+      type: 'boolean',
+      defaultValue: true
+    });
+
  
 
     const formSections = ref([]);
@@ -233,6 +240,61 @@ export default {
       allAvailableFields.value = [...fields];
     };
 
+    const hasValue = (value) => {
+      if (Array.isArray(value)) {
+        return value.length > 0;
+      }
+
+      if (value instanceof Date) {
+        return !Number.isNaN(value.getTime());
+      }
+
+      if (value && typeof value === 'object') {
+        return Object.keys(value).length > 0;
+      }
+
+      if (typeof value === 'number') {
+        return true;
+      }
+
+      if (typeof value === 'boolean') {
+        return true;
+      }
+
+      return value !== null && value !== undefined && String(value).trim() !== '';
+    };
+
+    const computeFormValidity = () => {
+      let valid = true;
+
+      formSections.value.forEach(section => {
+        if (!section || !Array.isArray(section.fields)) {
+          return;
+        }
+
+        section.fields.forEach(field => {
+          if (!field || !field.is_mandatory || field.is_readonly) {
+            return;
+          }
+
+          if (!hasValue(field.value)) {
+            valid = false;
+          }
+        });
+      });
+
+      return valid;
+    };
+
+    const refreshFormValidity = () => {
+      const valid = computeFormValidity();
+      if (formIsValid && typeof formIsValid === 'object' && 'value' in formIsValid) {
+        formIsValid.value = valid;
+      }
+      setFormIsValid(valid);
+      return valid;
+    };
+
     const updateFormState = () => {
       try {
         const formState = {
@@ -253,6 +315,8 @@ export default {
           }))
         };
         setFormData(formState);
+
+        refreshFormValidity();
 
         emit('trigger-event', {
           name: 'fieldsUpdated',
@@ -416,12 +480,31 @@ export default {
           if (!sectionValid) valid = false;
         }
       });
+
+      const computedValid = computeFormValidity();
+      if (!computedValid) {
+        valid = false;
+      }
+
+      if (formIsValid && typeof formIsValid === 'object' && 'value' in formIsValid) {
+        formIsValid.value = valid;
+      }
+      setFormIsValid(valid);
       return valid;
     };
+
+    watch(
+      formSections,
+      () => {
+        refreshFormValidity();
+      },
+      { deep: true }
+    );
 
     return {
       isEditing,
       formData,
+      formIsValid,
       formSections,
       formSectionsContainer,
       allAvailableFields,
