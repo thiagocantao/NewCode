@@ -144,6 +144,7 @@ export default {
           return true;
         }
         if (['false', '0', 'no', 'n', 'off', '', 'nao', 'não', 'na', 'falso', 'f'].includes(normalized)) {
+
           return false;
         }
       }
