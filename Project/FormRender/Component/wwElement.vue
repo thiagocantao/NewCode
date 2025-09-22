@@ -264,7 +264,8 @@ export default {
       return value !== null && value !== undefined && String(value).trim() !== '';
     };
 
-    const evaluateFormValidity = () => {
+    const computeFormValidity = () => {
+
       let valid = true;
 
       formSections.value.forEach(section => {
@@ -282,6 +283,15 @@ export default {
           }
         });
       });
+
+      return valid;
+    };
+
+    const refreshFormValidity = () => {
+      const valid = computeFormValidity();
+      if (formIsValid && typeof formIsValid === 'object' && 'value' in formIsValid) {
+        formIsValid.value = valid;
+      }
 
       setFormIsValid(valid);
       return valid;
@@ -308,7 +318,8 @@ export default {
         };
         setFormData(formState);
 
-        evaluateFormValidity();
+        refreshFormValidity();
+
 
         emit('trigger-event', {
           name: 'fieldsUpdated',
@@ -473,14 +484,27 @@ export default {
         }
       });
 
-      const computedValid = evaluateFormValidity();
+      const computedValid = computeFormValidity();
+
       if (!computedValid) {
         valid = false;
+      }
+
+      if (formIsValid && typeof formIsValid === 'object' && 'value' in formIsValid) {
+        formIsValid.value = valid;
       }
 
       setFormIsValid(valid);
       return valid;
     };
+
+    watch(
+      formSections,
+      () => {
+        refreshFormValidity();
+      },
+      { deep: true }
+    );
 
     return {
       isEditing,
