@@ -314,13 +314,17 @@ export default {
       return valid;
     };
 
-    const refreshFormValidity = () => {
-      const valid = computeFormValidity();
+    const applyFormValidity = valid => {
+
       if (formIsValid && typeof formIsValid === 'object' && 'value' in formIsValid) {
         formIsValid.value = valid;
       }
       setFormIsValid(valid);
       return valid;
+    };
+
+    const refreshFormValidity = () => {
+      return applyFormValidity(computeFormValidity());
     };
 
     const updateFormState = () => {
@@ -517,24 +521,21 @@ export default {
     }, { deep: true });
 
     const validateRequiredFields = () => {
-      let valid = true;
+      let sectionsValid = true;
       sectionComponents.value.forEach(section => {
         if (section && typeof section.validateFields === 'function') {
           const sectionValid = section.validateFields();
-          if (!sectionValid) valid = false;
+          if (!sectionValid) {
+            sectionsValid = false;
+          }
         }
       });
 
       const computedValid = computeFormValidity();
-      if (!computedValid) {
-        valid = false;
-      }
+      const finalValidity = sectionsValid && computedValid;
 
-      if (formIsValid && typeof formIsValid === 'object' && 'value' in formIsValid) {
-        formIsValid.value = valid;
-      }
-      setFormIsValid(valid);
-      return valid;
+      return applyFormValidity(finalValidity);
+
     };
 
     watch(
