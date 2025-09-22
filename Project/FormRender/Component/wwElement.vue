@@ -31,6 +31,7 @@
               :language="language"
               :read-only="formReadOnly"
               :auto-save="autoSave"
+              :component-uid="uid"
               @update-section="updateFormState"
               @edit-section="editSection"
               @edit-field="editFormField"
@@ -107,7 +108,7 @@ export default {
       defaultValue: {}
     });
 
-    const { value: formIsValid, setValue: setFormIsValid } = wwLib.wwVariable.useComponentVariable({
+    const { value: formIsValid } = wwLib.wwVariable.useComponentVariable({
       uid: props.uid,
       name: 'formIsValid',
       type: 'boolean',
@@ -283,7 +284,6 @@ export default {
         });
       });
 
-      setFormIsValid(valid);
       return valid;
     };
 
@@ -478,7 +478,6 @@ export default {
         valid = false;
       }
 
-      setFormIsValid(valid);
       return valid;
     };
 
