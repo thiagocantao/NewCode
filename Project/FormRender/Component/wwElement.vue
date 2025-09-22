@@ -137,25 +137,6 @@ export default {
       return undefined;
     };
 
-    const normalizeBoolean = value => {
-      if (typeof value === 'string') {
-        const normalized = value.trim().toLowerCase();
-        if (['true', '1', 'yes', 'y', 'on', 'sim', 's', 'verdadeiro', 'v'].includes(normalized)) {
-          return true;
-        }
-        if (['false', '0', 'no', 'n', 'off', '', 'nao', 'não', 'na', 'falso', 'f'].includes(normalized)) {
-
-          return false;
-        }
-      }
-
-      if (typeof value === 'number') {
-        return value !== 0;
-      }
-
-      return Boolean(value);
-    };
-
     const autoSave = computed(() => {
       const propVal = parseAutoSave(props.autoSave);
       if (propVal !== undefined) return propVal;
@@ -209,9 +190,6 @@ export default {
             }
             // FORMATED_TEXT mantém como string
             // Outros tipos mantêm valor original
-            const originalReadonly = normalizeBoolean(field.original_readonly ?? field.is_readonly);
-            const isMandatory = normalizeBoolean(field.is_mandatory);
-            const hideLegend = normalizeBoolean(field.is_hide_legend);
             const processedField = {
               ...field,
               id: field.id || field.ID || field.field_id || `field-${Date.now()}`,
@@ -219,10 +197,10 @@ export default {
               name: field.name || field.Name || 'Campo sem nome',
               fieldType: field.fieldType || 'text',
               columns: parseInt(field.columns) || 1,
-              is_mandatory: isMandatory,
-              original_readonly: originalReadonly,
-              is_readonly: originalReadonly || normalizeBoolean(formReadOnly.value),
-              is_hide_legend: hideLegend,
+              is_mandatory: Boolean(field.is_mandatory),
+              original_readonly: Boolean(field.is_readonly),
+              is_readonly: Boolean(field.is_readonly || formReadOnly.value),
+              is_hide_legend: Boolean(field.is_hide_legend),
               dataSource: field.dataSource || field.data_source,
               list_options: field.list_options || field.listOptions,
               value: processedValue
@@ -286,7 +264,7 @@ export default {
       return value !== null && value !== undefined && String(value).trim() !== '';
     };
 
-    const computeFormValidity = () => {
+    const evaluateFormValidity = () => {
       let valid = true;
 
       formSections.value.forEach(section => {
@@ -295,14 +273,7 @@ export default {
         }
 
         section.fields.forEach(field => {
-          if (!field) {
-            return;
-          }
-
-          const isMandatory = normalizeBoolean(field.is_mandatory);
-          const isReadonly = normalizeBoolean(field.is_readonly);
-
-          if (!isMandatory || isReadonly) {
+          if (!field || !field.is_mandatory || field.is_readonly) {
             return;
           }
 
@@ -312,19 +283,8 @@ export default {
         });
       });
 
-      return valid;
-    };
-
-    const applyFormValidity = valid => {
-      if (formIsValid && typeof formIsValid === 'object' && 'value' in formIsValid) {
-        formIsValid.value = valid;
-      }
       setFormIsValid(valid);
       return valid;
-    };
-
-    const refreshFormValidity = () => {
-      return applyFormValidity(computeFormValidity());
     };
 
     const updateFormState = () => {
@@ -332,26 +292,23 @@ export default {
         const formState = {
           sections: formSections.value.map(section => ({
             ...section,
-            fields: section.fields.map(field => {
-              const originalReadonly = normalizeBoolean(field.original_readonly ?? field.is_readonly);
-              return {
-                ...field,
-                id: field.id || field.ID || field.field_id,
-                field_id: field.field_id || field.ID || field.id,
-                name: field.name || field.Name,
-                fieldType: field.fieldType || 'text',
-                columns: parseInt(field.columns) || 1,
-                is_mandatory: normalizeBoolean(field.is_mandatory),
-                original_readonly: originalReadonly,
-                is_readonly: originalReadonly || normalizeBoolean(formReadOnly.value),
-                is_hide_legend: normalizeBoolean(field.is_hide_legend)
-              };
-            })
+            fields: section.fields.map(field => ({
+              ...field,
+              id: field.id || field.ID || field.field_id,
+              field_id: field.field_id || field.ID || field.id,
+              name: field.name || field.Name,
+              fieldType: field.fieldType || 'text',
+              columns: parseInt(field.columns) || 1,
+              is_mandatory: Boolean(field.is_mandatory),
+              original_readonly: Boolean(field.original_readonly),
+              is_readonly: Boolean(field.original_readonly || formReadOnly.value),
+              is_hide_legend: Boolean(field.is_hide_legend)
+            }))
           }))
         };
         setFormData(formState);
 
-        refreshFormValidity();
+        evaluateFormValidity();
 
         emit('trigger-event', {
           name: 'fieldsUpdated',
@@ -406,12 +363,6 @@ export default {
             original_readonly: section.fields[fieldIndex].original_readonly,
             ...field
           };
-          const updatedField = section.fields[fieldIndex];
-          const originalReadonly = normalizeBoolean(updatedField.original_readonly ?? updatedField.is_readonly);
-          updatedField.is_mandatory = normalizeBoolean(updatedField.is_mandatory);
-          updatedField.original_readonly = originalReadonly;
-          updatedField.is_readonly = originalReadonly || normalizeBoolean(formReadOnly.value);
-          updatedField.is_hide_legend = normalizeBoolean(updatedField.is_hide_legend);
           updateFormState();
         }
       }
@@ -481,19 +432,12 @@ export default {
     watch(
       formReadOnly,
       newVal => {
-        const normalizedNewVal = normalizeBoolean(newVal);
         formSections.value.forEach(section => {
           section.fields.forEach(field => {
-            if (!field) {
-              return;
-            }
-
             if (field.original_readonly === undefined) {
-              field.original_readonly = normalizeBoolean(field.is_readonly);
-            } else {
-              field.original_readonly = normalizeBoolean(field.original_readonly);
+              field.original_readonly = Boolean(field.is_readonly);
             }
-            field.is_readonly = field.original_readonly || normalizedNewVal;
+            field.is_readonly = field.original_readonly || newVal;
           });
         });
         updateFormState();
@@ -504,11 +448,11 @@ export default {
     watch(
       () => props.readOnly,
       val => {
-        const normalized = normalizeBoolean(val);
-        if (normalized !== normalizeBoolean(formReadOnly.value)) {
+        const normalized = val === 'true' || val === true;
+        if (normalized !== formReadOnly.value) {
           formSections.value.forEach(section => {
             section.fields.forEach(field => {
-              field.is_readonly = normalizeBoolean(field.original_readonly) || normalized;
+              field.is_readonly = field.original_readonly || normalized;
             });
           });
           updateFormState();
@@ -521,29 +465,22 @@ export default {
     }, { deep: true });
 
     const validateRequiredFields = () => {
-      let sectionsValid = true;
+      let valid = true;
       sectionComponents.value.forEach(section => {
         if (section && typeof section.validateFields === 'function') {
           const sectionValid = section.validateFields();
-          if (sectionValid === false) {
-            sectionsValid = false;
-          }
+          if (!sectionValid) valid = false;
         }
       });
 
-      const computedValid = computeFormValidity();
-      const finalValidity = sectionsValid && computedValid;
+      const computedValid = evaluateFormValidity();
+      if (!computedValid) {
+        valid = false;
+      }
 
-      return applyFormValidity(finalValidity);
+      setFormIsValid(valid);
+      return valid;
     };
-
-    watch(
-      formSections,
-      () => {
-        refreshFormValidity();
-      },
-      { deep: true }
-    );
 
     return {
       isEditing,
