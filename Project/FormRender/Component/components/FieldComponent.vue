@@ -95,7 +95,7 @@
       <template
         v-else-if="field.fieldType === 'SIMPLE_LIST' || field.fieldType === 'CONTROLLED_LIST' || field.fieldType === 'LIST'">
         <div class="custom-dropdown-wrapper" :class="{ 'readonly-field': field.is_readonly }">
-          <div class="custom-dropdown-selected"
+          <div ref="dropdownTrigger" class="custom-dropdown-selected"
             :class="{ open: dropdownOpen, 'readonly-field': field.is_readonly, error: error && field.is_mandatory }"
             @click="onDropdownClick" tabindex="0" @keydown.enter.prevent="!field.is_readonly && toggleDropdown()">
             <span v-if="selectedOption" @click.stop="onDropdownClick" style="pointer-events:auto">{{ selectedOption.label }}</span>
@@ -213,6 +213,10 @@ export default {
     autoSave: {
       type: [Boolean, String],
       default: true
+    },
+    componentUid: {
+      type: String,
+      required: false
     }
   },
   data() {
@@ -230,7 +234,14 @@ export default {
       dataNow: new Date(),
       currentColor: '#699d8c',
       isUserInput: false,
+      isFormValid: true,
+      formIsValidVariable: null,
+      formValidityRegistryKey: null,
+      currentFieldKey: null
     }
+  },
+  created() {
+    this.initializeFormValidityTracking();
   },
   computed: {
     autoSaveEnabled() {
@@ -467,9 +478,16 @@ export default {
   },
   watch: {
     field: {
-      handler(newField) {
+      handler(newField, oldField) {
+        const previousKey = this.getFieldKey(oldField);
         this.localValue = newField.value ?? '';
         this.originalValue = newField.value ?? '';
+        const newKey = this.getFieldKey(newField);
+        if (previousKey && previousKey !== newKey) {
+          this.removeFieldKeyFromRegistry(previousKey);
+        }
+        this.currentFieldKey = newKey;
+        this.syncFormValidityState();
       },
       deep: true,
       immediate: true
@@ -526,6 +544,7 @@ export default {
         case 'YES_NO':
           value = event.target.value === 'true';
           apiValue = value;
+          this.error = null;
           break;
         case 'SIMPLE_LIST':
           value = value + '';
@@ -541,6 +560,8 @@ export default {
           this.validateText(value);
           break;
       }
+      const validationFailed = Boolean(this.error);
+      this.updateFormValidityFlag(!validationFailed);
       if (!this.error) {
         // Só salva se o valor realmente mudou (comparação robusta)
         let isChanged = false;
@@ -562,6 +583,142 @@ export default {
           }
           this.originalValue = value;
         }
+      }
+    },
+    getFieldKey(field = this.field) {
+      if (!field || typeof field !== 'object') {
+        return `field-${this._uid}`;
+      }
+      return (
+        field.id ||
+        field.field_id ||
+        field.ID ||
+        (field.name ? `field-${field.name}` : `field-${this._uid}`)
+      );
+    },
+    getValidityRegistry(createIfMissing = true) {
+      if (typeof window === 'undefined') {
+        return null;
+      }
+      if (!this.formValidityRegistryKey) {
+        const root = this.$root;
+        const fallback = this.componentUid || root?.uid || root?._uid || `form-render-${this._uid}`;
+        this.formValidityRegistryKey = fallback;
+      }
+      if (!window.__formRenderValidityRegistry) {
+        if (!createIfMissing) {
+          return null;
+        }
+        window.__formRenderValidityRegistry = {};
+      }
+      const registry = window.__formRenderValidityRegistry;
+      if (!registry[this.formValidityRegistryKey]) {
+        if (!createIfMissing) {
+          return { registry, map: null, key: this.formValidityRegistryKey };
+        }
+        registry[this.formValidityRegistryKey] = {};
+      }
+      return {
+        registry,
+        map: registry[this.formValidityRegistryKey],
+        key: this.formValidityRegistryKey
+      };
+    },
+    initializeFormValidityTracking() {
+      this.getValidityRegistry(true);
+      if (!this.formIsValidVariable && this.componentUid && typeof window !== 'undefined') {
+        const wwVariable = window.wwLib?.wwVariable;
+        if (wwVariable?.useComponentVariable) {
+          try {
+            this.formIsValidVariable = wwVariable.useComponentVariable({
+              uid: this.componentUid,
+              name: 'formIsValid',
+              type: 'boolean',
+              defaultValue: true
+            });
+          } catch (error) {
+            this.formIsValidVariable = null;
+          }
+        }
+      }
+      this.currentFieldKey = this.getFieldKey();
+      this.syncFormValidityState();
+    },
+    syncFormValidityState() {
+      this.updateFormValidityFlag(!this.error);
+    },
+    updateFormValidityFlag(isFieldValid) {
+      const registryInfo = this.getValidityRegistry(true);
+      let aggregated = isFieldValid;
+      const fieldKey = this.getFieldKey();
+      this.currentFieldKey = fieldKey;
+      if (registryInfo?.map && fieldKey) {
+        registryInfo.map[fieldKey] = isFieldValid;
+        aggregated = Object.values(registryInfo.map).every(Boolean);
+      }
+      this.isFormValid = aggregated;
+      this.setPublicFormValidity(aggregated);
+    },
+    setPublicFormValidity(value) {
+      if (typeof window === 'undefined') {
+        this.isFormValid = value;
+        return;
+      }
+      if (this.formIsValidVariable?.setValue) {
+        try {
+          this.formIsValidVariable.setValue(value);
+          return;
+        } catch (error) {
+        }
+      }
+      const wwVariable = window.wwLib?.wwVariable;
+      if (!wwVariable) {
+        return;
+      }
+      if (this.componentUid) {
+        if (typeof wwVariable.setComponentValue === 'function') {
+          wwVariable.setComponentValue(this.componentUid, 'formIsValid', value);
+          return;
+        }
+        if (typeof wwVariable.updateComponentValue === 'function') {
+          wwVariable.updateComponentValue(this.componentUid, 'formIsValid', value);
+          return;
+        }
+      }
+      if (typeof wwVariable.setValue === 'function') {
+        wwVariable.setValue('formIsValid', value);
+        return;
+      }
+      if (typeof wwVariable.updateValue === 'function') {
+        wwVariable.updateValue('formIsValid', value);
+      }
+    },
+    removeFieldKeyFromRegistry(fieldKey) {
+      const registryInfo = this.getValidityRegistry(false);
+      if (!registryInfo || !registryInfo.map || !fieldKey) {
+        return;
+      }
+      delete registryInfo.map[fieldKey];
+      if (Object.keys(registryInfo.map).length === 0) {
+        delete registryInfo.registry[registryInfo.key];
+        this.isFormValid = true;
+        this.setPublicFormValidity(true);
+      } else {
+        const aggregated = Object.values(registryInfo.map).every(Boolean);
+        this.isFormValid = aggregated;
+        this.setPublicFormValidity(aggregated);
+      }
+    },
+    cleanupFormValidity() {
+      const key = this.currentFieldKey || this.getFieldKey();
+      if (key) {
+        this.removeFieldKeyFromRegistry(key);
+      }
+    },
+    clearDeadlineTimer() {
+      if (this.deadlineTimer) {
+        clearInterval(this.deadlineTimer);
+        this.deadlineTimer = null;
       }
     },
     async saveFieldValueToApi(value) {
@@ -715,7 +872,9 @@ export default {
             if (input) input.focus();
           }
           setTimeout(() => {
-            const trigger = this.$el.querySelector('.custom-dropdown-selected');
+            const trigger = this.$refs.dropdownTrigger || (this.$el && typeof this.$el.querySelector === 'function'
+              ? this.$el.querySelector('.custom-dropdown-selected')
+              : null);
             const dropdown = this.$refs.dropdownList;
             if (trigger && dropdown) {
               const scrollParent = this.getScrollParent(trigger);
@@ -775,11 +934,12 @@ export default {
         );
         if (!hasValue) {
           this.error = 'Campo obrigatório';
-
+          this.updateFormValidityFlag(false);
           return false;
         }
       }
       this.error = null;
+      this.updateFormValidityFlag(true);
       return true;
     },
     onDropdownClick(e) {
@@ -797,12 +957,15 @@ export default {
         this.dataNow = new Date();
       }, 1000);
     }
+    this.syncFormValidityState();
+  },
+  beforeUnmount() {
+    this.cleanupFormValidity();
+    this.clearDeadlineTimer();
   },
   beforeDestroy() {
-    if (this.deadlineTimer) {
-      clearInterval(this.deadlineTimer);
-      this.deadlineTimer = null;
-    }
+    this.cleanupFormValidity();
+    this.clearDeadlineTimer();
   }
 }
 </script>
