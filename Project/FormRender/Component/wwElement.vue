@@ -315,6 +315,7 @@ export default {
     };
 
     const applyFormValidity = valid => {
+
       if (formIsValid && typeof formIsValid === 'object' && 'value' in formIsValid) {
         formIsValid.value = valid;
       }
@@ -534,6 +535,7 @@ export default {
       const finalValidity = sectionsValid && computedValid;
 
       return applyFormValidity(finalValidity);
+
     };
 
     watch(
