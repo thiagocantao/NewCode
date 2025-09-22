@@ -525,7 +525,7 @@ export default {
       sectionComponents.value.forEach(section => {
         if (section && typeof section.validateFields === 'function') {
           const sectionValid = section.validateFields();
-          if (!sectionValid) {
+          if (sectionValid === false) {
             sectionsValid = false;
           }
         }
@@ -535,7 +535,6 @@ export default {
       const finalValidity = sectionsValid && computedValid;
 
       return applyFormValidity(finalValidity);
-
     };
 
     watch(
