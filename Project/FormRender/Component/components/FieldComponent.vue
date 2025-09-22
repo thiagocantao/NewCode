@@ -95,7 +95,7 @@
       <template
         v-else-if="field.fieldType === 'SIMPLE_LIST' || field.fieldType === 'CONTROLLED_LIST' || field.fieldType === 'LIST'">
         <div class="custom-dropdown-wrapper" :class="{ 'readonly-field': field.is_readonly }">
-          <div class="custom-dropdown-selected"
+          <div ref="dropdownTrigger" class="custom-dropdown-selected"
             :class="{ open: dropdownOpen, 'readonly-field': field.is_readonly, error: error && field.is_mandatory }"
             @click="onDropdownClick" tabindex="0" @keydown.enter.prevent="!field.is_readonly && toggleDropdown()">
             <span v-if="selectedOption" @click.stop="onDropdownClick" style="pointer-events:auto">{{ selectedOption.label }}</span>
@@ -872,7 +872,9 @@ export default {
             if (input) input.focus();
           }
           setTimeout(() => {
-            const trigger = this.$el.querySelector('.custom-dropdown-selected');
+            const trigger = this.$refs.dropdownTrigger || (this.$el && typeof this.$el.querySelector === 'function'
+              ? this.$el.querySelector('.custom-dropdown-selected')
+              : null);
             const dropdown = this.$refs.dropdownList;
             if (trigger && dropdown) {
               const scrollParent = this.getScrollParent(trigger);
