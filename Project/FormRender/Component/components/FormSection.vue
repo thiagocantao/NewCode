@@ -22,6 +22,7 @@ class="action-icon-section"
             :options="getFieldOptions(field.id)"
             :user-id="userId"
             :auto-save="autoSave"
+            :component-uid="componentUid"
             @update:value="value => updateFieldValue(field.id, value)"
           />
         </div>
@@ -83,6 +84,10 @@ export default {
     autoSave: {
       type: [Boolean, String],
       default: undefined
+    },
+    componentUid: {
+      type: String,
+      required: false
     }
   },
   emits: ['update:value'],
@@ -334,7 +339,8 @@ export default {
       fieldRows,
       autoSave,
       fieldComponents,
-      validateFields
+      validateFields,
+      componentUid: props.componentUid
     };
   }
 };
