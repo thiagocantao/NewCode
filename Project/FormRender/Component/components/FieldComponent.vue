@@ -749,6 +749,7 @@ export default {
       return document.body;
     },
     validateValue(value) {
+
       switch (this.field.fieldType) {
         case 'DATE':
           this.validateDate(value);
@@ -783,6 +784,7 @@ export default {
           this.validateList(listValue);
           break;
         }
+
         case 'MULTILINE_TEXT':
           this.validateMultilineText(
             typeof value === 'string' ? value : value != null ? String(value) : ''
@@ -823,6 +825,7 @@ export default {
     },
     validate() {
       return this.validateValue(this.localValue);
+
     },
     onDropdownClick(e) {
       if (!this.field.is_readonly) {
