@@ -31,7 +31,6 @@
               :language="language"
               :read-only="formReadOnly"
               :auto-save="autoSave"
-              :component-uid="uid"
               @update-section="updateFormState"
               @edit-section="editSection"
               @edit-field="editFormField"
@@ -106,13 +105,6 @@ export default {
       name: 'formData',
       type: 'object',
       defaultValue: {}
-    });
-
-    const { value: formIsValid } = wwLib.wwVariable.useComponentVariable({
-      uid: props.uid,
-      name: 'formIsValid',
-      type: 'boolean',
-      defaultValue: true
     });
 
  
@@ -241,52 +233,6 @@ export default {
       allAvailableFields.value = [...fields];
     };
 
-    const hasValue = (value) => {
-      if (Array.isArray(value)) {
-        return value.length > 0;
-      }
-
-      if (value instanceof Date) {
-        return !Number.isNaN(value.getTime());
-      }
-
-      if (value && typeof value === 'object') {
-        return Object.keys(value).length > 0;
-      }
-
-      if (typeof value === 'number') {
-        return true;
-      }
-
-      if (typeof value === 'boolean') {
-        return true;
-      }
-
-      return value !== null && value !== undefined && String(value).trim() !== '';
-    };
-
-    const evaluateFormValidity = () => {
-      let valid = true;
-
-      formSections.value.forEach(section => {
-        if (!section || !Array.isArray(section.fields)) {
-          return;
-        }
-
-        section.fields.forEach(field => {
-          if (!field || !field.is_mandatory || field.is_readonly) {
-            return;
-          }
-
-          if (!hasValue(field.value)) {
-            valid = false;
-          }
-        });
-      });
-
-      return valid;
-    };
-
     const updateFormState = () => {
       try {
         const formState = {
@@ -307,8 +253,6 @@ export default {
           }))
         };
         setFormData(formState);
-
-        evaluateFormValidity();
 
         emit('trigger-event', {
           name: 'fieldsUpdated',
@@ -472,19 +416,12 @@ export default {
           if (!sectionValid) valid = false;
         }
       });
-
-      const computedValid = evaluateFormValidity();
-      if (!computedValid) {
-        valid = false;
-      }
-
       return valid;
     };
 
     return {
       isEditing,
       formData,
-      formIsValid,
       formSections,
       formSectionsContainer,
       allAvailableFields,
