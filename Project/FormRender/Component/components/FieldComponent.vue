@@ -481,60 +481,50 @@ export default {
       this.updateValue({ target: { value } });
     },
     async updateValue(event) {
-      let value;
-      if (this.field.fieldType === 'FORMATED_TEXT') {
-        value = this.localValue;
-      } else {
-        value = event.target.value;
-      }
+      const rawValue = this.field.fieldType === 'FORMATED_TEXT'
+        ? this.localValue
+        : event?.target?.value;
+
+      let value = rawValue;
       let apiValue = value;
-      // Validação específica por tipo de campo
+
       switch (this.field.fieldType) {
-        case 'DATE':
-          this.validateDate(value);
-          if (!this.error && value) {
-           const dt = new Date(value + 'T00:00:00');
-            apiValue = dt.toISOString();
-          }
-          break;
-        case 'DEADLINE':
-          this.validateDeadline(value);
-          // Converter para formato backend ao salvar
-          if (!this.error && value) {
-            // value: '2025-06-30T00:00'
-            // backend: '2025-06-30 00:00:00+00'
-            apiValue = value;
-          }
-          break;
         case 'DECIMAL':
-          value = event.target.value === '' ? null : parseFloat(event.target.value);
+          value = rawValue === '' || rawValue === null || rawValue === undefined
+            ? null
+            : parseFloat(rawValue);
           apiValue = value;
-          this.validateDecimal(value);
           break;
         case 'INTEGER':
-          value = event.target.value === '' ? null : parseInt(event.target.value, 10);
+          value = rawValue === '' || rawValue === null || rawValue === undefined
+            ? null
+            : parseInt(rawValue, 10);
           apiValue = value;
-          this.validateInteger(value);
           break;
         case 'YES_NO':
-          value = event.target.value === 'true';
+          value = rawValue === 'true';
           apiValue = value;
           break;
         case 'SIMPLE_LIST':
-          value = value + '';
-          this.validateList(value);
+        case 'LIST':
+        case 'CONTROLLED_LIST':
+          value = rawValue !== null && rawValue !== undefined ? String(rawValue) : rawValue;
+          apiValue = value;
           break;
-        case 'MULTILINE_TEXT':
-          this.validateMultilineText(value);
-          break;
-        case 'FORMATED_TEXT':
-          this.validateText(value);
-          break;
-        case 'SIMPLE_TEXT':
-          this.validateText(value);
-          break;
+        default:
+          apiValue = value;
       }
-      if (!this.error) {
+
+      const isValid = this.validateValue(value);
+
+      if (isValid) {
+        if (this.field.fieldType === 'DATE' && value) {
+          const dt = new Date(`${value}T00:00:00`);
+          apiValue = dt.toISOString();
+        } else if (this.field.fieldType === 'DEADLINE' && value) {
+          apiValue = value;
+        }
+
         // Só salva se o valor realmente mudou (comparação robusta)
         let isChanged = false;
         if (this.field.fieldType === 'DECIMAL' || this.field.fieldType === 'INTEGER') {
@@ -758,8 +748,7 @@ export default {
       }
       return document.body;
     },
-    validate() {
-      let value = this.localValue;
+    validateValue(value) {
 
       switch (this.field.fieldType) {
         case 'DATE':
@@ -795,6 +784,7 @@ export default {
           this.validateList(listValue);
           break;
         }
+
         case 'MULTILINE_TEXT':
           this.validateMultilineText(
             typeof value === 'string' ? value : value != null ? String(value) : ''
@@ -832,6 +822,10 @@ export default {
       }
 
       return !this.error;
+    },
+    validate() {
+      return this.validateValue(this.localValue);
+
     },
     onDropdownClick(e) {
       if (!this.field.is_readonly) {
