@@ -928,6 +928,56 @@ export default {
       }
       return document.body;
     },
+    commitValueFromValidation() {
+      if (!this.hasPendingChange()) {
+        return;
+      }
+      const syntheticValue = this.getSyntheticEventValue();
+      this.updateValue({ target: { value: syntheticValue } });
+    },
+    hasPendingChange() {
+      const current = this.localValue;
+      const original = this.originalValue;
+
+      if (this.field.fieldType === 'DECIMAL' || this.field.fieldType === 'INTEGER') {
+        return this.normalizeNumericValue(current) !== this.normalizeNumericValue(original);
+      }
+
+      if (this.field.fieldType === 'DEADLINE') {
+        return this.normalizeDeadlineValue(current) !== this.normalizeDeadlineValue(original);
+      }
+
+      return current !== original;
+    },
+    normalizeNumericValue(value) {
+      if (value === null || value === undefined || value === '') {
+        return '';
+      }
+      return String(value);
+    },
+    normalizeDeadlineValue(value) {
+      if (!value) {
+        return '';
+      }
+      return String(value)
+        .replace('T', ' ')
+        .replace(/:..\+..$/, '');
+    },
+    getSyntheticEventValue() {
+      const value = this.localValue;
+
+      switch (this.field.fieldType) {
+        case 'DECIMAL':
+        case 'INTEGER':
+          return value === null || value === undefined ? '' : String(value);
+        case 'YES_NO':
+          if (value === true) return 'true';
+          if (value === false) return 'false';
+          return '';
+        default:
+          return value == null ? '' : value;
+      }
+    },
     validate() {
       const value = this.localValue;
       if (this.field.is_mandatory) {
@@ -944,6 +994,7 @@ export default {
       }
       this.error = null;
       this.updateFormValidityFlag(true);
+      this.commitValueFromValidation();
       return true;
     },
     onDropdownClick(e) {
