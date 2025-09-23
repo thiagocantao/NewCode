@@ -22,7 +22,6 @@ class="action-icon-section"
             :options="getFieldOptions(field.id)"
             :user-id="userId"
             :auto-save="autoSave"
-            :component-uid="componentUid"
             @update:value="value => updateFieldValue(field.id, value)"
           />
         </div>
@@ -84,10 +83,6 @@ export default {
     autoSave: {
       type: [Boolean, String],
       default: undefined
-    },
-    componentUid: {
-      type: String,
-      required: false
     }
   },
   emits: ['update:value'],
@@ -339,8 +334,7 @@ export default {
       fieldRows,
       autoSave,
       fieldComponents,
-      validateFields,
-      componentUid: props.componentUid
+      validateFields
     };
   }
 };
@@ -363,9 +357,9 @@ export default {
 
 .section-title {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 400;
-  color: #333;
+  color: #444;
   flex: 1;
 }
 
