@@ -759,21 +759,79 @@ export default {
       return document.body;
     },
     validate() {
-      const value = this.localValue;
-      if (this.field.is_mandatory) {
-        const hasValue = !(
-          value === null ||
-          value === undefined ||
-          (typeof value === 'string' && value.trim() === '')
-        );
-        if (!hasValue) {
-          this.error = 'Campo obrigatório';
+      let value = this.localValue;
 
-          return false;
+      switch (this.field.fieldType) {
+        case 'DATE':
+          this.validateDate(value);
+          break;
+        case 'DEADLINE':
+          this.validateDeadline(value);
+          break;
+        case 'DECIMAL': {
+          const numericValue =
+            typeof value === 'number'
+              ? value
+              : value === '' || value === null || value === undefined
+                ? null
+                : parseFloat(value);
+          this.validateDecimal(numericValue);
+          break;
         }
+        case 'INTEGER': {
+          const numericValue =
+            typeof value === 'number'
+              ? value
+              : value === '' || value === null || value === undefined
+                ? null
+                : parseInt(value, 10);
+          this.validateInteger(numericValue);
+          break;
+        }
+        case 'SIMPLE_LIST':
+        case 'LIST':
+        case 'CONTROLLED_LIST': {
+          const listValue = value !== null && value !== undefined ? String(value) : value;
+          this.validateList(listValue);
+          break;
+        }
+        case 'MULTILINE_TEXT':
+          this.validateMultilineText(
+            typeof value === 'string' ? value : value != null ? String(value) : ''
+          );
+          break;
+        case 'FORMATED_TEXT':
+        case 'SIMPLE_TEXT':
+        case 'TEXT':
+        case 'EMAIL':
+        case 'PHONE':
+          this.validateText(
+            typeof value === 'string' ? value : value != null ? String(value) : ''
+          );
+          break;
+        case 'YES_NO':
+          if (this.field.is_mandatory && (value === null || value === undefined || value === '')) {
+            this.error = 'Campo obrigatório';
+          } else {
+            this.error = null;
+          }
+          break;
+        default: {
+          const hasValue = !(
+            value === null ||
+            value === undefined ||
+            (typeof value === 'string' && value.trim() === '')
+          );
+          if (this.field.is_mandatory && !hasValue) {
+            this.error = 'Campo obrigatório';
+          } else {
+            this.error = null;
+          }
+        }
+          break;
       }
-      this.error = null;
-      return true;
+
+      return !this.error;
     },
     onDropdownClick(e) {
       if (!this.field.is_readonly) {
