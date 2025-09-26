@@ -1,9 +1,4 @@
 <template>
-  <CustomAlert
-    :message="error" 
-    :visible="!!error && showAlert"
-    @close="showAlert = false"
-  />
   <div
     class="field-component"
     :class="[`field-type-${field.fieldType.toLowerCase()}`, { 'is-mandatory': field.is_mandatory }]"
@@ -199,12 +194,11 @@
 </template>
 
 <script>
-import CustomAlert from './CustomAlert.vue';
 import CustomDatePicker from './CustomDatePicker.vue';
 
 export default {
   name: 'FieldComponent',
-  components: { CustomAlert, CustomDatePicker },
+  components: { CustomDatePicker },
   props: {
     field: { type: Object, required: true },
     apiUrl: { type: String, required: false },
@@ -224,7 +218,6 @@ export default {
       feedbackType: null,
       localValue: this.parseInitialValue(this.field),
       originalValue: this.parseInitialValue(this.field),
-      showAlert: false,
       currentColor: '#699d8c',
       savedSelection: null,
       isUserInput: false,
@@ -337,7 +330,6 @@ export default {
       },
       immediate: true
     },
-    error(val) { this.showAlert = !!val; },
     localValue(newVal) {
       if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte && this.$refs.rte.innerHTML !== newVal) {
         this.$refs.rte.innerHTML = newVal || '';
