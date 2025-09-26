@@ -4,6 +4,7 @@
       <div v-for="(row, rowIndex) in fieldRows" :key="'row-' + rowIndex" class="form-row">
         <div v-for="field in row" :key="field.id" class="field-wrapper" :style="{ gridColumn: 'span ' + Math.min(Math.max(parseInt(field.columns) || 1, 1), 4) }">
           <FieldComponent
+            ref="fieldComponents"
             :field="field"
             :api-url="apiUrl"
             :api-key="apiKey"
@@ -77,6 +78,7 @@ export default {
     const error = ref({});
     const hasAddedListener = ref(false);
     const fieldValues = ref({});
+    const fieldComponents = ref([]);
 
     const toggleFields = () => {
       isExpanded.value = !isExpanded.value;
@@ -263,6 +265,19 @@ export default {
       emit('update:value', { fieldId, value });
     };
 
+    const validateFields = () => {
+      let valid = true;
+      fieldComponents.value.forEach(comp => {
+        if (comp && typeof comp.validate === 'function') {
+          const fieldValid = comp.validate();
+          if (!fieldValid) {
+            valid = false;
+          }
+        }
+      });
+      return valid;
+    };
+
     onMounted(() => {
       // Load options for all LIST fields
       sectionFields.value.forEach(field => {
@@ -292,7 +307,9 @@ export default {
       loading,
       fieldValues,
       getFieldOptions,
-      fieldRows
+      fieldRows,
+      fieldComponents,
+      validateFields
     };
   }
 };
