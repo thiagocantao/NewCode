@@ -1,9 +1,4 @@
 <template>
-  <CustomAlert
-    :message="error" 
-    :visible="!!error && showAlert"
-    @close="showAlert = false"
-  />
   <div
     class="field-component"
     :class="[`field-type-${field.fieldType.toLowerCase()}`, { 'is-mandatory': field.is_mandatory }]"
@@ -57,7 +52,7 @@
 
       <!-- YES_NO -->
       <template v-else-if="field.fieldType === 'YES_NO'">
-        <div class="yes-no-container">
+        <div class="yes-no-container" :class="{ error: error && field.is_mandatory }">
           <label class="radio-label">
             <input
               type="radio"
@@ -91,7 +86,7 @@
         >
           <div
             class="custom-dropdown-selected"
-            :class="{ 'open': dropdownOpen, 'readonly-field': field.is_readonly }"
+            :class="{ 'open': dropdownOpen, 'readonly-field': field.is_readonly, error: error && field.is_mandatory }"
             @click="onDropdownClick"
             tabindex="0"
             @keydown.enter.prevent="!field.is_readonly && toggleDropdown()"
@@ -164,7 +159,7 @@
             ref="rte"
             :contenteditable="!field.is_readonly"
             dir="ltr"
-            :class="['field-input', 'rich-text-input', { 'readonly-field': field.is_readonly }]"
+            :class="['field-input', 'rich-text-input', { error: error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
             :data-placeholder="field.placeholder || field.placeholder_translations?.pt_br || ''"
             @input="onContentEditableInput"
             @blur="updateValue"
@@ -199,12 +194,11 @@
 </template>
 
 <script>
-import CustomAlert from './CustomAlert.vue';
 import CustomDatePicker from './CustomDatePicker.vue';
 
 export default {
   name: 'FieldComponent',
-  components: { CustomAlert, CustomDatePicker },
+  components: { CustomDatePicker },
   props: {
     field: { type: Object, required: true },
     apiUrl: { type: String, required: false },
@@ -224,7 +218,6 @@ export default {
       feedbackType: null,
       localValue: this.parseInitialValue(this.field),
       originalValue: this.parseInitialValue(this.field),
-      showAlert: false,
       currentColor: '#699d8c',
       savedSelection: null,
       isUserInput: false,
@@ -337,7 +330,6 @@ export default {
       },
       immediate: true
     },
-    error(val) { this.showAlert = !!val; },
     localValue(newVal) {
       if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte && this.$refs.rte.innerHTML !== newVal) {
         this.$refs.rte.innerHTML = newVal || '';
@@ -371,36 +363,50 @@ export default {
       return val ?? '';
     },
     updateValue(event) {
-      let value;
-      if (this.field.fieldType === 'FORMATED_TEXT') {
-        value = this.localValue;
-      } else {
-        value = event.target.value;
-      }
+      const rawValue = this.field.fieldType === 'FORMATED_TEXT'
+        ? this.localValue
+        : event?.target?.value;
+
+      let value = rawValue;
+
       switch (this.field.fieldType) {
         case 'DECIMAL':
-          value = value === '' ? null : parseFloat(value);
+          value = rawValue === '' || rawValue === null || rawValue === undefined
+            ? null
+            : parseFloat(rawValue);
           break;
         case 'INTEGER':
-          value = value === '' ? null : parseInt(value, 10);
+          value = rawValue === '' || rawValue === null || rawValue === undefined
+            ? null
+            : parseInt(rawValue, 10);
           break;
         case 'YES_NO':
-          value = this.parseBoolean(value);
+          value = this.parseBoolean(rawValue);
+          break;
+        case 'SIMPLE_LIST':
+        case 'LIST':
+        case 'CONTROLLED_LIST':
+          value = rawValue !== null && rawValue !== undefined ? String(rawValue) : rawValue;
           break;
         default:
           break;
       }
+
       this.localValue = value;
+      this.validateValue(value);
       this.$emit('update:value', value);
+      return value;
     },
     onContentEditableInput(event) {
       this.localValue = event.target.innerHTML;
+      this.validateValue(this.localValue);
     },
     format(cmd) {
       if (this.$refs.rte) {
         this.$refs.rte.focus();
         document.execCommand(cmd, false, null);
         this.localValue = this.$refs.rte.innerHTML;
+        this.validateValue(this.localValue);
         this.$emit('update:value', this.localValue);
       }
     },
@@ -423,6 +429,7 @@ export default {
       this.currentColor = event.target.value;
       if (this.$refs.rte) {
         this.localValue = this.$refs.rte.innerHTML;
+        this.validateValue(this.localValue);
         this.$emit('update:value', this.localValue);
       }
     },
@@ -433,6 +440,7 @@ export default {
         if (url) {
           document.execCommand('createLink', false, url);
           this.localValue = this.$refs.rte.innerHTML;
+          this.validateValue(this.localValue);
           this.$emit('update:value', this.localValue);
         }
       }
@@ -444,6 +452,7 @@ export default {
         if (url) {
           document.execCommand('insertImage', false, url);
           this.localValue = this.$refs.rte.innerHTML;
+          this.validateValue(this.localValue);
           this.$emit('update:value', this.localValue);
         }
       }
@@ -466,6 +475,7 @@ export default {
     },
     selectDropdownOption(option) {
       this.localValue = option.value;
+      this.validateValue(option.value);
       this.$emit('update:value', option.value);
       this.closeDropdown();
     },
@@ -546,6 +556,129 @@ export default {
         : naturalHeight;
 
       list.style.maxHeight = `${finalHeight}px`;
+    },
+    validateDate(value) {
+      if (!value) {
+        this.error = this.field.is_mandatory ? 'Campo obrigatório' : null;
+        return;
+      }
+      const date = new Date(value + 'T00:00:00');
+      this.error = isNaN(date.getTime()) ? 'Data inválida' : null;
+    },
+    validateDeadline(value) {
+      if (!value) {
+        this.error = this.field.is_mandatory ? 'Campo obrigatório' : null;
+        return;
+      }
+      const date = new Date(value);
+      this.error = isNaN(date.getTime()) ? 'Data e hora inválidas' : null;
+    },
+    validateDecimal(value) {
+      if (value === null || value === undefined || value === '' || isNaN(value)) {
+        this.error = this.field.is_mandatory ? 'Campo obrigatório' : null;
+        return;
+      }
+      this.error = null;
+    },
+    validateInteger(value) {
+      if (value === null || value === undefined || value === '' || isNaN(value)) {
+        this.error = this.field.is_mandatory ? 'Campo obrigatório' : null;
+        return;
+      }
+      this.error = null;
+    },
+    validateList(value) {
+      if (this.field.is_mandatory && (value === null || value === undefined || value === '')) {
+        this.error = 'Campo obrigatório';
+      } else {
+        this.error = null;
+      }
+    },
+    validateMultilineText(value) {
+      const text = typeof value === 'string' ? value : value != null ? String(value) : '';
+      if (this.field.is_mandatory && !text.trim()) {
+        this.error = 'Campo obrigatório';
+      } else {
+        this.error = null;
+      }
+    },
+    validateText(value) {
+      const text = typeof value === 'string' ? value : value != null ? String(value) : '';
+      if (this.field.is_mandatory && !text.trim()) {
+        this.error = 'Campo obrigatório';
+      } else {
+        this.error = null;
+      }
+    },
+    validateValue(value) {
+      switch (this.field.fieldType) {
+        case 'DATE':
+          this.validateDate(value);
+          break;
+        case 'DEADLINE':
+          this.validateDeadline(value);
+          break;
+        case 'DECIMAL': {
+          const numericValue =
+            typeof value === 'number'
+              ? value
+              : value === '' || value === null || value === undefined
+                ? null
+                : parseFloat(value);
+          this.validateDecimal(numericValue);
+          break;
+        }
+        case 'INTEGER': {
+          const numericValue =
+            typeof value === 'number'
+              ? value
+              : value === '' || value === null || value === undefined
+                ? null
+                : parseInt(value, 10);
+          this.validateInteger(numericValue);
+          break;
+        }
+        case 'SIMPLE_LIST':
+        case 'LIST':
+        case 'CONTROLLED_LIST': {
+          const listValue = value !== null && value !== undefined ? String(value) : value;
+          this.validateList(listValue);
+          break;
+        }
+        case 'MULTILINE_TEXT':
+          this.validateMultilineText(value);
+          break;
+        case 'FORMATED_TEXT':
+        case 'SIMPLE_TEXT':
+        case 'TEXT':
+        case 'EMAIL':
+        case 'PHONE':
+          this.validateText(value);
+          break;
+        case 'YES_NO':
+          if (this.field.is_mandatory && (value === null || value === undefined || value === '')) {
+            this.error = 'Campo obrigatório';
+          } else {
+            this.error = null;
+          }
+          break;
+        default: {
+          const hasValue = !(
+            value === null ||
+            value === undefined ||
+            (typeof value === 'string' && value.trim() === '')
+          );
+          if (this.field.is_mandatory && !hasValue) {
+            this.error = 'Campo obrigatório';
+          } else {
+            this.error = null;
+          }
+        }
+      }
+      return !this.error;
+    },
+    validate() {
+      return this.validateValue(this.localValue);
     }
   },
   mounted() {
@@ -729,6 +862,12 @@ textarea.field-input::placeholder {
 .yes-no-container {
   display: flex;
   gap: 16px;
+}
+
+.yes-no-container.error {
+  border: 1px solid #ff0000;
+  border-radius: 4px;
+  padding: 6px 12px;
 }
 
 .radio-label {
@@ -1035,6 +1174,11 @@ textarea.field-input::placeholder {
   font-size: 14px;
   transition: border 0.2s;
   color: #787878;
+}
+
+.custom-dropdown-selected.error {
+  border-color: #ff0000;
+  box-shadow: 0 0 0 1px #ff0000;
 }
 
 .custom-dropdown-selected.open {
