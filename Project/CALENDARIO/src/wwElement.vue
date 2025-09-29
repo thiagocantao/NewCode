@@ -336,11 +336,12 @@ export default {
       return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
     }
 
+    const SHIFT_FIELDS = ["shift1Start", "shift1End", "shift2Start", "shift2End"];
+
     const extraTimes = ref(new Set());
     function ensureExtraTimesFromWeekDays(days) {
-      const fields = ["shift1Start", "shift1End", "shift2Start", "shift2End"];
       for (const d of days) {
-        for (const f of fields) {
+        for (const f of SHIFT_FIELDS) {
           const v = normalizeTime(d[f]);
           if (v) extraTimes.value.add(v);
         }
@@ -554,9 +555,23 @@ export default {
 
     const hasHourInconsistency = ref(false);
     watch(weekDays, (days) => {
-      hasHourInconsistency.value = days.some((day) =>
-        ["shift1Start", "shift1End", "shift2Start", "shift2End"].some((field) => isInconsistent(day, field))
-      );
+      let inconsistent = false;
+
+      for (const day of days) {
+        if (!day.active) {
+          for (const field of SHIFT_FIELDS) {
+            if (day[field]) day[field] = "";
+          }
+          continue;
+        }
+
+        if (SHIFT_FIELDS.some((field) => isInconsistent(day, field))) {
+          inconsistent = true;
+          break;
+        }
+      }
+
+      hasHourInconsistency.value = inconsistent;
     }, { deep: true, immediate: true });
 
     const excludedDates = ref([]);
