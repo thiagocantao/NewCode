@@ -553,11 +553,23 @@ export default {
     }
 
     const hasHourInconsistency = ref(false);
-    watch(weekDays, (days) => {
-      hasHourInconsistency.value = days.some((day) =>
-        ["shift1Start", "shift1End", "shift2Start", "shift2End"].some((field) => isInconsistent(day, field))
-      );
-    }, { deep: true, immediate: true });
+    watch(
+      weekDays,
+      (days) => {
+        for (const day of days) {
+          if (!day.active) {
+            ["shift1Start", "shift1End", "shift2Start", "shift2End"].forEach((field) => {
+              if (day[field]) day[field] = "";
+            });
+          }
+        }
+
+        hasHourInconsistency.value = days.some((day) =>
+          ["shift1Start", "shift1End", "shift2Start", "shift2End"].some((field) => isInconsistent(day, field))
+        );
+      },
+      { deep: true, immediate: true }
+    );
 
     const excludedDates = ref([]);
     const showConfirm = ref(false);
