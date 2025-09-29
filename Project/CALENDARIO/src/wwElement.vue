@@ -161,7 +161,7 @@
               </tr>
 
               <tr v-for="date in excludedDates" :key="date">
-                <td style="width:155px">{{ formatDate(date) }}</td>
+                <td style="width:155px">{{ formatDate(date.date) }}</td>
                 <td>
                   <button class="buttonFormat" @click="removeExcluded(date)">
                     {{ translateText('Delete') }}
@@ -336,12 +336,11 @@ export default {
       return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
     }
 
-    const SHIFT_FIELDS = ["shift1Start", "shift1End", "shift2Start", "shift2End"];
-
     const extraTimes = ref(new Set());
     function ensureExtraTimesFromWeekDays(days) {
+      const fields = ["shift1Start", "shift1End", "shift2Start", "shift2End"];
       for (const d of days) {
-        for (const f of SHIFT_FIELDS) {
+        for (const f of fields) {
           const v = normalizeTime(d[f]);
           if (v) extraTimes.value.add(v);
         }
@@ -555,23 +554,9 @@ export default {
 
     const hasHourInconsistency = ref(false);
     watch(weekDays, (days) => {
-      let inconsistent = false;
-
-      for (const day of days) {
-        if (!day.active) {
-          for (const field of SHIFT_FIELDS) {
-            if (day[field]) day[field] = "";
-          }
-          continue;
-        }
-
-        if (SHIFT_FIELDS.some((field) => isInconsistent(day, field))) {
-          inconsistent = true;
-          break;
-        }
-      }
-
-      hasHourInconsistency.value = inconsistent;
+      hasHourInconsistency.value = days.some((day) =>
+        ["shift1Start", "shift1End", "shift2Start", "shift2End"].some((field) => isInconsistent(day, field))
+      );
     }, { deep: true, immediate: true });
 
     const excludedDates = ref([]);
@@ -720,10 +705,13 @@ export default {
 
     function addExcludedDate() {
       if (!newExcludedDate.value) return;
-      if (!excludedDates.value.includes(newExcludedDate.value)) excludedDates.value.push(newExcludedDate.value);
+      if (!excludedDates.value.includes(newExcludedDate.value)) excludedDates.value.push({"date":newExcludedDate.value});
       newExcludedDate.value = "";
     }
-    function removeExcluded(dateString) { excludedDates.value = excludedDates.value.filter((d) => d !== dateString); }
+    function removeExcluded(dateString) 
+    { 
+      excludedDates.value = excludedDates.value.filter((d) => d.date !== dateString.date); 
+      }
     function formatDate(dateString) { return formatDateByStyle(dateString, formatStyle); }
 
     function confirmCopy() { showConfirm.value = true; }
