@@ -5,6 +5,7 @@
       :rowSelection="rowSelection" :suppressMovableColumns="!content.movableColumns" :alwaysShowHorizontalScroll="false"
       :suppressColumnMoveAnimation="true" :suppressDragLeaveHidesColumns="true" :maintainColumnOrder="true"
       :getMainMenuItems="getMainMenuItems" :isColumnMovable="isColumnMovable" :theme="theme" :getRowId="getRowId"
+      :deltaRowDataMode="true"
       :pagination="content.pagination" :paginationPageSize="content.paginationPageSize || 10"
       :paginationPageSizeSelector="false" :columnHoverHighlight="content.columnHoverHighlight" :locale-text="localeText"
       :components="editorComponents" :singleClickEdit="true" @grid-ready="onGridReady" @row-selected="onRowSelected"
@@ -329,6 +330,84 @@
   
   const gridApi = shallowRef(null);
   const columnApi = shallowRef(null);
+
+  const displayedRowData = shallowRef([]);
+  const rowMetadata = shallowRef(new Map());
+
+  const getRowFingerprint = row => {
+    try {
+      return JSON.stringify(row ?? {});
+    } catch (error) {
+      return '';
+    }
+  };
+
+  const resolveRowId = (row, fallbackIndex = null) => {
+    if (!row || typeof row !== 'object') {
+      return fallbackIndex != null ? `__idx_${fallbackIndex}` : null;
+    }
+
+    let resolvedId = null;
+    try {
+      if (props.content?.idFormula) {
+        resolvedId = resolveMappingFormula(props.content.idFormula, row);
+      }
+    } catch (error) {
+      console.warn('[GridViewDinamica] Failed to resolve row id using formula', error);
+    }
+
+    if (resolvedId == null || resolvedId === '') {
+      const fallbackKeys = ['Id', 'ID', 'id'];
+      for (const key of fallbackKeys) {
+        if (row[key] != null && row[key] !== '') {
+          resolvedId = row[key];
+          break;
+        }
+      }
+    }
+
+    if (resolvedId == null || resolvedId === '') {
+      if (fallbackIndex != null) {
+        resolvedId = `__idx_${fallbackIndex}`;
+      } else {
+        resolvedId = getRowFingerprint(row);
+      }
+    }
+
+    return typeof resolvedId === 'string' ? resolvedId : String(resolvedId);
+  };
+
+  const syncDisplayedRowData = () => {
+    const collectionData = wwLib.wwUtils.getDataFromCollection(props.content?.rowData);
+    const sourceRows = Array.isArray(collectionData) ? collectionData : [];
+
+    const previousMetadata = rowMetadata.value || new Map();
+    const nextMetadata = new Map();
+    const nextRows = [];
+
+    sourceRows.forEach((rawRow, index) => {
+      if (!rawRow || typeof rawRow !== 'object') return;
+
+      const rowId = resolveRowId(rawRow, index);
+      if (rowId == null) return;
+
+      const fingerprint = getRowFingerprint(rawRow);
+      const previousEntry = previousMetadata.get(rowId);
+
+      if (previousEntry && previousEntry.hash === fingerprint) {
+        nextMetadata.set(rowId, previousEntry);
+        nextRows.push(previousEntry.data);
+      } else {
+        const clonedRow = { ...rawRow };
+        const entry = { data: clonedRow, hash: fingerprint };
+        nextMetadata.set(rowId, entry);
+        nextRows.push(clonedRow);
+      }
+    });
+
+    displayedRowData.value = nextRows;
+    rowMetadata.value = nextMetadata;
+  };
 
   // Unified Column API accessor for AG Grid v31+ (no columnApi) and older versions
   const getColApi = () => {
@@ -1162,6 +1241,7 @@ const remountComponent = () => {
   }, { deep: true });
 
   watch(() => props.content?.rowData, () => {
+    syncDisplayedRowData();
     loadAllColumnOptions();
     applyColumnOrderFromPosition();
     updateColumnsPosition({ fallbackToContent: true });
@@ -1172,7 +1252,12 @@ const remountComponent = () => {
       }
     }, 0);
     resetHideSaveButtonVisibility();
-  }, { deep: true });
+  }, { deep: true, immediate: true });
+
+  watch(() => props.content?.idFormula, () => {
+    rowMetadata.value = new Map();
+    syncDisplayedRowData();
+  });
 
 
 
@@ -1689,6 +1774,8 @@ setTimeout(() => {
   
       return {
       resolveMappingFormula,
+      resolveRowId,
+      displayedRowData,
       componentFontFamily,
       resolvedFontFamily,
       onGridReady,
@@ -1747,8 +1834,8 @@ setTimeout(() => {
   },
     computed: {
     rowData() {
-      const data = wwLib.wwUtils.getDataFromCollection(this.content.rowData);
-      return Array.isArray(data) ? data ?? [] : [];
+      const data = this.displayedRowData;
+      return Array.isArray(data) ? data : [];
     },
     defaultColDef() {
       return {
@@ -2482,7 +2569,9 @@ setTimeout(() => {
     }
   },
   getRowId(params) {
-  return this.resolveMappingFormula(this.content.idFormula, params.data);
+  const data = params?.data || null;
+  const index = params?.rowIndex != null ? params.rowIndex : null;
+  return this.resolveRowId(data, index);
   },
   onActionTrigger(event) {
   if (!event) return;
