@@ -325,10 +325,501 @@
   },
   emits: ["trigger-event", "update:content:effect"],
   setup(props, ctx) {
-  const { resolveMappingFormula } = wwLib.wwFormula.useFormula();
-  
+  const { resolveMappingFormula } = wwLib.wwFormula.useFormula();  
   const gridApi = shallowRef(null);
   const columnApi = shallowRef(null);
+  const displayedRowData = shallowRef([]);
+  const rowMetadata = shallowRef(new Map());
+  const pendingRowListRefreshes = new Map();
+  let pendingRowListRefreshPromise = null;
+  let hasHydratedInitialRows = false;
+
+  const getRowFingerprint = row => {
+    try {
+      return JSON.stringify(row ?? {});
+    } catch (error) {
+      return '';
+    }
+  };
+
+  const resolveRowId = (row, fallbackIndex = null) => {
+    if (!row || typeof row !== 'object') {
+      return fallbackIndex != null ? `__idx_${fallbackIndex}` : null;
+    }
+
+    let resolvedId = null;
+    try {
+      if (props.content?.idFormula) {
+        resolvedId = resolveMappingFormula(props.content.idFormula, row);
+      }
+    } catch (error) {
+      console.warn('[GridViewDinamica] Failed to resolve row id using formula', error);
+    }
+
+    if (resolvedId == null || resolvedId === '') {
+      const fallbackKeys = ['Id', 'ID', 'id'];
+      for (const key of fallbackKeys) {
+        if (row[key] != null && row[key] !== '') {
+          resolvedId = row[key];
+          break;
+        }
+      }
+    }
+
+    if (resolvedId == null || resolvedId === '') {
+      if (fallbackIndex != null) {
+        resolvedId = `__idx_${fallbackIndex}`;
+      } else {
+        resolvedId = getRowFingerprint(row);
+      }
+    }
+
+    return typeof resolvedId === 'string' ? resolvedId : String(resolvedId);
+  };
+
+  const syncDisplayedRowData = () => {
+    const collectionData = wwLib.wwUtils.getDataFromCollection(props.content?.rowData);
+    const sourceRows = Array.isArray(collectionData) ? collectionData : [];
+
+    const previousMetadata = rowMetadata.value || new Map();
+    const nextMetadata = new Map();
+    const nextRows = [];
+
+    sourceRows.forEach((rawRow, index) => {
+      if (!rawRow || typeof rawRow !== 'object') return;
+
+      const rowId = resolveRowId(rawRow, index);
+      if (rowId == null) return;
+
+      const fingerprint = getRowFingerprint(rawRow);
+      const previousEntry = previousMetadata.get(rowId);
+
+      if (previousEntry && previousEntry.hash === fingerprint) {
+        primeLazyStatusDisplayLabels(previousEntry.data);
+        nextMetadata.set(rowId, previousEntry);
+        nextRows.push(previousEntry.data);
+      } else {
+        const clonedRow = { ...rawRow };
+        primeLazyStatusDisplayLabels(clonedRow);
+        const entry = { data: clonedRow, hash: fingerprint };
+        nextMetadata.set(rowId, entry);
+        nextRows.push(clonedRow);
+        if (hasHydratedInitialRows) {
+          scheduleRowListOptionsRefresh(rowId, clonedRow);
+        }
+      }
+    });
+
+    displayedRowData.value = nextRows;
+    rowMetadata.value = nextMetadata;
+    hasHydratedInitialRows = true;
+  };
+
+  const refreshRowFromSource = (rowData, rowNode = null) => {
+    if (!rowData) return;
+
+    const collectionData = wwLib.wwUtils.getDataFromCollection(props.content?.rowData);
+    const sourceRows = Array.isArray(collectionData) ? collectionData : [];
+    if (!sourceRows.length) return;
+
+    const inferredIndex = rowNode?.rowIndex != null ? rowNode.rowIndex : null;
+    const rowId = resolveRowId(rowData, inferredIndex);
+    if (!rowId) return;
+
+    let matchedRow = null;
+    let matchedIndex = inferredIndex != null ? inferredIndex : -1;
+
+    if (matchedIndex != null && matchedIndex >= 0 && matchedIndex < sourceRows.length) {
+      const candidate = sourceRows[matchedIndex];
+      if (candidate && resolveRowId(candidate, matchedIndex) === rowId) {
+        matchedRow = candidate;
+      }
+    }
+
+    if (!matchedRow) {
+      for (let idx = 0; idx < sourceRows.length; idx += 1) {
+        const candidate = sourceRows[idx];
+        if (!candidate) continue;
+        if (resolveRowId(candidate, idx) === rowId) {
+          matchedRow = candidate;
+          matchedIndex = idx;
+          break;
+        }
+      }
+    }
+
+    if (!matchedRow) return;
+
+    const fingerprint = getRowFingerprint(matchedRow);
+    const previousEntry = (rowMetadata.value && rowMetadata.value.get(rowId)) || null;
+    if (previousEntry && previousEntry.hash === fingerprint) {
+      return;
+    }
+    const clonedRow = { ...matchedRow };
+    primeLazyStatusDisplayLabels(clonedRow);
+
+    const nextMetadata = new Map(rowMetadata.value || []);
+    const entry = { data: clonedRow, hash: fingerprint };
+    nextMetadata.set(rowId, entry);
+    rowMetadata.value = nextMetadata;
+
+    const currentRows = Array.isArray(displayedRowData.value) ? [...displayedRowData.value] : [];
+    if (matchedIndex != null && matchedIndex >= 0 && matchedIndex < currentRows.length) {
+      currentRows[matchedIndex] = clonedRow;
+      displayedRowData.value = currentRows;
+    }
+
+    if (hasHydratedInitialRows) {
+      scheduleRowListOptionsRefresh(rowId, clonedRow);
+    }
+
+    if (gridApi.value && typeof gridApi.value.refreshCells === 'function') {
+      const refreshConfig = { force: true };
+      if (rowNode) {
+        refreshConfig.rowNodes = [rowNode];
+      }
+      gridApi.value.refreshCells(refreshConfig);
+    }
+  };
+
+  const getRowMetadataHash = rowId => {
+    if (!rowId) return null;
+    const metadata = rowMetadata.value;
+    if (!metadata || typeof metadata.get !== 'function') {
+      return null;
+    }
+    const entry = metadata.get(rowId);
+    return entry ? entry.hash : null;
+  };
+
+  const waitForRowHydration = async (rowId, previousHash, options = {}) => {
+    if (!rowId) return null;
+
+    const { timeout = 6000, interval = 150 } = options;
+    const start = Date.now();
+
+    while (isComponentActive) {
+      const collectionData = wwLib.wwUtils.getDataFromCollection(props.content?.rowData);
+      const sourceRows = Array.isArray(collectionData) ? collectionData : [];
+
+      for (let idx = 0; idx < sourceRows.length; idx += 1) {
+        const candidate = sourceRows[idx];
+        if (!candidate) continue;
+        if (resolveRowId(candidate, idx) !== rowId) continue;
+
+        const fingerprint = getRowFingerprint(candidate);
+        if (!previousHash || fingerprint !== previousHash) {
+          return { row: candidate, index: idx, fingerprint };
+        }
+        break;
+      }
+
+      if (timeout != null && timeout >= 0 && Date.now() - start >= timeout) {
+        break;
+      }
+
+      await sleep(interval);
+    }
+
+    return null;
+  };
+
+  const isListLikeColumn = col => {
+    if (!col) return false;
+    const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
+    const identifier = (col.FieldDB || '').toUpperCase();
+    const listIndicators = new Set([
+      'STATUSID',
+      'RESPONSIBLEUSERID',
+      'CATEGORYID',
+      'SUBCATEGORYID',
+      'CATEGORYLEVEL3ID',
+    ]);
+
+    if (col.cellDataType === 'list') return true;
+    if (listIndicators.has(tag) || listIndicators.has(identifier)) return true;
+    if (Array.isArray(col.listOptions) || Array.isArray(col.list_options) || Array.isArray(col.options)) {
+      return true;
+    }
+    if (typeof col.listOptions === 'string' || typeof col.list_options === 'string') return true;
+    if (col.dataSource) return true;
+    if (col.useStyleArray) return true;
+    return false;
+  };
+
+  const shouldLazyLoadStatus = col => {
+    if (!col) return false;
+    const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
+    const identifier = (col.FieldDB || '').toUpperCase();
+    return tag === 'STATUSID' || identifier === 'STATUSID';
+  };
+
+  const deriveStatusDisplayLabel = (row, col) => {
+    if (!row || typeof row !== 'object' || !col) return undefined;
+
+    const fieldKey = col.field || col.FieldDB || col.id;
+    if (!fieldKey) return undefined;
+
+    const labelField = `${fieldKey}__displayLabel`;
+    const existingLabel = row[labelField];
+    if (existingLabel != null && existingLabel !== '') {
+      return existingLabel;
+    }
+
+    const explicitKeys = [
+      col.DisplayField,
+      col.displayField,
+      col.display_field,
+      col.DisplayLabel,
+      col.displayLabel,
+      col.display_label,
+    ];
+
+    const baseVariants = [
+      `${fieldKey}Label`,
+      `${fieldKey}label`,
+      `${fieldKey}Name`,
+      `${fieldKey}name`,
+      `${fieldKey}Description`,
+      `${fieldKey}description`,
+      `${fieldKey}_Label`,
+      `${fieldKey}_label`,
+      `${fieldKey}_Name`,
+      `${fieldKey}_name`,
+      `${fieldKey}_Description`,
+      `${fieldKey}_description`,
+    ];
+
+    const statusFallbacks = [
+      'StatusName',
+      'statusName',
+      'Status',
+      'status',
+      'StatusDescription',
+      'statusDescription',
+      'StatusLabel',
+      'statusLabel',
+    ];
+
+    const candidateKeys = [...explicitKeys, ...baseVariants, ...statusFallbacks];
+    for (const key of candidateKeys) {
+      if (!key) continue;
+      const value = row[key];
+      if (value != null && value !== '') {
+        return value;
+      }
+    }
+
+    const nestedCandidates = [
+      row[fieldKey],
+      row.Status,
+      row.status,
+    ];
+
+    for (const candidate of nestedCandidates) {
+      if (!candidate || typeof candidate !== 'object') continue;
+      const nestedValue =
+        candidate.label ??
+        candidate.Label ??
+        candidate.name ??
+        candidate.Name ??
+        candidate.description ??
+        candidate.Description ??
+        candidate.value ??
+        candidate.Value ??
+        null;
+      if (nestedValue != null && nestedValue !== '') {
+        return nestedValue;
+      }
+    }
+
+    return undefined;
+  };
+
+  const primeLazyStatusDisplayLabels = row => {
+    if (!row || typeof row !== 'object') return;
+    if (!props.content || !Array.isArray(props.content.columns)) return;
+
+    props.content.columns.forEach(col => {
+      if (!shouldLazyLoadStatus(col)) return;
+      const fieldKey = col.field || col.FieldDB || col.id;
+      if (!fieldKey) return;
+
+      const labelField = `${fieldKey}__displayLabel`;
+      if (row[labelField] != null && row[labelField] !== '') return;
+
+      const label = deriveStatusDisplayLabel(row, col);
+      if (label != null && label !== '') {
+        row[labelField] = String(label);
+      }
+    });
+  };
+
+  const readStatusValueFromRow = (row, col) => {
+    if (!row || typeof row !== 'object' || !col) return undefined;
+    const fieldCandidates = [col.field, col.FieldDB, col.id];
+    for (const key of fieldCandidates) {
+      if (!key) continue;
+      const value = row[key];
+      if (value != null && value !== '') {
+        return value;
+      }
+    }
+    return undefined;
+  };
+
+  const buildLazyStatusFallbackOptions = col => {
+    if (!col) return [];
+
+    const fieldKey = col.field || col.FieldDB || col.id;
+    if (!fieldKey) return [];
+
+    const rows = Array.isArray(displayedRowData.value) ? displayedRowData.value : [];
+    const seen = new Map();
+
+    rows.forEach(row => {
+      if (!row || typeof row !== 'object') return;
+      const rawValue = readStatusValueFromRow(row, col);
+      if (rawValue == null || rawValue === '') return;
+
+      const labelField = `${fieldKey}__displayLabel`;
+      let label = row[labelField];
+      if (label == null || label === '') {
+        label = deriveStatusDisplayLabel(row, col);
+      }
+
+      const mapKey = String(rawValue);
+      if (seen.has(mapKey)) return;
+
+      const finalLabel = label != null && label !== '' ? label : rawValue;
+      seen.set(mapKey, {
+        value: rawValue,
+        label: String(finalLabel),
+      });
+    });
+
+    return Array.from(seen.values());
+  };
+
+  const refreshRowListOptions = async (rowData, rowNode = null, editedColumn = null) => {
+    if (!rowData || !props.content || !Array.isArray(props.content.columns)) return;
+
+    await nextTick();
+
+    const ticketId = rowData?.TicketID;
+    const promises = [];
+    const columnsToRefresh = [];
+
+    const editedFieldKey = (() => {
+      if (!editedColumn) return null;
+      if (typeof editedColumn.getColId === 'function') {
+        const id = editedColumn.getColId();
+        if (id) return id;
+      }
+      return editedColumn.colId || editedColumn.field || null;
+    })();
+
+    const orderedColumns = props.content.columns
+      .filter(col => isListLikeColumn(col))
+      .sort((a, b) => {
+        if (!editedFieldKey) return 0;
+        const aKey = a.id || a.field;
+        const bKey = b.id || b.field;
+        if (aKey === editedFieldKey) return -1;
+        if (bKey === editedFieldKey) return 1;
+        return 0;
+      });
+
+    orderedColumns.forEach(col => {
+      const fieldKey = col.id || col.field;
+      if (!fieldKey) return;
+
+      const shouldUseTicket = usesTicketId(col);
+      const cacheKey = getOptionsCacheKey(col, shouldUseTicket ? ticketId : undefined);
+
+      if (!columnOptions.value[fieldKey]) {
+        columnOptions.value[fieldKey] = {};
+      }
+
+      delete columnOptions.value[fieldKey][cacheKey];
+
+      if (shouldLazyLoadStatus(col)) {
+        return;
+      }
+
+      const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
+      const identifier = (col.FieldDB || '').toUpperCase();
+      if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
+        responsibleUserCache = null;
+      }
+
+      const promise = getColumnOptions(col, shouldUseTicket ? ticketId : undefined)
+        .then(opts => {
+          if (!columnOptions.value[fieldKey]) {
+            columnOptions.value[fieldKey] = {};
+          }
+          columnOptions.value[fieldKey][cacheKey] = opts;
+        })
+        .catch(error => {
+          console.warn('[GridViewDinamica] Failed to refresh list options for column', fieldKey, error);
+        });
+      promises.push(promise);
+      columnsToRefresh.push(fieldKey);
+    });
+
+    if (promises.length) {
+      try {
+        await Promise.all(promises);
+      } catch (error) {
+        console.warn('[GridViewDinamica] Failed to resolve list option refresh promises', error);
+      }
+    }
+
+    if (gridApi.value && typeof gridApi.value.refreshCells === 'function') {
+      const refreshConfig = { force: true };
+      if (rowNode) {
+        refreshConfig.rowNodes = [rowNode];
+      }
+      if (columnsToRefresh.length) {
+        refreshConfig.columns = Array.from(new Set(columnsToRefresh));
+      }
+      gridApi.value.refreshCells(refreshConfig);
+    }
+  };
+
+  function scheduleRowListOptionsRefresh(rowId, rowData) {
+    if (!rowId || !rowData) return;
+
+    pendingRowListRefreshes.set(rowId, rowData);
+
+    if (pendingRowListRefreshPromise) return;
+
+    pendingRowListRefreshPromise = Promise.resolve()
+      .then(async () => {
+        pendingRowListRefreshPromise = null;
+
+        if (!pendingRowListRefreshes.size) return;
+
+        const entries = Array.from(pendingRowListRefreshes.entries());
+        pendingRowListRefreshes.clear();
+
+        for (const [id, data] of entries) {
+          try {
+            const node = gridApi.value?.getRowNode ? gridApi.value.getRowNode(id) : null;
+            await refreshRowListOptions(data, node, null);
+          } catch (error) {
+            console.warn(
+              '[GridViewDinamica] Failed to refresh list options after dataset update',
+              error
+            );
+          }
+        }
+      })
+      .catch(error => {
+        pendingRowListRefreshPromise = null;
+        console.warn('[GridViewDinamica] Failed to schedule list option refresh', error);
+      });
+  }
 
   // Unified Column API accessor for AG Grid v31+ (no columnApi) and older versions
   const getColApi = () => {
@@ -999,9 +1490,15 @@ const remountComponent = () => {
 
   let responsibleUserCache = null;
 
-  async function getColumnOptions(col, ticketId) {
+  async function getColumnOptions(col, ticketId, { force = false } = {}) {
     const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
     const identifier = (col.FieldDB || '').toUpperCase();
+    const lazyStatus = shouldLazyLoadStatus(col);
+
+    if (lazyStatus && !force) {
+      return [];
+    }
+
     if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
       if (!responsibleUserCache) {
         responsibleUserCache = await loadResponsibleUserOptions();
@@ -1700,6 +2197,11 @@ setTimeout(() => {
       forceSelectionColumnFirst,
       forceSelectionColumnFirstDOM,
       columnOptions,
+      refreshRowFromSource,
+      refreshRowListOptions,
+      buildLazyStatusFallbackOptions,
+      getRowMetadataHash,
+      waitForRowHydration,
       getColumnOptions,
       getOptionsCacheKey,
       usesTicketId,
@@ -1853,12 +2355,16 @@ setTimeout(() => {
           };
           const fieldKey = colCopy.id || colCopy.field;
           const useTicket = this.usesTicketId(colCopy);
+          const lazyStatus = shouldLazyLoadStatus(colCopy);
           const getDsOptionsSync = params => {
             const ticketId = params.data?.TicketID;
             const key = this.getOptionsCacheKey(colCopy, ticketId);
             const colOpts = this.columnOptions[fieldKey] || {};
             const cached = colOpts[key];
             if (cached) return cached;
+            if (lazyStatus) {
+              return this.buildLazyStatusFallbackOptions(colCopy);
+            }
             if (tagControl === 'RESPONSIBLEUSERID') {
               this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
                 if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
@@ -1874,7 +2380,11 @@ setTimeout(() => {
             const colOpts = this.columnOptions[fieldKey] || {};
             const cached = colOpts[key];
             if (cached) return Promise.resolve(cached);
-            return this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
+            return this.getColumnOptions(
+              colCopy,
+              useTicket ? ticketId : undefined,
+              { force: lazyStatus }
+            ).then(opts => {
               if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
               this.columnOptions[fieldKey][key] = opts;
               params.api?.refreshCells?.({ columns: [fieldKey], force: true });
@@ -1991,12 +2501,16 @@ setTimeout(() => {
             {
               const fieldKey = colCopy.id || colCopy.field;
               const useTicket = this.usesTicketId(colCopy);
+              const lazyStatus = shouldLazyLoadStatus(colCopy);
               const getDsOptionsSync = params => {
                 const ticketId = params.data?.TicketID;
                 const key = this.getOptionsCacheKey(colCopy, ticketId);
                 const colOpts = this.columnOptions[fieldKey] || {};
                 const cached = colOpts[key];
                 if (cached) return cached;
+                if (lazyStatus) {
+                  return this.buildLazyStatusFallbackOptions(colCopy);
+                }
                 this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
                   if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
                   this.columnOptions[fieldKey][key] = opts;
@@ -2010,7 +2524,11 @@ setTimeout(() => {
                 const colOpts = this.columnOptions[fieldKey] || {};
                 const cached = colOpts[key];
                 if (cached) return Promise.resolve(cached);
-                return this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
+                return this.getColumnOptions(
+                  colCopy,
+                  useTicket ? ticketId : undefined,
+                  { force: lazyStatus }
+                ).then(opts => {
 
                   if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
                   this.columnOptions[fieldKey][key] = opts;
@@ -2287,12 +2805,16 @@ setTimeout(() => {
             }
             const fieldKey = colCopy.id || colCopy.field;
             const useTicket = this.usesTicketId(colCopy);
+            const lazyStatus = shouldLazyLoadStatus(colCopy);
             const getDsOptionsSync = params => {
               const ticketId = params.data?.TicketID;
               const key = this.getOptionsCacheKey(colCopy, ticketId);
               const colOpts = this.columnOptions[fieldKey] || {};
               const cached = colOpts[key];
               if (cached) return cached;
+              if (lazyStatus) {
+                return this.buildLazyStatusFallbackOptions(colCopy);
+              }
               this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
                 if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
                 this.columnOptions[fieldKey][key] = opts;
@@ -2306,7 +2828,11 @@ setTimeout(() => {
               const colOpts = this.columnOptions[fieldKey] || {};
               const cached = colOpts[key];
               if (cached) return Promise.resolve(cached);
-              return this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
+              return this.getColumnOptions(
+                colCopy,
+                useTicket ? ticketId : undefined,
+                { force: lazyStatus }
+              ).then(opts => {
 
                 if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
                 this.columnOptions[fieldKey][key] = opts;
