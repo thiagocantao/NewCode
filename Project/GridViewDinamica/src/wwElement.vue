@@ -549,6 +549,13 @@
     return false;
   };
 
+  const shouldLazyLoadStatus = col => {
+    if (!col) return false;
+    const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
+    const identifier = (col.FieldDB || '').toUpperCase();
+    return tag === 'STATUSID' || identifier === 'STATUSID';
+  };
+
   const refreshRowListOptions = async (rowData, rowNode = null, editedColumn = null) => {
     if (!rowData || !props.content || !Array.isArray(props.content.columns)) return;
 
@@ -590,6 +597,10 @@
       }
 
       delete columnOptions.value[fieldKey][cacheKey];
+
+      if (shouldLazyLoadStatus(col)) {
+        return;
+      }
 
       const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
       const identifier = (col.FieldDB || '').toUpperCase();
@@ -1335,9 +1346,15 @@ const remountComponent = () => {
 
   let responsibleUserCache = null;
 
-  async function getColumnOptions(col, ticketId) {
+  async function getColumnOptions(col, ticketId, { force = false } = {}) {
     const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
     const identifier = (col.FieldDB || '').toUpperCase();
+    const lazyStatus = shouldLazyLoadStatus(col);
+
+    if (lazyStatus && !force) {
+      return [];
+    }
+
     if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
       if (!responsibleUserCache) {
         responsibleUserCache = await loadResponsibleUserOptions();
@@ -2204,12 +2221,14 @@ setTimeout(() => {
           };
           const fieldKey = colCopy.id || colCopy.field;
           const useTicket = this.usesTicketId(colCopy);
+          const lazyStatus = shouldLazyLoadStatus(colCopy);
           const getDsOptionsSync = params => {
             const ticketId = params.data?.TicketID;
             const key = this.getOptionsCacheKey(colCopy, ticketId);
             const colOpts = this.columnOptions[fieldKey] || {};
             const cached = colOpts[key];
             if (cached) return cached;
+            if (lazyStatus) return [];
             if (tagControl === 'RESPONSIBLEUSERID') {
               this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
                 if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
@@ -2225,7 +2244,11 @@ setTimeout(() => {
             const colOpts = this.columnOptions[fieldKey] || {};
             const cached = colOpts[key];
             if (cached) return Promise.resolve(cached);
-            return this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
+            return this.getColumnOptions(
+              colCopy,
+              useTicket ? ticketId : undefined,
+              { force: lazyStatus }
+            ).then(opts => {
               if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
               this.columnOptions[fieldKey][key] = opts;
               params.api?.refreshCells?.({ columns: [fieldKey], force: true });
@@ -2342,17 +2365,20 @@ setTimeout(() => {
             {
               const fieldKey = colCopy.id || colCopy.field;
               const useTicket = this.usesTicketId(colCopy);
+              const lazyStatus = shouldLazyLoadStatus(colCopy);
               const getDsOptionsSync = params => {
                 const ticketId = params.data?.TicketID;
                 const key = this.getOptionsCacheKey(colCopy, ticketId);
                 const colOpts = this.columnOptions[fieldKey] || {};
                 const cached = colOpts[key];
                 if (cached) return cached;
-                this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
-                  if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
-                  this.columnOptions[fieldKey][key] = opts;
-                  params.api?.refreshCells?.({ force: true });
-                });
+                if (!lazyStatus) {
+                  this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
+                    if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
+                    this.columnOptions[fieldKey][key] = opts;
+                    params.api?.refreshCells?.({ force: true });
+                  });
+                }
                 return [];
               };
               const getDsOptionsAsync = params => {
@@ -2361,7 +2387,11 @@ setTimeout(() => {
                 const colOpts = this.columnOptions[fieldKey] || {};
                 const cached = colOpts[key];
                 if (cached) return Promise.resolve(cached);
-                return this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
+                return this.getColumnOptions(
+                  colCopy,
+                  useTicket ? ticketId : undefined,
+                  { force: lazyStatus }
+                ).then(opts => {
 
                   if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
                   this.columnOptions[fieldKey][key] = opts;
@@ -2638,17 +2668,20 @@ setTimeout(() => {
             }
             const fieldKey = colCopy.id || colCopy.field;
             const useTicket = this.usesTicketId(colCopy);
+            const lazyStatus = shouldLazyLoadStatus(colCopy);
             const getDsOptionsSync = params => {
               const ticketId = params.data?.TicketID;
               const key = this.getOptionsCacheKey(colCopy, ticketId);
               const colOpts = this.columnOptions[fieldKey] || {};
               const cached = colOpts[key];
               if (cached) return cached;
-              this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
-                if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
-                this.columnOptions[fieldKey][key] = opts;
-                params.api?.refreshCells?.({ force: true });
-              });
+              if (!lazyStatus) {
+                this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
+                  if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
+                  this.columnOptions[fieldKey][key] = opts;
+                  params.api?.refreshCells?.({ force: true });
+                });
+              }
               return [];
             };
             const getDsOptionsAsync = params => {
@@ -2657,7 +2690,11 @@ setTimeout(() => {
               const colOpts = this.columnOptions[fieldKey] || {};
               const cached = colOpts[key];
               if (cached) return Promise.resolve(cached);
-              return this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
+              return this.getColumnOptions(
+                colCopy,
+                useTicket ? ticketId : undefined,
+                { force: lazyStatus }
+              ).then(opts => {
 
                 if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
                 this.columnOptions[fieldKey][key] = opts;
