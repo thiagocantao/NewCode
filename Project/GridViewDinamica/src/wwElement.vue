@@ -523,6 +523,7 @@
       });
 
     orderedColumns.forEach(col => {
+
       const fieldKey = col.id || col.field;
       if (!fieldKey) return;
 
@@ -553,6 +554,7 @@
         });
       promises.push(promise);
       columnsToRefresh.push(fieldKey);
+
     });
 
     if (promises.length) {
@@ -571,9 +573,11 @@
       if (columnsToRefresh.length) {
         refreshConfig.columns = Array.from(new Set(columnsToRefresh));
       }
+
       gridApi.value.refreshCells(refreshConfig);
     }
   };
+
 
   // Unified Column API accessor for AG Grid v31+ (no columnApi) and older versions
   const getColApi = () => {
@@ -2804,6 +2808,7 @@ setTimeout(() => {
   if (event?.data) {
     this.refreshRowFromSource(event.data, event.node);
     await this.refreshRowListOptions(event.data, event.node, event.column);
+
   }
   this.$emit("trigger-event", {
     name: "cellValueChanged",
