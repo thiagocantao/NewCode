@@ -333,6 +333,10 @@
 
   const displayedRowData = shallowRef([]);
   const rowMetadata = shallowRef(new Map());
+  const pendingRowListRefreshes = new Map();
+  let pendingRowListRefreshPromise = null;
+  let hasHydratedInitialRows = false;
+
 
   const getRowFingerprint = row => {
     try {
@@ -402,11 +406,15 @@
         const entry = { data: clonedRow, hash: fingerprint };
         nextMetadata.set(rowId, entry);
         nextRows.push(clonedRow);
+        if (hasHydratedInitialRows) {
+          scheduleRowListOptionsRefresh(rowId, clonedRow);
+        }
       }
     });
 
     displayedRowData.value = nextRows;
     rowMetadata.value = nextMetadata;
+    hasHydratedInitialRows = true;
   };
 
   const refreshRowFromSource = (rowData, rowNode = null) => {
@@ -452,7 +460,8 @@
     const clonedRow = { ...matchedRow };
 
     const nextMetadata = new Map(rowMetadata.value || []);
-    nextMetadata.set(rowId, { data: clonedRow, hash: fingerprint });
+    const entry = { data: clonedRow, hash: fingerprint };
+    nextMetadata.set(rowId, entry);
     rowMetadata.value = nextMetadata;
 
     const currentRows = Array.isArray(displayedRowData.value) ? [...displayedRowData.value] : [];
@@ -461,6 +470,10 @@
       displayedRowData.value = currentRows;
     }
 
+    if (hasHydratedInitialRows) {
+      scheduleRowListOptionsRefresh(rowId, clonedRow);
+    }
+    
     if (gridApi.value && typeof gridApi.value.refreshCells === 'function') {
       const refreshConfig = { force: true };
       if (rowNode) {
@@ -523,7 +536,6 @@
       });
 
     orderedColumns.forEach(col => {
-
       const fieldKey = col.id || col.field;
       if (!fieldKey) return;
 
@@ -554,7 +566,6 @@
         });
       promises.push(promise);
       columnsToRefresh.push(fieldKey);
-
     });
 
     if (promises.length) {
@@ -573,11 +584,43 @@
       if (columnsToRefresh.length) {
         refreshConfig.columns = Array.from(new Set(columnsToRefresh));
       }
-
       gridApi.value.refreshCells(refreshConfig);
     }
   };
 
+  function scheduleRowListOptionsRefresh(rowId, rowData) {
+    if (!rowId || !rowData) return;
+
+    pendingRowListRefreshes.set(rowId, rowData);
+
+    if (pendingRowListRefreshPromise) return;
+
+    pendingRowListRefreshPromise = Promise.resolve()
+      .then(async () => {
+        pendingRowListRefreshPromise = null;
+
+        if (!pendingRowListRefreshes.size) return;
+
+        const entries = Array.from(pendingRowListRefreshes.entries());
+        pendingRowListRefreshes.clear();
+
+        for (const [id, data] of entries) {
+          try {
+            const node = gridApi.value?.getRowNode ? gridApi.value.getRowNode(id) : null;
+            await refreshRowListOptions(data, node, null);
+          } catch (error) {
+            console.warn(
+              '[GridViewDinamica] Failed to refresh list options after dataset update',
+              error
+            );
+          }
+        }
+      })
+      .catch(error => {
+        pendingRowListRefreshPromise = null;
+        console.warn('[GridViewDinamica] Failed to schedule list option refresh', error);
+      });
+  }
 
   // Unified Column API accessor for AG Grid v31+ (no columnApi) and older versions
   const getColApi = () => {
@@ -1440,6 +1483,8 @@ const remountComponent = () => {
       clearInterval(deadlineTimer);
       deadlineTimer = null;
     }
+    pendingRowListRefreshes.clear();
+    pendingRowListRefreshPromise = null;
     // Salva estado ao desmontar (garante persistência ao navegar)
     saveGridState();
     if (beforeUnloadHandler) {
@@ -2808,7 +2853,6 @@ setTimeout(() => {
   if (event?.data) {
     this.refreshRowFromSource(event.data, event.node);
     await this.refreshRowListOptions(event.data, event.node, event.column);
-
   }
   this.$emit("trigger-event", {
     name: "cellValueChanged",
