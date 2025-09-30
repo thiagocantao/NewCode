@@ -296,6 +296,7 @@
   ModuleRegistry.registerModules([AllCommunityModule]);
 
   const HIDE_SAVE_BUTTON_VARIABLE_ID = "09c5aacd-b697-4e04-9571-d5db1f671877";
+  const EXTERNAL_STATE_VAR_ID = "74a13796-f64f-47d6-8e5f-4fb4700fd94b";
 
   export default {
   components: {
@@ -878,6 +879,169 @@ else Promise.resolve().then(fn);
       );
     }
   };
+  const writeExternalStateToWW = (reason) => {
+    try {
+      const api = gridApi.value;
+      const colApi = (typeof getColApi === 'function') ? getColApi() : null;
+      if (!api) return;
+
+      // Headers from current displayed order
+      const allCols = (api.getAllGridColumns?.() || []).filter(c => c);
+      const headers = allCols
+        .filter(col => col && col.getColId && col.getColId() !== 'ag-Grid-SelectionColumn')
+        .map((col, idx) => {
+          const def = (col.getColDef && col.getColDef()) || {};
+          const toPx = v => (v == null ? null : (typeof v === 'number' ? `${v}px` : String(v)));
+          return {
+            id: def.id || def.colId || (col.getColId ? col.getColId() : null),
+            gridfieldID: def.gridfieldID ?? def.gridfieldId ?? null,
+            headerName: def.headerName ?? null,
+            field: def.field ?? null,
+            cellDataType: def.cellDataType ?? null,
+            filter: (typeof def.filter === 'string') ? def.filter : (def.filter ?? null),
+            sortable: !!def.sortable,
+            textAlign: def.textAlign ?? 'left',
+            headerAlign: def.headerAlign ?? 'left',
+            minWidth: toPx(def.minWidth),
+            editable: (typeof def.editable === 'boolean') ? def.editable : (def.editable ?? null),
+            pinned: (col.getPinned ? col.getPinned() : (def.pinned ?? null)) || null,
+            FieldDB: def.FieldDB ?? null,
+            positionInGrid: idx + 1,
+            useCustomFormatter: !!def.useCustomFormatter,
+            formatter: def.formatter ?? null,
+            dateFormatter: def.dateFormatter ?? null,
+            name: def.headerName ?? null,
+            type: def.type ?? 'item',
+            tagControl: def.TagControl ?? def.tagControl ?? null,
+            dataSource: def.dataSource ?? null,
+            flex: def.flex ?? null
+          };
+        });
+
+      // Filters as array
+      const model = api.getFilterModel?.() || {};
+      const filters = Object.entries(model).map(([colId, fm]) => ({ colId, ...(fm || {}) }));
+
+      // Sort (first criterion)
+      let sortModel = (api.getSortModel?.() || []).filter(s => s && s.colId);
+      if (!sortModel.length && colApi && typeof colApi.getColumnState === 'function') {
+        const colState = colApi.getColumnState() || [];
+        sortModel = colState
+          .filter(c => c && c.sort && c.colId)
+          .sort((a, b) => {
+            const ai = (a.sortIndex != null) ? a.sortIndex : Number.MAX_SAFE_INTEGER;
+            const bi = (b.sortIndex != null) ? b.sortIndex : Number.MAX_SAFE_INTEGER;
+            return ai - bi;
+          })
+          .map(c => ({ colId: String(c.colId), sort: c.sort }));
+      }
+      const sortArray = sortModel.map((s, idx) => ({ id: String(s.colId), isASC: (s.sort === 'asc') }));
+
+      const payload = [{ Headers: headers, Filters: filters, Sort: sortArray }];
+
+      // Write out
+      try {
+        const wv = window?.wwLib?.wwVariable;
+        if (wv?.setValue) wv.setValue(EXTERNAL_STATE_VAR_ID, payload);
+        else if (wv?.updateValue) wv.updateValue(EXTERNAL_STATE_VAR_ID, payload);
+        else if (wv?.setComponentValue) wv.setComponentValue(EXTERNAL_STATE_VAR_ID, payload);
+      } catch (e) {
+        console.warn('[ExternalState] write error', e);
+      }
+
+      if (console && console.debug) console.debug('[ExternalState]', reason || '', payload);
+    } catch (err) {
+      console.warn('[ExternalState] unexpected error', err);
+    }
+  }
+  const readExternalStateFromWW = () => {
+    try {
+      const wwVariable = window?.wwLib?.wwVariable;
+      const raw = wwVariable?.getValue ? wwVariable.getValue(EXTERNAL_STATE_VAR_ID) : null;
+      const arr = Array.isArray(raw) ? raw : [];
+      const obj = arr[0];
+      if (obj && (Array.isArray(obj.Headers) || Array.isArray(obj.Filters) || Array.isArray(obj.Sort))) {
+        console.debug('[ExternalState][read]', obj);
+        return obj;
+      }
+    } catch (e) {
+      console.warn('[ExternalState][read] error:', e);
+    }
+    return null;
+  };
+
+  const applyExternalStateFromWW = (reason) => {
+    try {
+      const state = readExternalStateFromWW();
+      if (!state) return;
+      const api = gridApi.value;
+      const capi = (typeof getColApi === 'function') ? getColApi() : null;
+      if (!api || !capi) return;
+
+      console.debug('[ExternalState][apply]', reason || '', state);
+
+      // 1) Column order from Headers (do not touch pinned/visibility to avoid conflicts)
+      if (Array.isArray(state.Headers) && state.Headers.length) {
+        const orderIds = state.Headers
+          .map(h => String(h?.id || h?.field || h?.colId || ''))
+          .filter(Boolean);
+        const newState = orderIds.map((colId, idx) => ({ colId, order: idx }));
+        runWithSuppressedReveal(() => {
+          try {
+            capi.applyColumnState({ state: newState, applyOrder: true });
+          } catch (e) {
+            console.warn('[ExternalState][apply] column order failed', e);
+          }
+        }, { recaptureDelay: 50 });
+      }
+
+      // 2) Filters
+      if (Array.isArray(state.Filters)) {
+        const filterModel = {};
+        for (const f of state.Filters) {
+          if (f && f.colId) {
+            const { colId, ...model } = f;
+            filterModel[colId] = model;
+          }
+        }
+        runWithSuppressedReveal(() => {
+          try { api.setFilterModel(filterModel); } catch (e) { console.warn('[ExternalState][apply] setFilterModel failed', e); }
+        }, { recaptureDelay: 50 });
+      }
+
+      // 3) Sort
+      if (Array.isArray(state.Sort) && state.Sort.length) {
+        const sortModel = state.Sort
+          .filter(s => s && s.id)
+          .map((s, idx) => ({
+            colId: String(s.id),
+            sort: s.isASC ? 'asc' : 'desc',
+            sortIndex: idx
+          }));
+        runWithSuppressedReveal(() => {
+          try {
+            capi.applyColumnState({
+              state: sortModel.map(s => ({ colId: s.colId, sort: s.sort, sortIndex: s.sortIndex })),
+              defaultState: { sort: null },
+              applyOrder: false
+            });
+          } catch (e) { console.warn('[ExternalState][apply] applyColumnState sort failed', e); }
+          try { api.setSortModel(sortModel.map(({ colId, sort }) => ({ colId, sort }))); } catch (e) { console.warn('[ExternalState][apply] setSortModel failed', e); }
+        }, { recaptureDelay: 50 });
+        setSort(sortModel.map(({ colId, sort }) => ({ colId, sort })));
+      }
+
+      // 4) finalize
+      updateColumnsPosition();
+      updateColumnsSort();
+      const pristine = isGridStatePristine();
+      updateHideSaveButtonVisibility(pristine);
+    } catch (err) {
+      console.warn('[ExternalState][apply] unexpected error', err);
+    }
+  };
+;
+
 
   let suppressRevealUntilCapture = false;
   let pendingInitialGridState = null;
@@ -1100,41 +1264,24 @@ function defer(fn, delay = 0) {
   };
 
   const syncHideSaveButtonVisibility = (event) => {
-  // Sort é tratado exclusivamente em onSortChanged
-  if (event?.type === "sortChanged") return;
-  
+  const isSortEvent = event?.type === "sortChanged";
   const isRowDataSourceChange =
-  event?.source === "rowDataChanged" || event?.source === "rowDataUpdated";
-  
+    !isSortEvent &&
+    (event?.source === "rowDataChanged" || event?.source === "rowDataUpdated");
+
   if (captureInitialStateTimeout && event && !isProgrammaticEvent(event)) {
-  userInteractedDuringCapture = true;
+    userInteractedDuringCapture = true;
   }
-  
+
   if (isRowDataSourceChange) {
-  updateHideSaveButtonVisibility(true);
-  scheduleCaptureInitialGridState(50);
-  return;
+    updateHideSaveButtonVisibility(true);
+    scheduleCaptureInitialGridState(50);
+    return;
   }
-  
+
   const pristine = isGridStatePristine();
-  
-  if (!shouldRevealSaveButton(event)) {
-  if (suppressRevealUntilCapture) {
-  updateHideSaveButtonVisibility(true);
-  scheduleCaptureInitialGridState(50);
-  return;
-  }
-  if (isProgrammaticEvent(event) && !pristine) {
-  updateHideSaveButtonVisibility(false);
-  return;
-  }
   updateHideSaveButtonVisibility(pristine);
-  scheduleCaptureInitialGridState(50);
-  return;
-  }
-  
-  updateHideSaveButtonVisibility(pristine);
-  };
+};
 
 
   const resetHideSaveButtonVisibility = () => {
@@ -1845,7 +1992,24 @@ const remountComponent = () => {
         }
       }, 1000);
     }
-  };
+  
+  
+
+      /*__EXTERNAL_APPLY__*/
+      try {
+        const existingExternal = readExternalStateFromWW();
+        if (existingExternal) {
+          // aplica logo após restore e ANTES de capturar o estado inicial
+          setTimeout(() => applyExternalStateFromWW('gridReady'), 80);
+        } else {
+          // se não houver estado salvo, publica o estado atual como baseline
+          setTimeout(() => writeExternalStateToWW('gridReady'), 100);
+        }
+      } catch (e) {
+        setTimeout(() => writeExternalStateToWW('gridReady'), 120);
+      }
+
+    };
   
   function restorePinnedColumns() {
     if (!getColApi()) return;
@@ -2005,7 +2169,9 @@ const remountComponent = () => {
   });
   }
   saveGridState();
-  };
+  
+      writeExternalStateToWW('filterChanged');
+    };
   
   const onSortChanged = (event) => {
     if (!gridApi.value) return;
@@ -2016,6 +2182,9 @@ const remountComponent = () => {
     }
 
     deferAfterGridUpdate(() => {
+      
+      
+      writeExternalStateToWW('sortChanged');
       const { sort: normalizedSort } = getNormalizedGridState();
       setSort(normalizedSort);
       updateColumnsSort();
@@ -2023,7 +2192,7 @@ const remountComponent = () => {
       const pristine = isGridStatePristine();
       updateHideSaveButtonVisibility(pristine);
       ctx.emit("trigger-event", { name: "sortChanged", event: normalizedSort });
-    });
+});
   };
 
   const onColumnMoved = (event) => {
@@ -2039,7 +2208,9 @@ const remountComponent = () => {
   event: columnsPositionValue.value,
   });
   }
-  };
+  
+      if (event?.finished) { writeExternalStateToWW('columnMoved'); }
+    };
 
   /* wwEditor:start */
   const { createElement } = wwLib.wwElement.useCreate();
