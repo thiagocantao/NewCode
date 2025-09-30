@@ -2360,6 +2360,9 @@ setTimeout(() => {
           const getDsOptionsSync = params => {
             const ticketId = params.data?.TicketID;
             const key = this.getOptionsCacheKey(colCopy, ticketId);
+            if (lazyStatus) {
+              return this.buildLazyStatusFallbackOptions(colCopy);
+            }
             const colOpts = this.columnOptions[fieldKey] || {};
             const cached = colOpts[key];
             if (cached) return cached;
@@ -2377,14 +2380,23 @@ setTimeout(() => {
           };
           const getDsOptionsAsync = params => {
             const ticketId = params.data?.TicketID;
+            if (lazyStatus) {
+              return this.getColumnOptions(
+                colCopy,
+                useTicket ? ticketId : undefined,
+                { force: true }
+              ).catch(error => {
+                console.warn('[GridViewDinamica] Failed to lazy load StatusID options', error);
+                return this.buildLazyStatusFallbackOptions(colCopy);
+              });
+            }
             const key = this.getOptionsCacheKey(colCopy, ticketId);
             const colOpts = this.columnOptions[fieldKey] || {};
             const cached = colOpts[key];
             if (cached) return Promise.resolve(cached);
             return this.getColumnOptions(
               colCopy,
-              useTicket ? ticketId : undefined,
-              { force: lazyStatus }
+              useTicket ? ticketId : undefined
             ).then(opts => {
               if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
               this.columnOptions[fieldKey][key] = opts;
@@ -2506,6 +2518,9 @@ setTimeout(() => {
               const getDsOptionsSync = params => {
                 const ticketId = params.data?.TicketID;
                 const key = this.getOptionsCacheKey(colCopy, ticketId);
+                if (lazyStatus) {
+                  return this.buildLazyStatusFallbackOptions(colCopy);
+                }
                 const colOpts = this.columnOptions[fieldKey] || {};
                 const cached = colOpts[key];
                 if (cached) return cached;
@@ -2521,14 +2536,23 @@ setTimeout(() => {
               };
               const getDsOptionsAsync = params => {
                 const ticketId = params.data?.TicketID;
+                if (lazyStatus) {
+                  return this.getColumnOptions(
+                    colCopy,
+                    useTicket ? ticketId : undefined,
+                    { force: true }
+                  ).catch(error => {
+                    console.warn('[GridViewDinamica] Failed to lazy load StatusID options', error);
+                    return this.buildLazyStatusFallbackOptions(colCopy);
+                  });
+                }
                 const key = this.getOptionsCacheKey(colCopy, ticketId);
                 const colOpts = this.columnOptions[fieldKey] || {};
                 const cached = colOpts[key];
                 if (cached) return Promise.resolve(cached);
                 return this.getColumnOptions(
                   colCopy,
-                  useTicket ? ticketId : undefined,
-                  { force: lazyStatus }
+                  useTicket ? ticketId : undefined
                 ).then(opts => {
 
                   if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
@@ -2810,6 +2834,9 @@ setTimeout(() => {
             const getDsOptionsSync = params => {
               const ticketId = params.data?.TicketID;
               const key = this.getOptionsCacheKey(colCopy, ticketId);
+              if (lazyStatus) {
+                return this.buildLazyStatusFallbackOptions(colCopy);
+              }
               const colOpts = this.columnOptions[fieldKey] || {};
               const cached = colOpts[key];
               if (cached) return cached;
@@ -2825,14 +2852,23 @@ setTimeout(() => {
             };
             const getDsOptionsAsync = params => {
               const ticketId = params.data?.TicketID;
+              if (lazyStatus) {
+                return this.getColumnOptions(
+                  colCopy,
+                  useTicket ? ticketId : undefined,
+                  { force: true }
+                ).catch(error => {
+                  console.warn('[GridViewDinamica] Failed to lazy load StatusID options', error);
+                  return this.buildLazyStatusFallbackOptions(colCopy);
+                });
+              }
               const key = this.getOptionsCacheKey(colCopy, ticketId);
               const colOpts = this.columnOptions[fieldKey] || {};
               const cached = colOpts[key];
               if (cached) return Promise.resolve(cached);
               return this.getColumnOptions(
                 colCopy,
-                useTicket ? ticketId : undefined,
-                { force: lazyStatus }
+                useTicket ? ticketId : undefined
               ).then(opts => {
 
                 if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
