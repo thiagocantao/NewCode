@@ -2199,6 +2199,7 @@ setTimeout(() => {
       columnOptions,
       refreshRowFromSource,
       refreshRowListOptions,
+      shouldLazyLoadStatus,
       buildLazyStatusFallbackOptions,
       getRowMetadataHash,
       waitForRowHydration,
@@ -2355,7 +2356,7 @@ setTimeout(() => {
           };
           const fieldKey = colCopy.id || colCopy.field;
           const useTicket = this.usesTicketId(colCopy);
-          const lazyStatus = shouldLazyLoadStatus(colCopy);
+          const lazyStatus = this.shouldLazyLoadStatus(colCopy);
           const getDsOptionsSync = params => {
             const ticketId = params.data?.TicketID;
             const key = this.getOptionsCacheKey(colCopy, ticketId);
@@ -2501,7 +2502,7 @@ setTimeout(() => {
             {
               const fieldKey = colCopy.id || colCopy.field;
               const useTicket = this.usesTicketId(colCopy);
-              const lazyStatus = shouldLazyLoadStatus(colCopy);
+              const lazyStatus = this.shouldLazyLoadStatus(colCopy);
               const getDsOptionsSync = params => {
                 const ticketId = params.data?.TicketID;
                 const key = this.getOptionsCacheKey(colCopy, ticketId);
@@ -2805,7 +2806,7 @@ setTimeout(() => {
             }
             const fieldKey = colCopy.id || colCopy.field;
             const useTicket = this.usesTicketId(colCopy);
-            const lazyStatus = shouldLazyLoadStatus(colCopy);
+            const lazyStatus = this.shouldLazyLoadStatus(colCopy);
             const getDsOptionsSync = params => {
               const ticketId = params.data?.TicketID;
               const key = this.getOptionsCacheKey(colCopy, ticketId);
