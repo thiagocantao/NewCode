@@ -179,6 +179,17 @@ export default {
       ]
     },
     {
+      action: 'updateRow',
+      label: { en: 'Update Row' },
+      args: [
+        {
+          name: 'row',
+          type: 'object',
+          label: { en: 'Row JSON' }
+        }
+      ]
+    },
+    {
       action: 'remountComponent',
       label: { en: 'Remount Component' },
       args: []
