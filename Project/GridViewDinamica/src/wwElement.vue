@@ -5,6 +5,7 @@
       :rowSelection="rowSelection" :suppressMovableColumns="!content.movableColumns" :alwaysShowHorizontalScroll="false"
       :suppressColumnMoveAnimation="true" :suppressDragLeaveHidesColumns="true" :maintainColumnOrder="true"
       :getMainMenuItems="getMainMenuItems" :isColumnMovable="isColumnMovable" :theme="theme" :getRowId="getRowId"
+      :deltaRowDataMode="true"
       :pagination="content.pagination" :paginationPageSize="content.paginationPageSize || 10"
       :paginationPageSizeSelector="false" :columnHoverHighlight="content.columnHoverHighlight" :locale-text="localeText"
       :components="editorComponents" :singleClickEdit="true" @grid-ready="onGridReady" @row-selected="onRowSelected"
@@ -16,7 +17,7 @@
 </template>
 
 <script>
-  import { shallowRef, computed, ref, onMounted, onUnmounted, watch, h } from "vue";
+  import { shallowRef, computed, ref, onMounted, onUnmounted, watch, h, nextTick } from "vue";
   import { AgGridVue } from "ag-grid-vue3";
   import {
   AllCommunityModule,
@@ -329,6 +330,250 @@
   
   const gridApi = shallowRef(null);
   const columnApi = shallowRef(null);
+
+  const displayedRowData = shallowRef([]);
+  const rowMetadata = shallowRef(new Map());
+
+  const getRowFingerprint = row => {
+    try {
+      return JSON.stringify(row ?? {});
+    } catch (error) {
+      return '';
+    }
+  };
+
+  const resolveRowId = (row, fallbackIndex = null) => {
+    if (!row || typeof row !== 'object') {
+      return fallbackIndex != null ? `__idx_${fallbackIndex}` : null;
+    }
+
+    let resolvedId = null;
+    try {
+      if (props.content?.idFormula) {
+        resolvedId = resolveMappingFormula(props.content.idFormula, row);
+      }
+    } catch (error) {
+      console.warn('[GridViewDinamica] Failed to resolve row id using formula', error);
+    }
+
+    if (resolvedId == null || resolvedId === '') {
+      const fallbackKeys = ['Id', 'ID', 'id'];
+      for (const key of fallbackKeys) {
+        if (row[key] != null && row[key] !== '') {
+          resolvedId = row[key];
+          break;
+        }
+      }
+    }
+
+    if (resolvedId == null || resolvedId === '') {
+      if (fallbackIndex != null) {
+        resolvedId = `__idx_${fallbackIndex}`;
+      } else {
+        resolvedId = getRowFingerprint(row);
+      }
+    }
+
+    return typeof resolvedId === 'string' ? resolvedId : String(resolvedId);
+  };
+
+  const syncDisplayedRowData = () => {
+    const collectionData = wwLib.wwUtils.getDataFromCollection(props.content?.rowData);
+    const sourceRows = Array.isArray(collectionData) ? collectionData : [];
+
+    const previousMetadata = rowMetadata.value || new Map();
+    const nextMetadata = new Map();
+    const nextRows = [];
+
+    sourceRows.forEach((rawRow, index) => {
+      if (!rawRow || typeof rawRow !== 'object') return;
+
+      const rowId = resolveRowId(rawRow, index);
+      if (rowId == null) return;
+
+      const fingerprint = getRowFingerprint(rawRow);
+      const previousEntry = previousMetadata.get(rowId);
+
+      if (previousEntry && previousEntry.hash === fingerprint) {
+        nextMetadata.set(rowId, previousEntry);
+        nextRows.push(previousEntry.data);
+      } else {
+        const clonedRow = { ...rawRow };
+        const entry = { data: clonedRow, hash: fingerprint };
+        nextMetadata.set(rowId, entry);
+        nextRows.push(clonedRow);
+      }
+    });
+
+    displayedRowData.value = nextRows;
+    rowMetadata.value = nextMetadata;
+  };
+
+  const refreshRowFromSource = (rowData, rowNode = null) => {
+    if (!rowData) return;
+
+    const collectionData = wwLib.wwUtils.getDataFromCollection(props.content?.rowData);
+    const sourceRows = Array.isArray(collectionData) ? collectionData : [];
+    if (!sourceRows.length) return;
+
+    const inferredIndex = rowNode?.rowIndex != null ? rowNode.rowIndex : null;
+    const rowId = resolveRowId(rowData, inferredIndex);
+    if (!rowId) return;
+
+    let matchedRow = null;
+    let matchedIndex = inferredIndex != null ? inferredIndex : -1;
+
+    if (matchedIndex != null && matchedIndex >= 0 && matchedIndex < sourceRows.length) {
+      const candidate = sourceRows[matchedIndex];
+      if (candidate && resolveRowId(candidate, matchedIndex) === rowId) {
+        matchedRow = candidate;
+      }
+    }
+
+    if (!matchedRow) {
+      for (let idx = 0; idx < sourceRows.length; idx += 1) {
+        const candidate = sourceRows[idx];
+        if (!candidate) continue;
+        if (resolveRowId(candidate, idx) === rowId) {
+          matchedRow = candidate;
+          matchedIndex = idx;
+          break;
+        }
+      }
+    }
+
+    if (!matchedRow) return;
+
+    const fingerprint = getRowFingerprint(matchedRow);
+    const previousEntry = (rowMetadata.value && rowMetadata.value.get(rowId)) || null;
+    if (previousEntry && previousEntry.hash === fingerprint) {
+      return;
+    }
+    const clonedRow = { ...matchedRow };
+
+    const nextMetadata = new Map(rowMetadata.value || []);
+    nextMetadata.set(rowId, { data: clonedRow, hash: fingerprint });
+    rowMetadata.value = nextMetadata;
+
+    const currentRows = Array.isArray(displayedRowData.value) ? [...displayedRowData.value] : [];
+    if (matchedIndex != null && matchedIndex >= 0 && matchedIndex < currentRows.length) {
+      currentRows[matchedIndex] = clonedRow;
+      displayedRowData.value = currentRows;
+    }
+
+    if (gridApi.value && typeof gridApi.value.refreshCells === 'function') {
+      const refreshConfig = { force: true };
+      if (rowNode) {
+        refreshConfig.rowNodes = [rowNode];
+      }
+      gridApi.value.refreshCells(refreshConfig);
+    }
+  };
+
+  const isListLikeColumn = col => {
+    if (!col) return false;
+    const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
+    const identifier = (col.FieldDB || '').toUpperCase();
+    const listIndicators = new Set([
+      'STATUSID',
+      'RESPONSIBLEUSERID',
+      'CATEGORYID',
+      'SUBCATEGORYID',
+      'CATEGORYLEVEL3ID',
+    ]);
+
+    if (col.cellDataType === 'list') return true;
+    if (listIndicators.has(tag) || listIndicators.has(identifier)) return true;
+    if (Array.isArray(col.listOptions) || Array.isArray(col.list_options) || Array.isArray(col.options)) {
+      return true;
+    }
+    if (typeof col.listOptions === 'string' || typeof col.list_options === 'string') return true;
+    if (col.dataSource) return true;
+    if (col.useStyleArray) return true;
+    return false;
+  };
+
+  const refreshRowListOptions = async (rowData, rowNode = null, editedColumn = null) => {
+    if (!rowData || !props.content || !Array.isArray(props.content.columns)) return;
+
+    await nextTick();
+
+    const ticketId = rowData?.TicketID;
+    const promises = [];
+    const columnsToRefresh = [];
+
+    const editedFieldKey = (() => {
+      if (!editedColumn) return null;
+      if (typeof editedColumn.getColId === 'function') {
+        const id = editedColumn.getColId();
+        if (id) return id;
+      }
+      return editedColumn.colId || editedColumn.field || null;
+    })();
+
+    const orderedColumns = props.content.columns
+      .filter(col => isListLikeColumn(col))
+      .sort((a, b) => {
+        if (!editedFieldKey) return 0;
+        const aKey = a.id || a.field;
+        const bKey = b.id || b.field;
+        if (aKey === editedFieldKey) return -1;
+        if (bKey === editedFieldKey) return 1;
+        return 0;
+      });
+
+    orderedColumns.forEach(col => {
+      const fieldKey = col.id || col.field;
+      if (!fieldKey) return;
+
+      const shouldUseTicket = usesTicketId(col);
+      const cacheKey = getOptionsCacheKey(col, shouldUseTicket ? ticketId : undefined);
+
+      if (!columnOptions.value[fieldKey]) {
+        columnOptions.value[fieldKey] = {};
+      }
+
+      delete columnOptions.value[fieldKey][cacheKey];
+
+      const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
+      const identifier = (col.FieldDB || '').toUpperCase();
+      if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
+        responsibleUserCache = null;
+      }
+
+      const promise = getColumnOptions(col, shouldUseTicket ? ticketId : undefined)
+        .then(opts => {
+          if (!columnOptions.value[fieldKey]) {
+            columnOptions.value[fieldKey] = {};
+          }
+          columnOptions.value[fieldKey][cacheKey] = opts;
+        })
+        .catch(error => {
+          console.warn('[GridViewDinamica] Failed to refresh list options for column', fieldKey, error);
+        });
+      promises.push(promise);
+      columnsToRefresh.push(fieldKey);
+    });
+
+    if (promises.length) {
+      try {
+        await Promise.all(promises);
+      } catch (error) {
+        console.warn('[GridViewDinamica] Failed to resolve list option refresh promises', error);
+      }
+    }
+
+    if (gridApi.value && typeof gridApi.value.refreshCells === 'function') {
+      const refreshConfig = { force: true };
+      if (rowNode) {
+        refreshConfig.rowNodes = [rowNode];
+      }
+      if (columnsToRefresh.length) {
+        refreshConfig.columns = Array.from(new Set(columnsToRefresh));
+      }
+      gridApi.value.refreshCells(refreshConfig);
+    }
+  };
 
   // Unified Column API accessor for AG Grid v31+ (no columnApi) and older versions
   const getColApi = () => {
@@ -1162,6 +1407,7 @@ const remountComponent = () => {
   }, { deep: true });
 
   watch(() => props.content?.rowData, () => {
+    syncDisplayedRowData();
     loadAllColumnOptions();
     applyColumnOrderFromPosition();
     updateColumnsPosition({ fallbackToContent: true });
@@ -1172,7 +1418,12 @@ const remountComponent = () => {
       }
     }, 0);
     resetHideSaveButtonVisibility();
-  }, { deep: true });
+  }, { deep: true, immediate: true });
+
+  watch(() => props.content?.idFormula, () => {
+    rowMetadata.value = new Map();
+    syncDisplayedRowData();
+  });
 
 
 
@@ -1689,6 +1940,8 @@ setTimeout(() => {
   
       return {
       resolveMappingFormula,
+      resolveRowId,
+      displayedRowData,
       componentFontFamily,
       resolvedFontFamily,
       onGridReady,
@@ -1701,6 +1954,8 @@ setTimeout(() => {
       forceSelectionColumnFirst,
       forceSelectionColumnFirstDOM,
       columnOptions,
+      refreshRowFromSource,
+      refreshRowListOptions,
       getColumnOptions,
       getOptionsCacheKey,
       usesTicketId,
@@ -1747,8 +2002,8 @@ setTimeout(() => {
   },
     computed: {
     rowData() {
-      const data = wwLib.wwUtils.getDataFromCollection(this.content.rowData);
-      return Array.isArray(data) ? data ?? [] : [];
+      const data = this.displayedRowData;
+      return Array.isArray(data) ? data : [];
     },
     defaultColDef() {
       return {
@@ -2482,7 +2737,9 @@ setTimeout(() => {
     }
   },
   getRowId(params) {
-  return this.resolveMappingFormula(this.content.idFormula, params.data);
+  const data = params?.data || null;
+  const index = params?.rowIndex != null ? params.rowIndex : null;
+  return this.resolveRowId(data, index);
   },
   onActionTrigger(event) {
   if (!event) return;
@@ -2498,7 +2755,7 @@ setTimeout(() => {
   },
   });
   },
-  onCellValueChanged(event) {
+  async onCellValueChanged(event) {
   const colDef = event.column.getColDef ? event.column.getColDef() : {};
   const tag = (colDef.TagControl || colDef.tagControl || colDef.tagcontrol || '').toUpperCase();
   const identifier = (colDef.FieldDB || '').toUpperCase();
@@ -2543,6 +2800,10 @@ setTimeout(() => {
         });
       }
     }
+  }
+  if (event?.data) {
+    this.refreshRowFromSource(event.data, event.node);
+    await this.refreshRowListOptions(event.data, event.node, event.column);
   }
   this.$emit("trigger-event", {
     name: "cellValueChanged",
