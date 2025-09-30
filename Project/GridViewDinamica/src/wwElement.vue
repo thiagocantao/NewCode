@@ -16,7 +16,7 @@
 </template>
 
 <script>
-  import { shallowRef, computed, ref, onMounted, onUnmounted, watch, h } from "vue";
+  import { shallowRef, computed, ref, onMounted, onUnmounted, watch, h, nextTick } from "vue";
   import { AgGridVue } from "ag-grid-vue3";
   import {
   AllCommunityModule,
