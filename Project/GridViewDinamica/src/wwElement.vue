@@ -1711,6 +1711,7 @@ const remountComponent = () => {
           });
           tasks.push(promise);
         });
+
       }
 
       if (!usesTicket || seenKeys.size === 0) {
