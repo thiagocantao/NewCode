@@ -2937,6 +2937,7 @@ setTimeout(() => {
       this.refreshRowFromSource(event.data, event.node);
       await this.refreshRowListOptions(event.data, event.node, event.column);
     }
+
   this.$emit("trigger-event", {
     name: "cellValueChanged",
     event: {
