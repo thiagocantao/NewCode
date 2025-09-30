@@ -1673,27 +1673,68 @@ const remountComponent = () => {
 
   const loadAllColumnOptions = async () => {
     if (!props.content || !Array.isArray(props.content.columns)) return;
+
     const rows = wwLib.wwUtils.getDataFromCollection(props.content.rowData) || [];
     const result = {};
-    const promises = [];
+    const tasks = [];
+
     for (const col of props.content.columns) {
-      const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
-      const identifier = (col.FieldDB || '').toUpperCase();
-      const isResponsible = tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
-      if (!isResponsible) continue;
+      if (!isListLikeColumn(col)) continue;
+
       const colId = col.id || col.field;
-      result[colId] = {};
-      for (const row of rows) {
-        const ticketId = row?.TicketID;
-        const cacheKey = getOptionsCacheKey(col, ticketId);
-        if (result[colId][cacheKey]) continue;
-        const p = getColumnOptions(col, usesTicketId(col) ? ticketId : undefined).then(opts => {
-          result[colId][cacheKey] = opts;
+      if (!colId) continue;
+
+      const usesTicket = usesTicketId(col);
+      const lazyStatus = shouldLazyLoadStatus(col);
+      const forceOptions = lazyStatus ? { force: true } : undefined;
+
+      if (!result[colId]) {
+        result[colId] = {};
+      }
+
+      const seenKeys = new Set();
+
+      if (usesTicket) {
+        rows.forEach(row => {
+          const ticketId = row?.TicketID;
+          const cacheKey = getOptionsCacheKey(col, ticketId);
+          if (seenKeys.has(cacheKey)) return;
+          seenKeys.add(cacheKey);
+          const promise = getColumnOptions(
+            col,
+            ticketId,
+            forceOptions
+          ).then(opts => {
+            result[colId][cacheKey] = opts;
+          }).catch(() => {
+            result[colId][cacheKey] = [];
+          });
+          tasks.push(promise);
         });
-        promises.push(p);
+      }
+
+      if (!usesTicket || seenKeys.size === 0) {
+        const cacheKey = getOptionsCacheKey(col, undefined);
+        if (!seenKeys.has(cacheKey)) {
+          seenKeys.add(cacheKey);
+          const promise = getColumnOptions(
+            col,
+            undefined,
+            forceOptions
+          ).then(opts => {
+            result[colId][cacheKey] = opts;
+          }).catch(() => {
+            result[colId][cacheKey] = [];
+          });
+          tasks.push(promise);
+        }
       }
     }
-    await Promise.all(promises);
+
+    if (tasks.length) {
+      await Promise.allSettled(tasks);
+    }
+
     columnOptions.value = result;
   };
 
@@ -2511,6 +2552,17 @@ setTimeout(() => {
         // Se o filtro for agListColumnFilter, usar o filtro customizado
         if (colCopy.filter === 'agListColumnFilter') {
           const isResponsible = tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
+          const baseFilterParams = typeof colCopy.filterParams === 'object' && colCopy.filterParams
+            ? colCopy.filterParams
+            : {};
+          const filterRendererConfig = {
+            ...(baseFilterParams.rendererConfig || {}),
+            useCustomFormatter: !!colCopy.useCustomFormatter,
+            formatter: colCopy.formatter,
+            useStyleArray: !!colCopy.useStyleArray,
+            styleArray: colCopy.useStyleArray ? this.content.cellStyleArray : baseFilterParams.rendererConfig?.styleArray,
+          };
+
           const result = {
             ...commonProperties,
             id: colId,
@@ -2524,6 +2576,11 @@ setTimeout(() => {
               useCustomFormatter: colCopy.useCustomFormatter,
               formatter: colCopy.formatter,
               // options will be added below when available
+            },
+            filterParams: {
+              ...baseFilterParams,
+              rendererConfig: filterRendererConfig,
+              getFilterOptions: () => this.getFilterOptionsForColumn(colCopy),
             }
           };
           const fieldKey = colCopy.id || colCopy.field;
@@ -2740,6 +2797,17 @@ setTimeout(() => {
                 : null;
 
               const isResponsible = tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
+              const baseFilterParams = typeof colCopy.filterParams === 'object' && colCopy.filterParams
+                ? colCopy.filterParams
+                : {};
+              const filterRendererConfig = {
+                ...(baseFilterParams.rendererConfig || {}),
+                useCustomFormatter: !!colCopy.useCustomFormatter,
+                formatter: colCopy.formatter,
+                useStyleArray: !!colCopy.useStyleArray,
+                styleArray: colCopy.useStyleArray ? this.content.cellStyleArray : baseFilterParams.rendererConfig?.styleArray,
+              };
+
               const result = {
                 ...commonProperties,
                 id: colId,
@@ -2755,6 +2823,11 @@ setTimeout(() => {
                 },
                 editable: false,
                 cellEditor: staticOptions && staticOptions.length ? ListCellEditor : (tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor : FixedListCellEditor),
+                filterParams: {
+                  ...baseFilterParams,
+                  rendererConfig: filterRendererConfig,
+                  getFilterOptions: () => this.getFilterOptionsForColumn(colCopy),
+                },
               };
               if (staticOptions && staticOptions.length) {
                 result.options = staticOptions;
@@ -2820,6 +2893,21 @@ setTimeout(() => {
               result.filter = (tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID')
                 ? ResponsibleUserFilterRenderer
                 : ListFilterRenderer;
+              const baseFilterParams = typeof colCopy.filterParams === 'object' && colCopy.filterParams
+                ? colCopy.filterParams
+                : {};
+              const filterRendererConfig = {
+                ...(baseFilterParams.rendererConfig || {}),
+                useCustomFormatter: !!colCopy.useCustomFormatter,
+                formatter: colCopy.formatter,
+                useStyleArray: !!colCopy.useStyleArray,
+                styleArray: colCopy.useStyleArray ? this.content.cellStyleArray : baseFilterParams.rendererConfig?.styleArray,
+              };
+              result.filterParams = {
+                ...baseFilterParams,
+                rendererConfig: filterRendererConfig,
+                getFilterOptions: () => this.getFilterOptionsForColumn(colCopy),
+              };
             }
             // Apply custom formatter if enabled
             if (colCopy.useCustomFormatter) {
@@ -3200,6 +3288,66 @@ setTimeout(() => {
   },
   },
   methods: {
+  getFilterOptionsForColumn(col) {
+    if (!col) return [];
+
+    const fieldKey = col.id || col.field;
+    if (!fieldKey) return [];
+
+    const store = this.columnOptions || {};
+    const colStore = store[fieldKey] || {};
+    const aggregated = [];
+    const seen = new Set();
+
+    const pushOption = option => {
+      if (option === undefined) return;
+      let mapKey;
+      if (option === null) {
+        mapKey = 'null-option';
+      } else if (typeof option === 'object') {
+        const valueKey =
+          option.value ??
+          option.Value ??
+          option.id ??
+          option.Id ??
+          option.ID ??
+          option.UserID ??
+          option.UserId ??
+          option.StatusID ??
+          option.statusId ??
+          option.key ??
+          null;
+        const typeKey = option.type || (Array.isArray(option.groupUsers) ? 'group' : 'object');
+        if (valueKey != null) {
+          mapKey = `${typeKey}::${String(valueKey)}`;
+        } else {
+          try {
+            mapKey = `${typeKey}::${JSON.stringify(option)}`;
+          } catch (error) {
+            mapKey = `${typeKey}::${Date.now()}::${aggregated.length}`;
+          }
+        }
+      } else {
+        mapKey = `primitive::${String(option)}`;
+      }
+
+      if (!seen.has(mapKey)) {
+        seen.add(mapKey);
+        aggregated.push(option);
+      }
+    };
+
+    Object.values(colStore).forEach(list => {
+      if (!Array.isArray(list)) return;
+      list.forEach(pushOption);
+    });
+
+    if (!aggregated.length && this.shouldLazyLoadStatus(col)) {
+      return this.buildLazyStatusFallbackOptions(col);
+    }
+
+    return aggregated;
+  },
   deselectAllRows() {
     if (this.gridApi) {
       this.gridApi.deselectAll();
