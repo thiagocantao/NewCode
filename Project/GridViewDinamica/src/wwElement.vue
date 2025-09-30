@@ -5,7 +5,6 @@
       :rowSelection="rowSelection" :suppressMovableColumns="!content.movableColumns" :alwaysShowHorizontalScroll="false"
       :suppressColumnMoveAnimation="true" :suppressDragLeaveHidesColumns="true" :maintainColumnOrder="true"
       :getMainMenuItems="getMainMenuItems" :isColumnMovable="isColumnMovable" :theme="theme" :getRowId="getRowId"
-      :deltaRowDataMode="true"
       :pagination="content.pagination" :paginationPageSize="content.paginationPageSize || 10"
       :paginationPageSizeSelector="false" :columnHoverHighlight="content.columnHoverHighlight" :locale-text="localeText"
       :components="editorComponents" :singleClickEdit="true" @grid-ready="onGridReady" @row-selected="onRowSelected"
@@ -17,7 +16,7 @@
 </template>
 
 <script>
-  import { shallowRef, computed, ref, onMounted, onUnmounted, watch, h, nextTick } from "vue";
+  import { shallowRef, computed, ref, onMounted, onUnmounted, watch, h } from "vue";
   import { AgGridVue } from "ag-grid-vue3";
   import {
   AllCommunityModule,
@@ -58,8 +57,6 @@
   const preventPinnedHeaderDragStart = event => {
     event.preventDefault();
   };
-  const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
-  let isComponentActive = true;
   // Editor customizado inline para listas
   class ListCellEditor {
     init(params) {
@@ -328,11 +325,9 @@
   },
   emits: ["trigger-event", "update:content:effect"],
   setup(props, ctx) {
-  const { resolveMappingFormula } = wwLib.wwFormula.useFormula();
-  
+  const { resolveMappingFormula } = wwLib.wwFormula.useFormula();  
   const gridApi = shallowRef(null);
   const columnApi = shallowRef(null);
-
   const displayedRowData = shallowRef([]);
   const rowMetadata = shallowRef(new Map());
   const pendingRowListRefreshes = new Map();
@@ -1442,7 +1437,6 @@ const remountComponent = () => {
           ...(ticketId ? { p_ticketid: ticketId } : {})
         })
       };
-
       if (apiKey) fetchOptions.headers['apikey'] = apiKey;
       if (apiAuth) fetchOptions.headers['Authorization'] = apiAuth;
 
@@ -1664,7 +1658,6 @@ const remountComponent = () => {
   }, { deep: true });
 
   watch(() => props.content?.rowData, () => {
-    syncDisplayedRowData();
     loadAllColumnOptions();
     applyColumnOrderFromPosition();
     updateColumnsPosition({ fallbackToContent: true });
@@ -1675,12 +1668,7 @@ const remountComponent = () => {
       }
     }, 0);
     resetHideSaveButtonVisibility();
-  }, { deep: true, immediate: true });
-
-  watch(() => props.content?.idFormula, () => {
-    rowMetadata.value = new Map();
-    syncDisplayedRowData();
-  });
+  }, { deep: true });
 
 
 
@@ -1689,13 +1677,10 @@ const remountComponent = () => {
   let deadlineTimer = null;
   if (!window.gridDeadlineNow) window.gridDeadlineNow = new Date();
   onUnmounted(() => {
-    isComponentActive = false;
     if (deadlineTimer) {
       clearInterval(deadlineTimer);
       deadlineTimer = null;
     }
-    pendingRowListRefreshes.clear();
-    pendingRowListRefreshPromise = null;
     // Salva estado ao desmontar (garante persistência ao navegar)
     saveGridState();
     if (beforeUnloadHandler) {
@@ -2200,8 +2185,6 @@ setTimeout(() => {
   
       return {
       resolveMappingFormula,
-      resolveRowId,
-      displayedRowData,
       componentFontFamily,
       resolvedFontFamily,
       onGridReady,
@@ -2266,8 +2249,8 @@ setTimeout(() => {
   },
     computed: {
     rowData() {
-      const data = this.displayedRowData;
-      return Array.isArray(data) ? data : [];
+      const data = wwLib.wwUtils.getDataFromCollection(this.content.rowData);
+      return Array.isArray(data) ? data ?? [] : [];
     },
     defaultColDef() {
       return {
@@ -2383,6 +2366,9 @@ setTimeout(() => {
             const colOpts = this.columnOptions[fieldKey] || {};
             const cached = colOpts[key];
             if (cached) return cached;
+            if (lazyStatus) {
+              return this.buildLazyStatusFallbackOptions(colCopy);
+            }
             if (tagControl === 'RESPONSIBLEUSERID') {
               this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
                 if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
@@ -2538,6 +2524,9 @@ setTimeout(() => {
                 const colOpts = this.columnOptions[fieldKey] || {};
                 const cached = colOpts[key];
                 if (cached) return cached;
+                if (lazyStatus) {
+                  return this.buildLazyStatusFallbackOptions(colCopy);
+                }
                 this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
                   if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
                   this.columnOptions[fieldKey][key] = opts;
@@ -2851,6 +2840,9 @@ setTimeout(() => {
               const colOpts = this.columnOptions[fieldKey] || {};
               const cached = colOpts[key];
               if (cached) return cached;
+              if (lazyStatus) {
+                return this.buildLazyStatusFallbackOptions(colCopy);
+              }
               this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
                 if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
                 this.columnOptions[fieldKey][key] = opts;
@@ -3052,9 +3044,7 @@ setTimeout(() => {
     }
   },
   getRowId(params) {
-  const data = params?.data || null;
-  const index = params?.rowIndex != null ? params.rowIndex : null;
-  return this.resolveRowId(data, index);
+  return this.resolveMappingFormula(this.content.idFormula, params.data);
   },
   onActionTrigger(event) {
   if (!event) return;
@@ -3070,7 +3060,7 @@ setTimeout(() => {
   },
   });
   },
-  async onCellValueChanged(event) {
+  onCellValueChanged(event) {
   const colDef = event.column.getColDef ? event.column.getColDef() : {};
   const tag = (colDef.TagControl || colDef.tagControl || colDef.tagcontrol || '').toUpperCase();
   const identifier = (colDef.FieldDB || '').toUpperCase();
@@ -3116,48 +3106,6 @@ setTimeout(() => {
       }
     }
   }
-    if (event?.data) {
-      let rowId = null;
-      let previousHash = null;
-
-      if (typeof this.resolveRowId === 'function') {
-        const fallbackIndex =
-          event?.node?.rowIndex != null
-            ? event.node.rowIndex
-            : event?.rowIndex != null
-              ? event.rowIndex
-              : null;
-        try {
-          rowId = this.resolveRowId(event.data, fallbackIndex);
-        } catch (error) {
-          console.warn('[GridViewDinamica] Failed to resolve row id after edit', error);
-        }
-      }
-
-      if (rowId && typeof this.getRowMetadataHash === 'function') {
-        try {
-          previousHash = this.getRowMetadataHash(rowId);
-        } catch (error) {
-          previousHash = null;
-          console.warn('[GridViewDinamica] Failed to read previous row hash', error);
-        }
-      }
-
-      if (rowId && typeof this.waitForRowHydration === 'function') {
-        try {
-          await this.waitForRowHydration(rowId, previousHash, {
-            timeout: 10000,
-            interval: 200,
-          });
-        } catch (error) {
-          console.warn('[GridViewDinamica] Failed while waiting for persisted row data', error);
-        }
-      }
-
-      this.refreshRowFromSource(event.data, event.node);
-      await this.refreshRowListOptions(event.data, event.node, event.column);
-    }
-
   this.$emit("trigger-event", {
     name: "cellValueChanged",
     event: {
