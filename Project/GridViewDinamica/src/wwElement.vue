@@ -337,6 +337,7 @@
   let pendingRowListRefreshPromise = null;
   let hasHydratedInitialRows = false;
 
+
   const getRowFingerprint = row => {
     try {
       return JSON.stringify(row ?? {});
@@ -472,7 +473,7 @@
     if (hasHydratedInitialRows) {
       scheduleRowListOptionsRefresh(rowId, clonedRow);
     }
-
+    
     if (gridApi.value && typeof gridApi.value.refreshCells === 'function') {
       const refreshConfig = { force: true };
       if (rowNode) {
