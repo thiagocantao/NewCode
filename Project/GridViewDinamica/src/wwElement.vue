@@ -1711,6 +1711,7 @@ const remountComponent = () => {
           });
           tasks.push(promise);
         });
+
       }
 
       if (!usesTicket || seenKeys.size === 0) {
@@ -3294,59 +3295,137 @@ setTimeout(() => {
     const fieldKey = col.id || col.field;
     if (!fieldKey) return [];
 
-    const store = this.columnOptions || {};
-    const colStore = store[fieldKey] || {};
-    const aggregated = [];
-    const seen = new Set();
+    const collectFromStore = () => {
+      const store = this.columnOptions || {};
+      const colStore = store[fieldKey] || {};
+      const aggregated = [];
+      const seen = new Set();
 
-    const pushOption = option => {
-      if (option === undefined) return;
-      let mapKey;
-      if (option === null) {
-        mapKey = 'null-option';
-      } else if (typeof option === 'object') {
-        const valueKey =
-          option.value ??
-          option.Value ??
-          option.id ??
-          option.Id ??
-          option.ID ??
-          option.UserID ??
-          option.UserId ??
-          option.StatusID ??
-          option.statusId ??
-          option.key ??
-          null;
-        const typeKey = option.type || (Array.isArray(option.groupUsers) ? 'group' : 'object');
-        if (valueKey != null) {
-          mapKey = `${typeKey}::${String(valueKey)}`;
-        } else {
-          try {
-            mapKey = `${typeKey}::${JSON.stringify(option)}`;
-          } catch (error) {
-            mapKey = `${typeKey}::${Date.now()}::${aggregated.length}`;
+      const pushOption = option => {
+        if (option === undefined) return;
+        let mapKey;
+        if (option === null) {
+          mapKey = 'null-option';
+        } else if (typeof option === 'object') {
+          const valueKey =
+            option.value ??
+            option.Value ??
+            option.id ??
+            option.Id ??
+            option.ID ??
+            option.UserID ??
+            option.UserId ??
+            option.StatusID ??
+            option.statusId ??
+            option.key ??
+            null;
+          const typeKey = option.type || (Array.isArray(option.groupUsers) ? 'group' : 'object');
+          if (valueKey != null) {
+            mapKey = `${typeKey}::${String(valueKey)}`;
+          } else {
+            try {
+              mapKey = `${typeKey}::${JSON.stringify(option)}`;
+            } catch (error) {
+              mapKey = `${typeKey}::${Date.now()}::${aggregated.length}`;
+            }
           }
+        } else {
+          mapKey = `primitive::${String(option)}`;
         }
-      } else {
-        mapKey = `primitive::${String(option)}`;
-      }
 
-      if (!seen.has(mapKey)) {
-        seen.add(mapKey);
-        aggregated.push(option);
-      }
+        if (!seen.has(mapKey)) {
+          seen.add(mapKey);
+          aggregated.push(option);
+        }
+      };
+
+      Object.values(colStore).forEach(list => {
+        if (!Array.isArray(list)) return;
+        list.forEach(pushOption);
+      });
+
+      return aggregated;
     };
 
-    Object.values(colStore).forEach(list => {
-      if (!Array.isArray(list)) return;
-      list.forEach(pushOption);
-    });
-
-    if (!aggregated.length && this.shouldLazyLoadStatus(col)) {
-      return this.buildLazyStatusFallbackOptions(col);
+    const existing = collectFromStore();
+    if (existing.length) {
+      return existing;
     }
 
-    return aggregated;
+    if (this.shouldLazyLoadStatus(col)) {
+      const fallback = this.buildLazyStatusFallbackOptions(col);
+      if (fallback && fallback.length) {
+        return fallback;
+      }
+    }
+
+    const ensureColStore = () => {
+      if (!this.columnOptions) {
+        this.columnOptions = {};
+      }
+      if (!this.columnOptions[fieldKey]) {
+        this.columnOptions[fieldKey] = {};
+      }
+      return this.columnOptions[fieldKey];
+    };
+
+    const usesTicket = this.usesTicketId(col);
+    const colStore = ensureColStore();
+    const fetchTargets = [];
+
+    if (usesTicket) {
+      const rows = Array.isArray(this.rowData) ? this.rowData : [];
+      const scheduledKeys = new Set();
+      rows.forEach(row => {
+        const ticketId = row?.TicketID;
+        const cacheKey = this.getOptionsCacheKey(col, ticketId);
+        const cached = colStore[cacheKey];
+        if (Array.isArray(cached) && cached.length) return;
+        if (scheduledKeys.has(cacheKey)) return;
+        scheduledKeys.add(cacheKey);
+        fetchTargets.push(ticketId);
+      });
+      const defaultKey = this.getOptionsCacheKey(col, undefined);
+      const defaultCached = colStore[defaultKey];
+      if (!Array.isArray(defaultCached) || !defaultCached.length) {
+        if (!scheduledKeys.has(defaultKey)) {
+          scheduledKeys.add(defaultKey);
+          fetchTargets.push(undefined);
+        }
+      }
+    } else {
+      const cacheKey = this.getOptionsCacheKey(col, undefined);
+      const cached = colStore[cacheKey];
+      if (!Array.isArray(cached) || !cached.length) {
+        fetchTargets.push(undefined);
+      }
+    }
+
+    if (!fetchTargets.length) {
+      return [];
+    }
+
+    const loaders = fetchTargets.map(ticketId => {
+      const cacheKey = this.getOptionsCacheKey(col, ticketId);
+      return this.getColumnOptions(col, ticketId, { force: true })
+        .then(options => {
+          colStore[cacheKey] = Array.isArray(options) ? options : [];
+        })
+        .catch(() => {
+          colStore[cacheKey] = [];
+        });
+    });
+
+    return Promise.allSettled(loaders).then(() => {
+      const refreshed = collectFromStore();
+      if (refreshed.length) {
+        return refreshed;
+      }
+      if (this.shouldLazyLoadStatus(col)) {
+        return this.buildLazyStatusFallbackOptions(col);
+      }
+      return [];
+    });
   },
   deselectAllRows() {
     if (this.gridApi) {
