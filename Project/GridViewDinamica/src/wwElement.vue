@@ -17,7 +17,7 @@
 </template>
 
 <script>
-  import { shallowRef, computed, ref, onMounted, onUnmounted, watch, h } from "vue";
+  import { shallowRef, computed, ref, onMounted, onUnmounted, watch, h, nextTick } from "vue";
   import { AgGridVue } from "ag-grid-vue3";
   import {
   AllCommunityModule,
@@ -493,14 +493,37 @@
     return false;
   };
 
-  const refreshRowListOptions = async (rowData, rowNode = null) => {
+  const refreshRowListOptions = async (rowData, rowNode = null, editedColumn = null) => {
     if (!rowData || !props.content || !Array.isArray(props.content.columns)) return;
+
+    await nextTick();
 
     const ticketId = rowData?.TicketID;
     const promises = [];
+    const columnsToRefresh = [];
 
-    props.content.columns.forEach(col => {
-      if (!isListLikeColumn(col)) return;
+    const editedFieldKey = (() => {
+      if (!editedColumn) return null;
+      if (typeof editedColumn.getColId === 'function') {
+        const id = editedColumn.getColId();
+        if (id) return id;
+      }
+      return editedColumn.colId || editedColumn.field || null;
+    })();
+
+    const orderedColumns = props.content.columns
+      .filter(col => isListLikeColumn(col))
+      .sort((a, b) => {
+        if (!editedFieldKey) return 0;
+        const aKey = a.id || a.field;
+        const bKey = b.id || b.field;
+        if (aKey === editedFieldKey) return -1;
+        if (bKey === editedFieldKey) return 1;
+        return 0;
+      });
+
+    orderedColumns.forEach(col => {
+
       const fieldKey = col.id || col.field;
       if (!fieldKey) return;
 
@@ -513,6 +536,12 @@
 
       delete columnOptions.value[fieldKey][cacheKey];
 
+      const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
+      const identifier = (col.FieldDB || '').toUpperCase();
+      if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
+        responsibleUserCache = null;
+      }
+
       const promise = getColumnOptions(col, shouldUseTicket ? ticketId : undefined)
         .then(opts => {
           if (!columnOptions.value[fieldKey]) {
@@ -524,6 +553,8 @@
           console.warn('[GridViewDinamica] Failed to refresh list options for column', fieldKey, error);
         });
       promises.push(promise);
+      columnsToRefresh.push(fieldKey);
+
     });
 
     if (promises.length) {
@@ -539,6 +570,10 @@
       if (rowNode) {
         refreshConfig.rowNodes = [rowNode];
       }
+      if (columnsToRefresh.length) {
+        refreshConfig.columns = Array.from(new Set(columnsToRefresh));
+      }
+
       gridApi.value.refreshCells(refreshConfig);
     }
   };
@@ -2724,7 +2759,7 @@ setTimeout(() => {
   },
   });
   },
-  onCellValueChanged(event) {
+  async onCellValueChanged(event) {
   const colDef = event.column.getColDef ? event.column.getColDef() : {};
   const tag = (colDef.TagControl || colDef.tagControl || colDef.tagcontrol || '').toUpperCase();
   const identifier = (colDef.FieldDB || '').toUpperCase();
@@ -2772,7 +2807,8 @@ setTimeout(() => {
   }
   if (event?.data) {
     this.refreshRowFromSource(event.data, event.node);
-    this.refreshRowListOptions(event.data, event.node);
+    await this.refreshRowListOptions(event.data, event.node, event.column);
+
   }
   this.$emit("trigger-event", {
     name: "cellValueChanged",
