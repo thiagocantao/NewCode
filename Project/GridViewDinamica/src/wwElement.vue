@@ -1711,7 +1711,6 @@ const remountComponent = () => {
           });
           tasks.push(promise);
         });
-
       }
 
       if (!usesTicket || seenKeys.size === 0) {
@@ -3289,75 +3288,14 @@ setTimeout(() => {
   },
   },
   methods: {
-  getFilterOptionsForColumn(col) {
+  async getFilterOptionsForColumn(col) {
     if (!col) return [];
 
     const fieldKey = col.id || col.field;
     if (!fieldKey) return [];
 
-    const collectFromStore = () => {
-      const store = this.columnOptions || {};
-      const colStore = store[fieldKey] || {};
-      const aggregated = [];
-      const seen = new Set();
-
-      const pushOption = option => {
-        if (option === undefined) return;
-        let mapKey;
-        if (option === null) {
-          mapKey = 'null-option';
-        } else if (typeof option === 'object') {
-          const valueKey =
-            option.value ??
-            option.Value ??
-            option.id ??
-            option.Id ??
-            option.ID ??
-            option.UserID ??
-            option.UserId ??
-            option.StatusID ??
-            option.statusId ??
-            option.key ??
-            null;
-          const typeKey = option.type || (Array.isArray(option.groupUsers) ? 'group' : 'object');
-          if (valueKey != null) {
-            mapKey = `${typeKey}::${String(valueKey)}`;
-          } else {
-            try {
-              mapKey = `${typeKey}::${JSON.stringify(option)}`;
-            } catch (error) {
-              mapKey = `${typeKey}::${Date.now()}::${aggregated.length}`;
-            }
-          }
-        } else {
-          mapKey = `primitive::${String(option)}`;
-        }
-
-        if (!seen.has(mapKey)) {
-          seen.add(mapKey);
-          aggregated.push(option);
-        }
-      };
-
-      Object.values(colStore).forEach(list => {
-        if (!Array.isArray(list)) return;
-        list.forEach(pushOption);
-      });
-
-      return aggregated;
-    };
-
-    const existing = collectFromStore();
-    if (existing.length) {
-      return existing;
-    }
-
-    if (this.shouldLazyLoadStatus(col)) {
-      const fallback = this.buildLazyStatusFallbackOptions(col);
-      if (fallback && fallback.length) {
-        return fallback;
-      }
-    }
+    const lazyStatus = this.shouldLazyLoadStatus(col);
+    const usesTicket = this.usesTicketId(col);
 
     const ensureColStore = () => {
       if (!this.columnOptions) {
@@ -3366,66 +3304,113 @@ setTimeout(() => {
       if (!this.columnOptions[fieldKey]) {
         this.columnOptions[fieldKey] = {};
       }
-      return this.columnOptions[fieldKey];
+      const colStore = this.columnOptions[fieldKey];
+      if (!colStore.__fetchedKeys) {
+        Object.defineProperty(colStore, '__fetchedKeys', {
+          value: new Set(),
+          enumerable: false,
+          configurable: true,
+          writable: true,
+        });
+      }
+      return colStore;
     };
 
-    const usesTicket = this.usesTicketId(col);
-    const colStore = ensureColStore();
-    const fetchTargets = [];
+    const store = ensureColStore();
+    const aggregated = [];
+    const seen = new Set();
 
-    if (usesTicket) {
-      const rows = Array.isArray(this.rowData) ? this.rowData : [];
-      const scheduledKeys = new Set();
-      rows.forEach(row => {
-        const ticketId = row?.TicketID;
-        const cacheKey = this.getOptionsCacheKey(col, ticketId);
-        const cached = colStore[cacheKey];
-        if (Array.isArray(cached) && cached.length) return;
-        if (scheduledKeys.has(cacheKey)) return;
-        scheduledKeys.add(cacheKey);
-        fetchTargets.push(ticketId);
-      });
-      const defaultKey = this.getOptionsCacheKey(col, undefined);
-      const defaultCached = colStore[defaultKey];
-      if (!Array.isArray(defaultCached) || !defaultCached.length) {
-        if (!scheduledKeys.has(defaultKey)) {
-          scheduledKeys.add(defaultKey);
-          fetchTargets.push(undefined);
+    const pushOption = option => {
+      if (option === undefined) return;
+      let mapKey;
+      if (option === null) {
+        mapKey = 'null-option';
+      } else if (typeof option === 'object') {
+        const valueKey =
+          option.value ??
+          option.Value ??
+          option.id ??
+          option.Id ??
+          option.ID ??
+          option.UserID ??
+          option.UserId ??
+          option.StatusID ??
+          option.statusId ??
+          option.key ??
+          null;
+        const typeKey = option.type || (Array.isArray(option.groupUsers) ? 'group' : 'object');
+        if (valueKey != null) {
+          mapKey = `${typeKey}::${String(valueKey)}`;
+        } else {
+          try {
+            mapKey = `${typeKey}::${JSON.stringify(option)}`;
+          } catch (error) {
+            mapKey = `${typeKey}::${Date.now()}::${aggregated.length}`;
+          }
+        }
+      } else {
+        mapKey = `primitive::${String(option)}`;
+      }
+
+      if (!seen.has(mapKey)) {
+        seen.add(mapKey);
+        aggregated.push(option);
+      }
+    };
+
+    const hydrateOptionsForTicket = async ticketId => {
+      const cacheKey = this.getOptionsCacheKey(col, ticketId);
+      let options = store[cacheKey];
+      const fetchedKeys = store.__fetchedKeys;
+      const hasFetchedBefore = fetchedKeys?.has(cacheKey);
+
+      if (!Array.isArray(options) || (!options.length && !hasFetchedBefore)) {
+        try {
+          options = await this.getColumnOptions(col, ticketId, { force: true });
+        } catch (error) {
+          console.warn('[GridViewDinamica] Failed to load filter options from data source', error);
+          options = [];
+        }
+        store[cacheKey] = Array.isArray(options) ? options : [];
+        if (store.__fetchedKeys) {
+          if (store[cacheKey].length) {
+            store.__fetchedKeys.delete(cacheKey);
+          } else {
+            store.__fetchedKeys.add(cacheKey);
+          }
         }
       }
+
+      const list = store[cacheKey];
+      if (Array.isArray(list)) {
+        list.forEach(pushOption);
+      }
+    };
+
+    const ticketsToFetch = new Set();
+    if (usesTicket) {
+      const rows = Array.isArray(this.rowData) ? this.rowData : [];
+      rows.forEach(row => {
+        if (row && row.TicketID != null) {
+          ticketsToFetch.add(row.TicketID);
+        }
+      });
+      ticketsToFetch.add(undefined);
     } else {
-      const cacheKey = this.getOptionsCacheKey(col, undefined);
-      const cached = colStore[cacheKey];
-      if (!Array.isArray(cached) || !cached.length) {
-        fetchTargets.push(undefined);
-      }
+      ticketsToFetch.add(undefined);
     }
 
-    if (!fetchTargets.length) {
-      return [];
+    const tasks = Array.from(ticketsToFetch).map(ticketId => hydrateOptionsForTicket(ticketId));
+    if (tasks.length) {
+      await Promise.allSettled(tasks);
     }
 
-    const loaders = fetchTargets.map(ticketId => {
-      const cacheKey = this.getOptionsCacheKey(col, ticketId);
-      return this.getColumnOptions(col, ticketId, { force: true })
-        .then(options => {
-          colStore[cacheKey] = Array.isArray(options) ? options : [];
-        })
-        .catch(() => {
-          colStore[cacheKey] = [];
-        });
-    });
+    if (!aggregated.length && lazyStatus) {
+      const fallback = this.buildLazyStatusFallbackOptions(col);
+      return Array.isArray(fallback) ? fallback : [];
+    }
 
-    return Promise.allSettled(loaders).then(() => {
-      const refreshed = collectFromStore();
-      if (refreshed.length) {
-        return refreshed;
-      }
-      if (this.shouldLazyLoadStatus(col)) {
-        return this.buildLazyStatusFallbackOptions(col);
-      }
-      return [];
-    });
+    return aggregated;
   },
   deselectAllRows() {
     if (this.gridApi) {
