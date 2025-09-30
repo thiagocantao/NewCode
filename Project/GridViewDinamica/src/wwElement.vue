@@ -58,6 +58,8 @@
   const preventPinnedHeaderDragStart = event => {
     event.preventDefault();
   };
+  const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+  let isComponentActive = true;
   // Editor customizado inline para listas
   class ListCellEditor {
     init(params) {
@@ -337,7 +339,6 @@
   let pendingRowListRefreshPromise = null;
   let hasHydratedInitialRows = false;
 
-
   const getRowFingerprint = row => {
     try {
       return JSON.stringify(row ?? {});
@@ -473,7 +474,7 @@
     if (hasHydratedInitialRows) {
       scheduleRowListOptionsRefresh(rowId, clonedRow);
     }
-    
+
     if (gridApi.value && typeof gridApi.value.refreshCells === 'function') {
       const refreshConfig = { force: true };
       if (rowNode) {
@@ -481,6 +482,48 @@
       }
       gridApi.value.refreshCells(refreshConfig);
     }
+  };
+
+  const getRowMetadataHash = rowId => {
+    if (!rowId) return null;
+    const metadata = rowMetadata.value;
+    if (!metadata || typeof metadata.get !== 'function') {
+      return null;
+    }
+    const entry = metadata.get(rowId);
+    return entry ? entry.hash : null;
+  };
+
+  const waitForRowHydration = async (rowId, previousHash, options = {}) => {
+    if (!rowId) return null;
+
+    const { timeout = 6000, interval = 150 } = options;
+    const start = Date.now();
+
+    while (isComponentActive) {
+      const collectionData = wwLib.wwUtils.getDataFromCollection(props.content?.rowData);
+      const sourceRows = Array.isArray(collectionData) ? collectionData : [];
+
+      for (let idx = 0; idx < sourceRows.length; idx += 1) {
+        const candidate = sourceRows[idx];
+        if (!candidate) continue;
+        if (resolveRowId(candidate, idx) !== rowId) continue;
+
+        const fingerprint = getRowFingerprint(candidate);
+        if (!previousHash || fingerprint !== previousHash) {
+          return { row: candidate, index: idx, fingerprint };
+        }
+        break;
+      }
+
+      if (timeout != null && timeout >= 0 && Date.now() - start >= timeout) {
+        break;
+      }
+
+      await sleep(interval);
+    }
+
+    return null;
   };
 
   const isListLikeColumn = col => {
@@ -1479,6 +1522,7 @@ const remountComponent = () => {
   let deadlineTimer = null;
   if (!window.gridDeadlineNow) window.gridDeadlineNow = new Date();
   onUnmounted(() => {
+    isComponentActive = false;
     if (deadlineTimer) {
       clearInterval(deadlineTimer);
       deadlineTimer = null;
@@ -2005,6 +2049,8 @@ setTimeout(() => {
       columnOptions,
       refreshRowFromSource,
       refreshRowListOptions,
+      getRowMetadataHash,
+      waitForRowHydration,
       getColumnOptions,
       getOptionsCacheKey,
       usesTicketId,
@@ -2850,10 +2896,48 @@ setTimeout(() => {
       }
     }
   }
-  if (event?.data) {
-    this.refreshRowFromSource(event.data, event.node);
-    await this.refreshRowListOptions(event.data, event.node, event.column);
-  }
+    if (event?.data) {
+      let rowId = null;
+      let previousHash = null;
+
+      if (typeof this.resolveRowId === 'function') {
+        const fallbackIndex =
+          event?.node?.rowIndex != null
+            ? event.node.rowIndex
+            : event?.rowIndex != null
+              ? event.rowIndex
+              : null;
+        try {
+          rowId = this.resolveRowId(event.data, fallbackIndex);
+        } catch (error) {
+          console.warn('[GridViewDinamica] Failed to resolve row id after edit', error);
+        }
+      }
+
+      if (rowId && typeof this.getRowMetadataHash === 'function') {
+        try {
+          previousHash = this.getRowMetadataHash(rowId);
+        } catch (error) {
+          previousHash = null;
+          console.warn('[GridViewDinamica] Failed to read previous row hash', error);
+        }
+      }
+
+      if (rowId && typeof this.waitForRowHydration === 'function') {
+        try {
+          await this.waitForRowHydration(rowId, previousHash, {
+            timeout: 10000,
+            interval: 200,
+          });
+        } catch (error) {
+          console.warn('[GridViewDinamica] Failed while waiting for persisted row data', error);
+        }
+      }
+
+      this.refreshRowFromSource(event.data, event.node);
+      await this.refreshRowListOptions(event.data, event.node, event.column);
+    }
+
   this.$emit("trigger-event", {
     name: "cellValueChanged",
     event: {
