@@ -2185,6 +2185,7 @@ setTimeout(() => {
   
       return {
       resolveMappingFormula,
+      resolveRowId,
       componentFontFamily,
       resolvedFontFamily,
       onGridReady,
@@ -3045,6 +3046,152 @@ setTimeout(() => {
   },
   getRowId(params) {
   return this.resolveMappingFormula(this.content.idFormula, params.data);
+  },
+  updateRow(rowInput) {
+  if (rowInput == null) return;
+
+  let payload = rowInput;
+  if (typeof payload === "string") {
+    try {
+      payload = JSON.parse(payload);
+    } catch (error) {
+      console.warn("[GridViewDinamica] Failed to parse row JSON payload", error);
+      return;
+    }
+  }
+
+  if (Array.isArray(payload)) {
+    if (!payload.length) {
+      console.warn("[GridViewDinamica] Received empty array payload for updateRow action");
+      return;
+    }
+    payload = payload[0];
+  }
+
+  if (!payload || typeof payload !== "object") {
+    console.warn("[GridViewDinamica] Invalid payload for updateRow action", payload);
+    return;
+  }
+
+  const normalizeId = (row, index = null) => {
+    if (!row || typeof row !== "object") return null;
+    if (typeof this.resolveRowId === "function") {
+      const resolved = this.resolveRowId(row, index);
+      if (resolved != null && resolved !== "") return String(resolved);
+    }
+    const fallbackKeys = ["Id", "ID", "id"];
+    for (const key of fallbackKeys) {
+      if (row[key] != null && row[key] !== "") {
+        return String(row[key]);
+      }
+    }
+    return null;
+  };
+
+  const sourceRowsRaw = wwLib.wwUtils.getDataFromCollection(this.content.rowData);
+  const sourceRows = Array.isArray(sourceRowsRaw) ? sourceRowsRaw : [];
+
+  if (!sourceRows.length) {
+    console.warn("[GridViewDinamica] Cannot update row: grid has no data available");
+    return;
+  }
+
+  const payloadId = normalizeId(payload);
+  let matchedIndex = -1;
+
+  if (payloadId != null) {
+    matchedIndex = sourceRows.findIndex((row, idx) => normalizeId(row, idx) === payloadId);
+  }
+
+  if (matchedIndex === -1) {
+    matchedIndex = sourceRows.findIndex(row => {
+      if (!row || typeof row !== "object") return false;
+      const fallbackKeys = ["Id", "ID", "id"];
+      return fallbackKeys.some(key => (
+        row[key] != null && payload[key] != null && String(row[key]) === String(payload[key])
+      ));
+    });
+  }
+
+  if (matchedIndex === -1) {
+    console.warn("[GridViewDinamica] Failed to locate row to update", payload);
+    return;
+  }
+
+  const matchedRow = sourceRows[matchedIndex];
+  if (!matchedRow || typeof matchedRow !== "object") {
+    console.warn("[GridViewDinamica] Matched row is not an object", matchedRow);
+    return;
+  }
+
+  Object.keys(payload).forEach(key => {
+    matchedRow[key] = payload[key];
+  });
+
+  let rowNode = null;
+  const resolvedId = normalizeId(matchedRow, matchedIndex);
+  if (resolvedId != null && this.gridApi && typeof this.gridApi.getRowNode === "function") {
+    rowNode = this.gridApi.getRowNode(resolvedId);
+  }
+
+  if (!rowNode && this.gridApi && typeof this.gridApi.forEachNode === "function") {
+    const fallbackKeys = ["Id", "ID", "id"];
+    this.gridApi.forEachNode(node => {
+      if (rowNode) return;
+      if (resolvedId != null && String(node.id) === String(resolvedId)) {
+        rowNode = node;
+        return;
+      }
+      const nodeData = node.data || {};
+      if (resolvedId != null && normalizeId(nodeData, node.rowIndex) === resolvedId) {
+        rowNode = node;
+        return;
+      }
+      if (resolvedId == null) {
+        const found = fallbackKeys.some(key => (
+          nodeData[key] != null && payload[key] != null && String(nodeData[key]) === String(payload[key])
+        ));
+        if (found) {
+          rowNode = node;
+        }
+      }
+    });
+  }
+
+  if (rowNode) {
+    Object.keys(payload).forEach(key => {
+      const value = payload[key];
+      if (typeof rowNode.setDataValue === "function") {
+        rowNode.setDataValue(key, value);
+      } else if (rowNode.data) {
+        rowNode.data[key] = value;
+      }
+    });
+  }
+
+  if (typeof this.refreshRowFromSource === "function") {
+    try {
+      this.refreshRowFromSource(matchedRow, rowNode || null);
+    } catch (error) {
+      console.warn("[GridViewDinamica] Failed to refresh row metadata after update", error);
+    }
+  }
+
+  if (typeof this.refreshRowListOptions === "function") {
+    try {
+      this.refreshRowListOptions(matchedRow, rowNode || null, null);
+    } catch (error) {
+      console.warn("[GridViewDinamica] Failed to refresh list options after row update", error);
+    }
+  }
+
+  if (this.gridApi && typeof this.gridApi.refreshCells === "function") {
+    const refreshConfig = { force: true };
+    if (rowNode) {
+      refreshConfig.rowNodes = [rowNode];
+    }
+    this.gridApi.refreshCells(refreshConfig);
+  }
   },
   onActionTrigger(event) {
   if (!event) return;
