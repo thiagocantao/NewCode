@@ -543,6 +543,7 @@
     }
   };
 
+
   // Unified Column API accessor for AG Grid v31+ (no columnApi) and older versions
   const getColApi = () => {
     if (columnApi.value && (
