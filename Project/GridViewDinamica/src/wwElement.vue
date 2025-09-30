@@ -409,6 +409,141 @@
     rowMetadata.value = nextMetadata;
   };
 
+  const refreshRowFromSource = (rowData, rowNode = null) => {
+    if (!rowData) return;
+
+    const collectionData = wwLib.wwUtils.getDataFromCollection(props.content?.rowData);
+    const sourceRows = Array.isArray(collectionData) ? collectionData : [];
+    if (!sourceRows.length) return;
+
+    const inferredIndex = rowNode?.rowIndex != null ? rowNode.rowIndex : null;
+    const rowId = resolveRowId(rowData, inferredIndex);
+    if (!rowId) return;
+
+    let matchedRow = null;
+    let matchedIndex = inferredIndex != null ? inferredIndex : -1;
+
+    if (matchedIndex != null && matchedIndex >= 0 && matchedIndex < sourceRows.length) {
+      const candidate = sourceRows[matchedIndex];
+      if (candidate && resolveRowId(candidate, matchedIndex) === rowId) {
+        matchedRow = candidate;
+      }
+    }
+
+    if (!matchedRow) {
+      for (let idx = 0; idx < sourceRows.length; idx += 1) {
+        const candidate = sourceRows[idx];
+        if (!candidate) continue;
+        if (resolveRowId(candidate, idx) === rowId) {
+          matchedRow = candidate;
+          matchedIndex = idx;
+          break;
+        }
+      }
+    }
+
+    if (!matchedRow) return;
+
+    const fingerprint = getRowFingerprint(matchedRow);
+    const previousEntry = (rowMetadata.value && rowMetadata.value.get(rowId)) || null;
+    if (previousEntry && previousEntry.hash === fingerprint) {
+      return;
+    }
+    const clonedRow = { ...matchedRow };
+
+    const nextMetadata = new Map(rowMetadata.value || []);
+    nextMetadata.set(rowId, { data: clonedRow, hash: fingerprint });
+    rowMetadata.value = nextMetadata;
+
+    const currentRows = Array.isArray(displayedRowData.value) ? [...displayedRowData.value] : [];
+    if (matchedIndex != null && matchedIndex >= 0 && matchedIndex < currentRows.length) {
+      currentRows[matchedIndex] = clonedRow;
+      displayedRowData.value = currentRows;
+    }
+
+    if (gridApi.value && typeof gridApi.value.refreshCells === 'function') {
+      const refreshConfig = { force: true };
+      if (rowNode) {
+        refreshConfig.rowNodes = [rowNode];
+      }
+      gridApi.value.refreshCells(refreshConfig);
+    }
+  };
+
+  const isListLikeColumn = col => {
+    if (!col) return false;
+    const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
+    const identifier = (col.FieldDB || '').toUpperCase();
+    const listIndicators = new Set([
+      'STATUSID',
+      'RESPONSIBLEUSERID',
+      'CATEGORYID',
+      'SUBCATEGORYID',
+      'CATEGORYLEVEL3ID',
+    ]);
+
+    if (col.cellDataType === 'list') return true;
+    if (listIndicators.has(tag) || listIndicators.has(identifier)) return true;
+    if (Array.isArray(col.listOptions) || Array.isArray(col.list_options) || Array.isArray(col.options)) {
+      return true;
+    }
+    if (typeof col.listOptions === 'string' || typeof col.list_options === 'string') return true;
+    if (col.dataSource) return true;
+    if (col.useStyleArray) return true;
+    return false;
+  };
+
+  const refreshRowListOptions = async (rowData, rowNode = null) => {
+    if (!rowData || !props.content || !Array.isArray(props.content.columns)) return;
+
+    const ticketId = rowData?.TicketID;
+    const promises = [];
+
+    props.content.columns.forEach(col => {
+      if (!isListLikeColumn(col)) return;
+      const fieldKey = col.id || col.field;
+      if (!fieldKey) return;
+
+      const shouldUseTicket = usesTicketId(col);
+      const cacheKey = getOptionsCacheKey(col, shouldUseTicket ? ticketId : undefined);
+
+      if (!columnOptions.value[fieldKey]) {
+        columnOptions.value[fieldKey] = {};
+      }
+
+      delete columnOptions.value[fieldKey][cacheKey];
+
+      const promise = getColumnOptions(col, shouldUseTicket ? ticketId : undefined)
+        .then(opts => {
+          if (!columnOptions.value[fieldKey]) {
+            columnOptions.value[fieldKey] = {};
+          }
+          columnOptions.value[fieldKey][cacheKey] = opts;
+        })
+        .catch(error => {
+          console.warn('[GridViewDinamica] Failed to refresh list options for column', fieldKey, error);
+        });
+      promises.push(promise);
+    });
+
+    if (promises.length) {
+      try {
+        await Promise.all(promises);
+      } catch (error) {
+        console.warn('[GridViewDinamica] Failed to resolve list option refresh promises', error);
+      }
+    }
+
+    if (gridApi.value && typeof gridApi.value.refreshCells === 'function') {
+      const refreshConfig = { force: true };
+      if (rowNode) {
+        refreshConfig.rowNodes = [rowNode];
+      }
+      gridApi.value.refreshCells(refreshConfig);
+    }
+  };
+
+
   // Unified Column API accessor for AG Grid v31+ (no columnApi) and older versions
   const getColApi = () => {
     if (columnApi.value && (
@@ -1788,6 +1923,8 @@ setTimeout(() => {
       forceSelectionColumnFirst,
       forceSelectionColumnFirstDOM,
       columnOptions,
+      refreshRowFromSource,
+      refreshRowListOptions,
       getColumnOptions,
       getOptionsCacheKey,
       usesTicketId,
@@ -2632,6 +2769,10 @@ setTimeout(() => {
         });
       }
     }
+  }
+  if (event?.data) {
+    this.refreshRowFromSource(event.data, event.node);
+    this.refreshRowListOptions(event.data, event.node);
   }
   this.$emit("trigger-event", {
     name: "cellValueChanged",
