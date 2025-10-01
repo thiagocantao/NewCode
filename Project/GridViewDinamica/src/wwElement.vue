@@ -1747,6 +1747,27 @@ const remountComponent = () => {
           tasks.push(promise);
         }
       }
+
+      if (!usesTicket || seenKeys.size === 0) {
+        const cacheKey = getOptionsCacheKey(col, undefined);
+        if (!seenKeys.has(cacheKey)) {
+          seenKeys.add(cacheKey);
+          const promise = getColumnOptions(
+            col,
+            undefined,
+            forceOptions
+          ).then(opts => {
+            result[colId][cacheKey] = opts;
+          }).catch(() => {
+            result[colId][cacheKey] = [];
+          });
+          tasks.push(promise);
+        }
+      }
+    }
+
+    if (tasks.length) {
+      await Promise.allSettled(tasks);
     }
 
     if (tasks.length) {
@@ -3386,6 +3407,7 @@ setTimeout(() => {
       if (!Array.isArray(options) || (!options.length && !hasFetchedBefore)) {
         try {
           options = await this.getColumnOptions(col, requestTicketId, { force: true });
+
         } catch (error) {
           console.warn('[GridViewDinamica] Failed to load filter options from data source', error);
           options = [];
@@ -3405,10 +3427,10 @@ setTimeout(() => {
         list.forEach(pushOption);
       }
     };
-
     const ticketsToFetch = usesTicket ? [null] : [undefined];
 
     const tasks = ticketsToFetch.map(ticketId => hydrateOptionsForTicket(ticketId));
+
     if (tasks.length) {
       await Promise.allSettled(tasks);
     }
