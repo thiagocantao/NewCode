@@ -233,7 +233,6 @@ export default class ListFilterRenderer {
       const match = options.find(o => o.value == rawValue);
       const baseDisplay = match ? (match.label != null ? match.label : match.value) : rawValue;
       const display = this.ensureDisplayText(baseDisplay);
-
       let formatted = display;
       try {
         if (this.isCategoryField) {
@@ -362,11 +361,13 @@ export default class ListFilterRenderer {
       };
     }
 
+
     return { value: opt, label: opt == null ? '' : String(opt) };
   }
 
   formatDisplayValue(display, colDef) {
     let formatted = this.ensureDisplayText(display);
+
     try {
       if (this.isCategoryField) {
         formatted = `<span style="height:25px; color:#303030; background:#c9edf9; border:1px solid #c9edf9; border-radius:12px; font-weight:normal; display:inline-flex; align-items:center; padding:0 12px;">${display}</span>`;
@@ -420,7 +421,7 @@ export default class ListFilterRenderer {
     tmp.innerHTML = html;
     return tmp.textContent || tmp.innerText || '';
   }
-
+  
   ensureDisplayText(value) {
     if (value === null || value === undefined) return '';
     if (typeof value === 'string') return value;
