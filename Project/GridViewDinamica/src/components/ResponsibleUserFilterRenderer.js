@@ -2,30 +2,18 @@ export default class ResponsibleUserFilterRenderer {
   constructor() {
     this.searchText = '';
     this.selectedValues = [];
-    // armazenamos separadamente usuários e grupos
-    this.userKeys = [];
-    this.groupKeys = [];
-    this.filteredUserKeys = [];
-    this.filteredGroupKeys = [];
-    this.metaMap = {}; // key -> { id, type, name, photo }
-    this.groupToUsers = {};
-    this.userToGroups = {};
+    this.allValues = [];
+    this.filteredValues = [];
+    this.selectAll = false;
+    // key -> { type: 'responsible'|'group', id, name, photo }
+
+    this.userInfo = {};
   }
 
   init(params) {
     this.params = params;
-    const maybePromise = this.loadValues();
-    if (maybePromise && typeof maybePromise.then === 'function') {
-      maybePromise
-        .then(() => {
-          this.createGui();
-        })
-        .catch(() => {
-          this.createGui();
-        });
-    } else {
-      this.createGui();
-    }
+    this.loadValues();
+    this.createGui();
   }
 
   createGui() {
@@ -62,9 +50,8 @@ export default class ResponsibleUserFilterRenderer {
     });
 
     this.selectAllCheckbox.addEventListener('change', (e) => {
-      const all = [...this.filteredUserKeys, ...this.filteredGroupKeys];
       if (e.target.checked) {
-        this.selectedValues = [...all];
+        this.selectedValues = [...this.filteredValues];
       } else {
         this.selectedValues = [];
       }
@@ -109,189 +96,213 @@ export default class ResponsibleUserFilterRenderer {
     }
   }
 
-  loadValues() {
-    const column = this.params.column;
-    const colDef = column.getColDef();
+  getOptionsArray() {
+    const params = this.params || {};
+    const colDef = params.colDef || params.column?.getColDef?.() || {};
+    let options = [];
 
-    const optionsSource = this.resolveFilterOptions();
-
-    if (optionsSource && typeof optionsSource.then === 'function') {
-      return optionsSource
-        .then(options => {
-          const list = Array.isArray(options) && options.length
-            ? options
-            : this.extractOptionsFromRenderer(colDef);
-          this.buildOptionMaps(list);
-        })
-        .catch(error => {
-          console.warn('[GridViewDinamica] Failed to load responsible filter options from data source', error);
-          this.buildOptionMaps(this.extractOptionsFromRenderer(colDef));
-        });
+    if (Array.isArray(params.options)) options = params.options;
+    else if (Array.isArray(colDef.listOptions)) options = colDef.listOptions;
+    else if (typeof colDef.listOptions === 'string' && colDef.listOptions.trim()) {
+      options = colDef.listOptions.split(',').map(o => o.trim());
+    } else if (
+      colDef.dataSource &&
+      typeof colDef.dataSource.list_options === 'string' &&
+      colDef.dataSource.list_options.trim()
+    ) {
+      options = colDef.dataSource.list_options.split(',').map(o => o.trim());
     }
 
-    const list = Array.isArray(optionsSource) && optionsSource.length
-      ? optionsSource
-      : this.extractOptionsFromRenderer(colDef);
-    this.buildOptionMaps(list);
-
-    return null;
-  }
-
-  resolveFilterOptions() {
-    const filterParams = this.params?.filterParams || {};
-    if (typeof filterParams.getFilterOptions === 'function') {
-      try {
-        return filterParams.getFilterOptions(this.params);
-      } catch (error) {
-        console.warn('[GridViewDinamica] Failed to resolve responsible filter options', error);
+    const normalize = (opt) => {
+      if (typeof opt === 'object') {
+        const findKey = keys => Object.keys(opt).find(k => keys.includes(k.toLowerCase()));
+        const labelKey = findKey(['label', 'name', 'displayname', 'display_name']);
+        const valueKey = findKey(['value', 'id', 'userid', 'user_id']);
+        const typeKey = findKey(['type']);
+        const groupUsersKey = findKey(['groupusers', 'group_users']);
+        const normalized = {
+          ...opt,
+          id: opt.id ?? opt.value ?? (valueKey ? opt[valueKey] : undefined),
+          name: opt.name ?? opt.label ?? (labelKey ? opt[labelKey] : undefined),
+          type: opt.type ?? (typeKey ? opt[typeKey] : undefined)
+        };
+        if (groupUsersKey && Array.isArray(opt[groupUsersKey])) {
+          normalized.groupUsers = opt[groupUsersKey].map(normalize);
+        }
+        return normalized;
       }
-    }
-    if (Array.isArray(filterParams.options)) {
-      return filterParams.options;
-    }
-    return null;
-  }
-
-  extractOptionsFromRenderer(colDef) {
-    let crParams = colDef.cellRendererParams || {};
-    if (typeof crParams === 'function') {
-      try { crParams = crParams(this.params); } catch { crParams = {}; }
-    }
-    if (Array.isArray(crParams.options)) {
-      return crParams.options;
-    }
-    if (Array.isArray(colDef.options)) {
-      return colDef.options;
-    }
-    return [];
-  }
-
-  buildOptionMaps(options) {
-    const list = Array.isArray(options) ? options : [];
-
-    this.userKeys = [];
-    this.groupKeys = [];
-    this.filteredUserKeys = [];
-    this.filteredGroupKeys = [];
-    this.metaMap = {};
-    this.groupToUsers = {};
-    this.userToGroups = {};
-
-    const addUser = (u) => {
-      const id = u?.id ?? u?.value ?? u?.UserID;
-      if (id == null) return;
-      const key = `u-${id}`;
-      if (this.metaMap[key]) return;
-      const name = u.name || u.label || u.DisplayName || '';
-      const photo = u.photoUrl || u.PhotoURL || u.PhotoUrl || u.photo || u.image || u.img || '';
-      this.metaMap[key] = { id, type: 'user', name, photo };
-      this.userKeys.push(key);
+      return { id: opt, name: String(opt) };
     };
 
-    const addGroup = (g) => {
-      const id = g?.id ?? g?.value;
-      if (id == null) return;
-      const key = `g-${id}`;
-      const name = g.name || g.label || '';
-      const photo = g.photoUrl || g.PhotoURL || g.PhotoUrl || g.photo || g.image || g.img || '';
-      this.metaMap[key] = { id, type: 'group', name, photo };
-      this.groupKeys.push(key);
-      const members = Array.isArray(g.groupUsers) ? g.groupUsers : [];
-      this.groupToUsers[id] = [];
-      members.forEach(m => {
-        const uid = m?.id ?? m?.value ?? m?.UserID;
-        if (uid == null) return;
-        this.groupToUsers[id].push(String(uid));
-        if (!this.userToGroups[uid]) this.userToGroups[uid] = [];
-        this.userToGroups[uid].push(String(id));
-        addUser(m);
-      });
-    };
+    return (options || []).map(normalize);
+  }
 
-    list.forEach(opt => {
-      const type = String(opt?.type || '').toLowerCase();
-      if (type === 'group' || Array.isArray(opt.groupUsers)) {
-        addGroup(opt);
+  loadValues() {
+    const api = this.params.api;
+    this.userInfo = {};
+
+    const options = this.getOptionsArray();
+    options.forEach(opt => {
+      const type = String(opt.type || '').toLowerCase();
+      if (type === 'group') {
+        const groupId = opt.id;
+        const gKey = `group-${groupId}`;
+        if (!this.userInfo[gKey]) {
+          const photo = opt.photoUrl || opt.PhotoURL || opt.PhotoUrl || opt.photo || opt.image || opt.img || '';
+          this.userInfo[gKey] = { type: 'group', id: groupId, name: opt.name || '', photo };
+
+        }
+        if (Array.isArray(opt.groupUsers)) {
+          opt.groupUsers.forEach(u => {
+            const uid = u.id ?? u.value ?? u.UserID;
+            if (uid !== undefined && uid !== null) {
+              const userName = u.name ?? u.label ?? u.DisplayName ?? '';
+              const userPhoto = u.photoUrl || u.PhotoURL || u.PhotoUrl || u.photo || u.image || u.img || '';
+              const uKey = `user-${uid}`;
+              if (!this.userInfo[uKey]) {
+                this.userInfo[uKey] = { type: 'responsible', id: uid, name: userName, photo: userPhoto };
+              }
+            }
+          });
+        }
+
       } else {
-        addUser(opt);
+        const uid = opt.id;
+        const uKey = `user-${uid}`;
+        if (!this.userInfo[uKey]) {
+          const photo = opt.photoUrl || opt.PhotoURL || opt.PhotoUrl || opt.photo || opt.image || opt.img || '';
+          this.userInfo[uKey] = { type: 'responsible', id: uid, name: opt.name || '', photo };
+        }
       }
     });
 
-    const sortFn = (a, b) => {
-      const na = (this.metaMap[a]?.name || '').toLowerCase();
-      const nb = (this.metaMap[b]?.name || '').toLowerCase();
-      return na.localeCompare(nb);
+    const field = this.params.column.getColDef().field || this.params.column.getColId();
+    // Guard against calling AG Grid APIs when the grid has already been
+    // destroyed which may happen if the filter component lives longer than the
+    // grid instance.
+    if (!api || (api.isDestroyed && api.isDestroyed())) return;
+    api.forEachNode(node => {
+      const data = node.data || {};
+      const userId = this.getNestedValue(data, field);
+
+      const groupId = data.AssignedGroupID || data.GroupID || data.groupid;
+
+      if (groupId !== undefined && groupId !== null) {
+        const gKey = `group-${groupId}`;
+        if (!this.userInfo[gKey]) {
+          const gName = data.AssignedGroupName || data.GroupName || data.Group || '';
+          const gPhoto = data.groupPhoto || data.GroupPhoto || data.GroupImage || '';
+          this.userInfo[gKey] = { type: 'group', id: groupId, name: gName, photo: gPhoto };
+        }
+
+      }
+
+      if (userId !== undefined && userId !== null) {
+        const uKey = `user-${userId}`;
+        if (!this.userInfo[uKey]) {
+          const uName = data.ResponsibleUser || data.Username || data.UserName || '';
+          const uPhoto = data.photoUrl || data.PhotoUrl || data.PhotoURL || data.UserPhoto || '';
+          this.userInfo[uKey] = { type: 'responsible', id: userId, name: uName, photo: uPhoto };
+        }
+      }
+
+    });
+
+    const respKeys = Object.keys(this.userInfo).filter(k => this.userInfo[k].type === 'responsible');
+
+    const groupKeys = Object.keys(this.userInfo).filter(k => this.userInfo[k].type === 'group');
+
+    const sortByName = (a, b) => {
+      const na = (this.userInfo[a].name || '').toLowerCase();
+      const nb = (this.userInfo[b].name || '').toLowerCase();
+      return na.localeCompare(nb, undefined, { sensitivity: 'base' });
     };
-    this.userKeys.sort(sortFn);
-    this.groupKeys.sort(sortFn);
-    this.filteredUserKeys = [...this.userKeys];
-    this.filteredGroupKeys = [...this.groupKeys];
+
+    respKeys.sort(sortByName);
+    groupKeys.sort(sortByName);
+
+    this.allValues = [...respKeys, ...groupKeys];
+
+    this.filteredValues = [...this.allValues];
   }
 
   filterValues() {
-    const search = (this.searchText || '').toLowerCase();
-    if (!search) {
-      this.filteredUserKeys = [...this.userKeys];
-      this.filteredGroupKeys = [...this.groupKeys];
+    if (!this.searchText) {
+      this.filteredValues = [...this.allValues];
     } else {
-      this.filteredUserKeys = this.userKeys.filter(k =>
-        (this.metaMap[k]?.name || '').toLowerCase().includes(search)
-      );
-      this.filteredGroupKeys = this.groupKeys.filter(k =>
-        (this.metaMap[k]?.name || '').toLowerCase().includes(search)
-      );
+      const q = this.searchText.toLowerCase();
+      this.filteredValues = this.allValues.filter(key => {
+        const info = this.userInfo[key] || {};
+        const target = (info.name || '').toLowerCase();
+        return target.includes(q);
+
+      });
     }
     this.renderFilterList();
   }
 
   renderFilterList() {
-    const filteredAll = [...this.filteredUserKeys, ...this.filteredGroupKeys];
+    const selected = new Set(this.selectedValues);
     this.selectAllCheckbox.checked =
-      filteredAll.length > 0 && filteredAll.every(v => this.selectedValues.includes(v));
+      this.filteredValues.length > 0 &&
+      this.filteredValues.every(v => selected.has(v));
 
-    const renderItem = (key) => {
-      const meta = this.metaMap[key] || {};
-      const checked = this.selectedValues.includes(key) ? 'checked' : '';
-      const name = meta.name || '';
-      const photo = meta.photo;
-      const initial = name ? name.trim().charAt(0).toUpperCase() : '';
-      const avatar = meta.type === 'group'
-        ? `<span style="font-size:19px; padding-top:3px; padding-left:3px" class="material-symbols-outlined">groups</span>`
-        : (photo
-            ? `<img src="${photo}" alt="" />`
-            : `<span class="user-initial">${initial}</span>`);
-      return `
-        <label class="filter-item${this.selectedValues.includes(key) ? ' selected' : ''}">
+    const respHtml = [];
+
+    const groupHtml = [];
+
+    this.filteredValues.forEach(key => {
+      const info = this.userInfo[key] || {};
+      const checked = selected.has(key) ? 'checked' : '';
+      const name = info.name || '';
+      const photo = info.photo;
+      const initial = name.trim().charAt(0).toUpperCase();
+      const avatar = photo
+
+        ? `<img src="${photo}" alt="" />`
+        : info.type === 'group'
+          ? `<span class="user-initial material-symbols-outlined">groups</span>`
+          : `<span class="user-initial">${initial}</span>`;
+
+
+      const item = `
+        <label class="filter-item${selected.has(key) ? ' selected' : ''}">
           <input type="checkbox" value="${key}" ${checked} />
           <span class="user-option">
-            <span class="avatar-outer"><span class="avatar-middle"><span class="user-avatar">${avatar}</span></span></span>
+            <span class="avatar-outer"><span class="avatar-middle"><span class="user-avatar${info.type === 'userGroup' ? ' user-group' : ''}">${avatar}</span></span></span>
             <span class="filter-label">${name}</span>
           </span>
-        </label>`;
-    };
+        </label>
+      `;
+      if (info.type === 'group') groupHtml.push(item);
+      else respHtml.push(item);
 
-    let html = '';
-    if (this.filteredUserKeys.length) {
-      html += `<div class="filter-group-label">Responsibles</div>`;
-      html += this.filteredUserKeys.map(renderItem).join('');
+    });
+
+    const sections = [];
+    if (respHtml.length) {
+      sections.push(`<div class="filter-section"><div class="filter-section-title">Responsibles</div>${respHtml.join('')}</div>`);
     }
-    if (this.filteredGroupKeys.length) {
-      html += `<div class="filter-group-label">Groups</div>`;
-      html += this.filteredGroupKeys.map(renderItem).join('');
+
+    if (groupHtml.length) {
+      sections.push(`<div class="filter-section"><div class="filter-section-title">Groups</div>${groupHtml.join('')}</div>`);
     }
-    this.filterList.innerHTML = html;
+    this.filterList.innerHTML = sections.join('');
 
     this.filterList.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
       checkbox.addEventListener('change', (e) => {
         const value = e.target.value;
         if (e.target.checked) {
-          if (!this.selectedValues.includes(value)) this.selectedValues.push(value);
+          if (!this.selectedValues.includes(value)) {
+            this.selectedValues.push(value);
+          }
         } else {
           this.selectedValues = this.selectedValues.filter(v => v !== value);
         }
-        const all = [...this.filteredUserKeys, ...this.filteredGroupKeys];
+        const sel = new Set(this.selectedValues);
         this.selectAllCheckbox.checked =
-          all.length > 0 && all.every(v => this.selectedValues.includes(v));
+          this.filteredValues.length > 0 &&
+          this.filteredValues.every(v => sel.has(v));
         this.applyFilter();
       });
     });
@@ -305,8 +316,7 @@ export default class ResponsibleUserFilterRenderer {
     this.selectedValues = [];
     this.searchText = '';
     this.searchInput.value = '';
-    this.filteredUserKeys = [...this.userKeys];
-    this.filteredGroupKeys = [...this.groupKeys];
+    this.filteredValues = [...this.allValues];
     this.renderFilterList();
     this.params.filterChangedCallback();
   }
@@ -318,29 +328,18 @@ export default class ResponsibleUserFilterRenderer {
   doesFilterPass(params) {
     if (this.selectedValues.length === 0) return true;
     const row = params.data || {};
-    const rowUserId =
-      row.ResponsibleUserID || row.ResponsibleID || row.UserID || row.UserId || null;
-    const rowGroupId =
-      row.AssignedGroupID || row.GroupID || row.GroupId || null;
-
-    for (const key of this.selectedValues) {
-      const meta = this.metaMap[key];
-      if (!meta) continue;
-      if (meta.type === 'user') {
-        if (rowUserId != null && String(rowUserId) === String(meta.id)) return true;
-        if (rowGroupId != null) {
-          const members = this.groupToUsers[rowGroupId] || [];
-          if (members.includes(String(meta.id))) return true;
-        }
-      } else if (meta.type === 'group') {
-        if (rowGroupId != null && String(rowGroupId) === String(meta.id)) return true;
-        if (rowUserId != null) {
-          const groups = this.userToGroups[rowUserId] || [];
-          if (groups.includes(String(meta.id))) return true;
-        }
+    return this.selectedValues.some(key => {
+      const info = this.userInfo[key];
+      if (!info) return false;
+      if (info.type === 'group') {
+        const gid = row.AssignedGroupID || row.GroupID || row.groupid;
+        return String(gid) === String(info.id);
       }
-    }
-    return false;
+      const fieldName = this.params.column.getColDef().field || this.params.column.getColId();
+      const val = this.getNestedValue(row, fieldName);
+
+      return String(val) === String(info.id);
+    });
   }
 
   getModel() {
@@ -365,17 +364,7 @@ export default class ResponsibleUserFilterRenderer {
   }
 
   onNewRowsLoaded() {
-    const maybePromise = this.loadValues();
-    if (maybePromise && typeof maybePromise.then === 'function') {
-      maybePromise
-        .then(() => {
-          this.filterValues();
-        })
-        .catch(() => {
-          this.filterValues();
-        });
-    } else {
-      this.filterValues();
-    }
+    this.loadValues();
+    this.filterValues();
   }
-}
+} 
