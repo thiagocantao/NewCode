@@ -1564,6 +1564,234 @@ const remountComponent = () => {
     return [];
   };
 
+  const getWwVariableModule = () => {
+    try {
+      return window?.wwLib?.wwVariable || null;
+    } catch (error) {
+      return null;
+    }
+  };
+
+  const safeGetWwVariableValue = (identifier) => {
+    if (!identifier || typeof identifier !== 'string') return undefined;
+    const wwVariable = getWwVariableModule();
+    if (!wwVariable) return undefined;
+    const id = identifier.trim();
+    if (!id) return undefined;
+    try {
+      if (typeof wwVariable.getValue === 'function') {
+        return wwVariable.getValue(id);
+      }
+    } catch (error) {}
+    return undefined;
+  };
+
+  const normalizeParameterToken = (value) => {
+    if (typeof value !== 'string') return value;
+    const trimmed = value.trim();
+    if (!trimmed) return value;
+
+    const wwMatch = trimmed.match(/^wwvariable:(.+)$/i);
+    if (wwMatch) {
+      const resolved = safeGetWwVariableValue(wwMatch[1]);
+      return resolved !== undefined ? resolved : null;
+    }
+
+    const componentMatch = trimmed.match(/^componentvariable:(.+)$/i);
+    if (componentMatch) {
+      const resolved = safeGetWwVariableValue(componentMatch[1]);
+      return resolved !== undefined ? resolved : null;
+    }
+
+    if (trimmed.toLowerCase() === 'null') return null;
+    if (trimmed.toLowerCase() === 'undefined') return undefined;
+
+    return value;
+  };
+
+  const resolveValueConfig = (config) => {
+    if (config == null) return undefined;
+    if (typeof config !== 'object' || Array.isArray(config)) {
+      return normalizeParameterToken(config);
+    }
+
+    const normalizedType = (() => {
+      const typeCandidate =
+        config.type ??
+        config.source ??
+        config.valueType ??
+        config.kind ??
+        config.mode ??
+        config.strategy ??
+        config.valueSource;
+      return typeof typeCandidate === 'string'
+        ? typeCandidate.toLowerCase()
+        : '';
+    })();
+
+    const tryVariableIds = (...ids) => {
+      for (const raw of ids) {
+        if (typeof raw !== 'string') continue;
+        const resolved = safeGetWwVariableValue(raw);
+        if (resolved !== undefined) return resolved;
+      }
+      return undefined;
+    };
+
+    if (
+      normalizedType === 'wwvariable' ||
+      normalizedType === 'variable' ||
+      normalizedType === 'wewebvariable'
+    ) {
+      const resolved = tryVariableIds(
+        config.variableId,
+        config.valueId,
+        config.reference,
+        config.ref,
+        typeof config.value === 'string' ? config.value : undefined
+      );
+      if (resolved !== undefined) return resolved;
+    }
+
+    if (
+      normalizedType === 'componentvariable' ||
+      normalizedType === 'component-variable'
+    ) {
+      const resolved = tryVariableIds(
+        config.componentVariableId,
+        config.variableId,
+        config.valueId,
+        config.reference,
+        config.ref,
+        typeof config.value === 'string' ? config.value : undefined
+      );
+      if (resolved !== undefined) return resolved;
+    }
+
+    if (normalizedType === 'null') {
+      return null;
+    }
+
+    const explicitVariable = tryVariableIds(
+      config.variableId,
+      config.wwVariableId,
+      config.valueFromVariable,
+      config.componentVariableId
+    );
+    if (explicitVariable !== undefined) {
+      return explicitVariable;
+    }
+
+    let rawValue;
+    if ('value' in config) rawValue = config.value;
+    else if ('val' in config) rawValue = config.val;
+    else if ('defaultValue' in config) rawValue = config.defaultValue;
+    else if ('default' in config) rawValue = config.default;
+    else if ('literal' in config) rawValue = config.literal;
+    else rawValue = undefined;
+
+    if (rawValue !== undefined) {
+      if (typeof rawValue === 'object' && rawValue !== null && !Array.isArray(rawValue)) {
+        return resolveValueConfig(rawValue);
+      }
+      return normalizeParameterToken(rawValue);
+    }
+
+    if ('fallback' in config) {
+      return normalizeParameterToken(config.fallback);
+    }
+
+    return undefined;
+  };
+
+  const resolveParameterEntry = (entry) => {
+    if (entry == null) {
+      return { name: null, value: undefined };
+    }
+
+    if (Array.isArray(entry)) {
+      const [name, value] = entry;
+      return {
+        name: typeof name === 'string' ? name : null,
+        value: normalizeParameterToken(value),
+      };
+    }
+
+    if (typeof entry === 'string') {
+      const idx = entry.indexOf('=');
+      if (idx >= 0) {
+        const name = entry.slice(0, idx).trim();
+        const value = entry.slice(idx + 1);
+        return {
+          name: name || null,
+          value: normalizeParameterToken(value),
+        };
+      }
+      return { name: entry.trim() || null, value: true };
+    }
+
+    if (typeof entry === 'object') {
+      const name =
+        entry.name ??
+        entry.key ??
+        entry.param ??
+        entry.parameter ??
+        entry.id ??
+        entry.field ??
+        null;
+
+      let value = resolveValueConfig(entry);
+      if (value === undefined && 'value' in entry) {
+        value = normalizeParameterToken(entry.value);
+      }
+
+      return {
+        name: typeof name === 'string' ? name : null,
+        value,
+      };
+    }
+
+    return { name: null, value: normalizeParameterToken(entry) };
+  };
+
+  const mergeDataSourceParameters = (payload, col) => {
+    if (!col) return;
+    const ds = col.dataSource?.dataSource || col.dataSource;
+    if (!ds) return;
+
+    const paramsConfig =
+      ds.parameters ??
+      ds.params ??
+      ds.arguments ??
+      ds.payload ??
+      null;
+
+    if (!paramsConfig) return;
+
+    const assignParam = ({ name, value }) => {
+      if (!name || value === undefined) return;
+      payload[name] = value;
+    };
+
+    if (Array.isArray(paramsConfig)) {
+      paramsConfig.forEach(entry => {
+        assignParam(resolveParameterEntry(entry));
+      });
+      return;
+    }
+
+    if (typeof paramsConfig === 'object') {
+      Object.entries(paramsConfig).forEach(([key, valueConfig]) => {
+        if (!key) return;
+        if (valueConfig && typeof valueConfig === 'object' && !Array.isArray(valueConfig)) {
+          assignParam(resolveParameterEntry({ name: key, ...valueConfig }));
+        } else {
+          assignParam(resolveParameterEntry({ name: key, value: valueConfig }));
+        }
+      });
+    }
+  };
+
   const loadApiOptions = async (col, ticketId) => {
     try {
       const lang = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
@@ -1571,14 +1799,14 @@ const remountComponent = () => {
       const apiUrl = window.wwLib?.wwVariable?.getValue('1195995b-34c3-42a5-b436-693f0f4f8825');
       const apiKey = window.wwLib?.wwVariable?.getValue('d180be98-8926-47a7-b7f1-6375fbb95fa3');
       const apiAuth = window.wwLib?.wwVariable?.getValue('dfcde09f-42f3-4b5c-b2e8-4314650655db');
- const isResponsible = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase() == "RESPONSIBLEUSERID";
       const ds = col.dataSource?.dataSource || col.dataSource;
       if (!apiUrl || !ds?.functionName) return [];
 
-      const payload = {
-        ...(companyId ? { p_idcompany: companyId } : {}),
-        ...(lang ? { p_language: lang } : {}),
-      };
+      const payload = {};
+      if (companyId) payload.p_idcompany = companyId;
+      if (lang) payload.p_language = lang;
+
+      mergeDataSourceParameters(payload, col);
 
       if (ticketId !== undefined) {
         payload.p_ticketid = ticketId;
