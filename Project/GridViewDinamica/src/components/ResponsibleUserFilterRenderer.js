@@ -14,8 +14,18 @@ export default class ResponsibleUserFilterRenderer {
 
   init(params) {
     this.params = params;
-    this.loadValues();
-    this.createGui();
+    const maybePromise = this.loadValues();
+    if (maybePromise && typeof maybePromise.then === 'function') {
+      maybePromise
+        .then(() => {
+          this.createGui();
+        })
+        .catch(() => {
+          this.createGui();
+        });
+    } else {
+      this.createGui();
+    }
   }
 
   createGui() {
@@ -103,12 +113,61 @@ export default class ResponsibleUserFilterRenderer {
     const column = this.params.column;
     const colDef = column.getColDef();
 
-    // obtém opções usadas pelo editor/renderer
+    const optionsSource = this.resolveFilterOptions();
+
+    if (optionsSource && typeof optionsSource.then === 'function') {
+      return optionsSource
+        .then(options => {
+          const list = Array.isArray(options) && options.length
+            ? options
+            : this.extractOptionsFromRenderer(colDef);
+          this.buildOptionMaps(list);
+        })
+        .catch(error => {
+          console.warn('[GridViewDinamica] Failed to load responsible filter options from data source', error);
+          this.buildOptionMaps(this.extractOptionsFromRenderer(colDef));
+        });
+    }
+
+    const list = Array.isArray(optionsSource) && optionsSource.length
+      ? optionsSource
+      : this.extractOptionsFromRenderer(colDef);
+    this.buildOptionMaps(list);
+
+    return null;
+  }
+
+  resolveFilterOptions() {
+    const filterParams = this.params?.filterParams || {};
+    if (typeof filterParams.getFilterOptions === 'function') {
+      try {
+        return filterParams.getFilterOptions(this.params);
+      } catch (error) {
+        console.warn('[GridViewDinamica] Failed to resolve responsible filter options', error);
+      }
+    }
+    if (Array.isArray(filterParams.options)) {
+      return filterParams.options;
+    }
+    return null;
+  }
+
+  extractOptionsFromRenderer(colDef) {
     let crParams = colDef.cellRendererParams || {};
     if (typeof crParams === 'function') {
       try { crParams = crParams(this.params); } catch { crParams = {}; }
     }
-    const options = Array.isArray(crParams.options) ? crParams.options : [];
+    if (Array.isArray(crParams.options)) {
+      return crParams.options;
+    }
+    if (Array.isArray(colDef.options)) {
+      return colDef.options;
+    }
+    return [];
+  }
+
+  buildOptionMaps(options) {
+    const list = Array.isArray(options) ? options : [];
 
     this.userKeys = [];
     this.groupKeys = [];
@@ -149,7 +208,7 @@ export default class ResponsibleUserFilterRenderer {
       });
     };
 
-    options.forEach(opt => {
+    list.forEach(opt => {
       const type = String(opt?.type || '').toLowerCase();
       if (type === 'group' || Array.isArray(opt.groupUsers)) {
         addGroup(opt);
@@ -306,7 +365,17 @@ export default class ResponsibleUserFilterRenderer {
   }
 
   onNewRowsLoaded() {
-    this.loadValues();
-    this.filterValues();
+    const maybePromise = this.loadValues();
+    if (maybePromise && typeof maybePromise.then === 'function') {
+      maybePromise
+        .then(() => {
+          this.filterValues();
+        })
+        .catch(() => {
+          this.filterValues();
+        });
+    } else {
+      this.filterValues();
+    }
   }
-} 
+}
