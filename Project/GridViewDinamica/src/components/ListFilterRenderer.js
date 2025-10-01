@@ -25,6 +25,7 @@ export default class ListFilterRenderer {
     }
   }
 
+
   createGui() {
     this.eGui = document.createElement('div');
     this.eGui.className = 'list-filter';
@@ -233,6 +234,7 @@ export default class ListFilterRenderer {
       const match = options.find(o => o.value == rawValue);
       const baseDisplay = match ? (match.label != null ? match.label : match.value) : rawValue;
       const display = this.ensureDisplayText(baseDisplay);
+
       let formatted = display;
       try {
         if (this.isCategoryField) {
@@ -282,6 +284,156 @@ export default class ListFilterRenderer {
     this.filteredValues = [...this.allValues];
     this.selectedValues = this.selectedValues.map(value => this.resolveRawValue(value));
   }
+
+  normalizeOption(opt) {
+    if (opt === undefined) return null;
+    if (opt === null) return { value: null, label: '' };
+
+    if (typeof opt === 'object') {
+      const lowerKeyMap = Object.keys(opt).reduce((acc, key) => {
+        acc[key.toLowerCase()] = key;
+        return acc;
+      }, {});
+
+      const findKey = candidates => {
+        for (const candidate of candidates) {
+          const actual = lowerKeyMap[candidate];
+          if (actual) return actual;
+        }
+        return null;
+      };
+
+      const valueKey = findKey([
+        'value',
+        'id',
+        'key',
+        'valor',
+        'codigo',
+        'code',
+        'statusid',
+        'userid',
+      ]);
+
+      const labelKey = findKey([
+        'label',
+        'name',
+        'displayname',
+        'descricao',
+        'description',
+        'text',
+        'valor',
+        'title',
+      ]);
+
+      const rawValue = valueKey != null ? opt[valueKey] : undefined;
+      const labelSource = labelKey != null ? opt[labelKey] : undefined;
+
+      let finalValue = rawValue;
+      if (finalValue === undefined) {
+        if (labelSource !== undefined) {
+          finalValue = labelSource;
+        } else if (Array.isArray(opt.options) && opt.options.length === 1) {
+          finalValue = opt.options[0];
+        } else if (valueKey == null && labelKey == null) {
+          const firstKey = Object.keys(opt)[0];
+          if (firstKey) {
+            finalValue = opt[firstKey];
+          }
+        }
+      }
+
+      let finalLabel = labelSource;
+      if (finalLabel === undefined) {
+        finalLabel = finalValue;
+      }
+
+      let normalizedValue = finalValue !== undefined ? finalValue : '';
+      if (typeof normalizedValue === 'object') {
+        normalizedValue = this.ensureDisplayText(normalizedValue);
+      }
+
+      let normalizedLabel = finalLabel != null ? finalLabel : normalizedValue;
+      if (typeof normalizedLabel === 'object') {
+        normalizedLabel = this.ensureDisplayText(normalizedLabel);
+      }
+
+      return {
+        value: normalizedValue,
+        label: normalizedLabel,
+      };
+    }
+
+    return { value: opt, label: opt == null ? '' : String(opt) };
+  }
+
+  formatDisplayValue(display, colDef) {
+    let formatted = this.ensureDisplayText(display);
+    try {
+      if (this.isCategoryField) {
+        formatted = `<span style="height:25px; color:#303030; background:#c9edf9; border:1px solid #c9edf9; border-radius:12px; font-weight:normal; display:inline-flex; align-items:center; padding:0 12px;">${display}</span>`;
+      } else if (this.rendererConfig.useCustomFormatter && typeof this.rendererConfig.formatter === 'string') {
+        const formatterFn = new Function(
+          'value',
+          'row',
+          'colDef',
+          'getRoundedSpanColor',
+          'dateFormatter',
+          this.rendererConfig.formatter
+        );
+        formatted = formatterFn(
+          display,
+          {},
+          colDef,
+          this.getRoundedSpanColor,
+          this.dateFormatter
+        );
+      } else if (this.rendererConfig.useStyleArray && Array.isArray(this.rendererConfig.styleArray)) {
+        const styled = this.getRoundedSpanColor(display, this.rendererConfig.styleArray, colDef.FieldDB);
+        if (styled) formatted = styled;
+      }
+    } catch (e) {
+      // se der erro, mantém valor calculado
+    }
+    return formatted;
+  }
+
+  buildRawKey(raw) {
+    if (raw === null) return 'raw:null';
+    if (raw === undefined) return 'raw:undefined';
+    if (typeof raw === 'object') {
+      try {
+        return `raw:object:${JSON.stringify(raw)}`;
+      } catch (error) {
+        return `raw:object:${String(raw)}`;
+      }
+    }
+    return `raw:${typeof raw}:${String(raw)}`;
+  }
+
+  compareFormattedValues(a, b) {
+    const textA = this.stripHtml(String(a)).toLowerCase();
+    const textB = this.stripHtml(String(b)).toLowerCase();
+    return textA.localeCompare(textB, undefined, { sensitivity: 'base' });
+  }
+
+  stripHtml(html) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || '';
+  }
+
+  ensureDisplayText(value) {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    if (value instanceof Date) return this.dateFormatter(value);
+    try {
+      return JSON.stringify(value);
+    } catch (error) {
+      return String(value);
+    }
+  }
+
 
   normalizeOption(opt) {
     if (opt === undefined) return null;
@@ -588,7 +740,7 @@ export default class ListFilterRenderer {
   getGui() {
     return this.eGui;
   }
-
+  
   onNewRowsLoaded() {
     const maybePromise = this.loadValues();
     if (maybePromise && typeof maybePromise.then === 'function') {
@@ -604,3 +756,4 @@ export default class ListFilterRenderer {
     }
   }
 }
+

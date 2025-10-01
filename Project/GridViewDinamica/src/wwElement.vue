@@ -1575,14 +1575,19 @@ const remountComponent = () => {
       const ds = col.dataSource?.dataSource || col.dataSource;
       if (!apiUrl || !ds?.functionName) return [];
 
+      const payload = {
+        ...(companyId ? { p_idcompany: companyId } : {}),
+        ...(lang ? { p_language: lang } : {}),
+      };
+
+      if (ticketId !== undefined) {
+        payload.p_ticketid = ticketId;
+      }
+
       const fetchOptions = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...(companyId ? { p_idcompany: companyId } : {}),
-          ...(lang ? { p_language: lang } : {}),
-          ...(ticketId ? { p_ticketid: ticketId } : {})
-        })
+        body: JSON.stringify(payload)
       };
       if (apiKey) fetchOptions.headers['apikey'] = apiKey;
       if (apiAuth) fetchOptions.headers['Authorization'] = apiAuth;
@@ -1711,6 +1716,36 @@ const remountComponent = () => {
           });
           tasks.push(promise);
         });
+
+        const globalCacheKey = getOptionsCacheKey(col, null);
+        if (!seenKeys.has(globalCacheKey)) {
+          seenKeys.add(globalCacheKey);
+          const promise = getColumnOptions(
+            col,
+            null,
+            forceOptions
+          ).then(opts => {
+            result[colId][globalCacheKey] = opts;
+          }).catch(() => {
+            result[colId][globalCacheKey] = [];
+          });
+          tasks.push(promise);
+        }
+      } else {
+        const cacheKey = getOptionsCacheKey(col, undefined);
+        if (!seenKeys.has(cacheKey)) {
+          seenKeys.add(cacheKey);
+          const promise = getColumnOptions(
+            col,
+            undefined,
+            forceOptions
+          ).then(opts => {
+            result[colId][cacheKey] = opts;
+          }).catch(() => {
+            result[colId][cacheKey] = [];
+          });
+          tasks.push(promise);
+        }
       }
 
       if (!usesTicket || seenKeys.size === 0) {
@@ -1729,6 +1764,10 @@ const remountComponent = () => {
           tasks.push(promise);
         }
       }
+    }
+
+    if (tasks.length) {
+      await Promise.allSettled(tasks);
     }
 
     if (tasks.length) {
@@ -3359,14 +3398,16 @@ setTimeout(() => {
     };
 
     const hydrateOptionsForTicket = async ticketId => {
-      const cacheKey = this.getOptionsCacheKey(col, ticketId);
+      const requestTicketId = usesTicket ? null : ticketId;
+      const cacheKey = this.getOptionsCacheKey(col, requestTicketId);
       let options = store[cacheKey];
       const fetchedKeys = store.__fetchedKeys;
       const hasFetchedBefore = fetchedKeys?.has(cacheKey);
 
       if (!Array.isArray(options) || (!options.length && !hasFetchedBefore)) {
         try {
-          options = await this.getColumnOptions(col, ticketId, { force: true });
+          options = await this.getColumnOptions(col, requestTicketId, { force: true });
+
         } catch (error) {
           console.warn('[GridViewDinamica] Failed to load filter options from data source', error);
           options = [];
@@ -3386,24 +3427,20 @@ setTimeout(() => {
         list.forEach(pushOption);
       }
     };
+    const ticketsToFetch = usesTicket ? [null] : [undefined];
 
-    const ticketsToFetch = new Set();
-    if (usesTicket) {
-      const rows = Array.isArray(this.rowData) ? this.rowData : [];
-      rows.forEach(row => {
-        if (row && row.TicketID != null) {
-          ticketsToFetch.add(row.TicketID);
-        }
-      });
-      ticketsToFetch.add(undefined);
-    } else {
-      ticketsToFetch.add(undefined);
-    }
+    const tasks = ticketsToFetch.map(ticketId => hydrateOptionsForTicket(ticketId));
 
-    const tasks = Array.from(ticketsToFetch).map(ticketId => hydrateOptionsForTicket(ticketId));
     if (tasks.length) {
       await Promise.allSettled(tasks);
     }
+
+    Object.entries(store).forEach(([cacheKey, list]) => {
+      if (cacheKey === '__fetchedKeys') return;
+      if (Array.isArray(list)) {
+        list.forEach(pushOption);
+      }
+    });
 
     if (!aggregated.length && lazyStatus) {
       const fallback = this.buildLazyStatusFallbackOptions(col);
