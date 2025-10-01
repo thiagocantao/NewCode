@@ -179,7 +179,7 @@ export default class ListFilterRenderer {
     const zipped = normalized.map(opt => {
       const rawValue = opt.value;
       const display = opt.label != null ? opt.label : opt.value;
-      const formatted = this.formatDisplayValue(display, colDef);
+      const formatted = this.formatDisplayValue(this.ensureDisplayText(display), colDef);
       return { raw: rawValue, formatted };
     });
 
@@ -231,8 +231,8 @@ export default class ListFilterRenderer {
 
       const options = (optionsArr || []).map(opt => this.normalizeOption(opt));
       const match = options.find(o => o.value == rawValue);
-      const display = match ? (match.label != null ? match.label : match.value) : rawValue;
-
+      const baseDisplay = match ? (match.label != null ? match.label : match.value) : rawValue;
+      const display = this.ensureDisplayText(baseDisplay);
       let formatted = display;
       try {
         if (this.isCategoryField) {
@@ -285,23 +285,89 @@ export default class ListFilterRenderer {
 
   normalizeOption(opt) {
     if (opt === undefined) return null;
-    if (typeof opt === 'object' && opt !== null) {
-      const findKey = (object, key) => Object.keys(object).find(k => k.toLowerCase() === key);
-      const labelKey = findKey(opt, 'label') || findKey(opt, 'name') || findKey(opt, 'displayname') || null;
-      const valueKey = findKey(opt, 'value') || findKey(opt, 'id') || findKey(opt, 'key') || null;
-      const rawValue = valueKey ? opt[valueKey] : opt.value;
-      const label = labelKey ? opt[labelKey] : (valueKey ? opt[valueKey] : opt.label || opt.name);
-      const finalValue = rawValue !== undefined ? rawValue : label;
+    if (opt === null) return { value: null, label: '' };
+
+    if (typeof opt === 'object') {
+      const lowerKeyMap = Object.keys(opt).reduce((acc, key) => {
+        acc[key.toLowerCase()] = key;
+        return acc;
+      }, {});
+
+      const findKey = candidates => {
+        for (const candidate of candidates) {
+          const actual = lowerKeyMap[candidate];
+          if (actual) return actual;
+        }
+        return null;
+      };
+
+      const valueKey = findKey([
+        'value',
+        'id',
+        'key',
+        'valor',
+        'codigo',
+        'code',
+        'statusid',
+        'userid',
+      ]);
+
+      const labelKey = findKey([
+        'label',
+        'name',
+        'displayname',
+        'descricao',
+        'description',
+        'text',
+        'valor',
+        'title',
+      ]);
+
+      const rawValue = valueKey != null ? opt[valueKey] : undefined;
+      const labelSource = labelKey != null ? opt[labelKey] : undefined;
+
+      let finalValue = rawValue;
+      if (finalValue === undefined) {
+        if (labelSource !== undefined) {
+          finalValue = labelSource;
+        } else if (Array.isArray(opt.options) && opt.options.length === 1) {
+          finalValue = opt.options[0];
+        } else if (valueKey == null && labelKey == null) {
+          const firstKey = Object.keys(opt)[0];
+          if (firstKey) {
+            finalValue = opt[firstKey];
+          }
+        }
+      }
+
+      let finalLabel = labelSource;
+      if (finalLabel === undefined) {
+        finalLabel = finalValue;
+      }
+
+      let normalizedValue = finalValue !== undefined ? finalValue : '';
+      if (typeof normalizedValue === 'object') {
+        normalizedValue = this.ensureDisplayText(normalizedValue);
+      }
+
+      let normalizedLabel = finalLabel != null ? finalLabel : normalizedValue;
+      if (typeof normalizedLabel === 'object') {
+        normalizedLabel = this.ensureDisplayText(normalizedLabel);
+      }
+
       return {
-        value: finalValue,
-        label: label != null ? label : finalValue,
+        value: normalizedValue,
+        label: normalizedLabel,
       };
     }
+
+
     return { value: opt, label: opt == null ? '' : String(opt) };
   }
 
   formatDisplayValue(display, colDef) {
-    let formatted = display;
+    let formatted = this.ensureDisplayText(display);
+
     try {
       if (this.isCategoryField) {
         formatted = `<span style="height:25px; color:#303030; background:#c9edf9; border:1px solid #c9edf9; border-radius:12px; font-weight:normal; display:inline-flex; align-items:center; padding:0 12px;">${display}</span>`;
@@ -354,6 +420,18 @@ export default class ListFilterRenderer {
     const tmp = document.createElement('div');
     tmp.innerHTML = html;
     return tmp.textContent || tmp.innerText || '';
+  }
+  
+  ensureDisplayText(value) {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    if (value instanceof Date) return this.dateFormatter(value);
+    try {
+      return JSON.stringify(value);
+    } catch (error) {
+      return String(value);
+    }
   }
 
   filterValues() {
@@ -435,10 +513,11 @@ export default class ListFilterRenderer {
       const formattedValue = this.formattedValues[idx] || rawValue;
       const checked = this.selectedValues.includes(rawValue) ? 'checked' : '';
       const itemClass = this.selectedValues.includes(rawValue) ? ' selected' : '';
+      const title = this.stripHtml(this.ensureDisplayText(formattedValue)).replace(/"/g, '&quot;');
       return `
         <label class="filter-item${itemClass}">
           <input type="checkbox" value="${idx}" data-raw-index="${idx}" ${checked} />
-          <span class="filter-label" title="">${formattedValue}</span>
+          <span class="filter-label" title="${title}">${formattedValue}</span>
         </label>
       `;
     }).join('');
