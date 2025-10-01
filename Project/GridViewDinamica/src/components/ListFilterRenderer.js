@@ -6,25 +6,13 @@ export default class ListFilterRenderer {
     this.filteredValues = [];
     this.selectAll = false;
     this.formattedValues = [];
-    this.rendererConfig = {};
   }
 
   init(params) {
     this.params = params;
-    const maybePromise = this.loadValues();
-    if (maybePromise && typeof maybePromise.then === 'function') {
-      maybePromise
-        .then(() => {
-          this.createGui();
-        })
-        .catch(() => {
-          this.createGui();
-        });
-    } else {
-      this.createGui();
-    }
+    this.loadValues();
+    this.createGui();
   }
-
 
   createGui() {
     this.eGui = document.createElement('div');
@@ -110,113 +98,40 @@ export default class ListFilterRenderer {
     const api = this.params.api;
     const column = this.params.column;
     const colDef = column.getColDef();
+    const field = colDef.field || column.getColId();
 
     const tag = (colDef.TagControl || colDef.tagControl || colDef.tagcontrol || '').toString().toUpperCase();
     const identifier = (colDef.FieldDB || '').toString().toUpperCase();
     const categoryTags = ['CATEGORYID','SUBCATEGORYID','CATEGORYLEVEL3ID'];
     this.isCategoryField = categoryTags.includes(tag) || categoryTags.includes(identifier);
 
-    this.rendererConfig = this.params.filterParams?.rendererConfig || {};
-
-    const optionsSource = this.resolveFilterOptions();
-
-    if (optionsSource && typeof optionsSource.then === 'function') {
-      return optionsSource
-        .then(options => {
-          const populated = this.populateFromExplicitOptions(options, colDef);
-          if (!populated) {
-            this.populateFromRows(api, column, colDef);
-          }
-        })
-        .catch(error => {
-          console.warn('[GridViewDinamica] Failed to load filter options from data source', error);
-          this.populateFromRows(api, column, colDef);
-        });
-    }
-
-    const populated = this.populateFromExplicitOptions(optionsSource, colDef);
-    if (!populated) {
-      this.populateFromRows(api, column, colDef);
-    }
-
-    return null;
-  }
-
-  resolveFilterOptions() {
-    const filterParams = this.params?.filterParams || {};
-    if (typeof filterParams.getFilterOptions === 'function') {
-      try {
-        return filterParams.getFilterOptions(this.params);
-      } catch (error) {
-        console.warn('[GridViewDinamica] Failed to resolve filter options from filterParams', error);
+    const normalize = (opt) => {
+      if (typeof opt === 'object') {
+        const findKey = key => Object.keys(opt).find(k => k.toLowerCase() === key);
+        const labelKey = findKey('label') || findKey('name');
+        const valueKey = findKey('value') || findKey('id');
+        return {
+          ...opt,
+          value: valueKey ? opt[valueKey] : opt.value,
+          label: labelKey ? opt[labelKey] : opt.label || opt.name
+        };
       }
-    }
-    if (Array.isArray(filterParams.options)) {
-      return filterParams.options;
-    }
-    return null;
-  }
-
-  populateFromExplicitOptions(optionsInput, colDef) {
-    const options = Array.isArray(optionsInput) ? optionsInput : [];
-    if (!options.length) {
-      this.allValues = [];
-      this.formattedValues = [];
-      this.filteredValues = [];
-      return false;
-    }
-
-    const normalized = options
-      .map(opt => this.normalizeOption(opt))
-      .filter(opt => opt && (opt.value !== undefined || opt.value === null));
-
-    if (!normalized.length) {
-      this.allValues = [];
-      this.formattedValues = [];
-      this.filteredValues = [];
-      return false;
-    }
-
-    const zipped = normalized.map(opt => {
-      const rawValue = opt.value;
-      const display = opt.label != null ? opt.label : opt.value;
-      const formatted = this.formatDisplayValue(this.ensureDisplayText(display), colDef);
-      return { raw: rawValue, formatted };
-    });
-
-    const uniqueMap = new Map();
-    zipped.forEach(item => {
-      const key = this.buildRawKey(item.raw);
-      if (!uniqueMap.has(key)) {
-        uniqueMap.set(key, item);
-      }
-    });
-
-    const unique = Array.from(uniqueMap.values());
-    unique.sort((a, b) => this.compareFormattedValues(a.formatted, b.formatted));
-
-    this.allValues = unique.map(item => item.raw);
-    this.formattedValues = unique.map(item => item.formatted);
-    this.filteredValues = [...this.allValues];
-    this.selectedValues = this.selectedValues.map(value => this.resolveRawValue(value));
-    return true;
-  }
-
-  populateFromRows(api, column, colDef) {
-    const field = colDef.field || column.getColId();
+      return { value: opt, label: String(opt) };
+    };
 
     this.allValues = [];
     this.formattedValues = [];
-
     api.forEachNode(node => {
       if (!node.data) return;
       const rawValue = this.getNestedValue(node.data, field);
       if (rawValue === undefined || rawValue === null) return;
 
+      // Resolve renderer params (pode ser função)
       const rendererParams = typeof colDef.cellRendererParams === 'function'
         ? colDef.cellRendererParams({ data: node.data, value: rawValue, colDef })
         : colDef.cellRendererParams || {};
 
+      // Obtém opções para mapear valor -> label
       let optionsArr = [];
       if (Array.isArray(rendererParams.options)) {
         optionsArr = rendererParams.options;
@@ -230,11 +145,11 @@ export default class ListFilterRenderer {
         optionsArr = colDef.dataSource.list_options.split(',').map(o => o.trim());
       }
 
-      const options = (optionsArr || []).map(opt => this.normalizeOption(opt));
+      const options = (optionsArr || []).map(normalize);
       const match = options.find(o => o.value == rawValue);
-      const baseDisplay = match ? (match.label != null ? match.label : match.value) : rawValue;
-      const display = this.ensureDisplayText(baseDisplay);
+      const display = match ? (match.label != null ? match.label : match.value) : rawValue;
 
+      // Aplica formatter ou style array conforme editor
       let formatted = display;
       try {
         if (this.isCategoryField) {
@@ -266,324 +181,34 @@ export default class ListFilterRenderer {
       this.allValues.push(rawValue);
       this.formattedValues.push(formatted);
     });
-
-    const seen = new Map();
-    const unique = [];
+    // Remover duplicatas mantendo o mapeamento
+    const seen = new Set();
+    const uniqueRaw = [];
+    const uniqueFormatted = [];
     this.allValues.forEach((raw, idx) => {
-      const key = this.buildRawKey(raw);
-      if (!seen.has(key)) {
-        seen.set(key, true);
-        unique.push({ raw, formatted: this.formattedValues[idx] });
+      if (!seen.has(raw)) {
+        seen.add(raw);
+        uniqueRaw.push(raw);
+        uniqueFormatted.push(this.formattedValues[idx]);
       }
     });
-
-    unique.sort((a, b) => this.compareFormattedValues(a.formatted, b.formatted));
-
-    this.allValues = unique.map(item => item.raw);
-    this.formattedValues = unique.map(item => item.formatted);
+    // Função utilitária para extrair texto puro de HTML
+    function stripHtml(html) {
+      const tmp = document.createElement('div');
+      tmp.innerHTML = html;
+      return tmp.textContent || tmp.innerText || '';
+    }
+    // Ordena os valores alfabeticamente pelo texto visível formatado
+    const zipped = uniqueRaw.map((raw, idx) => ({ raw, formatted: uniqueFormatted[idx] }));
+    zipped.sort((a, b) => {
+      const textA = stripHtml(String(a.formatted)).toLowerCase();
+      const textB = stripHtml(String(b.formatted)).toLowerCase();
+      return textA.localeCompare(textB, undefined, { sensitivity: 'base' });
+    });
+    this.allValues = zipped.map(z => z.raw);
+    this.formattedValues = zipped.map(z => z.formatted);
     this.filteredValues = [...this.allValues];
     this.selectedValues = this.selectedValues.map(value => this.resolveRawValue(value));
-  }
-
-  normalizeOption(opt) {
-    if (opt === undefined) return null;
-    if (opt === null) return { value: null, label: '' };
-
-    if (typeof opt === 'object') {
-      const lowerKeyMap = Object.keys(opt).reduce((acc, key) => {
-        acc[key.toLowerCase()] = key;
-        return acc;
-      }, {});
-
-      const findKey = candidates => {
-        for (const candidate of candidates) {
-          const actual = lowerKeyMap[candidate];
-          if (actual) return actual;
-        }
-        return null;
-      };
-
-      const valueKey = findKey([
-        'value',
-        'id',
-        'key',
-        'valor',
-        'codigo',
-        'code',
-        'statusid',
-        'userid',
-      ]);
-
-      const labelKey = findKey([
-        'label',
-        'name',
-        'displayname',
-        'descricao',
-        'description',
-        'text',
-        'valor',
-        'title',
-      ]);
-
-      const rawValue = valueKey != null ? opt[valueKey] : undefined;
-      const labelSource = labelKey != null ? opt[labelKey] : undefined;
-
-      let finalValue = rawValue;
-      if (finalValue === undefined) {
-        if (labelSource !== undefined) {
-          finalValue = labelSource;
-        } else if (Array.isArray(opt.options) && opt.options.length === 1) {
-          finalValue = opt.options[0];
-        } else if (valueKey == null && labelKey == null) {
-          const firstKey = Object.keys(opt)[0];
-          if (firstKey) {
-            finalValue = opt[firstKey];
-          }
-        }
-      }
-
-      let finalLabel = labelSource;
-      if (finalLabel === undefined) {
-        finalLabel = finalValue;
-      }
-
-      let normalizedValue = finalValue !== undefined ? finalValue : '';
-      if (typeof normalizedValue === 'object') {
-        normalizedValue = this.ensureDisplayText(normalizedValue);
-      }
-
-      let normalizedLabel = finalLabel != null ? finalLabel : normalizedValue;
-      if (typeof normalizedLabel === 'object') {
-        normalizedLabel = this.ensureDisplayText(normalizedLabel);
-      }
-
-      return {
-        value: normalizedValue,
-        label: normalizedLabel,
-      };
-    }
-
-    return { value: opt, label: opt == null ? '' : String(opt) };
-  }
-
-  formatDisplayValue(display, colDef) {
-    let formatted = this.ensureDisplayText(display);
-    try {
-      if (this.isCategoryField) {
-        formatted = `<span style="height:25px; color:#303030; background:#c9edf9; border:1px solid #c9edf9; border-radius:12px; font-weight:normal; display:inline-flex; align-items:center; padding:0 12px;">${display}</span>`;
-      } else if (this.rendererConfig.useCustomFormatter && typeof this.rendererConfig.formatter === 'string') {
-        const formatterFn = new Function(
-          'value',
-          'row',
-          'colDef',
-          'getRoundedSpanColor',
-          'dateFormatter',
-          this.rendererConfig.formatter
-        );
-        formatted = formatterFn(
-          display,
-          {},
-          colDef,
-          this.getRoundedSpanColor,
-          this.dateFormatter
-        );
-      } else if (this.rendererConfig.useStyleArray && Array.isArray(this.rendererConfig.styleArray)) {
-        const styled = this.getRoundedSpanColor(display, this.rendererConfig.styleArray, colDef.FieldDB);
-        if (styled) formatted = styled;
-      }
-    } catch (e) {
-      // se der erro, mantém valor calculado
-    }
-    return formatted;
-  }
-
-  buildRawKey(raw) {
-    if (raw === null) return 'raw:null';
-    if (raw === undefined) return 'raw:undefined';
-    if (typeof raw === 'object') {
-      try {
-        return `raw:object:${JSON.stringify(raw)}`;
-      } catch (error) {
-        return `raw:object:${String(raw)}`;
-      }
-    }
-    return `raw:${typeof raw}:${String(raw)}`;
-  }
-
-  compareFormattedValues(a, b) {
-    const textA = this.stripHtml(String(a)).toLowerCase();
-    const textB = this.stripHtml(String(b)).toLowerCase();
-    return textA.localeCompare(textB, undefined, { sensitivity: 'base' });
-  }
-
-  stripHtml(html) {
-    const tmp = document.createElement('div');
-    tmp.innerHTML = html;
-    return tmp.textContent || tmp.innerText || '';
-  }
-
-  ensureDisplayText(value) {
-    if (value === null || value === undefined) return '';
-    if (typeof value === 'string') return value;
-    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
-    if (value instanceof Date) return this.dateFormatter(value);
-    try {
-      return JSON.stringify(value);
-    } catch (error) {
-      return String(value);
-    }
-  }
-
-
-  normalizeOption(opt) {
-    if (opt === undefined) return null;
-    if (opt === null) return { value: null, label: '' };
-
-    if (typeof opt === 'object') {
-      const lowerKeyMap = Object.keys(opt).reduce((acc, key) => {
-        acc[key.toLowerCase()] = key;
-        return acc;
-      }, {});
-
-      const findKey = candidates => {
-        for (const candidate of candidates) {
-          const actual = lowerKeyMap[candidate];
-          if (actual) return actual;
-        }
-        return null;
-      };
-
-      const valueKey = findKey([
-        'value',
-        'id',
-        'key',
-        'valor',
-        'codigo',
-        'code',
-        'statusid',
-        'userid',
-      ]);
-
-      const labelKey = findKey([
-        'label',
-        'name',
-        'displayname',
-        'descricao',
-        'description',
-        'text',
-        'valor',
-        'title',
-      ]);
-
-      const rawValue = valueKey != null ? opt[valueKey] : undefined;
-      const labelSource = labelKey != null ? opt[labelKey] : undefined;
-
-      let finalValue = rawValue;
-      if (finalValue === undefined) {
-        if (labelSource !== undefined) {
-          finalValue = labelSource;
-        } else if (Array.isArray(opt.options) && opt.options.length === 1) {
-          finalValue = opt.options[0];
-        } else if (valueKey == null && labelKey == null) {
-          const firstKey = Object.keys(opt)[0];
-          if (firstKey) {
-            finalValue = opt[firstKey];
-          }
-        }
-      }
-
-      let finalLabel = labelSource;
-      if (finalLabel === undefined) {
-        finalLabel = finalValue;
-      }
-
-      let normalizedValue = finalValue !== undefined ? finalValue : '';
-      if (typeof normalizedValue === 'object') {
-        normalizedValue = this.ensureDisplayText(normalizedValue);
-      }
-
-      let normalizedLabel = finalLabel != null ? finalLabel : normalizedValue;
-      if (typeof normalizedLabel === 'object') {
-        normalizedLabel = this.ensureDisplayText(normalizedLabel);
-      }
-
-      return {
-        value: normalizedValue,
-        label: normalizedLabel,
-      };
-    }
-
-
-    return { value: opt, label: opt == null ? '' : String(opt) };
-  }
-
-  formatDisplayValue(display, colDef) {
-    let formatted = this.ensureDisplayText(display);
-
-    try {
-      if (this.isCategoryField) {
-        formatted = `<span style="height:25px; color:#303030; background:#c9edf9; border:1px solid #c9edf9; border-radius:12px; font-weight:normal; display:inline-flex; align-items:center; padding:0 12px;">${display}</span>`;
-      } else if (this.rendererConfig.useCustomFormatter && typeof this.rendererConfig.formatter === 'string') {
-        const formatterFn = new Function(
-          'value',
-          'row',
-          'colDef',
-          'getRoundedSpanColor',
-          'dateFormatter',
-          this.rendererConfig.formatter
-        );
-        formatted = formatterFn(
-          display,
-          {},
-          colDef,
-          this.getRoundedSpanColor,
-          this.dateFormatter
-        );
-      } else if (this.rendererConfig.useStyleArray && Array.isArray(this.rendererConfig.styleArray)) {
-        const styled = this.getRoundedSpanColor(display, this.rendererConfig.styleArray, colDef.FieldDB);
-        if (styled) formatted = styled;
-      }
-    } catch (e) {
-      // se der erro, mantém valor calculado
-    }
-    return formatted;
-  }
-
-  buildRawKey(raw) {
-    if (raw === null) return 'raw:null';
-    if (raw === undefined) return 'raw:undefined';
-    if (typeof raw === 'object') {
-      try {
-        return `raw:object:${JSON.stringify(raw)}`;
-      } catch (error) {
-        return `raw:object:${String(raw)}`;
-      }
-    }
-    return `raw:${typeof raw}:${String(raw)}`;
-  }
-
-  compareFormattedValues(a, b) {
-    const textA = this.stripHtml(String(a)).toLowerCase();
-    const textB = this.stripHtml(String(b)).toLowerCase();
-    return textA.localeCompare(textB, undefined, { sensitivity: 'base' });
-  }
-
-  stripHtml(html) {
-    const tmp = document.createElement('div');
-    tmp.innerHTML = html;
-    return tmp.textContent || tmp.innerText || '';
-  }
-  
-  ensureDisplayText(value) {
-    if (value === null || value === undefined) return '';
-    if (typeof value === 'string') return value;
-    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
-    if (value instanceof Date) return this.dateFormatter(value);
-    try {
-      return JSON.stringify(value);
-    } catch (error) {
-      return String(value);
-    }
   }
 
   filterValues() {
@@ -665,11 +290,10 @@ export default class ListFilterRenderer {
       const formattedValue = this.formattedValues[idx] || rawValue;
       const checked = this.selectedValues.includes(rawValue) ? 'checked' : '';
       const itemClass = this.selectedValues.includes(rawValue) ? ' selected' : '';
-      const title = this.stripHtml(this.ensureDisplayText(formattedValue)).replace(/"/g, '&quot;');
       return `
         <label class="filter-item${itemClass}">
           <input type="checkbox" value="${idx}" data-raw-index="${idx}" ${checked} />
-          <span class="filter-label" title="${title}">${formattedValue}</span>
+          <span class="filter-label" title="">${formattedValue}</span>
         </label>
       `;
     }).join('');
@@ -740,20 +364,9 @@ export default class ListFilterRenderer {
   getGui() {
     return this.eGui;
   }
-  
-  onNewRowsLoaded() {
-    const maybePromise = this.loadValues();
-    if (maybePromise && typeof maybePromise.then === 'function') {
-      maybePromise
-        .then(() => {
-          this.filterValues();
-        })
-        .catch(() => {
-          this.filterValues();
-        });
-    } else {
-      this.filterValues();
-    }
-  }
-}
 
+  onNewRowsLoaded() {
+    this.loadValues();
+    this.filterValues();
+  }
+} 
