@@ -298,6 +298,9 @@
   const HIDE_SAVE_BUTTON_VARIABLE_ID = "09c5aacd-b697-4e04-9571-d5db1f671877";
   const EXTERNAL_STATE_VAR_ID = "74a13796-f64f-47d6-8e5f-4fb4700fd94b";
 
+  let statusFilterOptionsCache = null;
+  let statusFilterOptionsPromise = null;
+
   export default {
   components: {
   AgGridVue,
@@ -3563,6 +3566,9 @@ setTimeout(() => {
 
     const lazyStatus = this.shouldLazyLoadStatus(col);
     const usesTicket = this.usesTicketId(col);
+    const isStatusListFilter =
+      lazyStatus &&
+      (col.filter === 'agListColumnFilter' || col.cellDataType === 'list');
 
     const ensureColStore = () => {
       if (!this.columnOptions) {
@@ -3586,6 +3592,24 @@ setTimeout(() => {
     const store = ensureColStore();
     const aggregated = [];
     const seen = new Set();
+
+    if (isStatusListFilter) {
+      let statusOptions = [];
+      try {
+        statusOptions = await this.fetchStatusFilterOptions();
+      } catch (error) {
+        console.warn('[GridViewDinamica] Failed to fetch StatusID filter options', error);
+      }
+
+      if (Array.isArray(statusOptions) && statusOptions.length) {
+        const cacheKey = this.getOptionsCacheKey(col, null);
+        store[cacheKey] = statusOptions;
+        if (store.__fetchedKeys instanceof Set) {
+          store.__fetchedKeys.delete(cacheKey);
+        }
+        return statusOptions;
+      }
+    }
 
     const pushOption = option => {
       if (option === undefined) return;
@@ -3676,6 +3700,157 @@ setTimeout(() => {
     }
 
     return aggregated;
+  },
+  async fetchStatusFilterOptions(force = false) {
+    if (!force && Array.isArray(statusFilterOptionsCache)) {
+      return statusFilterOptionsCache;
+    }
+    if (!force && statusFilterOptionsPromise) {
+      return statusFilterOptionsPromise;
+    }
+
+    const request = (async () => {
+      try {
+        const wwLibRef = window?.wwLib;
+        const getVarValue = id => {
+          try {
+            return wwLibRef?.wwVariable?.getValue?.(id);
+          } catch (error) {
+            return undefined;
+          }
+        };
+
+        const companyId = getVarValue('5d099f04-cd42-41fd-94ad-22d4de368c3a');
+        const language = getVarValue('aa44dc4c-476b-45e9-a094-16687e063342');
+        const loggedUserId = getVarValue('fc54ab80-1a04-4cfe-a504-793bdcfce5dd');
+        const apiUrl = getVarValue('1195995b-34c3-42a5-b436-693f0f4f8825');
+        const apiKey = getVarValue('d180be98-8926-47a7-b7f1-6375fbb95fa3');
+        const apiAuth = getVarValue('dfcde09f-42f3-4b5c-b2e8-4314650655db');
+
+        if (!apiUrl || typeof apiUrl !== 'string') {
+          return [];
+        }
+
+        const endpoint = apiUrl.endsWith('/') ? `${apiUrl}getTicketStatus` : `${apiUrl}/getTicketStatus`;
+        const payload = {
+          p_idcompany: companyId ?? null,
+          p_language: language ?? null,
+          p_tagcontrolticketmodel: null,
+          p_ticketid: null,
+          p_loggeduserid: loggedUserId ?? null,
+        };
+
+        const headers = { 'Content-Type': 'application/json' };
+        if (apiKey) headers.apikey = apiKey;
+        if (apiAuth) headers.Authorization = apiAuth;
+
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (!Array.isArray(data)) {
+          return [];
+        }
+
+        const normalizeOption = item => {
+          if (!item || typeof item !== 'object') {
+            return null;
+          }
+
+          const value =
+            item.StatusID ??
+            item.statusId ??
+            item.id ??
+            item.Id ??
+            item.ID ??
+            item.value ??
+            item.Value ??
+            item.StatusNumber ??
+            item.statusNumber ??
+            item.statusTagControl ??
+            item.StatusTagControl ??
+            item.status ??
+            item.Status ??
+            null;
+
+          const labelSource =
+            item.status ??
+            item.Status ??
+            item.label ??
+            item.Label ??
+            item.StatusName ??
+            item.statusName ??
+            item.StatusDescription ??
+            item.statusDescription ??
+            item.statusClassTitle ??
+            item.StatusClassTitle ??
+            item.Description ??
+            item.description ??
+            item.Name ??
+            item.name ??
+            item.Valor ??
+            item.valor ??
+            value;
+
+          if (value == null && (labelSource == null || labelSource === '')) {
+            return null;
+          }
+
+          const normalizedValue =
+            value != null ? value : labelSource != null ? String(labelSource) : null;
+          const normalizedLabel = labelSource != null ? String(labelSource) : '';
+
+          return {
+            ...item,
+            value: normalizedValue,
+            label: normalizedLabel,
+          };
+        };
+
+        const seen = new Set();
+        const result = [];
+        data.forEach(item => {
+          const normalized = normalizeOption(item);
+          if (!normalized) return;
+          const key = normalized.value != null ? String(normalized.value) : normalized.label;
+          if (seen.has(key)) return;
+          seen.add(key);
+          result.push(normalized);
+        });
+
+        result.sort((a, b) => {
+          const aOrder = a.StatusNumber ?? a.statusNumber ?? Number.MAX_SAFE_INTEGER;
+          const bOrder = b.StatusNumber ?? b.statusNumber ?? Number.MAX_SAFE_INTEGER;
+          if (aOrder !== bOrder) {
+            return aOrder - bOrder;
+          }
+          return String(a.label).localeCompare(String(b.label));
+        });
+
+        return result;
+      } catch (error) {
+        console.warn('[GridViewDinamica] Failed to load StatusID filter options from API', error);
+        return [];
+      }
+    })();
+
+    statusFilterOptionsPromise = request
+      .then(result => {
+        statusFilterOptionsCache = result;
+        return result;
+      })
+      .finally(() => {
+        statusFilterOptionsPromise = null;
+      });
+
+    return statusFilterOptionsPromise;
   },
   deselectAllRows() {
     if (this.gridApi) {
