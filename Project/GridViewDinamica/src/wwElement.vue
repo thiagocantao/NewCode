@@ -296,10 +296,6 @@
   ModuleRegistry.registerModules([AllCommunityModule]);
 
   const HIDE_SAVE_BUTTON_VARIABLE_ID = "09c5aacd-b697-4e04-9571-d5db1f671877";
-  const EXTERNAL_STATE_VAR_ID = "74a13796-f64f-47d6-8e5f-4fb4700fd94b";
-
-  let statusFilterOptionsCache = null;
-  let statusFilterOptionsPromise = null;
 
   export default {
   components: {
@@ -882,169 +878,6 @@ else Promise.resolve().then(fn);
       );
     }
   };
-  const writeExternalStateToWW = (reason) => {
-    try {
-      const api = gridApi.value;
-      const colApi = (typeof getColApi === 'function') ? getColApi() : null;
-      if (!api) return;
-
-      // Headers from current displayed order
-      const allCols = (api.getAllGridColumns?.() || []).filter(c => c);
-      const headers = allCols
-        .filter(col => col && col.getColId && col.getColId() !== 'ag-Grid-SelectionColumn')
-        .map((col, idx) => {
-          const def = (col.getColDef && col.getColDef()) || {};
-          const toPx = v => (v == null ? null : (typeof v === 'number' ? `${v}px` : String(v)));
-          return {
-            id: def.id || def.colId || (col.getColId ? col.getColId() : null),
-            gridfieldID: def.gridfieldID ?? def.gridfieldId ?? null,
-            headerName: def.headerName ?? null,
-            field: def.field ?? null,
-            cellDataType: def.cellDataType ?? null,
-            filter: (typeof def.filter === 'string') ? def.filter : (def.filter ?? null),
-            sortable: !!def.sortable,
-            textAlign: def.textAlign ?? 'left',
-            headerAlign: def.headerAlign ?? 'left',
-            minWidth: toPx(def.minWidth),
-            editable: (typeof def.editable === 'boolean') ? def.editable : (def.editable ?? null),
-            pinned: (col.getPinned ? col.getPinned() : (def.pinned ?? null)) || null,
-            FieldDB: def.FieldDB ?? null,
-            positionInGrid: idx + 1,
-            useCustomFormatter: !!def.useCustomFormatter,
-            formatter: def.formatter ?? null,
-            dateFormatter: def.dateFormatter ?? null,
-            name: def.headerName ?? null,
-            type: def.type ?? 'item',
-            tagControl: def.TagControl ?? def.tagControl ?? null,
-            dataSource: def.dataSource ?? null,
-            flex: def.flex ?? null
-          };
-        });
-
-      // Filters as array
-      const model = api.getFilterModel?.() || {};
-      const filters = Object.entries(model).map(([colId, fm]) => ({ colId, ...(fm || {}) }));
-
-      // Sort (first criterion)
-      let sortModel = (api.getSortModel?.() || []).filter(s => s && s.colId);
-      if (!sortModel.length && colApi && typeof colApi.getColumnState === 'function') {
-        const colState = colApi.getColumnState() || [];
-        sortModel = colState
-          .filter(c => c && c.sort && c.colId)
-          .sort((a, b) => {
-            const ai = (a.sortIndex != null) ? a.sortIndex : Number.MAX_SAFE_INTEGER;
-            const bi = (b.sortIndex != null) ? b.sortIndex : Number.MAX_SAFE_INTEGER;
-            return ai - bi;
-          })
-          .map(c => ({ colId: String(c.colId), sort: c.sort }));
-      }
-      const sortArray = sortModel.map((s, idx) => ({ id: String(s.colId), isASC: (s.sort === 'asc') }));
-
-      const payload = [{ Headers: headers, Filters: filters, Sort: sortArray }];
-
-      // Write out
-      try {
-        const wv = window?.wwLib?.wwVariable;
-        if (wv?.setValue) wv.setValue(EXTERNAL_STATE_VAR_ID, payload);
-        else if (wv?.updateValue) wv.updateValue(EXTERNAL_STATE_VAR_ID, payload);
-        else if (wv?.setComponentValue) wv.setComponentValue(EXTERNAL_STATE_VAR_ID, payload);
-      } catch (e) {
-        console.warn('[ExternalState] write error', e);
-      }
-
-      if (console && console.debug) console.debug('[ExternalState]', reason || '', payload);
-    } catch (err) {
-      console.warn('[ExternalState] unexpected error', err);
-    }
-  }
-  const readExternalStateFromWW = () => {
-    try {
-      const wwVariable = window?.wwLib?.wwVariable;
-      const raw = wwVariable?.getValue ? wwVariable.getValue(EXTERNAL_STATE_VAR_ID) : null;
-      const arr = Array.isArray(raw) ? raw : [];
-      const obj = arr[0];
-      if (obj && (Array.isArray(obj.Headers) || Array.isArray(obj.Filters) || Array.isArray(obj.Sort))) {
-        console.debug('[ExternalState][read]', obj);
-        return obj;
-      }
-    } catch (e) {
-      console.warn('[ExternalState][read] error:', e);
-    }
-    return null;
-  };
-
-  const applyExternalStateFromWW = (reason) => {
-    try {
-      const state = readExternalStateFromWW();
-      if (!state) return;
-      const api = gridApi.value;
-      const capi = (typeof getColApi === 'function') ? getColApi() : null;
-      if (!api || !capi) return;
-
-      console.debug('[ExternalState][apply]', reason || '', state);
-
-      // 1) Column order from Headers (do not touch pinned/visibility to avoid conflicts)
-      if (Array.isArray(state.Headers) && state.Headers.length) {
-        const orderIds = state.Headers
-          .map(h => String(h?.id || h?.field || h?.colId || ''))
-          .filter(Boolean);
-        const newState = orderIds.map((colId, idx) => ({ colId, order: idx }));
-        runWithSuppressedReveal(() => {
-          try {
-            capi.applyColumnState({ state: newState, applyOrder: true });
-          } catch (e) {
-            console.warn('[ExternalState][apply] column order failed', e);
-          }
-        }, { recaptureDelay: 50 });
-      }
-
-      // 2) Filters
-      if (Array.isArray(state.Filters)) {
-        const filterModel = {};
-        for (const f of state.Filters) {
-          if (f && f.colId) {
-            const { colId, ...model } = f;
-            filterModel[colId] = model;
-          }
-        }
-        runWithSuppressedReveal(() => {
-          try { api.setFilterModel(filterModel); } catch (e) { console.warn('[ExternalState][apply] setFilterModel failed', e); }
-        }, { recaptureDelay: 50 });
-      }
-
-      // 3) Sort
-      if (Array.isArray(state.Sort) && state.Sort.length) {
-        const sortModel = state.Sort
-          .filter(s => s && s.id)
-          .map((s, idx) => ({
-            colId: String(s.id),
-            sort: s.isASC ? 'asc' : 'desc',
-            sortIndex: idx
-          }));
-        runWithSuppressedReveal(() => {
-          try {
-            capi.applyColumnState({
-              state: sortModel.map(s => ({ colId: s.colId, sort: s.sort, sortIndex: s.sortIndex })),
-              defaultState: { sort: null },
-              applyOrder: false
-            });
-          } catch (e) { console.warn('[ExternalState][apply] applyColumnState sort failed', e); }
-          try { api.setSortModel(sortModel.map(({ colId, sort }) => ({ colId, sort }))); } catch (e) { console.warn('[ExternalState][apply] setSortModel failed', e); }
-        }, { recaptureDelay: 50 });
-        setSort(sortModel.map(({ colId, sort }) => ({ colId, sort })));
-      }
-
-      // 4) finalize
-      updateColumnsPosition();
-      updateColumnsSort();
-      const pristine = isGridStatePristine();
-      updateHideSaveButtonVisibility(pristine);
-    } catch (err) {
-      console.warn('[ExternalState][apply] unexpected error', err);
-    }
-  };
-;
-
 
   let suppressRevealUntilCapture = false;
   let pendingInitialGridState = null;
@@ -1238,8 +1071,12 @@ function defer(fn, delay = 0) {
       } else {
         suppressRevealUntilCapture = false;
       }
+         updateHideSaveButtonVisibility(pristine);
     };
 
+
+
+  // Atualiza a variável de "esconder botão salvar" com base no snapshot atual vs inicial
     try {
       const result = operation?.();
       if (result && typeof result.then === "function") {
@@ -1267,24 +1104,41 @@ function defer(fn, delay = 0) {
   };
 
   const syncHideSaveButtonVisibility = (event) => {
-  const isSortEvent = event?.type === "sortChanged";
+  // Sort é tratado exclusivamente em onSortChanged
+  if (event?.type === "sortChanged") return;
+  
   const isRowDataSourceChange =
-    !isSortEvent &&
-    (event?.source === "rowDataChanged" || event?.source === "rowDataUpdated");
-
+  event?.source === "rowDataChanged" || event?.source === "rowDataUpdated";
+  
   if (captureInitialStateTimeout && event && !isProgrammaticEvent(event)) {
-    userInteractedDuringCapture = true;
+  userInteractedDuringCapture = true;
   }
-
+  
   if (isRowDataSourceChange) {
-    updateHideSaveButtonVisibility(true);
-    scheduleCaptureInitialGridState(50);
-    return;
+  updateHideSaveButtonVisibility(true);
+  scheduleCaptureInitialGridState(50);
+  return;
   }
-
+  
   const pristine = isGridStatePristine();
+  
+  if (!shouldRevealSaveButton(event)) {
+  if (suppressRevealUntilCapture) {
+  updateHideSaveButtonVisibility(true);
+  scheduleCaptureInitialGridState(50);
+  return;
+  }
+  if (isProgrammaticEvent(event) && !pristine) {
+  updateHideSaveButtonVisibility(false);
+  return;
+  }
   updateHideSaveButtonVisibility(pristine);
-};
+  scheduleCaptureInitialGridState(50);
+  return;
+  }
+  
+  updateHideSaveButtonVisibility(pristine);
+  };
 
 
   const resetHideSaveButtonVisibility = () => {
@@ -1567,234 +1421,6 @@ const remountComponent = () => {
     return [];
   };
 
-  const getWwVariableModule = () => {
-    try {
-      return window?.wwLib?.wwVariable || null;
-    } catch (error) {
-      return null;
-    }
-  };
-
-  const safeGetWwVariableValue = (identifier) => {
-    if (!identifier || typeof identifier !== 'string') return undefined;
-    const wwVariable = getWwVariableModule();
-    if (!wwVariable) return undefined;
-    const id = identifier.trim();
-    if (!id) return undefined;
-    try {
-      if (typeof wwVariable.getValue === 'function') {
-        return wwVariable.getValue(id);
-      }
-    } catch (error) {}
-    return undefined;
-  };
-
-  const normalizeParameterToken = (value) => {
-    if (typeof value !== 'string') return value;
-    const trimmed = value.trim();
-    if (!trimmed) return value;
-
-    const wwMatch = trimmed.match(/^wwvariable:(.+)$/i);
-    if (wwMatch) {
-      const resolved = safeGetWwVariableValue(wwMatch[1]);
-      return resolved !== undefined ? resolved : null;
-    }
-
-    const componentMatch = trimmed.match(/^componentvariable:(.+)$/i);
-    if (componentMatch) {
-      const resolved = safeGetWwVariableValue(componentMatch[1]);
-      return resolved !== undefined ? resolved : null;
-    }
-
-    if (trimmed.toLowerCase() === 'null') return null;
-    if (trimmed.toLowerCase() === 'undefined') return undefined;
-
-    return value;
-  };
-
-  const resolveValueConfig = (config) => {
-    if (config == null) return undefined;
-    if (typeof config !== 'object' || Array.isArray(config)) {
-      return normalizeParameterToken(config);
-    }
-
-    const normalizedType = (() => {
-      const typeCandidate =
-        config.type ??
-        config.source ??
-        config.valueType ??
-        config.kind ??
-        config.mode ??
-        config.strategy ??
-        config.valueSource;
-      return typeof typeCandidate === 'string'
-        ? typeCandidate.toLowerCase()
-        : '';
-    })();
-
-    const tryVariableIds = (...ids) => {
-      for (const raw of ids) {
-        if (typeof raw !== 'string') continue;
-        const resolved = safeGetWwVariableValue(raw);
-        if (resolved !== undefined) return resolved;
-      }
-      return undefined;
-    };
-
-    if (
-      normalizedType === 'wwvariable' ||
-      normalizedType === 'variable' ||
-      normalizedType === 'wewebvariable'
-    ) {
-      const resolved = tryVariableIds(
-        config.variableId,
-        config.valueId,
-        config.reference,
-        config.ref,
-        typeof config.value === 'string' ? config.value : undefined
-      );
-      if (resolved !== undefined) return resolved;
-    }
-
-    if (
-      normalizedType === 'componentvariable' ||
-      normalizedType === 'component-variable'
-    ) {
-      const resolved = tryVariableIds(
-        config.componentVariableId,
-        config.variableId,
-        config.valueId,
-        config.reference,
-        config.ref,
-        typeof config.value === 'string' ? config.value : undefined
-      );
-      if (resolved !== undefined) return resolved;
-    }
-
-    if (normalizedType === 'null') {
-      return null;
-    }
-
-    const explicitVariable = tryVariableIds(
-      config.variableId,
-      config.wwVariableId,
-      config.valueFromVariable,
-      config.componentVariableId
-    );
-    if (explicitVariable !== undefined) {
-      return explicitVariable;
-    }
-
-    let rawValue;
-    if ('value' in config) rawValue = config.value;
-    else if ('val' in config) rawValue = config.val;
-    else if ('defaultValue' in config) rawValue = config.defaultValue;
-    else if ('default' in config) rawValue = config.default;
-    else if ('literal' in config) rawValue = config.literal;
-    else rawValue = undefined;
-
-    if (rawValue !== undefined) {
-      if (typeof rawValue === 'object' && rawValue !== null && !Array.isArray(rawValue)) {
-        return resolveValueConfig(rawValue);
-      }
-      return normalizeParameterToken(rawValue);
-    }
-
-    if ('fallback' in config) {
-      return normalizeParameterToken(config.fallback);
-    }
-
-    return undefined;
-  };
-
-  const resolveParameterEntry = (entry) => {
-    if (entry == null) {
-      return { name: null, value: undefined };
-    }
-
-    if (Array.isArray(entry)) {
-      const [name, value] = entry;
-      return {
-        name: typeof name === 'string' ? name : null,
-        value: normalizeParameterToken(value),
-      };
-    }
-
-    if (typeof entry === 'string') {
-      const idx = entry.indexOf('=');
-      if (idx >= 0) {
-        const name = entry.slice(0, idx).trim();
-        const value = entry.slice(idx + 1);
-        return {
-          name: name || null,
-          value: normalizeParameterToken(value),
-        };
-      }
-      return { name: entry.trim() || null, value: true };
-    }
-
-    if (typeof entry === 'object') {
-      const name =
-        entry.name ??
-        entry.key ??
-        entry.param ??
-        entry.parameter ??
-        entry.id ??
-        entry.field ??
-        null;
-
-      let value = resolveValueConfig(entry);
-      if (value === undefined && 'value' in entry) {
-        value = normalizeParameterToken(entry.value);
-      }
-
-      return {
-        name: typeof name === 'string' ? name : null,
-        value,
-      };
-    }
-
-    return { name: null, value: normalizeParameterToken(entry) };
-  };
-
-  const mergeDataSourceParameters = (payload, col) => {
-    if (!col) return;
-    const ds = col.dataSource?.dataSource || col.dataSource;
-    if (!ds) return;
-
-    const paramsConfig =
-      ds.parameters ??
-      ds.params ??
-      ds.arguments ??
-      ds.payload ??
-      null;
-
-    if (!paramsConfig) return;
-
-    const assignParam = ({ name, value }) => {
-      if (!name || value === undefined) return;
-      payload[name] = value;
-    };
-
-    if (Array.isArray(paramsConfig)) {
-      paramsConfig.forEach(entry => {
-        assignParam(resolveParameterEntry(entry));
-      });
-      return;
-    }
-
-    if (typeof paramsConfig === 'object') {
-      Object.entries(paramsConfig).forEach(([key, valueConfig]) => {
-        if (!key) return;
-        if (valueConfig && typeof valueConfig === 'object' && !Array.isArray(valueConfig)) {
-          assignParam(resolveParameterEntry({ name: key, ...valueConfig }));
-        } else {
-          assignParam(resolveParameterEntry({ name: key, value: valueConfig }));
-        }
-      });
-    }
-  };
-
   const loadApiOptions = async (col, ticketId) => {
     try {
       const lang = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
@@ -1802,23 +1428,18 @@ const remountComponent = () => {
       const apiUrl = window.wwLib?.wwVariable?.getValue('1195995b-34c3-42a5-b436-693f0f4f8825');
       const apiKey = window.wwLib?.wwVariable?.getValue('d180be98-8926-47a7-b7f1-6375fbb95fa3');
       const apiAuth = window.wwLib?.wwVariable?.getValue('dfcde09f-42f3-4b5c-b2e8-4314650655db');
+ const isResponsible = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase() == "RESPONSIBLEUSERID";
       const ds = col.dataSource?.dataSource || col.dataSource;
       if (!apiUrl || !ds?.functionName) return [];
-
-      const payload = {};
-      if (companyId) payload.p_idcompany = companyId;
-      if (lang) payload.p_language = lang;
-
-      mergeDataSourceParameters(payload, col);
-
-      if (ticketId !== undefined) {
-        payload.p_ticketid = ticketId;
-      }
 
       const fetchOptions = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          ...(companyId ? { p_idcompany: companyId } : {}),
+          ...(lang ? { p_language: lang } : {}),
+          ...(ticketId ? { p_ticketid: ticketId } : {})
+        })
       };
       if (apiKey) fetchOptions.headers['apikey'] = apiKey;
       if (apiAuth) fetchOptions.headers['Authorization'] = apiAuth;
@@ -1909,102 +1530,27 @@ const remountComponent = () => {
 
   const loadAllColumnOptions = async () => {
     if (!props.content || !Array.isArray(props.content.columns)) return;
-
     const rows = wwLib.wwUtils.getDataFromCollection(props.content.rowData) || [];
     const result = {};
-    const tasks = [];
-
+    const promises = [];
     for (const col of props.content.columns) {
-      if (!isListLikeColumn(col)) continue;
-
+      const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
+      const identifier = (col.FieldDB || '').toUpperCase();
+      const isResponsible = tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
+      if (!isResponsible) continue;
       const colId = col.id || col.field;
-      if (!colId) continue;
-
-      const usesTicket = usesTicketId(col);
-      const lazyStatus = shouldLazyLoadStatus(col);
-      const forceOptions = lazyStatus ? { force: true } : undefined;
-
-      if (!result[colId]) {
-        result[colId] = {};
-      }
-
-      const seenKeys = new Set();
-
-      if (usesTicket) {
-        rows.forEach(row => {
-          const ticketId = row?.TicketID;
-          const cacheKey = getOptionsCacheKey(col, ticketId);
-          if (seenKeys.has(cacheKey)) return;
-          seenKeys.add(cacheKey);
-          const promise = getColumnOptions(
-            col,
-            ticketId,
-            forceOptions
-          ).then(opts => {
-            result[colId][cacheKey] = opts;
-          }).catch(() => {
-            result[colId][cacheKey] = [];
-          });
-          tasks.push(promise);
+      result[colId] = {};
+      for (const row of rows) {
+        const ticketId = row?.TicketID;
+        const cacheKey = getOptionsCacheKey(col, ticketId);
+        if (result[colId][cacheKey]) continue;
+        const p = getColumnOptions(col, usesTicketId(col) ? ticketId : undefined).then(opts => {
+          result[colId][cacheKey] = opts;
         });
-
-        const globalCacheKey = getOptionsCacheKey(col, null);
-        if (!seenKeys.has(globalCacheKey)) {
-          seenKeys.add(globalCacheKey);
-          const promise = getColumnOptions(
-            col,
-            null,
-            forceOptions
-          ).then(opts => {
-            result[colId][globalCacheKey] = opts;
-          }).catch(() => {
-            result[colId][globalCacheKey] = [];
-          });
-          tasks.push(promise);
-        }
-      } else {
-        const cacheKey = getOptionsCacheKey(col, undefined);
-        if (!seenKeys.has(cacheKey)) {
-          seenKeys.add(cacheKey);
-          const promise = getColumnOptions(
-            col,
-            undefined,
-            forceOptions
-          ).then(opts => {
-            result[colId][cacheKey] = opts;
-          }).catch(() => {
-            result[colId][cacheKey] = [];
-          });
-          tasks.push(promise);
-        }
-      }
-
-      if (!usesTicket || seenKeys.size === 0) {
-        const cacheKey = getOptionsCacheKey(col, undefined);
-        if (!seenKeys.has(cacheKey)) {
-          seenKeys.add(cacheKey);
-          const promise = getColumnOptions(
-            col,
-            undefined,
-            forceOptions
-          ).then(opts => {
-            result[colId][cacheKey] = opts;
-          }).catch(() => {
-            result[colId][cacheKey] = [];
-          });
-          tasks.push(promise);
-        }
+        promises.push(p);
       }
     }
-
-    if (tasks.length) {
-      await Promise.allSettled(tasks);
-    }
-
-    if (tasks.length) {
-      await Promise.allSettled(tasks);
-    }
-
+    await Promise.all(promises);
     columnOptions.value = result;
   };
 
@@ -2303,24 +1849,7 @@ const remountComponent = () => {
         }
       }, 1000);
     }
-  
-  
-
-      /*__EXTERNAL_APPLY__*/
-      try {
-        const existingExternal = readExternalStateFromWW();
-        if (existingExternal) {
-          // aplica logo após restore e ANTES de capturar o estado inicial
-          setTimeout(() => applyExternalStateFromWW('gridReady'), 80);
-        } else {
-          // se não houver estado salvo, publica o estado atual como baseline
-          setTimeout(() => writeExternalStateToWW('gridReady'), 100);
-        }
-      } catch (e) {
-        setTimeout(() => writeExternalStateToWW('gridReady'), 120);
-      }
-
-    };
+  };
   
   function restorePinnedColumns() {
     if (!getColApi()) return;
@@ -2480,9 +2009,8 @@ const remountComponent = () => {
   });
   }
   saveGridState();
-  
-      writeExternalStateToWW('filterChanged');
-    };
+  (() => { try { const pristine = isGridStatePristine(); updateHideSaveButtonVisibility(pristine); } catch(e) { console && console.warn && console.warn('[Grid Pristine inline] failed:', e); } })();
+  };
   
   const onSortChanged = (event) => {
     if (!gridApi.value) return;
@@ -2493,17 +2021,15 @@ const remountComponent = () => {
     }
 
     deferAfterGridUpdate(() => {
-      
-      
-      writeExternalStateToWW('sortChanged');
       const { sort: normalizedSort } = getNormalizedGridState();
       setSort(normalizedSort);
       updateColumnsSort();
       saveGridState();
       const pristine = isGridStatePristine();
       updateHideSaveButtonVisibility(pristine);
+      (() => { try { const pristine = isGridStatePristine(); updateHideSaveButtonVisibility(pristine); } catch(e) { console && console.warn && console.warn('[Grid Pristine inline] failed:', e); } })();
       ctx.emit("trigger-event", { name: "sortChanged", event: normalizedSort });
-});
+    });
   };
 
   const onColumnMoved = (event) => {
@@ -2519,9 +2045,8 @@ const remountComponent = () => {
   event: columnsPositionValue.value,
   });
   }
-  
-      if (event?.finished) { writeExternalStateToWW('columnMoved'); }
-    };
+    (() => { try { const pristine = isGridStatePristine(); updateHideSaveButtonVisibility(pristine); } catch(e) { console && console.warn && console.warn('[Grid Pristine inline] failed:', e); } })();
+};
 
   /* wwEditor:start */
   const { createElement } = wwLib.wwElement.useCreate();
@@ -2822,17 +2347,6 @@ setTimeout(() => {
         // Se o filtro for agListColumnFilter, usar o filtro customizado
         if (colCopy.filter === 'agListColumnFilter') {
           const isResponsible = tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
-          const baseFilterParams = typeof colCopy.filterParams === 'object' && colCopy.filterParams
-            ? colCopy.filterParams
-            : {};
-          const filterRendererConfig = {
-            ...(baseFilterParams.rendererConfig || {}),
-            useCustomFormatter: !!colCopy.useCustomFormatter,
-            formatter: colCopy.formatter,
-            useStyleArray: !!colCopy.useStyleArray,
-            styleArray: colCopy.useStyleArray ? this.content.cellStyleArray : baseFilterParams.rendererConfig?.styleArray,
-          };
-
           const result = {
             ...commonProperties,
             id: colId,
@@ -2846,11 +2360,6 @@ setTimeout(() => {
               useCustomFormatter: colCopy.useCustomFormatter,
               formatter: colCopy.formatter,
               // options will be added below when available
-            },
-            filterParams: {
-              ...baseFilterParams,
-              rendererConfig: filterRendererConfig,
-              getFilterOptions: () => this.getFilterOptionsForColumn(colCopy),
             }
           };
           const fieldKey = colCopy.id || colCopy.field;
@@ -3067,17 +2576,6 @@ setTimeout(() => {
                 : null;
 
               const isResponsible = tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
-              const baseFilterParams = typeof colCopy.filterParams === 'object' && colCopy.filterParams
-                ? colCopy.filterParams
-                : {};
-              const filterRendererConfig = {
-                ...(baseFilterParams.rendererConfig || {}),
-                useCustomFormatter: !!colCopy.useCustomFormatter,
-                formatter: colCopy.formatter,
-                useStyleArray: !!colCopy.useStyleArray,
-                styleArray: colCopy.useStyleArray ? this.content.cellStyleArray : baseFilterParams.rendererConfig?.styleArray,
-              };
-
               const result = {
                 ...commonProperties,
                 id: colId,
@@ -3093,11 +2591,6 @@ setTimeout(() => {
                 },
                 editable: false,
                 cellEditor: staticOptions && staticOptions.length ? ListCellEditor : (tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor : FixedListCellEditor),
-                filterParams: {
-                  ...baseFilterParams,
-                  rendererConfig: filterRendererConfig,
-                  getFilterOptions: () => this.getFilterOptionsForColumn(colCopy),
-                },
               };
               if (staticOptions && staticOptions.length) {
                 result.options = staticOptions;
@@ -3163,21 +2656,6 @@ setTimeout(() => {
               result.filter = (tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID')
                 ? ResponsibleUserFilterRenderer
                 : ListFilterRenderer;
-              const baseFilterParams = typeof colCopy.filterParams === 'object' && colCopy.filterParams
-                ? colCopy.filterParams
-                : {};
-              const filterRendererConfig = {
-                ...(baseFilterParams.rendererConfig || {}),
-                useCustomFormatter: !!colCopy.useCustomFormatter,
-                formatter: colCopy.formatter,
-                useStyleArray: !!colCopy.useStyleArray,
-                styleArray: colCopy.useStyleArray ? this.content.cellStyleArray : baseFilterParams.rendererConfig?.styleArray,
-              };
-              result.filterParams = {
-                ...baseFilterParams,
-                rendererConfig: filterRendererConfig,
-                getFilterOptions: () => this.getFilterOptionsForColumn(colCopy),
-              };
             }
             // Apply custom formatter if enabled
             if (colCopy.useCustomFormatter) {
@@ -3558,300 +3036,6 @@ setTimeout(() => {
   },
   },
   methods: {
-  async getFilterOptionsForColumn(col) {
-    if (!col) return [];
-
-    const fieldKey = col.id || col.field;
-    if (!fieldKey) return [];
-
-    const lazyStatus = this.shouldLazyLoadStatus(col);
-    const usesTicket = this.usesTicketId(col);
-    const isStatusListFilter =
-      lazyStatus &&
-      (col.filter === 'agListColumnFilter' || col.cellDataType === 'list');
-
-    const ensureColStore = () => {
-      if (!this.columnOptions) {
-        this.columnOptions = {};
-      }
-      if (!this.columnOptions[fieldKey]) {
-        this.columnOptions[fieldKey] = {};
-      }
-      const colStore = this.columnOptions[fieldKey];
-      if (!colStore.__fetchedKeys) {
-        Object.defineProperty(colStore, '__fetchedKeys', {
-          value: new Set(),
-          enumerable: false,
-          configurable: true,
-          writable: true,
-        });
-      }
-      return colStore;
-    };
-
-    const store = ensureColStore();
-    const aggregated = [];
-    const seen = new Set();
-
-    if (isStatusListFilter) {
-      let statusOptions = [];
-      try {
-        statusOptions = await this.fetchStatusFilterOptions();
-      } catch (error) {
-        console.warn('[GridViewDinamica] Failed to fetch StatusID filter options', error);
-      }
-
-      if (Array.isArray(statusOptions) && statusOptions.length) {
-        const cacheKey = this.getOptionsCacheKey(col, null);
-        store[cacheKey] = statusOptions;
-        if (store.__fetchedKeys instanceof Set) {
-          store.__fetchedKeys.delete(cacheKey);
-        }
-        return statusOptions;
-      }
-    }
-
-    const pushOption = option => {
-      if (option === undefined) return;
-      let mapKey;
-      if (option === null) {
-        mapKey = 'null-option';
-      } else if (typeof option === 'object') {
-        const valueKey =
-          option.value ??
-          option.Value ??
-          option.id ??
-          option.Id ??
-          option.ID ??
-          option.UserID ??
-          option.UserId ??
-          option.StatusID ??
-          option.statusId ??
-          option.key ??
-          null;
-        const typeKey = option.type || (Array.isArray(option.groupUsers) ? 'group' : 'object');
-        if (valueKey != null) {
-          mapKey = `${typeKey}::${String(valueKey)}`;
-        } else {
-          try {
-            mapKey = `${typeKey}::${JSON.stringify(option)}`;
-          } catch (error) {
-            mapKey = `${typeKey}::${Date.now()}::${aggregated.length}`;
-          }
-        }
-      } else {
-        mapKey = `primitive::${String(option)}`;
-      }
-
-      if (!seen.has(mapKey)) {
-        seen.add(mapKey);
-        aggregated.push(option);
-      }
-    };
-
-    const hydrateOptionsForTicket = async ticketId => {
-      const requestTicketId = usesTicket ? null : ticketId;
-      const cacheKey = this.getOptionsCacheKey(col, requestTicketId);
-      let options = store[cacheKey];
-      const fetchedKeys = store.__fetchedKeys;
-      const hasFetchedBefore = fetchedKeys?.has(cacheKey);
-
-      if (!Array.isArray(options) || (!options.length && !hasFetchedBefore)) {
-        try {
-          options = await this.getColumnOptions(col, requestTicketId, { force: true });
-
-        } catch (error) {
-          console.warn('[GridViewDinamica] Failed to load filter options from data source', error);
-          options = [];
-        }
-        store[cacheKey] = Array.isArray(options) ? options : [];
-        if (store.__fetchedKeys) {
-          if (store[cacheKey].length) {
-            store.__fetchedKeys.delete(cacheKey);
-          } else {
-            store.__fetchedKeys.add(cacheKey);
-          }
-        }
-      }
-
-      const list = store[cacheKey];
-      if (Array.isArray(list)) {
-        list.forEach(pushOption);
-      }
-    };
-    const ticketsToFetch = usesTicket ? [null] : [undefined];
-
-    const tasks = ticketsToFetch.map(ticketId => hydrateOptionsForTicket(ticketId));
-
-    if (tasks.length) {
-      await Promise.allSettled(tasks);
-    }
-
-    Object.entries(store).forEach(([cacheKey, list]) => {
-      if (cacheKey === '__fetchedKeys') return;
-      if (Array.isArray(list)) {
-        list.forEach(pushOption);
-      }
-    });
-
-    if (!aggregated.length && lazyStatus) {
-      const fallback = this.buildLazyStatusFallbackOptions(col);
-      return Array.isArray(fallback) ? fallback : [];
-    }
-
-    return aggregated;
-  },
-  async fetchStatusFilterOptions(force = false) {
-    if (!force && Array.isArray(statusFilterOptionsCache)) {
-      return statusFilterOptionsCache;
-    }
-    if (!force && statusFilterOptionsPromise) {
-      return statusFilterOptionsPromise;
-    }
-
-    const request = (async () => {
-      try {
-        const wwLibRef = window?.wwLib;
-        const getVarValue = id => {
-          try {
-            return wwLibRef?.wwVariable?.getValue?.(id);
-          } catch (error) {
-            return undefined;
-          }
-        };
-
-        const companyId = getVarValue('5d099f04-cd42-41fd-94ad-22d4de368c3a');
-        const language = getVarValue('aa44dc4c-476b-45e9-a094-16687e063342');
-        const loggedUserId = getVarValue('fc54ab80-1a04-4cfe-a504-793bdcfce5dd');
-        const apiUrl = getVarValue('1195995b-34c3-42a5-b436-693f0f4f8825');
-        const apiKey = getVarValue('d180be98-8926-47a7-b7f1-6375fbb95fa3');
-        const apiAuth = getVarValue('dfcde09f-42f3-4b5c-b2e8-4314650655db');
-
-        if (!apiUrl || typeof apiUrl !== 'string') {
-          return [];
-        }
-
-        const endpoint = apiUrl.endsWith('/') ? `${apiUrl}getTicketStatus` : `${apiUrl}/getTicketStatus`;
-        const payload = {
-          p_idcompany: companyId ?? null,
-          p_language: language ?? null,
-          p_tagcontrolticketmodel: null,
-          p_ticketid: null,
-          p_loggeduserid: loggedUserId ?? null,
-        };
-
-        const headers = { 'Content-Type': 'application/json' };
-        if (apiKey) headers.apikey = apiKey;
-        if (apiAuth) headers.Authorization = apiAuth;
-
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error ${response.status}`);
-        }
-
-        const data = await response.json();
-        if (!Array.isArray(data)) {
-          return [];
-        }
-
-        const normalizeOption = item => {
-          if (!item || typeof item !== 'object') {
-            return null;
-          }
-
-          const value =
-            item.StatusID ??
-            item.statusId ??
-            item.id ??
-            item.Id ??
-            item.ID ??
-            item.value ??
-            item.Value ??
-            item.StatusNumber ??
-            item.statusNumber ??
-            item.statusTagControl ??
-            item.StatusTagControl ??
-            item.status ??
-            item.Status ??
-            null;
-
-          const labelSource =
-            item.status ??
-            item.Status ??
-            item.label ??
-            item.Label ??
-            item.StatusName ??
-            item.statusName ??
-            item.StatusDescription ??
-            item.statusDescription ??
-            item.statusClassTitle ??
-            item.StatusClassTitle ??
-            item.Description ??
-            item.description ??
-            item.Name ??
-            item.name ??
-            item.Valor ??
-            item.valor ??
-            value;
-
-          if (value == null && (labelSource == null || labelSource === '')) {
-            return null;
-          }
-
-          const normalizedValue =
-            value != null ? value : labelSource != null ? String(labelSource) : null;
-          const normalizedLabel = labelSource != null ? String(labelSource) : '';
-
-          return {
-            ...item,
-            value: normalizedValue,
-            label: normalizedLabel,
-          };
-        };
-
-        const seen = new Set();
-        const result = [];
-        data.forEach(item => {
-          const normalized = normalizeOption(item);
-          if (!normalized) return;
-          const key = normalized.value != null ? String(normalized.value) : normalized.label;
-          if (seen.has(key)) return;
-          seen.add(key);
-          result.push(normalized);
-        });
-
-        result.sort((a, b) => {
-          const aOrder = a.StatusNumber ?? a.statusNumber ?? Number.MAX_SAFE_INTEGER;
-          const bOrder = b.StatusNumber ?? b.statusNumber ?? Number.MAX_SAFE_INTEGER;
-          if (aOrder !== bOrder) {
-            return aOrder - bOrder;
-          }
-          return String(a.label).localeCompare(String(b.label));
-        });
-
-        return result;
-      } catch (error) {
-        console.warn('[GridViewDinamica] Failed to load StatusID filter options from API', error);
-        return [];
-      }
-    })();
-
-    statusFilterOptionsPromise = request
-      .then(result => {
-        statusFilterOptionsCache = result;
-        return result;
-      })
-      .finally(() => {
-        statusFilterOptionsPromise = null;
-      });
-
-    return statusFilterOptionsPromise;
-  },
   deselectAllRows() {
     if (this.gridApi) {
       this.gridApi.deselectAll();
