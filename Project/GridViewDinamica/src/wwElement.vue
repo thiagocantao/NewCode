@@ -3765,22 +3765,32 @@ setTimeout(() => {
           }
 
           const value =
-            item.value ??
-            item.Value ??
             item.StatusID ??
             item.statusId ??
             item.id ??
             item.Id ??
             item.ID ??
+            item.value ??
+            item.Value ??
+            item.StatusNumber ??
+            item.statusNumber ??
+            item.statusTagControl ??
+            item.StatusTagControl ??
+            item.status ??
+            item.Status ??
             null;
 
           const labelSource =
+            item.status ??
+            item.Status ??
             item.label ??
             item.Label ??
             item.StatusName ??
             item.statusName ??
             item.StatusDescription ??
             item.statusDescription ??
+            item.statusClassTitle ??
+            item.StatusClassTitle ??
             item.Description ??
             item.description ??
             item.Name ??
@@ -3793,16 +3803,38 @@ setTimeout(() => {
             return null;
           }
 
+          const normalizedValue =
+            value != null ? value : labelSource != null ? String(labelSource) : null;
+          const normalizedLabel = labelSource != null ? String(labelSource) : '';
+
           return {
             ...item,
-            value,
-            label: labelSource != null ? String(labelSource) : '',
+            value: normalizedValue,
+            label: normalizedLabel,
           };
         };
 
-        return data
-          .map(normalizeOption)
-          .filter(option => option && (option.value != null || option.label !== ''));
+        const seen = new Set();
+        const result = [];
+        data.forEach(item => {
+          const normalized = normalizeOption(item);
+          if (!normalized) return;
+          const key = normalized.value != null ? String(normalized.value) : normalized.label;
+          if (seen.has(key)) return;
+          seen.add(key);
+          result.push(normalized);
+        });
+
+        result.sort((a, b) => {
+          const aOrder = a.StatusNumber ?? a.statusNumber ?? Number.MAX_SAFE_INTEGER;
+          const bOrder = b.StatusNumber ?? b.statusNumber ?? Number.MAX_SAFE_INTEGER;
+          if (aOrder !== bOrder) {
+            return aOrder - bOrder;
+          }
+          return String(a.label).localeCompare(String(b.label));
+        });
+
+        return result;
       } catch (error) {
         console.warn('[GridViewDinamica] Failed to load StatusID filter options from API', error);
         return [];
