@@ -102,9 +102,9 @@ setup(props, { emit }) {
 
     const currentLang = computed(() => {
       if (typeof window !== 'undefined' && window.wwLib && window.wwLib.wwVariable) {
-        return window.wwLib.wwVariable.getValue('aa44dc4c-476b-45e9-a094-16687e063342') || 'pt-BR';
+        return window.wwLib.wwVariable.getValue('aa44dc4c-476b-45e9-a094-16687e063342') || 'en-US';
       }
-      return 'pt-BR';
+      return 'en-US';
     });
 
     const sectionFields = computed(() => {
@@ -246,7 +246,6 @@ setup(props, { emit }) {
       try {
         const containerElement = sortableContainer.value;
         if (!containerElement || !containerElement.isConnected) {
-          console.warn('Sortable container is not connected to DOM');
           return;
         }
 
@@ -370,7 +369,6 @@ setup(props, { emit }) {
           }
         });
       } catch (error) {
-        console.error('Error initializing Sortable:', error);
       }
     };
 
@@ -584,7 +582,7 @@ background-color: surface;
 display: grid;
 grid-template-columns: repeat(4, 1fr);
 gap: 10px;
-overflow:auto; 
+overflow:none; 
 }
 
 .col-span-1 {
