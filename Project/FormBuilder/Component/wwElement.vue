@@ -174,7 +174,7 @@ if (typeof window !== 'undefined' && window.FormFieldsJsonSave === undefined) {
 window.FormFieldsJsonSave = {
 form: {
 id: null,
-name: { "pt-BR": "Created Form" },
+name: { "en-US": "Created Form" },
 workspace_id: "00000000-0000-0000-0000-000000000000",
 company_id: null,
 is_current: true
@@ -234,9 +234,9 @@ return [...availableFields.value];
 // Adicione no setup()
 const currentLang = computed(() => {
   if (typeof window !== 'undefined' && window.wwLib && window.wwLib.wwVariable) {
-    return window.wwLib.wwVariable.getValue('aa44dc4c-476b-45e9-a094-16687e063342') || 'pt-BR';
+    return window.wwLib.wwVariable.getValue('aa44dc4c-476b-45e9-a094-16687e063342') || 'en-US';
   }
-  return 'pt-BR';
+  return 'en-US';
 });
 
 // Initialize sortable
@@ -249,7 +249,6 @@ if (availableFieldsContainer.value && availableFieldsContainer.value.isConnected
 // Check if the fields-grid element exists
 const fieldsGrid = availableFieldsContainer.value.querySelector('.fields-grid');
 if (!fieldsGrid) {
-console.warn('Fields grid not found in available fields container');
 return;
 }
 
@@ -324,7 +323,6 @@ if (index !== -1) {
 availableFields.value.splice(index, 1);
 }
 } else {
-console.warn('Original field data not found during clone operation');
 
 const fieldId = originalFieldEl.dataset.fieldId;
 if (fieldId && evt.clone) {
@@ -351,7 +349,6 @@ alert('Error in onClone handler:', error);
 }
 });
 } else {
-console.warn('Available fields container is not connected to DOM');
 }
 } catch (error) {
 console.error('Error initializing Sortable in field definition container:', error);
@@ -361,7 +358,7 @@ console.error('Error initializing Sortable in field definition container:', erro
 // Initialize sortable for form sections
 const initSectionsSortable = () => {
 if (!formSectionsContainer.value) {
-console.warn('Form sections container not found');
+
 return;
 }
 
@@ -413,8 +410,29 @@ console.error('Error updating sections order:', error);
 }
 },
 fallbackOnBody: false,
-fallbackOnBody: false,
-forceFallback: false
+forceFallback: false,
+onMove: (evt) => {
+// Verifica se o elemento relacionado existe e está conectado ao DOM
+if (!evt.related || !evt.related.parentNode) {
+return false;
+}
+
+// Verifica se o elemento está sendo movido para um container válido
+const targetContainer = evt.to;
+if (!targetContainer || !targetContainer.isConnected) {
+return false;
+}
+
+// Verifica se o elemento tem filhos antes de tentar acessar lastElementChild
+if (targetContainer.children && targetContainer.children.length > 0) {
+const lastChild = targetContainer.lastElementChild;
+if (!lastChild || !lastChild.isConnected) {
+return false;
+}
+}
+
+return true;
+}
 });
 
 // Inicializa o Sortable para cada container de campos
@@ -500,7 +518,6 @@ const initFieldsContainers = () => {
 // Inicializa os containers de campos
 initFieldsContainers();
 } else {
-console.warn('Form sections container is not connected to DOM');
 }
 } catch (error) {
 console.error('Error initializing Sortable in form sections container:', error);
@@ -560,7 +577,7 @@ console.error('Form JSON has invalid structure. Expected {form, sections}');
 data = {
 form: {
 id: null,
-name: { "pt-BR": 'Created Form' },
+name: { "en-US": 'Created Form' },
 workspace_id: "00000000-0000-0000-0000-000000000000",
 company_id: null,
 is_current: true
@@ -578,7 +595,7 @@ if (!data || !Object.keys(data).length) {
 data = {
 form: {
 id: null, 
-name: { "pt-BR": 'Created Form' },
+name: { "en-US": 'Created Form' },
 workspace_id: "00000000-0000-0000-0000-000000000000",
 company_id: null,
 is_current: true
@@ -657,7 +674,7 @@ const showAddSectionModal = () => {
   // Create a new section with default title "New Section"
   const newSection = {
     id: Date.now() + "-NOVASECAOINCLUIDA",
-    title: { "pt-BR": "New Section" },
+    title: { "en-US": "New Section" },
     position: 0,
     deleted: false,
     fields: []
@@ -783,7 +800,7 @@ const updateFormState = () => {
 const formDataValue = {
 form: formData.value?.form || {
 id: null,
-name: { "pt-BR": 'New Form' }
+name: { "en-US": 'New Form' }
 },
 sections: formSections.value.map((section, index) => ({
 ...section,
@@ -798,7 +815,7 @@ columns: parseInt(field.columns) || 1,
 is_mandatory: normalizeBoolean(field.is_mandatory),
 is_readonly: normalizeBoolean(field.is_readonly),
 is_hide_legend: normalizeBoolean(field.is_hide_legend),
-tip_translations: field.tip_translations || { "pt-BR": field.tip || '' },
+tip_translations: field.tip_translations || { "en-US": field.tip || '' },
 deleted: false,
 // Include these properties to ensure the field displays correctly
 name: field.name,
@@ -850,7 +867,7 @@ const saveFormToJson = () => {
 const formJson = JSON.stringify(window.FormFieldsJsonSave || {
 form: formData.value?.form || {
 id: null,
-name: { "pt-BR": 'Created Form' }
+name: { "en-US": 'Created Form' }
 },
 sections: formSections.value
 });
@@ -1064,7 +1081,6 @@ const translateText = (text) => {
 // Exemplo de como usar a tradução em métodos
 const showTranslatedMessage = () => {
   const message = translateText('Form saved successfully!');
-  console.log(message);
   // Aqui você pode usar wwLib.wwUtils.showNotification se estiver no WeWeb
 };
 
@@ -1075,7 +1091,6 @@ loadData();
 // Use a more reliable approach with multiple attempts and better error handling
 const attemptInitialization = (attempts = 0, maxAttempts = 5) => {
 if (attempts >= maxAttempts) {
-console.warn(`Failed to initialize sortable after ${maxAttempts} attempts`);
 return;
 }
 
