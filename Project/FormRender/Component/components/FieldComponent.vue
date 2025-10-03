@@ -703,7 +703,7 @@ export default {
             if (trigger && dropdown) {
               const scrollParent = this.getScrollParent(trigger);
               const triggerRect = trigger.getBoundingClientRect();
-              const dropdownHeight = 220; // max-height do dropdown
+          const dropdownHeight = 320; // max-height do dropdown
               let spaceBelow;
               if (scrollParent === document.body) {
                 spaceBelow = window.innerHeight - triggerRect.bottom;
@@ -1380,7 +1380,8 @@ export default {
     border-radius: 0 0 6px 6px;
     box-shadow: 0 4px 16px rgba(105, 157, 140, 0.10);
     z-index: 100;
-    max-height: 220px;
+    max-height: 320px;
+    min-width: 180px;
     overflow-y: auto;
     margin-top: 2px;
     padding-bottom: 4px;
