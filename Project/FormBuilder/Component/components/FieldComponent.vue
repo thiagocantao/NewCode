@@ -444,15 +444,15 @@ export default {
           this.remoteOptions = [];
           return;
         }
-        url = `${apiUrl.replace(/\/$/, '')}${dataSource}`;
+        url = this.combineUrl(apiUrl, dataSource);
       } else if (dataSource.url) {
-        url = dataSource.url;
+        url = this.combineUrl(apiUrl, dataSource.url);
         const rawMethod = dataSource.method ?? dataSource.Method;
         if (rawMethod && rawMethod.toUpperCase() === 'GET') {
           method = 'GET';
         }
       } else if (dataSource.functionName) {
-        url = `${apiUrl.replace(/\/$/, '')}${dataSource.functionName}`;
+        url = this.combineUrl(apiUrl, dataSource.functionName);
       } else {
         this.remoteOptions = [];
         return;
@@ -495,6 +495,21 @@ export default {
       } finally {
         this.isLoadingOptions = false;
       }
+    },
+    combineUrl(baseUrl, path) {
+      if (!path) return baseUrl || '';
+      if (/^https?:\/\//i.test(path)) {
+        return path;
+      }
+
+      const sanitizedBase = (baseUrl || '').replace(/\/+$/, '');
+      const sanitizedPath = path.replace(/^\/+/, '');
+
+      if (!sanitizedBase) {
+        return `/${sanitizedPath}`;
+      }
+
+      return `${sanitizedBase}/${sanitizedPath}`;
     },
     onDateChange(value) {
       this.updateValue(value);
