@@ -580,6 +580,69 @@ export default {
       }, 1000);
     }
   },
+  watch: {
+    field: {
+      handler(newField, oldField) {
+        this.localValue = computeInitialValue(newField);
+        if (newField?.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
+          this.$nextTick(() => {
+            if (this.$refs.rte) {
+              this.$refs.rte.innerHTML = this.localValue || '';
+            }
+          });
+        }
+        if (newField?.fieldType === 'DEADLINE' && !this.deadlineTimer) {
+          this.deadlineTimer = setInterval(() => {
+            this.dataNow = new Date();
+          }, 1000);
+        } else if (oldField?.fieldType === 'DEADLINE' && newField?.fieldType !== 'DEADLINE' && this.deadlineTimer) {
+          clearInterval(this.deadlineTimer);
+          this.deadlineTimer = null;
+        }
+        const newSource = JSON.stringify(normalizeFieldDataSource(newField));
+        const oldSource = JSON.stringify(normalizeFieldDataSource(oldField));
+        if (newSource !== oldSource) {
+          this.loadDataSourceOptions();
+        }
+      },
+      deep: true
+    },
+    localValue(newVal) {
+      if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte && this.$refs.rte.innerHTML !== newVal) {
+        this.$refs.rte.innerHTML = newVal || '';
+      }
+    },
+    dataSourceConfig: {
+      handler() {
+        this.loadDataSourceOptions();
+      },
+      deep: true,
+      immediate: true
+    },
+    dropdownOpen(val) {
+      if (!val) {
+        this.searchTerm = '';
+        document.removeEventListener('click', this.handleClickOutsideDropdown);
+      }
+    }
+  },
+  beforeUnmount() {
+    document.removeEventListener('click', this.handleClickOutsideDropdown);
+    if (this.deadlineTimer) {
+      clearInterval(this.deadlineTimer);
+      this.deadlineTimer = null;
+    }
+  },
+  mounted() {
+    if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
+      this.$refs.rte.innerHTML = this.localValue || '';
+    }
+    if (this.field.fieldType === 'DEADLINE') {
+      this.deadlineTimer = setInterval(() => {
+        this.dataNow = new Date();
+      }, 1000);
+    }
+  },
   mounted() {
     if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
       this.$refs.rte.innerHTML = this.localValue || '';
@@ -739,10 +802,40 @@ export default {
       this.isLoadingOptions = true;
       try {
         const options = await fetchDataSourceOptions(dataSource);
-        this.remoteOptions = Array.isArray(options) ? options : [];
+        const normalizedOptions = Array.isArray(options)
+          ? options
+              .map(option => {
+                if (!option || typeof option !== 'object') {
+                  const value = option;
+                  const label = option === null || option === undefined ? '' : String(option);
+                  return { value, label };
+                }
+                const value = option.value ?? option.Value ?? option.id ?? option.ID ?? null;
+                const label = option.label ?? option.Label ?? option.name ?? option.Name ?? null;
+                if (value === null || label === null) {
+                  return null;
+                }
+                return { value, label };
+              })
+              .filter(Boolean)
+          : [];
+
+        this.remoteOptions = normalizedOptions;
+
+        if (this.field) {
+          const clonedOptions = normalizedOptions.map(option => ({ ...option }));
+          this.field.options = clonedOptions;
+          this.field.list_options = clonedOptions;
+          this.field.listOptions = clonedOptions;
+        }
       } catch (err) {
         console.error('Failed to load data source options', err);
         this.remoteOptions = [];
+        if (this.field) {
+          this.field.options = [];
+          this.field.list_options = [];
+          this.field.listOptions = [];
+        }
       } finally {
         this.isLoadingOptions = false;
       }

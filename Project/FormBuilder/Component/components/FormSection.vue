@@ -108,31 +108,194 @@ setup(props, { emit }) {
       isExpanded.value = !isExpanded.value;
     };
 
-    const preloadOptionsForField = async field => {
-      if (!field || !LIST_FIELD_TYPES.includes(field.fieldType)) {
-        return;
+    const fieldOptionSignatureMap = new Map();
+    const pendingDataSourceLoads = new Map();
+
+    const getFieldKey = field => field?.id || field?.field_id || field?.ID || null;
+
+    const toComparableOption = option => {
+      if (option === null || option === undefined) {
+        return null;
       }
 
-      const dataSource = normalizeFieldDataSource(field);
-      if (!dataSource) {
-        return;
+      if (typeof option !== 'object') {
+        const normalizedLabel = String(option);
+        return { value: option, label: normalizedLabel };
       }
+
+      const value =
+        option.value ?? option.Value ?? option.id ?? option.ID ?? option.key ?? option.Key ?? null;
+      const label = option.label ?? option.Label ?? option.name ?? option.Name ?? null;
+
+      if (value === null || label === null) {
+        return null;
+      }
+
+      return { value, label };
+    };
+
+    const normalizeOptionList = optionsArray => {
+      if (!Array.isArray(optionsArray)) {
+        return [];
+      }
+      return optionsArray
+        .map(toComparableOption)
+        .filter(option => option !== null)
+        .map(option => ({ ...option }));
+    };
+
+    const optionsListsAreEqual = (left, right) => {
+      if (!Array.isArray(left) || !Array.isArray(right)) {
+        return false;
+      }
+
+      if (left.length !== right.length) {
+        return false;
+      }
+
+      for (let index = 0; index < left.length; index += 1) {
+        const current = left[index];
+        const next = right[index];
+        if (current?.value !== next?.value || current?.label !== next?.label) {
+          return false;
+        }
+      }
+
+      return true;
+    };
+
+    const applyOptionsToField = (fieldKey, optionsArray) => {
+      const normalized = normalizeOptionList(optionsArray);
+
+      if (!fieldKey || !normalized) {
+        return false;
+      }
+
+      const targetField = (props.section.fields || []).find(
+        candidate => getFieldKey(candidate) === fieldKey
+      );
+
+      if (!targetField) {
+        return false;
+      }
+
+      const currentOptionsRaw = Array.isArray(targetField.options)
+        ? targetField.options
+        : Array.isArray(targetField.list_options)
+          ? targetField.list_options
+          : Array.isArray(targetField.listOptions)
+            ? targetField.listOptions
+            : [];
+
+      const currentNormalized = normalizeOptionList(currentOptionsRaw);
+
+      if (optionsListsAreEqual(currentNormalized, normalized)) {
+        return false;
+      }
+
+      const clonedOptions = normalized.map(option => ({ ...option }));
+      targetField.options = clonedOptions;
+      targetField.list_options = clonedOptions;
+      targetField.listOptions = clonedOptions;
+      return true;
+    };
+
+    const preloadOptionsForField = async (field, { force = false, normalizedDataSource = null } = {}) => {
+      const fieldKey = getFieldKey(field);
+      if (!fieldKey) {
+        return undefined;
+      }
+
+      const resolvedDataSource = normalizedDataSource || normalizeFieldDataSource(field);
+
+      if (!resolvedDataSource || !LIST_FIELD_TYPES.includes(field?.fieldType)) {
+        fieldOptionSignatureMap.delete(fieldKey);
+        pendingDataSourceLoads.delete(fieldKey);
+        return undefined;
+      }
+
+      const signature = JSON.stringify(resolvedDataSource);
+      const previousSignature = fieldOptionSignatureMap.get(fieldKey);
+      const pendingLoad = pendingDataSourceLoads.get(fieldKey);
+
+      if (!force && previousSignature === signature) {
+        return pendingLoad;
+      }
+
+      fieldOptionSignatureMap.set(fieldKey, signature);
+
+      const loadPromise = (async () => {
+        try {
+          const options = await fetchDataSourceOptions(resolvedDataSource);
+          const changed = applyOptionsToField(fieldKey, Array.isArray(options) ? options : []);
+          if (changed) {
+            emit('update-section');
+          }
+        } catch (error) {
+          console.error('Failed to preload data source options', error);
+        }
+      })();
+
+      pendingDataSourceLoads.set(fieldKey, loadPromise);
 
       try {
-        const options = await fetchDataSourceOptions(dataSource);
-        const normalizedOptions = Array.isArray(options) ? [...options] : [];
-        field.options = normalizedOptions;
-        field.list_options = normalizedOptions;
-        field.listOptions = normalizedOptions;
-        emit('update-section');
-      } catch (error) {
-        console.error('Failed to preload data source options', error);
-        field.options = [];
-        field.list_options = [];
-        field.listOptions = [];
-        emit('update-section');
+        await loadPromise;
+      } finally {
+        if (pendingDataSourceLoads.get(fieldKey) === loadPromise) {
+          pendingDataSourceLoads.delete(fieldKey);
+        }
       }
+
+      return loadPromise;
     };
+
+    watch(
+      () => (props.section.fields || []).map(field => ({
+        key: getFieldKey(field),
+        dataSource: normalizeFieldDataSource(field),
+        fieldType: field?.fieldType
+      })),
+      descriptors => {
+        const activeKeys = new Set();
+
+        descriptors.forEach((descriptor, index) => {
+          const { key, dataSource, fieldType } = descriptor;
+          if (!key) {
+            return;
+          }
+
+          activeKeys.add(key);
+
+          const currentField = props.section.fields?.[index];
+          if (!currentField) {
+            return;
+          }
+
+          if (!dataSource || !LIST_FIELD_TYPES.includes(fieldType)) {
+            fieldOptionSignatureMap.delete(key);
+            pendingDataSourceLoads.delete(key);
+            return;
+          }
+
+          preloadOptionsForField(currentField, {
+            normalizedDataSource: dataSource
+          });
+        });
+
+        for (const storedKey of Array.from(fieldOptionSignatureMap.keys())) {
+          if (!activeKeys.has(storedKey)) {
+            fieldOptionSignatureMap.delete(storedKey);
+          }
+        }
+
+        for (const storedKey of Array.from(pendingDataSourceLoads.keys())) {
+          if (!activeKeys.has(storedKey)) {
+            pendingDataSourceLoads.delete(storedKey);
+          }
+        }
+      },
+      { immediate: true, deep: true }
+    );
 
     const sectionTitle = computed(() => {
       if (typeof props.section.title === 'object') {
@@ -275,6 +438,11 @@ setup(props, { emit }) {
       // Remove do array da section
       props.section.fields = props.section.fields.filter(f => normalize(f) !== fieldIdToRemove);
 
+      if (fieldIdToRemove) {
+        fieldOptionSignatureMap.delete(fieldIdToRemove);
+        pendingDataSourceLoads.delete(fieldIdToRemove);
+      }
+
       // Emite evento para o pai atualizar o campo disponível, usando o id original
       if (removedField) {
         emit('update-field-in-use', { fieldId: removedField.id || removedField.ID || removedField.field_id, inUse: false });
@@ -334,7 +502,7 @@ setup(props, { emit }) {
               emit('update-section');
             }
           },
-          onAdd: (evt) => {
+          onAdd: async (evt) => {
             if (!evt || !evt.to) return;
 
             // Get the section ID - use a fallback for null IDs
@@ -379,7 +547,7 @@ setup(props, { emit }) {
                 console.warn('Failed to clone dragged field data', error);
                 clonedFieldData = { ...fieldData };
               }
-              const normalizedDataSource = clonedFieldData.dataSource ?? clonedFieldData.DataSource ?? null;
+              const normalizedDataSource = normalizeFieldDataSource(clonedFieldData);
               const normalizedListOptions =
                 clonedFieldData.list_options ??
                 clonedFieldData.listOptions ??
@@ -454,7 +622,10 @@ setup(props, { emit }) {
               // Notify parent component
               emit('update-section');
 
-              preloadOptionsForField(newField);
+              await preloadOptionsForField(newField, {
+                force: true,
+                normalizedDataSource
+              });
             }
 
             // Remove the dragged element
