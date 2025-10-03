@@ -48,10 +48,11 @@ v-for="field in sectionFields"
 :is-editing="isEditing"
 :show-field-component="true"
 :is-in-form-section="true"
-:class="draggableField"
-@click="selectField(field)"
-@edit-field="$emit('edit-field', field)"
-@remove-field="$emit('remove-field', field, section.id)"
+  :class="draggableField"
+  @click="selectField(field)"
+  @edit-field="$emit('edit-field', field)"
+  @remove-field="$emit('remove-field', field, section.id)"
+  @field-value-change="onFieldValueChange"
 />
 </div>
 </div>
@@ -81,7 +82,16 @@ type: Boolean,
 default: false
 }
 },
-emits: ['update-section', 'edit-section', 'edit-field', 'remove-field', 'select-field', 'remove-section', 'update-field-in-use'],
+emits: [
+  'update-section',
+  'edit-section',
+  'edit-field',
+  'remove-field',
+  'select-field',
+  'remove-section',
+  'update-field-in-use',
+  'field-value-change'
+],
 setup(props, { emit }) {
     const sectionRef = ref(null);
     const dragHandle = ref(null);
@@ -343,7 +353,17 @@ setup(props, { emit }) {
                 tip_translations: fieldData.tip_translations || { [currentLang.value]: fieldData.tip || '' },
                 deleted: false,
                 name: fieldData.name,
-                fieldType: fieldData.fieldType || 'text'
+                fieldType: fieldData.fieldType || 'text',
+                default_value:
+                  fieldData.default_value !== undefined
+                    ? fieldData.default_value
+                    : fieldData.defaultValue !== undefined
+                      ? fieldData.defaultValue
+                      : fieldData.value ?? null,
+                value:
+                  fieldData.value !== undefined
+                    ? fieldData.value
+                    : fieldData.default_value ?? fieldData.defaultValue ?? null
               };
 
               // Add the field to the section at the correct position
@@ -454,6 +474,13 @@ setup(props, { emit }) {
       });
     }, { deep: true });
 
+    const onFieldValueChange = payload => {
+      emit('field-value-change', {
+        ...payload,
+        sectionId: props.section.id
+      });
+    };
+
     return {
       sortableContainer,
       sectionTitle,
@@ -467,7 +494,8 @@ setup(props, { emit }) {
       isExpanded,
       toggleFields,
       handleDragStart,
-      handleDragEnd
+      handleDragEnd,
+      onFieldValueChange
     };
 }
 };
