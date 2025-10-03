@@ -62,6 +62,11 @@ v-for="field in sectionFields"
 import { computed, ref, onMounted, watch, nextTick } from 'vue';
 import Sortable from 'sortablejs';
 import DraggableField from './DraggableField.vue';
+import {
+  LIST_FIELD_TYPES,
+  normalizeFieldDataSource,
+  fetchDataSourceOptions
+} from '../utils/dataSource';
 
 export default {
 name: 'FormSection',
@@ -101,6 +106,32 @@ setup(props, { emit }) {
 
     const toggleFields = () => {
       isExpanded.value = !isExpanded.value;
+    };
+
+    const preloadOptionsForField = async field => {
+      if (!field || !LIST_FIELD_TYPES.includes(field.fieldType)) {
+        return;
+      }
+
+      const dataSource = normalizeFieldDataSource(field);
+      if (!dataSource) {
+        return;
+      }
+
+      try {
+        const options = await fetchDataSourceOptions(dataSource);
+        const normalizedOptions = Array.isArray(options) ? [...options] : [];
+        field.options = normalizedOptions;
+        field.list_options = normalizedOptions;
+        field.listOptions = normalizedOptions;
+        emit('update-section');
+      } catch (error) {
+        console.error('Failed to preload data source options', error);
+        field.options = [];
+        field.list_options = [];
+        field.listOptions = [];
+        emit('update-section');
+      }
     };
 
     const sectionTitle = computed(() => {
@@ -422,6 +453,8 @@ setup(props, { emit }) {
 
               // Notify parent component
               emit('update-section');
+
+              preloadOptionsForField(newField);
             }
 
             // Remove the dragged element
