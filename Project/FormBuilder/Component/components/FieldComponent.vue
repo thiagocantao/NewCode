@@ -187,7 +187,9 @@ export default {
       dropdownOpen: false,
       dropdownOpenUp: false,
       searchTerm: '',
-      localValue: this.field?.value ?? ''
+      localValue: this.field?.value ?? '',
+      remoteOptions: [],
+      isLoadingOptions: false
     };
   },
   computed: {
@@ -208,6 +210,10 @@ export default {
       );
     },
     listOptions() {
+      if (Array.isArray(this.remoteOptions) && this.remoteOptions.length) {
+        return this.remoteOptions;
+      }
+
       if (Array.isArray(this.field.options) && this.field.options.length) {
         return [...this.field.options].sort((a, b) => {
           if (typeof a.label === 'string' && typeof b.label === 'string') {
@@ -253,10 +259,22 @@ export default {
   },
   watch: {
     field: {
-      handler(newField) {
+      handler(newField, oldField) {
         this.localValue = newField?.value ?? '';
+        const newSource = JSON.stringify(newField?.dataSource || null);
+        const oldSource = JSON.stringify(oldField?.dataSource || null);
+        if (newSource !== oldSource) {
+          this.loadDataSourceOptions();
+        }
       },
       deep: true
+    },
+    'field.dataSource': {
+      handler() {
+        this.loadDataSourceOptions();
+      },
+      deep: true,
+      immediate: true
     },
     dropdownOpen(val) {
       if (!val) {
@@ -271,6 +289,106 @@ export default {
   methods: {
     translateText(text) {
       return text;
+    },
+    async loadDataSourceOptions() {
+      if (!this.field?.dataSource || typeof window === 'undefined') {
+        this.remoteOptions = [];
+        return;
+      }
+
+      const lang = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
+      const companyId = window.wwLib?.wwVariable?.getValue('5d099f04-cd42-41fd-94ad-22d4de368c3a');
+      const apiUrl = window.wwLib?.wwVariable?.getValue('1195995b-34c3-42a5-b436-693f0f4f8825') || '';
+      const apiKey = window.wwLib?.wwVariable?.getValue('d180be98-8926-47a7-b7f1-6375fbb95fa3');
+      const apiAuth = window.wwLib?.wwVariable?.getValue('dfcde09f-42f3-4b5c-b2e8-4314650655db');
+
+      const headers = { 'Content-Type': 'application/json' };
+      if (apiKey) headers.apikey = apiKey;
+      if (apiAuth) headers.Authorization = apiAuth;
+
+      let url = '';
+      let method = 'POST';
+      const dataSource = this.field.dataSource;
+
+      if (typeof dataSource === 'string') {
+        if (!dataSource.trim()) {
+          this.remoteOptions = [];
+          return;
+        }
+        url = `${apiUrl.replace(/\/$/, '')}${dataSource}`;
+      } else if (dataSource.url) {
+        url = dataSource.url;
+        if (dataSource.method && dataSource.method.toUpperCase() === 'GET') {
+          method = 'GET';
+        }
+      } else if (dataSource.functionName) {
+        url = `${apiUrl.replace(/\/$/, '')}${dataSource.functionName}`;
+      } else {
+        this.remoteOptions = [];
+        return;
+      }
+
+      const fetchOptions = { method, headers };
+      if (method !== 'GET') {
+        fetchOptions.body = JSON.stringify({
+          ...(companyId ? { p_idcompany: companyId } : {}),
+          ...(lang ? { p_language: lang } : {})
+        });
+      }
+
+      this.isLoadingOptions = true;
+      try {
+        const response = await fetch(url, fetchOptions);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (!Array.isArray(data)) {
+          this.remoteOptions = [];
+          return;
+        }
+
+        let options = [];
+        if (dataSource.transform) {
+          options = data
+            .map(item => {
+              const value = item?.[dataSource.transform?.value] ?? item?.id;
+              const label = item?.[dataSource.transform?.label] ?? item?.name;
+              if (value === undefined || label === undefined) {
+                return null;
+              }
+              return { value, label };
+            })
+            .filter(item => item !== null);
+        } else {
+          const valueField = dataSource.valueField || 'id';
+          const labelField = dataSource.labelField || 'name';
+          options = data
+            .map(item => {
+              if (item == null) return null;
+              const value = item[valueField];
+              const label = item[labelField];
+              if (value === undefined || label === undefined) {
+                return null;
+              }
+              return { value, label };
+            })
+            .filter(item => item !== null);
+        }
+
+        this.remoteOptions = options.sort((a, b) => {
+          if (typeof a.label === 'string' && typeof b.label === 'string') {
+            return a.label.localeCompare(b.label);
+          }
+          return 0;
+        });
+      } catch (err) {
+        console.error('Failed to load data source options', err);
+        this.remoteOptions = [];
+      } finally {
+        this.isLoadingOptions = false;
+      }
     },
     onDateChange(value) {
       this.updateValue(value);
