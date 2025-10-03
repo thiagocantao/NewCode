@@ -574,6 +574,14 @@ export default {
         this.dataNow = new Date();
       }, 1000);
     }
+    if (this.field.fieldType === 'DEADLINE') {
+      this.deadlineTimer = setInterval(() => {
+        this.dataNow = new Date();
+      }, 1000);
+    }
+  },
+  beforeUnmount() {
+    document.removeEventListener('click', this.handleClickOutsideDropdown);
   },
   methods: {
     translateText(text) {
