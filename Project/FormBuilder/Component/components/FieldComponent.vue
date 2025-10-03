@@ -787,7 +787,8 @@ export default {
   border: 1px solid #d1d5db;
   border-radius: 8px;
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.15);
-  max-height: 220px;
+  min-width: 180px;
+  max-height: 320px;
   overflow-y: auto;
   z-index: 999;
 }
