@@ -575,6 +575,77 @@ export default {
       }, 1000);
     }
   },
+  watch: {
+    field: {
+      handler(newField, oldField) {
+        this.localValue = computeInitialValue(newField);
+        if (newField?.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
+          this.$nextTick(() => {
+            if (this.$refs.rte) {
+              this.$refs.rte.innerHTML = this.localValue || '';
+            }
+          });
+        }
+        if (newField?.fieldType === 'DEADLINE' && !this.deadlineTimer) {
+          this.deadlineTimer = setInterval(() => {
+            this.dataNow = new Date();
+          }, 1000);
+        } else if (oldField?.fieldType === 'DEADLINE' && newField?.fieldType !== 'DEADLINE' && this.deadlineTimer) {
+          clearInterval(this.deadlineTimer);
+          this.deadlineTimer = null;
+        }
+        const newSource = JSON.stringify(this.normalizeDataSource(newField));
+        const oldSource = JSON.stringify(this.normalizeDataSource(oldField));
+        if (newSource !== oldSource) {
+          this.loadDataSourceOptions();
+        }
+      },
+      deep: true
+    },
+    localValue(newVal) {
+      if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte && this.$refs.rte.innerHTML !== newVal) {
+        this.$refs.rte.innerHTML = newVal || '';
+      }
+    },
+    dataSourceConfig: {
+      handler() {
+        this.loadDataSourceOptions();
+      },
+      deep: true,
+      immediate: true
+    },
+    dropdownOpen(val) {
+      if (!val) {
+        this.searchTerm = '';
+        document.removeEventListener('click', this.handleClickOutsideDropdown);
+      }
+    }
+  },
+  beforeUnmount() {
+    document.removeEventListener('click', this.handleClickOutsideDropdown);
+    if (this.deadlineTimer) {
+      clearInterval(this.deadlineTimer);
+      this.deadlineTimer = null;
+    }
+  },
+  mounted() {
+    if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
+      this.$refs.rte.innerHTML = this.localValue || '';
+    }
+    if (this.field.fieldType === 'DEADLINE') {
+      this.deadlineTimer = setInterval(() => {
+        this.dataNow = new Date();
+      }, 1000);
+    }
+    if (this.field.fieldType === 'DEADLINE') {
+      this.deadlineTimer = setInterval(() => {
+        this.dataNow = new Date();
+      }, 1000);
+    }
+  },
+  beforeUnmount() {
+    document.removeEventListener('click', this.handleClickOutsideDropdown);
+  },
   methods: {
     translateText(text) {
       return text;
