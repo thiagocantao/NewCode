@@ -236,6 +236,54 @@
 <script>
 import CustomDatePicker from './CustomDatePicker.vue';
 
+const TRUE_VALUES = new Set(['true', '1', 1, true, 'yes', 'sim']);
+const FALSE_VALUES = new Set(['false', '0', 0, false, 'no', 'nao', 'não']);
+
+function computeInitialValue(field) {
+  if (!field) return '';
+
+  const baseValue =
+    field.value !== undefined && field.value !== null && field.value !== ''
+      ? field.value
+      : field.default_value !== undefined
+        ? field.default_value
+        : field.defaultValue !== undefined
+          ? field.defaultValue
+          : field.DefaultValue !== undefined
+            ? field.DefaultValue
+            : '';
+
+  switch (field.fieldType) {
+    case 'YES_NO': {
+      if (baseValue === '' || baseValue === undefined) {
+        return null;
+      }
+      if (TRUE_VALUES.has(baseValue) || (typeof baseValue === 'string' && TRUE_VALUES.has(baseValue.toLowerCase()))) {
+        return true;
+      }
+      if (FALSE_VALUES.has(baseValue) || (typeof baseValue === 'string' && FALSE_VALUES.has(baseValue.toLowerCase()))) {
+        return false;
+      }
+      return Boolean(baseValue);
+    }
+    case 'DECIMAL':
+    case 'INTEGER':
+    case 'DATE':
+    case 'DEADLINE':
+    case 'SIMPLE_LIST':
+    case 'LIST':
+    case 'CONTROLLED_LIST':
+    case 'FORMATED_TEXT':
+    case 'MULTILINE_TEXT':
+    case 'SIMPLE_TEXT':
+    case 'TEXT':
+    case 'EMAIL':
+    case 'PHONE':
+    default:
+      return baseValue ?? '';
+  }
+}
+
 export default {
   name: 'FieldComponent',
   components: {
@@ -247,13 +295,14 @@ export default {
       required: true
     }
   },
+  emits: ['update:value', 'field-value-change'],
   data() {
     return {
       error: null,
       dropdownOpen: false,
       dropdownOpenUp: false,
       searchTerm: '',
-      localValue: this.field?.value ?? '',
+      localValue: computeInitialValue(this.field),
       remoteOptions: [],
       isLoadingOptions: false,
       deadlineTimer: null,
@@ -466,7 +515,7 @@ export default {
   watch: {
     field: {
       handler(newField, oldField) {
-        this.localValue = newField?.value ?? '';
+        this.localValue = computeInitialValue(newField);
         if (newField?.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
           this.$nextTick(() => {
             if (this.$refs.rte) {
@@ -519,6 +568,11 @@ export default {
   mounted() {
     if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
       this.$refs.rte.innerHTML = this.localValue || '';
+    }
+    if (this.field.fieldType === 'DEADLINE') {
+      this.deadlineTimer = setInterval(() => {
+        this.dataNow = new Date();
+      }, 1000);
     }
     if (this.field.fieldType === 'DEADLINE') {
       this.deadlineTimer = setInterval(() => {
@@ -911,7 +965,18 @@ export default {
       }
 
       if (!this.error) {
+        if (this.field) {
+          this.field.default_value = value;
+          this.field.defaultValue = value;
+          this.field.value = value;
+        }
         this.$emit('update:value', value);
+        const fieldId = this.field?.id || this.field?.field_id || this.field?.ID || null;
+        this.$emit('field-value-change', {
+          fieldId,
+          value,
+          fieldType: this.field?.fieldType || null
+        });
       }
     },
     validateDate(value) {

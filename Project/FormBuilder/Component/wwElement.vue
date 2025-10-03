@@ -79,6 +79,7 @@ v-for="section in orderedSections"
 @remove-field="removeFormField"
 @select-field="selectFieldForProperties"
 @remove-section="handleRemoveSection"
+@field-value-change="handleFieldValueChange"
 @update-field-in-use="updateFieldInUse"
 class="section-spacing"
 />
@@ -807,23 +808,29 @@ sections: formSections.value.map((section, index) => ({
 position: index + 1,
 fields: (section.fields || []).map(field => {
 // Ensure each field has the correct structure with all necessary properties
-return {
-id: field.id === field.field_id ? null : field.id || null,
-field_id: field.field_id || field.ID,
-position: field.position || 1,
-columns: parseInt(field.columns) || 1,
-is_mandatory: normalizeBoolean(field.is_mandatory),
-is_readonly: normalizeBoolean(field.is_readonly),
-is_hide_legend: normalizeBoolean(field.is_hide_legend),
-tip_translations: field.tip_translations || { "en-US": field.tip || '' },
-deleted: false,
-// Include these properties to ensure the field displays correctly
-name: field.name,
-fieldType: field.fieldType
-};
-})
-}))
-};
+      return {
+        id: field.id === field.field_id ? null : field.id || null,
+        field_id: field.field_id || field.ID,
+        position: field.position || 1,
+        columns: parseInt(field.columns) || 1,
+        is_mandatory: normalizeBoolean(field.is_mandatory),
+        is_readonly: normalizeBoolean(field.is_readonly),
+        is_hide_legend: normalizeBoolean(field.is_hide_legend),
+        tip_translations: field.tip_translations || { "en-US": field.tip || '' },
+        deleted: false,
+        // Include these properties to ensure the field displays correctly
+        name: field.name,
+        fieldType: field.fieldType,
+        default_value:
+          field.default_value !== undefined
+            ? field.default_value
+            : field.defaultValue !== undefined
+              ? field.defaultValue
+              : field.value ?? null
+      };
+    })
+  }))
+  };
 
 // Update the global FormFieldsJsonSave variable
 if (typeof window !== 'undefined') {
@@ -935,7 +942,7 @@ const selectFieldForProperties = (field, sectionId) => {
 };
 
 const updateFieldProperties = (updatedField) => {
-  
+
   if (!updatedField) return;
 
   // Normalizar o campo atualizado
@@ -991,6 +998,37 @@ const updateFieldProperties = (updatedField) => {
       updateFormState();
     }
   }
+};
+
+const handleFieldValueChange = ({ sectionId, fieldId, value, field, fieldType }) => {
+  if (!sectionId) return;
+
+  const normalizeId = (item) => item?.id || item?.ID || item?.field_id || null;
+
+  const section = formSections.value.find(sec => sec.id === sectionId);
+  if (!section || !Array.isArray(section.fields)) {
+    return;
+  }
+
+  const targetId = fieldId || normalizeId(field);
+  const targetField = section.fields.find(f => normalizeId(f) === targetId);
+
+  if (!targetField) {
+    return;
+  }
+
+  targetField.default_value = value;
+  targetField.defaultValue = value;
+  targetField.value = value;
+
+  // Ensure boolean defaults remain null when cleared
+  if (fieldType === 'YES_NO' && (value === '' || value === undefined)) {
+    targetField.default_value = null;
+    targetField.defaultValue = null;
+    targetField.value = null;
+  }
+
+  updateFormState();
 };
 
 const handleRemoveSection = (section) => {
@@ -1198,7 +1236,8 @@ handleRemoveSection,
 updateFieldInUse,
 orderedSections,
 translateText,
-showTranslatedMessage
+showTranslatedMessage,
+handleFieldValueChange
 };
 }
 };
