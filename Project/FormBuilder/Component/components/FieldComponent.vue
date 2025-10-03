@@ -2,10 +2,11 @@
   <div
     class="field-component"
     :class="[`field-type-${(field.fieldType || '').toLowerCase()}`, { 'is-mandatory': field.is_mandatory }]"
+    :style="componentStyleVars"
   >
     <label v-if="!field.is_hide_legend" class="field-label">
       {{ field.name }}
-      <span v-if="field.is_mandatory" class="required-mark">*</span>
+      <span v-if="field.is_mandatory" class="required-indicator">*</span>
     </label>
 
     <div class="field-input-container">
@@ -15,8 +16,44 @@
           :disabled="field.is_readonly"
           :error="!!error && field.is_mandatory"
           @update:modelValue="onDateChange"
-          class="field-input date-input"
+          :class="['field-input', 'date-input', { error: !!error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
         />
+      </template>
+
+      <template v-else-if="field.fieldType === 'DEADLINE'">
+        <div style="position: relative;">
+          <div
+            class="deadline-visual"
+            :class="[
+              deadlineColorClass,
+              { 'readonly-field': field.is_readonly, 'deadline-empty': !deadlineHasValue }
+            ]"
+            :title="deadlineOriginalFormatted"
+            role="button"
+            :tabindex="field.is_readonly ? -1 : 0"
+            @click="openDeadlinePicker"
+            @keydown.enter.prevent="openDeadlinePicker"
+            @keydown.space.prevent="openDeadlinePicker"
+          >
+            <template v-if="deadlineHasValue">
+              <span class="deadline-diff-display">{{ deadlineDiff }}</span>
+            </template>
+            <template v-else>
+              <span class="material-symbols-outlined deadline-empty-icon">calendar_month</span>
+              <span class="deadline-empty-text">Select</span>
+            </template>
+          </div>
+          <CustomDatePicker
+            ref="deadlineDatePicker"
+            v-model="deadlineValue"
+            :disabled="field.is_readonly"
+            :show-time="true"
+            :open-up-offset="60"
+            @update:modelValue="onDeadlineChange"
+            :class="['field-input', 'date-input', { error: !!error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
+            style="position: absolute; top: 0; left: 0; width: 100%; height: 0; overflow: hidden;"
+          />
+        </div>
       </template>
 
       <template v-else-if="field.fieldType === 'DECIMAL'">
@@ -25,8 +62,8 @@
           step="0.01"
           v-model="localValue"
           :disabled="field.is_readonly"
-          @blur="updateValue(localValue)"
-          class="field-input decimal-input"
+          @blur="updateValue"
+          :class="['field-input', 'decimal-input', { error: !!error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
         />
       </template>
 
@@ -36,8 +73,8 @@
           step="1"
           v-model="localValue"
           :disabled="field.is_readonly"
-          @blur="updateValue(localValue)"
-          class="field-input integer-input"
+          @blur="updateValue"
+          :class="['field-input', 'integer-input', { error: !!error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
         />
       </template>
 
@@ -65,6 +102,35 @@
             />
             Não
           </label>
+        </div>
+      </template>
+
+      <template v-else-if="field.fieldType === 'FORMATED_TEXT'">
+        <div class="formatted-text-wrapper">
+          <div v-if="!field.is_readonly" class="toolbar">
+            <button type="button" @click="format('bold')" title="Negrito"><span class="material-symbols-outlined">format_bold</span></button>
+            <button type="button" @click="format('italic')" title="Itálico"><span class="material-symbols-outlined">format_italic</span></button>
+            <button type="button" @click="format('underline')" title="Sublinhado"><span class="material-symbols-outlined">format_underlined</span></button>
+            <button type="button" @click="format('insertUnorderedList')" title="Lista"><span class="material-symbols-outlined">format_list_bulleted</span></button>
+            <button type="button" @click="format('insertOrderedList')" title="Lista numerada"><span class="material-symbols-outlined">format_list_numbered</span></button>
+            <button type="button" @click="format('removeFormat')" title="Limpar formatação"><span class="material-symbols-outlined">format_clear</span></button>
+            <button type="button" @click="insertLink" title="Inserir link"><span class="material-symbols-outlined">link</span></button>
+            <button type="button" @click="insertImage" title="Inserir imagem"><span class="material-symbols-outlined">image</span></button>
+            <button type="button" class="color-btn" :style="{ color: currentColor }" title="Cor do texto">
+              <span style="font-weight: bold; font-size: 16px;">A</span>
+              <input type="color" @input="setColor($event)" :value="currentColor" class="color-input" title="Cor do texto" />
+            </button>
+          </div>
+          <div
+            ref="rte"
+            :contenteditable="!field.is_readonly"
+            dir="ltr"
+            :class="['field-input', 'rich-text-input', { 'readonly-field': field.is_readonly }]"
+            :data-placeholder="field.placeholder || field.placeholder_translations?.pt_br || ''"
+            @input="onContentEditableInput"
+            @blur="updateValue"
+          >
+          </div>
         </div>
       </template>
 
@@ -143,8 +209,8 @@
         <textarea
           v-model="localValue"
           :disabled="field.is_readonly"
-          @input="updateValue(localValue)"
-          class="field-input multiline-input"
+          @blur="updateValue"
+          :class="['field-input', 'multiline-input', { error: !!error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
           rows="4"
         ></textarea>
       </template>
@@ -154,8 +220,8 @@
           type="text"
           v-model="localValue"
           :disabled="field.is_readonly"
-          @input="updateValue(localValue)"
-          class="field-input text-input"
+          @blur="updateValue"
+          :class="['field-input', 'text-input', { error: !!error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
         />
       </template>
     </div>
@@ -163,7 +229,7 @@
     <div v-if="field.tip_translations?.[currentLang]" class="field-tooltip">
       <span class="tooltip-text">{{ field.tip_translations[currentLang] }}</span>
     </div>
-    <div v-if="error" class="field-error">{{ error }}</div>
+    <div v-if="error" class="field-feedback error">{{ error }}</div>
   </div>
 </template>
 
@@ -189,10 +255,35 @@ export default {
       searchTerm: '',
       localValue: this.field?.value ?? '',
       remoteOptions: [],
-      isLoadingOptions: false
+      isLoadingOptions: false,
+      deadlineTimer: null,
+      dataNow: new Date(),
+      currentColor: '#699d8c'
     };
   },
   computed: {
+    themeTokens() {
+      if (typeof window !== 'undefined' && window.wwLib?.wwVariable?.getValue) {
+        const value = window.wwLib.wwVariable.getValue('61c1b425-10e8-40dc-8f1f-b117c08b9726');
+        if (value && typeof value === 'object') {
+          return value;
+        }
+      }
+      return {};
+    },
+    componentStyleVars() {
+      if (this.field && this.field.fieldType === 'DEADLINE') {
+        return {};
+      }
+
+      const tokens = this.themeTokens || {};
+      return {
+        '--text-input-bg': tokens.inputBG || '#FFFFFF',
+        '--text-input-border': tokens.inputBorder || '#d1d5db',
+        '--text-input-border-focus': tokens.inputBorderInFocus || tokens.inputBorder || '#d1d5db',
+        '--placeholder-color': tokens.normal || tokens.inputText || '#787878'
+      };
+    },
     currentLang() {
       if (typeof window !== 'undefined' && window.wwLib?.wwVariable) {
         return window.wwLib.wwVariable.getValue('aa44dc4c-476b-45e9-a094-16687e063342') || 'pt-BR';
@@ -258,12 +349,139 @@ export default {
       if (!this.searchTerm) return this.listOptions;
       const term = this.searchTerm.toLowerCase();
       return this.listOptions.filter(opt => String(opt.label).toLowerCase().includes(term));
+    },
+    deadlineHasValue() {
+      if (this.field.fieldType !== 'DEADLINE') return false;
+      const val = this.localValue || this.field.value;
+      return !!(val && String(val).trim());
+    },
+    deadlineValue: {
+      get() {
+        if (this.field.fieldType !== 'DEADLINE') return this.localValue;
+        const val = this.localValue || this.field.value;
+        if (!val) return '';
+        const match = String(val).match(/(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})/);
+        if (match) {
+          return `${match[1]}T${match[2]}`;
+        }
+        const d = new Date(val);
+        if (!isNaN(d.getTime())) {
+          const pad = n => String(n).padStart(2, '0');
+          return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+        return '';
+      },
+      set(v) {
+        this.localValue = v;
+      }
+    },
+    deadlineDiff() {
+      if (this.field.fieldType !== 'DEADLINE') return '';
+      const val = this.localValue || this.field.value;
+      if (!val) return '';
+      let dateStr = val;
+      if (/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(val)) {
+        dateStr = val;
+      } else if (/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\+\d{2}/.test(val)) {
+        dateStr = val.replace(' ', 'T').replace(/([\+\-]\d{2})$/, '$1:00');
+      }
+      const deadline = new Date(dateStr);
+      if (isNaN(deadline.getTime())) return '';
+      const diffMs = deadline - this.dataNow;
+      if (isNaN(diffMs)) return '';
+      const abs = Math.abs(diffMs);
+      const isPast = diffMs < 0;
+      if (abs < 60 * 1000) {
+        const s = Math.floor(abs / 1000);
+        return `${isPast ? '-' : ''}${s}s`;
+      }
+      if (abs < 60 * 60 * 1000) {
+        const m = Math.floor(abs / (60 * 1000));
+        return `${isPast ? '-' : ''}${m}m`;
+      }
+      if (abs < 24 * 60 * 60 * 1000) {
+        const h = Math.floor(abs / (60 * 60 * 1000));
+        const m = Math.floor((abs % (60 * 60 * 1000)) / (60 * 1000));
+        return `${isPast ? '-' : ''}${h}h${m > 0 ? ` ${m}m` : ''}`;
+      }
+      const d = Math.floor(abs / (24 * 60 * 60 * 1000));
+      const h = Math.floor((abs % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+      const m = Math.floor((abs % (60 * 60 * 1000)) / (60 * 1000));
+      let str = `${isPast ? '-' : ''}${d}d`;
+      if (h > 0) str += ` ${h}h`;
+      if (m > 0) str += ` ${m}m`;
+      return str;
+    },
+    deadlineColorClass() {
+      if (this.field.fieldType !== 'DEADLINE') return '';
+      const val = this.localValue || this.field.value;
+      if (!val) return '';
+      let dateStr = val;
+      if (/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(val)) {
+        dateStr = val;
+      } else if (/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\+\d{2}/.test(val)) {
+        dateStr = val.replace(' ', 'T').replace(/([\+\-]\d{2})$/, '$1:00');
+      }
+      const deadline = new Date(dateStr);
+      if (isNaN(deadline.getTime())) return '';
+      const diffMs = deadline - this.dataNow;
+      if (isNaN(diffMs)) return '';
+      const diffDays = diffMs / (24 * 60 * 60 * 1000);
+      if (diffDays > 5) return 'deadline-green';
+      if (diffDays > 0) return 'deadline-yellow';
+      return 'deadline-red';
+    },
+    deadlineOriginalFormatted() {
+      if (this.field.fieldType !== 'DEADLINE') return '';
+      const val = this.localValue || this.field.value;
+      if (!val) return '';
+      let dateStr = val;
+      if (/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(val)) {
+        dateStr = val;
+      } else if (/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\+\d{2}/.test(val)) {
+        dateStr = val.replace(' ', 'T').replace(/([\+\-]\d{2})$/, '$1:00');
+      }
+      const lang =
+        (typeof window !== 'undefined' && window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342')) ||
+        (typeof navigator !== 'undefined' ? navigator.language : 'pt-BR');
+      try {
+        const formulaApi = window.wwLib?.wwFormula;
+        const use = formulaApi?.useFormula?.();
+        const resolveMappingFormula = use?.resolveMappingFormula;
+        const mapping = resolveMappingFormula ? resolveMappingFormula('95a5a105-48b6-48d4-95c5-7179a664451d') : null;
+        if (mapping && typeof formulaApi?.getValue === 'function') {
+          const res = formulaApi.getValue(mapping, {}, { args: [dateStr, lang] });
+          if (!(res instanceof Promise) && res !== undefined && res !== null) {
+            return String(res);
+          }
+        }
+      } catch (e) {
+        // ignore and fallback
+      }
+      const deadline = new Date(dateStr);
+      if (isNaN(deadline.getTime())) return val;
+      return deadline.toLocaleString(lang);
     }
   },
   watch: {
     field: {
       handler(newField, oldField) {
         this.localValue = newField?.value ?? '';
+        if (newField?.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
+          this.$nextTick(() => {
+            if (this.$refs.rte) {
+              this.$refs.rte.innerHTML = this.localValue || '';
+            }
+          });
+        }
+        if (newField?.fieldType === 'DEADLINE' && !this.deadlineTimer) {
+          this.deadlineTimer = setInterval(() => {
+            this.dataNow = new Date();
+          }, 1000);
+        } else if (oldField?.fieldType === 'DEADLINE' && newField?.fieldType !== 'DEADLINE' && this.deadlineTimer) {
+          clearInterval(this.deadlineTimer);
+          this.deadlineTimer = null;
+        }
         const newSource = JSON.stringify(this.normalizeDataSource(newField));
         const oldSource = JSON.stringify(this.normalizeDataSource(oldField));
         if (newSource !== oldSource) {
@@ -271,6 +489,11 @@ export default {
         }
       },
       deep: true
+    },
+    localValue(newVal) {
+      if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte && this.$refs.rte.innerHTML !== newVal) {
+        this.$refs.rte.innerHTML = newVal || '';
+      }
     },
     dataSourceConfig: {
       handler() {
@@ -284,6 +507,23 @@ export default {
         this.searchTerm = '';
         document.removeEventListener('click', this.handleClickOutsideDropdown);
       }
+    }
+  },
+  beforeUnmount() {
+    document.removeEventListener('click', this.handleClickOutsideDropdown);
+    if (this.deadlineTimer) {
+      clearInterval(this.deadlineTimer);
+      this.deadlineTimer = null;
+    }
+  },
+  mounted() {
+    if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
+      this.$refs.rte.innerHTML = this.localValue || '';
+    }
+    if (this.field.fieldType === 'DEADLINE') {
+      this.deadlineTimer = setInterval(() => {
+        this.dataNow = new Date();
+      }, 1000);
     }
   },
   beforeUnmount() {
@@ -518,6 +758,51 @@ export default {
       this.localValue = value;
       this.updateValue(value);
     },
+    onDeadlineChange(value) {
+      this.updateValue(value);
+    },
+    openDeadlinePicker() {
+      if (this.field.fieldType === 'DEADLINE' && !this.field.is_readonly) {
+        const dp = this.$refs.deadlineDatePicker;
+        if (dp && typeof dp.openDp === 'function') {
+          dp.openDp();
+        }
+      }
+    },
+    onContentEditableInput(event) {
+      this.localValue = event.target.innerHTML;
+    },
+    format(cmd) {
+      if (this.$refs.rte) {
+        this.$refs.rte.focus();
+      }
+      document.execCommand(cmd, false, null);
+    },
+    setColor(event) {
+      if (this.$refs.rte) {
+        this.$refs.rte.focus();
+      }
+      document.execCommand('foreColor', false, event.target.value);
+      this.currentColor = event.target.value;
+    },
+    insertLink() {
+      if (this.$refs.rte) {
+        this.$refs.rte.focus();
+      }
+      const url = typeof window !== 'undefined' ? window.prompt('Digite a URL do link:') : null;
+      if (url) {
+        document.execCommand('createLink', false, url);
+      }
+    },
+    insertImage() {
+      if (this.$refs.rte) {
+        this.$refs.rte.focus();
+      }
+      const url = typeof window !== 'undefined' ? window.prompt('Digite a URL da imagem:') : null;
+      if (url) {
+        document.execCommand('insertImage', false, url);
+      }
+    },
     onDropdownClick() {
       if (this.field.is_readonly) return;
       this.toggleDropdown();
@@ -531,7 +816,7 @@ export default {
           if (trigger && dropdown) {
             const scrollParent = this.getScrollParent(trigger);
             const triggerRect = trigger.getBoundingClientRect();
-            const dropdownHeight = 220;
+            const dropdownHeight = 320;
             let spaceBelow;
             if (scrollParent === document.body) {
               spaceBelow = window.innerHeight - triggerRect.bottom;
@@ -573,12 +858,19 @@ export default {
       return document.body;
     },
     updateValue(eventOrValue) {
-      const rawValue = eventOrValue && eventOrValue.target ? eventOrValue.target.value : eventOrValue;
+      const rawValue = this.field.fieldType === 'FORMATED_TEXT'
+        ? this.localValue
+        : eventOrValue && eventOrValue.target
+          ? eventOrValue.target.value
+          : eventOrValue;
       let value = rawValue;
 
       switch (this.field.fieldType) {
         case 'DATE':
           this.validateDate(value);
+          break;
+        case 'DEADLINE':
+          this.validateDeadline(value);
           break;
         case 'DECIMAL': {
           const numericValue =
@@ -603,11 +895,13 @@ export default {
           value = value !== null && value !== undefined ? String(value) : value;
           this.validateList(value);
           break;
+        case 'FORMATED_TEXT':
+          this.validateText(typeof value === 'string' ? value : value != null ? String(value) : '');
+          break;
         case 'MULTILINE_TEXT':
           this.validateMultilineText(typeof value === 'string' ? value : '');
           break;
         case 'SIMPLE_TEXT':
-        case 'FORMATED_TEXT':
         case 'TEXT':
         case 'EMAIL':
         case 'PHONE':
@@ -627,6 +921,18 @@ export default {
       }
       const date = new Date(`${value}T00:00:00`);
       this.error = isNaN(date.getTime()) ? this.translateText('Data inválida') : null;
+    },
+    validateDeadline(value) {
+      if (!value) {
+        this.error = this.field.is_mandatory ? this.translateText('Campo obrigatório') : null;
+        return;
+      }
+      const date = new Date(value);
+      if (isNaN(date.getTime())) {
+        this.error = this.translateText('Data e hora inválidas');
+      } else {
+        this.error = null;
+      }
     },
     validateDecimal(value) {
       if (value === null || isNaN(value)) {
@@ -668,192 +974,583 @@ export default {
 </script>
 
 <style scoped>
-.field-component {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  margin-bottom: 5px;
-}
+  .field-component {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin-bottom: 5px;
+  }
 
-.field-label {
-  font-size: 13px;
-  font-weight: 400;
-  margin-bottom: 4px;
-  color: #333;
-}
+  .field-component:not(.field-type-deadline) {
+    --text-input-bg: #ffffff;
+    --text-input-border: #d1d5db;
+    --text-input-border-focus: #bdbdbd;
+  }
 
-.required-mark {
-  color: #e53935;
-  margin-left: 2px;
-}
+  .field-label {
+    font-size: 12px;
+    font-weight: 400;
+    margin-bottom: 4px;
+    color: #787878;
+    padding-left: 8px;
+  }
 
-.field-input-container {
-  width: 100%;
-}
+  .required-indicator {
+    color: #e53935;
+    margin-left: 2px;
+    font-weight: bold;
+  }
 
-.field-input {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 13px;
-  background-color: #fff;
-  box-sizing: border-box;
-}
+  .field-row {
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
 
-.field-input:focus {
-  outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-}
+  .field-input {
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+    color: #787878;
+    font-size: 0.845rem;
+    letter-spacing: 0px;
+    text-overflow: ellipsis;
+  }
 
-.field-input[readonly],
-.field-input.readonly-field {
-  background-color: #f5f5f5;
-  cursor: not-allowed;
-}
+  input.field-input,
+  textarea.field-input {
+    padding: 8px;
+    border: 1px solid var(--text-input-border);
+    border-radius: 4px;
+    background-color: var(--text-input-bg);
+  }
 
-.field-tooltip {
-  margin-top: 4px;
-}
+  input.field-input {
+    height: 34px;
+  }
 
-.tooltip-text {
-  color: rgb(120, 120, 120);
-  padding: 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  white-space: nowrap;
-}
+  .text-input,
+  .decimal-input,
+  .integer-input {
+    background-color: var(--text-input-bg);
+  }
 
-.field-error {
-  margin-top: 4px;
-  color: #e53935;
-  font-size: 12px;
-}
+  input.field-input:focus,
+  textarea.field-input:focus {
+    border-color: var(--text-input-border-focus);
+    box-shadow: none;
+    background-color: #ffffff;
+    color: #787878;
+  }
 
-.yes-no-container {
-  display: flex;
-  gap: 16px;
-}
+  input.field-input::placeholder,
+  textarea.field-input::placeholder {
+    color: var(--placeholder-color, #787878);
+    opacity: 1;
+  }
 
-.radio-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #333;
-}
+  .field-component input.field-input:disabled,
+  .field-component textarea.field-input:disabled {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+  }
 
-.custom-dropdown-wrapper {
-  position: relative;
-  width: 100%;
-}
+  .field-input[readonly] {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+  }
 
-.custom-dropdown-selected {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  background: #ffffff;
-  cursor: pointer;
-  transition: border-color 0.2s ease;
-  min-height: 36px;
-  gap: 8px;
-}
+  .field-tip {
+    font-size: 12px;
+    color: #666;
+    margin-top: 4px;
+    font-style: italic;
+  }
 
-.custom-dropdown-selected.open {
-  border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
-}
+  .is-required .field-label::after {
+    content: "*";
+    color: #e53935;
+    margin-left: 2px;
+  }
 
-.custom-dropdown-selected.error {
-  border-color: #e53935;
-}
+  .tooltip-text {
+    color: rgb(120, 120, 120);
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 1;
+  }
 
-.custom-dropdown-selected.readonly-field {
-  background-color: #f5f5f5;
-  cursor: not-allowed;
-  color: #999;
-}
+  .date-input {
+    min-width: 150px;
+    padding: 0;
+    border: 1px solid var(--text-input-border);
+    border-radius: 4px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    background-color: var(--text-input-bg);
+    box-sizing: border-box;
+  }
 
-.custom-dropdown-list {
-  position: absolute;
-  left: 0;
-  right: 0;
-  margin-top: 4px;
-  background: #fff;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.15);
-  min-width: 180px;
-  max-height: 320px;
-  overflow-y: auto;
-  z-index: 999;
-}
+  .date-input:focus-within {
+    border-color: var(--text-input-border-focus);
+    background-color: #ffffff;
+  }
 
-.custom-dropdown-list.open-up {
-  bottom: calc(100% + 4px);
-  top: auto;
-}
+  .date-input :deep(.dp-input) {
+    border: none;
+    background: transparent;
+    padding: 0 32px 0 8px;
+    height: 100%;
+    color: #787878;
+    font-size: 0.845rem;
+    letter-spacing: 0px;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
+  }
 
-.dropdown-search-wrapper {
-  display: flex;
-  align-items: center;
-  padding: 8px;
-  border-bottom: 1px solid #e5e7eb;
-  gap: 8px;
-}
+  .date-input :deep(.dp-input::placeholder) {
+    color: var(--placeholder-color, #787878);
+    opacity: 1;
+  }
 
-.search-icon {
-  font-size: 18px;
-  color: #6b7280;
-}
+  .decimal-input,
+  .integer-input {
+    text-align: right;
+  }
 
-.list-search-input {
-  flex: 1;
-  border: none;
-  outline: none;
-  font-size: 13px;
-}
+  .yes-no-container {
+    display: flex;
+    gap: 16px;
+  }
 
-.custom-dropdown-option {
-  padding: 10px 12px;
-  cursor: pointer;
-  font-size: 13px;
-  color: #374151;
-  display: flex;
-  align-items: center;
-}
+  .radio-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+  }
 
-.custom-dropdown-option.selected {
-  background: #eff6ff;
-  color: #1d4ed8;
-}
+  .list-input {
+    min-width: 200px;
+  }
 
-.custom-dropdown-option:hover {
-  background: #f3f4f6;
-}
+  .multiline-input {
+    resize: vertical;
+    min-height: 100px;
+    height: auto;
+  }
 
-.custom-dropdown-no-options {
-  padding: 12px;
-  text-align: center;
-  color: #6b7280;
-  font-size: 13px;
-}
+  .is-mandatory .field-label {
+    font-weight: 400;
+  }
 
-.custom-dropdown-selected .dropdown-arrow {
-  font-size: 20px;
-  color: #6b7280;
-}
+  .field-input.error {
+    border-color: #ff0000;
+    box-shadow: 0 0 0 1px #ff0000;
+  }
 
-.custom-dropdown-selected .placeholder {
-  color: #9ca3af;
-}
+  .field-feedback {
+    margin-top: 6px;
+    font-size: 0.845rem;
+    letter-spacing: 0px;
+    text-overflow: ellipsis;
+    font-weight: 400;
+    border-radius: 4px;
+    padding: 4px 8px;
+    display: inline-block;
+  }
 
-.multiline-input {
-  resize: vertical;
-  min-height: 100px;
-}
+  .field-feedback.success {
+    color: #155724;
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+  }
+
+  .field-feedback.error {
+    color: #721c24;
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+  }
+
+  .deadline-visual {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border-radius: 20px !important;
+    font-size: 12px;
+    transition: background .3s, color .3s, border-color .3s;
+    width: 130px !important;
+    height: 30px !important;
+    border: 1.5px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .deadline-visual:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(55, 111, 208, 0.2);
+  }
+
+  .deadline-empty {
+    border-color: #d1d5db !important;
+    background: #ffffff !important;
+    color: #6b7280 !important;
+    font-weight: 500;
+  }
+
+  .deadline-empty-icon {
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  .deadline-empty-text {
+    line-height: 1;
+  }
+
+  .deadline-diff-display {
+    font-weight: bold;
+  }
+
+  .deadline-green {
+    background: rgb(131, 176, 244) !important;
+    color: #ffffff !important;
+    border: 1.5px solid rgb(131, 176, 244) !important;
+    font-weight: bold;
+  }
+
+  .deadline-yellow {
+    background: #fffbe6 !important;
+    color: #b59f00 !important;
+    border: 1.5px solid #b59f00 !important;
+    font-weight: bold;
+  }
+
+  .deadline-red {
+    background: #ffdddd !important;
+    color: #b71c1c !important;
+    border: 1.5px solid #b71c1c !important;
+    font-weight: bold;
+  }
+
+  .deadline-diff {
+    font-size: 12px;
+    color: #007bff;
+    margin-top: 4px;
+  }
+
+  .readonly-field {
+    background-color: #f0f0f0 !important;
+    color: #888 !important;
+    cursor: not-allowed !important;
+    border-style: dashed !important;
+    opacity: 1 !important;
+  }
+
+  .formatted-text-wrapper {
+    width: 100%;
+  }
+
+  .toolbar {
+    margin-bottom: 0;
+    display: flex;
+    gap: 6px;
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px 6px 0 0;
+    padding: 6px 8px 4px 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  }
+
+  .toolbar button {
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    padding: 3px 10px;
+    cursor: pointer;
+    font-size: 15px;
+    color: #333;
+    transition: background 0.2s, border 0.2s;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.01);
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .toolbar button:hover,
+  .toolbar button:focus {
+    background: #e3eafc;
+    border-color: #90b4f8;
+    color: #1a237e;
+  }
+
+  .toolbar button:active {
+    background: #dbeafe;
+    border-color: #60a5fa;
+  }
+
+  .rich-text-input {
+    max-width: 100%;
+    overflow-x: auto;
+    word-break: break-word;
+    box-sizing: border-box;
+    min-height: 100px;
+    padding: 8px;
+    border: 1px solid var(--text-input-border);
+    border-radius: 4px;
+    background-color: var(--text-input-bg);
+    color: #787878;
+    font-size: 0.845rem;
+    letter-spacing: 0px;
+    text-overflow: ellipsis;
+    white-space: pre-wrap;
+    transition: background .3s, border-color .3s, color .3s;
+    outline: none !important;
+  }
+
+  .rich-text-input:focus {
+    border-color: var(--text-input-border-focus);
+    background-color: #ffffff;
+    color: #787878;
+  }
+
+  .rich-text-input[data-placeholder]:empty::before {
+    content: attr(data-placeholder);
+    color: var(--placeholder-color, #787878);
+    opacity: 1;
+    pointer-events: none;
+  }
+
+  .rich-text-input img,
+  .rich-text-input table,
+  .rich-text-input iframe {
+    max-width: 100%;
+    height: auto;
+    box-sizing: border-box;
+    display: block;
+  }
+
+  .rich-text-input table {
+    width: 100% !important;
+    table-layout: auto;
+    overflow-x: auto;
+    display: block;
+  }
+
+  .toolbar {
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+  }
+
+  .toolbar .material-symbols-outlined {
+    font-size: 18px !important;
+    color: rgb(105, 157, 140) !important;
+    vertical-align: middle;
+  }
+
+  @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined');
+
+  .color-btn {
+    position: relative;
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    padding: 3px 10px;
+    cursor: pointer;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, border 0.2s;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.01);
+    margin-left: 2px;
+  }
+
+  .color-btn:hover,
+  .color-btn:focus {
+    background: #e3eafc;
+    border-color: #90b4f8;
+    color: #1a237e;
+  }
+
+  .color-input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    border: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .dropdown-search-wrapper {
+    position: relative;
+    width: 96%;
+    margin: 10px auto 10px auto;
+    display: flex;
+    align-items: center;
+    background-color: #FFFFFF !important;
+  }
+
+  .dropdown-search-wrapper .search-icon {
+    position: absolute;
+    right: 12px;
+    font-size: 20px;
+    color: #bdbdbd;
+    pointer-events: none;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .list-search-input {
+    border: 1.5px solid #bdbdbd !important;
+    border-radius: 20px;
+    padding: 7px 38px 7px 12px;
+    font-size: 0.845rem;
+    letter-spacing: 0px;
+    text-overflow: ellipsis;
+    width: 100%;
+    box-sizing: border-box;
+    background: #f8f9fa;
+    transition: border 0.2s;
+    outline: none;
+  }
+
+  .list-search-input:focus,
+  .list-search-input:active,
+  .list-search-input:hover {
+    border-color: #bdbdbd !important;
+    background: #fff;
+  }
+
+  .custom-dropdown-wrapper {
+    position: relative;
+    width: 100%;
+  }
+
+  .custom-dropdown-selected {
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    padding: 6px 12px;
+    background: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 34px;
+    font-size: 0.845rem;
+    letter-spacing: 0px;
+    text-overflow: ellipsis;
+    transition: border .2s;
+    color: #787878 !important;
+  }
+
+  .custom-dropdown-selected.open {
+    border-color: #699d8c;
+    box-shadow: 0 2px 8px rgba(105, 157, 140, 0.08);
+  }
+
+  .custom-dropdown-selected.error {
+    border-color: #ff0000;
+    box-shadow: 0 0 0 1px #ff0000;
+  }
+
+  .custom-dropdown-selected.readonly-field {
+    background: #f0f0f0;
+    color: #888;
+    cursor: not-allowed;
+    border-style: dashed;
+  }
+
+  .custom-dropdown-list {
+    position: absolute;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 0 0 6px 6px;
+    box-shadow: 0 4px 16px rgba(105, 157, 140, 0.10);
+    z-index: 100;
+    max-height: 320px;
+    min-width: 180px;
+    overflow-y: auto;
+    margin-top: 2px;
+    padding-bottom: 4px;
+  }
+
+  .custom-dropdown-option {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 0.845rem;
+    letter-spacing: 0px;
+    text-overflow: ellipsis;
+    transition: background 0.15s;
+  }
+
+  .custom-dropdown-option.selected {
+    background: #e3eafc;
+    color: #699d8c;
+    font-weight: bold;
+  }
+
+  .custom-dropdown-option:hover {
+    background: #f5f5f5;
+  }
+
+  .custom-dropdown-no-options {
+    padding: 8px 12px;
+    color: #888;
+    font-size: 13px;
+    text-align: center;
+  }
+
+  .custom-dropdown-selected .dropdown-arrow {
+    font-size: 20px;
+    color: #bdbdbd;
+    margin-left: 8px;
+  }
+
+  .custom-dropdown-selected .placeholder {
+    color: var(--placeholder-color, #787878);
+  }
+
+  .custom-dropdown-list.open-up {
+    top: auto !important;
+    bottom: 100%;
+    border-radius: 6px 6px 0 0;
+    box-shadow: 0 -4px 16px rgba(105, 157, 140, 0.10);
+    margin-top: 0;
+    margin-bottom: 2px;
+  }
+
+  .field-component-loading {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin-bottom: 5px;
+  }
+
+  .loading-placeholder {
+    height: 34px;
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+    border-radius: 4px;
+    margin-top: 4px;
+  }
+
+  @keyframes loading {
+    0% {
+      background-position: 200% 0;
+    }
+
+    100% {
+      background-position: -200% 0;
+    }
+  }
 </style>
