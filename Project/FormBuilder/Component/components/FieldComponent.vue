@@ -526,6 +526,9 @@ export default {
       }, 1000);
     }
   },
+  beforeUnmount() {
+    document.removeEventListener('click', this.handleClickOutsideDropdown);
+  },
   methods: {
     translateText(text) {
       return text;
