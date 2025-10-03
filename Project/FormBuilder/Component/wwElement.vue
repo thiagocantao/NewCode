@@ -79,6 +79,7 @@ v-for="section in orderedSections"
 @remove-field="removeFormField"
 @select-field="selectFieldForProperties"
 @remove-section="handleRemoveSection"
+@field-value-change="handleFieldValueChange"
 @update-field-in-use="updateFieldInUse"
 class="section-spacing"
 />
@@ -144,10 +145,10 @@ return false;
 
 // Internal variables
 const { value: formData, setValue: setFormData } = wwLib.wwVariable.useComponentVariable({
-uid: props.uid,
-name: 'formData',
-type: 'object',
-defaultValue: {}
+  uid: props.uid,
+  name: 'formData',
+  type: 'object',
+  defaultValue: {}
 });
 
 const { value: fieldsData, setValue: setFieldsData } = wwLib.wwVariable.useComponentVariable({
@@ -182,6 +183,18 @@ is_current: true
 sections: []
 };
 }
+
+const cloneDeep = (value) => {
+  if (value === undefined) {
+    return undefined;
+  }
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch (error) {
+    console.warn('Failed to clone value', error);
+    return value;
+  }
+};
 
 // State
 const availableFields = ref([]);
@@ -526,8 +539,8 @@ console.error('Error initializing Sortable in form sections container:', error);
 
 // Load data
 const loadData = () => {
-loadFieldsData();
-loadFormData();
+  loadFieldsData();
+  loadFormData();
 };
 
 const loadFieldsData = () => {
@@ -556,8 +569,8 @@ console.error('Error loading fields data:', error);
 };
 
 const loadFormData = () => {
-try {
-let data = {};
+  try {
+    let data = {};
 
 // Try to load from JSON string
 if (props.content.formJson) {
@@ -606,15 +619,15 @@ sections: []
 
 // Initialize the global FormFieldsJsonSave variable
 if (typeof window !== 'undefined') {
-window.FormFieldsJsonSave = data;
+    window.FormFieldsJsonSave = cloneDeep(data);
 }
 
 // Convert sections array to the format expected by the component
-formSections.value = data.sections || [];
-setFormData(data);
-} catch (error) {
-console.error('Error loading form data:', error);
-}
+    formSections.value = cloneDeep(data.sections || []);
+    setFormData(cloneDeep(data));
+  } catch (error) {
+    console.error('Error loading form data:', error);
+  }
 };
 
 // Field operations
@@ -797,54 +810,61 @@ const normalizeBoolean = (value) => {
 };
 
 const updateFormState = () => {
-const formDataValue = {
-form: formData.value?.form || {
-id: null,
-name: { "en-US": 'New Form' }
-},
-sections: formSections.value.map((section, index) => ({
-...section,
-position: index + 1,
-fields: (section.fields || []).map(field => {
-// Ensure each field has the correct structure with all necessary properties
-return {
-id: field.id === field.field_id ? null : field.id || null,
-field_id: field.field_id || field.ID,
-position: field.position || 1,
-columns: parseInt(field.columns) || 1,
-is_mandatory: normalizeBoolean(field.is_mandatory),
-is_readonly: normalizeBoolean(field.is_readonly),
-is_hide_legend: normalizeBoolean(field.is_hide_legend),
-tip_translations: field.tip_translations || { "en-US": field.tip || '' },
-deleted: false,
-// Include these properties to ensure the field displays correctly
-name: field.name,
-fieldType: field.fieldType
-};
-})
-}))
+  const baseFormData = cloneDeep(formData.value) || {};
+  const formMetadata = baseFormData.form || {
+    id: null,
+    name: { "en-US": 'New Form' },
+    workspace_id: '00000000-0000-0000-0000-000000000000',
+    company_id: null,
+    is_current: true
+  };
+
+  const normalizedSections = formSections.value.map((section, index) => ({
+    ...section,
+    position: index + 1,
+    fields: (section.fields || []).map(field => ({
+      id: field.id === field.field_id ? null : field.id || null,
+      field_id: field.field_id || field.ID,
+      position: field.position || 1,
+      columns: parseInt(field.columns) || 1,
+      is_mandatory: normalizeBoolean(field.is_mandatory),
+      is_readonly: normalizeBoolean(field.is_readonly),
+      is_hide_legend: normalizeBoolean(field.is_hide_legend),
+      tip_translations: field.tip_translations || { 'en-US': field.tip || '' },
+      deleted: false,
+      name: field.name,
+      fieldType: field.fieldType,
+      default_value:
+        field.default_value !== undefined
+          ? field.default_value
+          : field.defaultValue !== undefined
+            ? field.defaultValue
+            : field.value ?? null
+    }))
+  }));
+
+  const formDataValue = {
+    ...baseFormData,
+    form: formMetadata,
+    sections: normalizedSections
+  };
+
+  const nextValue = cloneDeep(formDataValue);
+
+  if (typeof window !== 'undefined') {
+    window.FormFieldsJsonSave = nextValue;
+  }
+
+  setFormData(nextValue);
+  emit('trigger-event', {
+    name: 'formUpdated',
+    event: { value: cloneDeep(nextValue) }
+  });
 };
 
-// Update the global FormFieldsJsonSave variable
-if (typeof window !== 'undefined') {
-window.FormFieldsJsonSave = {
-form: {
-id: formDataValue.form.id,
-name: formDataValue.form.name,
-workspace_id: "00000000-0000-0000-0000-000000000000",
-company_id: null,
-is_current: true
-},
-sections: formDataValue.sections
-};
-}
-
-setFormData(formDataValue);
-emit('trigger-event', {
-name: 'formUpdated',
-event: { value: formDataValue }
-});
-}; 
+watch(formSections, () => {
+  updateFormState();
+}, { deep: true });
 
 // JSON operations
 const saveFieldsToJson = () => {
@@ -935,7 +955,7 @@ const selectFieldForProperties = (field, sectionId) => {
 };
 
 const updateFieldProperties = (updatedField) => {
-  
+
   if (!updatedField) return;
 
   // Normalizar o campo atualizado
@@ -991,6 +1011,37 @@ const updateFieldProperties = (updatedField) => {
       updateFormState();
     }
   }
+};
+
+const handleFieldValueChange = ({ sectionId, fieldId, value, field, fieldType }) => {
+  if (!sectionId) return;
+
+  const normalizeId = (item) => item?.id || item?.ID || item?.field_id || null;
+
+  const section = formSections.value.find(sec => sec.id === sectionId);
+  if (!section || !Array.isArray(section.fields)) {
+    return;
+  }
+
+  const targetId = fieldId || normalizeId(field);
+  const targetField = section.fields.find(f => normalizeId(f) === targetId);
+
+  if (!targetField) {
+    return;
+  }
+
+  targetField.default_value = value;
+  targetField.defaultValue = value;
+  targetField.value = value;
+
+  // Ensure boolean defaults remain null when cleared
+  if (fieldType === 'YES_NO' && (value === '' || value === undefined)) {
+    targetField.default_value = null;
+    targetField.defaultValue = null;
+    targetField.value = null;
+  }
+
+  updateFormState();
 };
 
 const handleRemoveSection = (section) => {
@@ -1198,7 +1249,8 @@ handleRemoveSection,
 updateFieldInUse,
 orderedSections,
 translateText,
-showTranslatedMessage
+showTranslatedMessage,
+handleFieldValueChange
 };
 }
 };
