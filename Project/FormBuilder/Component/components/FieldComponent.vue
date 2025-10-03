@@ -199,6 +199,9 @@ export default {
       }
       return 'pt-BR';
     },
+    dataSourceConfig() {
+      return this.normalizeDataSource(this.field);
+    },
     isListField() {
       return ['SIMPLE_LIST', 'LIST', 'CONTROLLED_LIST'].includes(this.field.fieldType);
     },
@@ -261,15 +264,15 @@ export default {
     field: {
       handler(newField, oldField) {
         this.localValue = newField?.value ?? '';
-        const newSource = JSON.stringify(newField?.dataSource || null);
-        const oldSource = JSON.stringify(oldField?.dataSource || null);
+        const newSource = JSON.stringify(this.normalizeDataSource(newField));
+        const oldSource = JSON.stringify(this.normalizeDataSource(oldField));
         if (newSource !== oldSource) {
           this.loadDataSourceOptions();
         }
       },
       deep: true
     },
-    'field.dataSource': {
+    dataSourceConfig: {
       handler() {
         this.loadDataSourceOptions();
       },
@@ -290,8 +293,135 @@ export default {
     translateText(text) {
       return text;
     },
+    normalizeDataSource(field) {
+      if (!field) return null;
+      const rawDataSource = field.dataSource ?? field.DataSource ?? null;
+      if (!rawDataSource) return null;
+
+      if (typeof rawDataSource !== 'object') {
+        return rawDataSource;
+      }
+
+      const transform = rawDataSource.transform ?? rawDataSource.Transform ?? null;
+      const method = rawDataSource.method ?? rawDataSource.Method ?? undefined;
+      const valueField = rawDataSource.valueField ?? rawDataSource.ValueField ?? undefined;
+      const labelField = rawDataSource.labelField ?? rawDataSource.LabelField ?? undefined;
+      const functionName = rawDataSource.functionName ?? rawDataSource.FunctionName ?? undefined;
+
+      return {
+        ...rawDataSource,
+        ...(transform ? { transform } : {}),
+        ...(method ? { method } : {}),
+        ...(valueField ? { valueField } : {}),
+        ...(labelField ? { labelField } : {}),
+        ...(functionName ? { functionName } : {}),
+      };
+    },
+    extractArrayFromResponse(payload, visited = new WeakSet()) {
+      if (Array.isArray(payload)) {
+        return payload;
+      }
+
+      if (!payload || typeof payload !== 'object') {
+        return null;
+      }
+
+      if (visited.has(payload)) {
+        return null;
+      }
+
+      visited.add(payload);
+
+      const priorityKeys = [
+        'items',
+        'data',
+        'results',
+        'value',
+        'values',
+        'options',
+        'records',
+        'list',
+        'rows',
+        'collection',
+      ];
+
+      for (const key of priorityKeys) {
+        if (Array.isArray(payload?.[key])) {
+          return payload[key];
+        }
+      }
+
+      for (const key of Object.keys(payload)) {
+        const value = payload[key];
+        const result = this.extractArrayFromResponse(value, visited);
+        if (Array.isArray(result)) {
+          return result;
+        }
+      }
+
+      return null;
+    },
+    mapOptionsFromData(dataArray, dataSource) {
+      if (!Array.isArray(dataArray)) {
+        return [];
+      }
+
+      const transform = dataSource && typeof dataSource === 'object'
+        ? (dataSource.transform ?? null)
+        : null;
+
+      if (transform && (transform.value || transform.label)) {
+        return dataArray
+          .map(item => {
+            if (!item || typeof item !== 'object') return null;
+            const value = item?.[transform.value] ?? item?.id ?? item?.ID;
+            const label = item?.[transform.label] ?? item?.name ?? item?.Name;
+            if (value === undefined || label === undefined) {
+              return null;
+            }
+            return { value, label };
+          })
+          .filter(option => option !== null);
+      }
+
+      const valueField =
+        (dataSource && typeof dataSource === 'object' && (dataSource.valueField ?? dataSource.ValueField)) ||
+        'id';
+      const labelField =
+        (dataSource && typeof dataSource === 'object' && (dataSource.labelField ?? dataSource.LabelField)) ||
+        'name';
+
+      return dataArray
+        .map(item => {
+          if (!item || typeof item !== 'object') {
+            const primitiveValue = item;
+            if (primitiveValue === undefined || primitiveValue === null) {
+              return null;
+            }
+            const normalized = String(primitiveValue);
+            return { value: primitiveValue, label: normalized };
+          }
+
+          const value = item?.[valueField] ?? item?.id ?? item?.ID;
+          const label = item?.[labelField] ?? item?.name ?? item?.Name;
+
+          if (value === undefined || label === undefined) {
+            return null;
+          }
+
+          return { value, label };
+        })
+        .filter(option => option !== null);
+    },
     async loadDataSourceOptions() {
-      if (!this.field?.dataSource || typeof window === 'undefined') {
+      if (typeof window === 'undefined') {
+        this.remoteOptions = [];
+        return;
+      }
+
+      const dataSource = this.dataSourceConfig;
+
+      if (!dataSource) {
         this.remoteOptions = [];
         return;
       }
@@ -308,7 +438,6 @@ export default {
 
       let url = '';
       let method = 'POST';
-      const dataSource = this.field.dataSource;
 
       if (typeof dataSource === 'string') {
         if (!dataSource.trim()) {
@@ -318,7 +447,8 @@ export default {
         url = `${apiUrl.replace(/\/$/, '')}${dataSource}`;
       } else if (dataSource.url) {
         url = dataSource.url;
-        if (dataSource.method && dataSource.method.toUpperCase() === 'GET') {
+        const rawMethod = dataSource.method ?? dataSource.Method;
+        if (rawMethod && rawMethod.toUpperCase() === 'GET') {
           method = 'GET';
         }
       } else if (dataSource.functionName) {
@@ -344,38 +474,14 @@ export default {
         }
 
         const data = await response.json();
-        if (!Array.isArray(data)) {
+        const dataArray = this.extractArrayFromResponse(data);
+
+        if (!Array.isArray(dataArray)) {
           this.remoteOptions = [];
           return;
         }
 
-        let options = [];
-        if (dataSource.transform) {
-          options = data
-            .map(item => {
-              const value = item?.[dataSource.transform?.value] ?? item?.id;
-              const label = item?.[dataSource.transform?.label] ?? item?.name;
-              if (value === undefined || label === undefined) {
-                return null;
-              }
-              return { value, label };
-            })
-            .filter(item => item !== null);
-        } else {
-          const valueField = dataSource.valueField || 'id';
-          const labelField = dataSource.labelField || 'name';
-          options = data
-            .map(item => {
-              if (item == null) return null;
-              const value = item[valueField];
-              const label = item[labelField];
-              if (value === undefined || label === undefined) {
-                return null;
-              }
-              return { value, label };
-            })
-            .filter(item => item !== null);
-        }
+        const options = this.mapOptionsFromData(dataArray, dataSource);
 
         this.remoteOptions = options.sort((a, b) => {
           if (typeof a.label === 'string' && typeof b.label === 'string') {
