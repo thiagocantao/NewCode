@@ -174,9 +174,20 @@ export default {
           title: section.title[window.wwLib.wwVariable.getValue('aa44dc4c-476b-45e9-a094-16687e063342')] || section.title || 'Nova Seção',
           fields: (section.fields || []).map(field => {
             let processedValue = field.value;
+
+            const hasDefaultValue = Object.prototype.hasOwnProperty.call(field, 'default_value');
+            if (
+              hasDefaultValue &&
+              (processedValue === undefined || processedValue === null || processedValue === '')
+            ) {
+              processedValue = field.default_value;
+            }
+
             if (field.fieldType === 'YES_NO') {
               if (typeof processedValue === 'string') {
                 processedValue = processedValue === 'true' || processedValue === '1';
+              } else if (processedValue === undefined || processedValue === null) {
+                processedValue = false;
               } else {
                 processedValue = Boolean(processedValue);
               }
@@ -196,6 +207,7 @@ export default {
               is_hide_legend: Boolean(field.is_hide_legend),
               dataSource: field.dataSource || field.data_source,
               list_options: field.list_options || field.listOptions,
+              default_value: field.default_value,
               value: processedValue
             };
             return processedField;
