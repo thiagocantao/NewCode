@@ -341,29 +341,69 @@ setup(props, { emit }) {
                 return;
               }
 
+              let clonedFieldData;
+              try {
+                clonedFieldData = JSON.parse(JSON.stringify(fieldData));
+              } catch (error) {
+                console.warn('Failed to clone dragged field data', error);
+                clonedFieldData = { ...fieldData };
+              }
+              const normalizedDataSource = clonedFieldData.dataSource ?? clonedFieldData.DataSource ?? null;
+              const normalizedListOptions =
+                clonedFieldData.list_options ??
+                clonedFieldData.listOptions ??
+                clonedFieldData.ListOptions ??
+                null;
+              const normalizedOptions = Array.isArray(clonedFieldData.options)
+                ? clonedFieldData.options
+                : Array.isArray(clonedFieldData.Options)
+                  ? clonedFieldData.Options
+                  : null;
+              const resolvedDefaultValue = clonedFieldData.default_value !== undefined
+                ? clonedFieldData.default_value
+                : clonedFieldData.defaultValue !== undefined
+                  ? clonedFieldData.defaultValue
+                  : clonedFieldData.value ?? null;
+
               // Create a new field for the form section
               const newField = {
-                id: fieldData.id || fieldData.ID || fieldData.field_id,
-                field_id: fieldData.ID,
+                ...clonedFieldData,
+                id: clonedFieldData.id || clonedFieldData.ID || clonedFieldData.field_id,
+                field_id: clonedFieldData.field_id || clonedFieldData.ID || clonedFieldData.id,
                 position: evt.newIndex + 1,
-                columns: parseInt(fieldData.columns) || 1,
-                is_mandatory: Boolean(fieldData.is_mandatory),
-                is_readonly: Boolean(fieldData.is_readonly),
-                is_hide_legend: Boolean(fieldData.is_hide_legend),
-                tip_translations: fieldData.tip_translations || { [currentLang.value]: fieldData.tip || '' },
+                columns: parseInt(clonedFieldData.columns) || parseInt(clonedFieldData.Columns) || 1,
+                is_mandatory: Boolean(
+                  clonedFieldData.is_mandatory !== undefined
+                    ? clonedFieldData.is_mandatory
+                    : clonedFieldData.IsMandatory
+                ),
+                is_readonly: Boolean(
+                  clonedFieldData.is_readonly !== undefined
+                    ? clonedFieldData.is_readonly
+                    : clonedFieldData.IsReadOnly
+                ),
+                is_hide_legend: Boolean(
+                  clonedFieldData.is_hide_legend !== undefined
+                    ? clonedFieldData.is_hide_legend
+                    : clonedFieldData.IsHideLegend
+                ),
+                tip_translations: clonedFieldData.tip_translations || { [currentLang.value]: clonedFieldData.tip || '' },
                 deleted: false,
-                name: fieldData.name,
-                fieldType: fieldData.fieldType || 'text',
-                default_value:
-                  fieldData.default_value !== undefined
-                    ? fieldData.default_value
-                    : fieldData.defaultValue !== undefined
-                      ? fieldData.defaultValue
-                      : fieldData.value ?? null,
-                value:
-                  fieldData.value !== undefined
-                    ? fieldData.value
-                    : fieldData.default_value ?? fieldData.defaultValue ?? null
+                name: clonedFieldData.name || clonedFieldData.Name,
+                fieldType: clonedFieldData.fieldType || clonedFieldData.FieldType || 'text',
+                default_value: resolvedDefaultValue,
+                defaultValue: resolvedDefaultValue,
+                value: clonedFieldData.value !== undefined ? clonedFieldData.value : resolvedDefaultValue,
+                dataSource: normalizedDataSource,
+                DataSource: normalizedDataSource,
+                FieldInUseOnForm: true,
+                ...(normalizedListOptions !== null
+                  ? {
+                      list_options: normalizedListOptions,
+                      listOptions: normalizedListOptions
+                    }
+                  : {}),
+                ...(normalizedOptions !== null ? { options: normalizedOptions } : {})
               };
 
               // Add the field to the section at the correct position
@@ -377,6 +417,8 @@ setup(props, { emit }) {
               props.section.fields.forEach((field, idx) => {
                 field.position = idx + 1;
               });
+
+              emit('update-field-in-use', { fieldId: newField.field_id, inUse: true });
 
               // Notify parent component
               emit('update-section');
