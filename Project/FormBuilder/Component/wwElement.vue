@@ -53,9 +53,51 @@ v-for="field in filteredAvailableFields"
 
 <!-- Form Builder Section -->
 <div class="form-builder">
-<div v-if="content.showCabecalhoFormBuilder" class="cabecalhoFormBuilder" v-html="content.cabecalhoHtml">
-
-</div>
+    <div v-if="content.showCabecalhoFormBuilder" class="cabecalhoFormBuilder">
+      <div class="inputCabecalhoDiv">
+        <input
+          type="text"
+          class="inputCabecalho"
+          v-model="headerTitle"
+          :placeholder="translateText('Insert text')"
+        />
+      </div>
+      <div class="status-header-display">
+        <div class="status-tags">
+          <div class="tag-select-group">
+            <label class="tag-label">{{ translateText('Select priority') }}</label>
+            <select class="tag-select" v-model="headerPriority"></select>
+          </div>
+          <div class="tag-select-group">
+            <label class="tag-label">{{ translateText('Category') }}</label>
+            <select class="tag-select" v-model="headerCategory"></select>
+          </div>
+          <div class="tag-select-group">
+            <label class="tag-label">{{ translateText('Subcategory') }}</label>
+            <select class="tag-select" v-model="headerSubcategory"></select>
+          </div>
+          <div class="tag-select-group">
+            <label class="tag-label">{{ translateText('Third-level category') }}</label>
+            <select class="tag-select" v-model="headerThirdLevelCategory"></select>
+          </div>
+        </div>
+        <div class="status-user">
+          <div class="user-info">
+            <span class="user-icon">
+              <i class="material-symbols-outlined">{{ translateText('person') }}</i>
+            </span>
+            <div class="user-select-group">
+              <label class="user-label">{{ translateText('Assign') }}</label>
+              <select class="user-select" v-model="headerAssignee"></select>
+            </div>
+          </div>
+          <div class="status-select-group">
+            <label class="status-label-text">{{ translateText('Status') }}</label>
+            <select class="status-select" v-model="headerStatus"></select>
+          </div>
+        </div>
+      </div>
+    </div>
 <div style="display: flex; width:100%; justify-content:end; align-items:end; height:50px; padding:12px">
 <button 
 v-if="!isEditing" 
@@ -210,6 +252,15 @@ const isNewSection = ref(false);
 const searchQuery = ref('');
 const selectedFieldForProperties = ref(null);
 const forceUpdate = ref(0);
+
+// Form header state
+const headerTitle = ref('');
+const headerPriority = ref('');
+const headerCategory = ref('');
+const headerSubcategory = ref('');
+const headerThirdLevelCategory = ref('');
+const headerAssignee = ref('');
+const headerStatus = ref('');
 
 // Track used field IDs to disable them in the available fields list
 const usedFieldIds = computed(() => {
@@ -1248,6 +1299,13 @@ onRemoveField,
 handleRemoveSection,
 updateFieldInUse,
 orderedSections,
+headerTitle,
+headerPriority,
+headerCategory,
+headerSubcategory,
+headerThirdLevelCategory,
+headerAssignee,
+headerStatus,
 translateText,
 showTranslatedMessage,
 handleFieldValueChange
@@ -1583,14 +1641,34 @@ width: 255px;
   gap: 8px;
 }
 
-:deep(.tag) {
+:deep(.tag-select-group) {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 140px;
+}
+
+:deep(.tag-label) {
+  font-size: 12px;
+  color: #5f6368;
+  font-weight: 500;
+}
+
+:deep(.tag-select) {
   border: 1px solid #c0c0c0;
   border-radius: 999px;
-  padding: 4px 12px;
+  padding: 6px 12px;
   background-color: #f7f8fa;
   color: #333;
-  white-space: nowrap;
   font-size: 13px;
+  appearance: none;
+  min-height: 32px;
+}
+
+:deep(.tag-select:focus) {
+  outline: none;
+  border-color: #5c74a4;
+  box-shadow: 0 0 0 2px rgba(92, 116, 164, 0.2);
 }
 
 :deep(.status-user) {
@@ -1605,6 +1683,36 @@ width: 255px;
   gap: 6px;
   color: #2f2f2f;
   font-size: 14px;
+}
+
+:deep(.user-select-group) {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+:deep(.user-label) {
+  font-size: 12px;
+  color: #5f6368;
+  font-weight: 500;
+}
+
+:deep(.user-select) {
+  border: 1px solid #c0c0c0;
+  border-radius: 999px;
+  padding: 6px 12px;
+  background-color: #f7f8fa;
+  color: #333;
+  font-size: 13px;
+  appearance: none;
+  min-width: 160px;
+  min-height: 32px;
+}
+
+:deep(.user-select:focus) {
+  outline: none;
+  border-color: #5c74a4;
+  box-shadow: 0 0 0 2px rgba(92, 116, 164, 0.2);
 }
 
 :deep(.user-icon) {
@@ -1626,6 +1734,35 @@ width: 255px;
   border-radius: 6px;
   font-size: 13px;
   font-weight: bold;
+}
+
+:deep(.status-select-group) {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+:deep(.status-label-text) {
+  font-size: 12px;
+  color: #5f6368;
+  font-weight: 500;
+}
+
+:deep(.status-select) {
+  border: 1px solid #c0c0c0;
+  border-radius: 999px;
+  padding: 6px 16px;
+  background-color: #5c74a4;
+  color: #fff;
+  font-size: 13px;
+  appearance: none;
+  min-width: 120px;
+  min-height: 32px;
+}
+
+:deep(.status-select:focus) {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(92, 116, 164, 0.2);
 }
 
 .debug-panel {

@@ -54,22 +54,6 @@ export default {
         }
         /* wwEditor:end */
         },
-        cabecalhoHtml: {
-            label: { en: 'Header HTML' },
-            type: 'Text',
-            section: 'settings',
-            bindable: true,
-            defaultValue: '',
-            /* wwEditor:start */
-            bindingValidation: {
-            type: 'string',
-            tooltip: 'HTML content to display inside the form header'
-            },
-            propertyHelp: {
-            tooltip: 'Custom HTML markup for the header area of the form builder'
-            }
-            /* wwEditor:end */
-        },
         fieldsJson: {
         label: { en: 'Fields JSON' },
         type: 'Text',
