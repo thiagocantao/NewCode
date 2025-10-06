@@ -314,7 +314,7 @@ const normalizePriorityOption = option => {
     return { value: primitiveValue, label: primitiveValue };
   }
 
-  const value =
+  const rawValue =
     option.value ??
     option.Value ??
     option.id ??
@@ -326,7 +326,7 @@ const normalizePriorityOption = option => {
     option.Slug ??
     null;
 
-  const label =
+  const rawLabel =
     option.label ??
     option.Label ??
     option.name ??
@@ -335,34 +335,54 @@ const normalizePriorityOption = option => {
     option.Title ??
     option.description ??
     option.Description ??
-    (typeof value !== 'object' && value !== null && value !== undefined
-      ? String(value)
-      : null);
+    null;
 
-  if (value == null && label == null) {
+  const normalizedValueCandidate =
+    rawValue != null && typeof rawValue !== 'object'
+      ? String(rawValue)
+      : rawLabel != null && typeof rawLabel !== 'object'
+        ? String(rawLabel)
+        : null;
+
+  if (!normalizedValueCandidate) {
     return null;
   }
 
-  const normalizedValue = value == null ? String(label) : value;
-  const normalizedLabel = label == null ? String(value) : label;
+  const normalizedLabelCandidate =
+    rawLabel != null && typeof rawLabel !== 'object'
+      ? String(rawLabel)
+      : normalizedValueCandidate;
 
   return {
-    value: normalizedValue,
-    label: normalizedLabel
+    value: normalizedValueCandidate,
+    label: normalizedLabelCandidate
   };
 };
 
 const priorityOptions = computed(() => {
-  const collection =
-    props.content?.collections?.['913fd277-8f18-420e-977e-ce52b6a751f9']?.data ?? [];
+  const collectionData =
+    props.content?.collections?.['913fd277-8f18-420e-977e-ce52b6a751f9']?.['data'];
 
-  if (!Array.isArray(collection)) {
+  if (!Array.isArray(collectionData)) {
     return [];
   }
 
-  return collection
+  const seenValues = new Set();
+
+  return collectionData
     .map(normalizePriorityOption)
-    .filter(option => option && option.value !== undefined && option.value !== null);
+    .filter(option => {
+      if (!option || !option.value) {
+        return false;
+      }
+
+      if (seenValues.has(option.value)) {
+        return false;
+      }
+
+      seenValues.add(option.value);
+      return true;
+    });
 });
 
 watch(priorityOptions, newOptions => {
