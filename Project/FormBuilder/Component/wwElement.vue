@@ -70,7 +70,18 @@ v-for="field in filteredAvailableFields"
             class="select-wrapper tag-select-wrapper"
             :style="computeSelectWidthStyle(headerPriority, translateText('Select priority'))"
           >
-            <select class="tag-select" v-model="headerPriority"></select>
+            <select class="tag-select" v-model="headerPriority">
+              <option disabled value="" hidden>
+                {{ translateText('Select priority') }}
+              </option>
+              <option
+                v-for="option in headerPriorityOptions"
+                :key="option.value ?? option.label"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </select>
             <span v-if="!headerPriority" class="select-placeholder">
               {{ translateText('Select priority') }}
             </span>
@@ -295,6 +306,112 @@ const headerSubcategory = ref('');
 const headerThirdLevelCategory = ref('');
 const headerAssignee = ref('');
 const headerStatus = ref('');
+const headerPriorityOptions = ref([]);
+
+const PRIORITY_COLLECTION_ID = '913fd277-8f18-420e-977e-ce52b6a751f9';
+
+const extractCollectionItems = (collectionEntry) => {
+  if (!collectionEntry) {
+    return [];
+  }
+
+  if (Array.isArray(collectionEntry)) {
+    return collectionEntry;
+  }
+
+  if (typeof collectionEntry === 'object') {
+    const possibleKeys = ['data', 'items', 'result', 'results', 'rows', 'records'];
+    for (const key of possibleKeys) {
+      const value = collectionEntry[key];
+      if (Array.isArray(value)) {
+        return value;
+      }
+      if (value && typeof value === 'object') {
+        const nested = extractCollectionItems(value);
+        if (nested.length) {
+          return nested;
+        }
+      }
+    }
+  }
+
+  return [];
+};
+
+const normalizePriorityOption = (item) => {
+  if (item == null) {
+    return null;
+  }
+
+  const itemType = typeof item;
+  if (itemType === 'string' || itemType === 'number' || itemType === 'boolean') {
+    const value = String(item);
+    return { value, label: value };
+  }
+
+  if (itemType === 'object') {
+    const labelKeys = ['label', 'Label', 'name', 'Name', 'description', 'Description', 'title', 'Title'];
+    const valueKeys = ['value', 'Value', 'id', 'Id', 'ID', 'uuid', 'Uuid', 'UUID', 'code', 'Code', 'key', 'Key'];
+
+    const labelKey = labelKeys.find((key) => item[key] !== undefined && item[key] !== null);
+    const valueKey = valueKeys.find((key) => item[key] !== undefined && item[key] !== null);
+
+    const label = labelKey ? item[labelKey] : valueKey ? item[valueKey] : null;
+    const value = valueKey ? item[valueKey] : label;
+
+    if (label == null && value == null) {
+      const fallback = JSON.stringify(item);
+      return { value: fallback, label: fallback };
+    }
+
+    return {
+      value: value != null ? value : '',
+      label: label != null ? label : String(value)
+    };
+  }
+
+  return null;
+};
+
+const loadPriorityOptions = () => {
+  try {
+    const sources = [];
+
+    if (props.content?.collections?.[PRIORITY_COLLECTION_ID] !== undefined) {
+      sources.push(props.content.collections[PRIORITY_COLLECTION_ID]);
+    }
+
+    if (typeof window !== 'undefined' && window.collections?.[PRIORITY_COLLECTION_ID] !== undefined) {
+      sources.push(window.collections[PRIORITY_COLLECTION_ID]);
+    }
+
+    if (wwLib?.wwCollection?.getCollection) {
+      const collection = wwLib.wwCollection.getCollection(PRIORITY_COLLECTION_ID);
+      if (collection) {
+        sources.push(collection.data ?? collection);
+      }
+    }
+
+    for (const source of sources) {
+      const rawItems = extractCollectionItems(source);
+      if (rawItems.length) {
+        const normalized = rawItems.map(normalizePriorityOption).filter(Boolean);
+        headerPriorityOptions.value = normalized;
+
+        if (headerPriority.value && !normalized.some((option) => option.value === headerPriority.value)) {
+          headerPriority.value = '';
+        }
+
+        return;
+      }
+    }
+
+    headerPriorityOptions.value = [];
+  } catch (error) {
+    console.error('Failed to load priority options:', error);
+    headerPriorityOptions.value = [];
+  }
+};
 
 const getDisplayLength = (value) => {
   if (!value && value !== 0) {
@@ -1254,6 +1371,7 @@ const showTranslatedMessage = () => {
 // Lifecycle hooks
 onMounted(() => {
 loadData();
+loadPriorityOptions();
 
 // Use a more reliable approach with multiple attempts and better error handling
 const attemptInitialization = (attempts = 0, maxAttempts = 5) => {
@@ -1305,6 +1423,14 @@ setTimeout(() => attemptInitialization(), 300);
 watch(() => props.content.fieldsJson, () => {
 loadFieldsData();
 });
+
+watch(
+  () => props.content?.collections?.[PRIORITY_COLLECTION_ID],
+  () => {
+    loadPriorityOptions();
+  },
+  { deep: true }
+);
 
 watch(() => props.content.formJson, (newValue) => {
 if (newValue) {
@@ -1363,10 +1489,11 @@ updateFieldProperties,
 onRemoveField,
 handleRemoveSection,
 updateFieldInUse,
-orderedSections,
-headerTitle,
-headerPriority,
-headerCategory,
+  orderedSections,
+  headerTitle,
+  headerPriorityOptions,
+  headerPriority,
+  headerCategory,
 headerSubcategory,
   headerThirdLevelCategory,
   headerAssignee,
