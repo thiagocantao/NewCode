@@ -54,7 +54,7 @@ v-for="field in filteredAvailableFields"
 <!-- Form Builder Section -->
 <div class="form-builder">
     <div v-if="content.showCabecalhoFormBuilder" class="cabecalhoFormBuilder">
-      <div class="inputCabecalhoDiv">
+      <div class="header-title">
         <input
           type="text"
           class="inputCabecalho"
@@ -62,38 +62,50 @@ v-for="field in filteredAvailableFields"
           :placeholder="translateText('Insert text')"
         />
       </div>
-      <div class="status-header-display">
-        <div class="status-tags">
-          <div class="tag-select-group">
-            <label class="tag-label">{{ translateText('Select priority') }}</label>
-            <select class="tag-select" v-model="headerPriority"></select>
-          </div>
-          <div class="tag-select-group">
-            <label class="tag-label">{{ translateText('Category') }}</label>
-            <select class="tag-select" v-model="headerCategory"></select>
-          </div>
-          <div class="tag-select-group">
-            <label class="tag-label">{{ translateText('Subcategory') }}</label>
-            <select class="tag-select" v-model="headerSubcategory"></select>
-          </div>
-          <div class="tag-select-group">
-            <label class="tag-label">{{ translateText('Third-level category') }}</label>
-            <select class="tag-select" v-model="headerThirdLevelCategory"></select>
+      <div class="header-tags">
+        <div class="select-wrapper tag-select-wrapper">
+          <select class="tag-select" v-model="headerPriority"></select>
+          <span v-if="!headerPriority" class="select-placeholder">
+            {{ translateText('Select priority') }}
+          </span>
+        </div>
+        <div class="select-wrapper tag-select-wrapper">
+          <select class="tag-select" v-model="headerCategory"></select>
+          <span v-if="!headerCategory" class="select-placeholder">
+            {{ translateText('Category') }}
+          </span>
+        </div>
+        <div class="select-wrapper tag-select-wrapper">
+          <select class="tag-select" v-model="headerSubcategory"></select>
+          <span v-if="!headerSubcategory" class="select-placeholder">
+            {{ translateText('Subcategory') }}
+          </span>
+        </div>
+        <div class="select-wrapper tag-select-wrapper">
+          <select class="tag-select" v-model="headerThirdLevelCategory"></select>
+          <span v-if="!headerThirdLevelCategory" class="select-placeholder">
+            {{ translateText('Third-level category') }}
+          </span>
+        </div>
+      </div>
+      <div class="header-meta">
+        <div class="assignee-wrapper">
+          <span class="user-icon">
+            <i class="material-symbols-outlined">{{ translateText('person') }}</i>
+          </span>
+          <div class="select-wrapper assignee-select-wrapper">
+            <select class="user-select" v-model="headerAssignee"></select>
+            <span v-if="!headerAssignee" class="select-placeholder">
+              {{ translateText('Unassigned') }}
+            </span>
           </div>
         </div>
-        <div class="status-user">
-          <div class="user-info">
-            <span class="user-icon">
-              <i class="material-symbols-outlined">{{ translateText('person') }}</i>
-            </span>
-            <div class="user-select-group">
-              <label class="user-label">{{ translateText('Assign') }}</label>
-              <select class="user-select" v-model="headerAssignee"></select>
-            </div>
-          </div>
-          <div class="status-select-group">
-            <label class="status-label-text">{{ translateText('Status') }}</label>
+        <div class="status-wrapper">
+          <div class="select-wrapper status-select-wrapper">
             <select class="status-select" v-model="headerStatus"></select>
+            <span v-if="!headerStatus" class="select-placeholder status-placeholder">
+              {{ translateText('New') }}
+            </span>
           </div>
         </div>
       </div>
@@ -1556,184 +1568,170 @@ width: 255px;
 }
 
 
-:deep(.inputCabecalhoDiv) {
-    width: 100%;
-    height: 32px;
-}
-
-.cabecalhoFormBuilder
-{
-    display: flex;
-    flex-direction: column;
-    background: rgb(245, 246, 250);
-    border-radius: 10px 10px 0px 0px;
-    padding: 10px 24px;
-    border-bottom: 1px solid rgb(218, 220, 222);  
-}
-
-:deep(.inputCabecalho) {
-    font-size: 1.25rem;
-    font-family: Roboto-Light, "Open Sans", Arial, sans-serif;
-    border-radius: 4px;
-    height: 30px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    border: 1px solid transparent;
-    padding: 4px 8px;
-    background: transparent;
-    width: 100%;
-    color: rgb(79, 79, 79);
-    padding-block: 3px;
-    padding-inline: 4px;
-}
-
-:deep(.inputCabecalho:hover) {
-    background-color: #dedede;
-}
-
-:deep(.inputCabecalho:focus) {
-    background-color: transparent;
-    border: 1px solid rgb(79, 79, 79);
-    outline: none;
-}
-
-
-:deep(.elementsformBuilderTop) {
-    width: 100%;
-    display: flex;
-    -webkit-box-align: center;
-    align-items: center;
-    -webkit-box-pack: justify;
-    justify-content: space-between;
-    margin-top: 12px;
-    column-gap: 24px;
-}
-
-
-:deep(.css-fvhee8 .header-footer-div) {
-    width: 50%;
-    gap: 8px;
-    display: flex;
-    -webkit-box-align: center;
-    align-items: center;
-    flex-shrink: inherit;
-    flex-flow: row;
-    overflow: hidden;
-}
-
-:deep(.css-fvhee8 .header-footer-div > div.template-header) {
-    max-width: 23%;
-}
-
-:deep(.status-header-display) {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 0;
-  background: transparent;
-  font-family: Roboto, sans-serif;
-  font-size: 14px;
-}
-
-:deep(.status-tags) {
-  display: flex;
-  gap: 8px;
-}
-
-:deep(.tag-select-group) {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 140px;
-}
-
-:deep(.tag-label) {
-  font-size: 12px;
-  color: #5f6368;
-  font-weight: 500;
-}
-
-:deep(.tag-select) {
-  border: 1px solid #c0c0c0;
-  border-radius: 999px;
-  padding: 6px 12px;
-  background-color: #f7f8fa;
-  color: #333;
-  font-size: 13px;
-  appearance: none;
-  min-height: 32px;
-}
-
-:deep(.tag-select:focus) {
-  outline: none;
-  border-color: #5c74a4;
-  box-shadow: 0 0 0 2px rgba(92, 116, 164, 0.2);
-}
-
-:deep(.status-user) {
+.cabecalhoFormBuilder {
+  position: sticky;
+  top: 0;
+  z-index: 5;
   display: flex;
   align-items: center;
   gap: 16px;
+  background: #f5f6fa;
+  border-radius: 10px 10px 0 0;
+  padding: 16px 24px;
+  border-bottom: 1px solid #dadcde;
 }
 
-:deep(.user-info) {
+.header-title {
+  flex: 1 1 240px;
+  min-width: 200px;
+}
+
+.inputCabecalho {
+  font-size: 1.25rem;
+  font-family: Roboto-Light, "Open Sans", Arial, sans-serif;
+  border-radius: 6px;
+  height: 36px;
+  border: 1px solid transparent;
+  padding: 4px 8px;
+  background: transparent;
+  width: 100%;
+  color: #4f4f4f;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inputCabecalho:hover {
+  background-color: #e4e7ef;
+}
+
+.inputCabecalho:focus {
+  background-color: transparent;
+  border: 1px solid #4f4f4f;
+  outline: none;
+}
+
+.header-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
+.select-wrapper {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 6px;
-  color: #2f2f2f;
-  font-size: 14px;
 }
 
-:deep(.user-select-group) {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.tag-select-wrapper {
+  min-width: 140px;
 }
 
-:deep(.user-label) {
-  font-size: 12px;
-  color: #5f6368;
-  font-weight: 500;
-}
-
-:deep(.user-select) {
-  border: 1px solid #c0c0c0;
+.tag-select {
+  border: 1px solid #d0d4dc;
   border-radius: 999px;
-  padding: 6px 12px;
-  background-color: #f7f8fa;
-  color: #333;
+  padding: 6px 18px;
+  background-color: #eef1f7;
+  color: #3a3f4b;
   font-size: 13px;
   appearance: none;
-  min-width: 160px;
-  min-height: 32px;
+  min-height: 34px;
+  width: 100%;
 }
 
-:deep(.user-select:focus) {
+.tag-select:focus {
   outline: none;
   border-color: #5c74a4;
   box-shadow: 0 0 0 2px rgba(92, 116, 164, 0.2);
 }
 
-:deep(.user-icon) {
-  width: 24px;
-  height: 24px;
+.select-placeholder {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #5f6368;
+  font-size: 13px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.header-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.assignee-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid #d0d4dc;
+  background-color: #ffffff;
+}
+
+.user-icon {
+  width: 28px;
+  height: 28px;
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  background: #f0f0f0;
-  border: 1px dashed #bbb;
+  background: #f0f1f5;
   border-radius: 50%;
-  font-size: 14px;
+  color: #4f4f4f;
+  font-size: 16px;
 }
 
-:deep(.status-label) {
-  background-color: #5c74a4;
-  color: #fff;
-  padding: 4px 12px;
-  border-radius: 6px;
+.assignee-select-wrapper {
+  min-width: 120px;
+}
+
+.user-select {
+  appearance: none;
+  border: none;
+  background: transparent;
   font-size: 13px;
-  font-weight: bold;
+  color: #3a3f4b;
+  padding: 4px 8px 4px 0;
+  min-width: 120px;
+}
+
+.user-select:focus {
+  outline: none;
+}
+
+.status-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.status-select-wrapper {
+  min-width: 110px;
+}
+
+.status-select {
+  border: 1px solid #4d6dc3;
+  border-radius: 999px;
+  padding: 6px 20px;
+  background-color: #4d6dc3;
+  color: #ffffff;
+  font-size: 13px;
+  appearance: none;
+  min-height: 34px;
+  width: 100%;
+}
+
+.status-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(77, 109, 195, 0.25);
+}
+
+.status-placeholder {
+  color: #ffffff;
 }
 
 :deep(.status-select-group) {
