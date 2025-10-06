@@ -2,7 +2,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
 <div class="form-builder-container">
 <!-- Debug Panel -->
-<div v-if="isEditing" class="debug-panel">
+<div v-if="isEditing" class="debug-panel"> 
   <h4>Debug Info</h4>
   <pre>{{ JSON.stringify(debugInfo, null, 2) }}</pre> 
 </div> 
@@ -424,45 +424,21 @@ const computeSelectWidthStyle = (value, fallbackLabel = '') => {
 
 // Track used field IDs to disable them in the available fields list
 const usedFieldIds = computed(() => {
-  // Collect all field IDs that are currently used in the form
-  const usedIds = new Set();
+// Collect all field IDs that are currently used in the form
+const usedIds = new Set();
 
-  const addIdToSet = (value) => {
-    if (value === undefined || value === null || value === '') {
-      return;
-    }
+formSections.value.forEach(section => {
+if (section.fields && Array.isArray(section.fields)) {
+section.fields.forEach(field => {
+// Add the original field ID to the set of used IDs
+if (field.field_id) {
+usedIds.add(field.field_id);
+}
+});
+}
+});
 
-    usedIds.add(value);
-
-    if (typeof value !== 'string') {
-      usedIds.add(String(value));
-    }
-  };
-
-  formSections.value.forEach(section => {
-    if (section.fields && Array.isArray(section.fields)) {
-      section.fields.forEach(field => {
-        // Add the original field ID to the set of used IDs
-        addIdToSet(field.field_id ?? field.fieldId ?? field.id ?? field.ID ?? field.Id);
-      });
-    }
-  });
-
-  availableFields.value.forEach(field => {
-    const rawFlag = field?.FieldInUseOnForm ?? field?.field_in_use_on_form ?? field?.fieldInUseOnForm;
-
-    const normalizedFlag =
-      rawFlag === true ||
-      rawFlag === 1 ||
-      rawFlag === '1' ||
-      (typeof rawFlag === 'string' && rawFlag.toLowerCase() === 'true');
-
-    if (normalizedFlag) {
-      addIdToSet(field.ID ?? field.Id ?? field.id ?? field.field_id ?? field.fieldId);
-    }
-  });
-
-  return usedIds;
+return usedIds;
 });
 
 // Computed
