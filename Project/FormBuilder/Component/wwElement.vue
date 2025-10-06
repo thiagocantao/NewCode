@@ -31,21 +31,21 @@ v-model="searchQuery"
 class="available-fields-container"
 ref="availableFieldsContainer"
 >
-<div class="fields-grid scrollable">
-<DraggableField
-v-for="field in filteredAvailableFields"
-:key="field.ID + '-' + (usedFieldIds.has(field.ID) ? 'used' : 'free')"
-:field="field"
-:show-properties="false"
-:show-actions="true" 
-:is-editing="isEditing"
-:show-field-component="false"
-:is-disabled="usedFieldIds.has(field.ID)"
-@edit-field="editField"
-@remove-field="removeAvailableField"
-@select-field="selectFieldForProperties"
-/>
-</div>
+        <div class="fields-grid scrollable">
+          <DraggableField
+            v-for="field in filteredAvailableFields"
+            :key="field.ID + '-' + (isFieldDisabled(field) ? 'disabled' : 'free')"
+            :field="field"
+            :show-properties="false"
+            :show-actions="true"
+            :is-editing="isEditing"
+            :show-field-component="false"
+            :is-disabled="isFieldDisabled(field)"
+            @edit-field="editField"
+            @remove-field="removeAvailableField"
+            @select-field="selectFieldForProperties"
+          />
+        </div>
 </div>
 
 
@@ -422,6 +422,26 @@ const computeSelectWidthStyle = (value, fallbackLabel = '') => {
   };
 };
 
+// Tag controls that must remain disabled in the available fields list
+const ALWAYS_DISABLED_TAG_CONTROLS = new Set([
+  'STATUSID',
+  'URGENCYID',
+  'IMPACTID',
+  'CATEGORYID',
+  'SUBCATEGORYID',
+  'CATEGORYLEVEL3ID',
+  'REQUESTUSERID',
+  'RESPONSIBLEUSERID'
+]);
+
+const getFieldTagControl = field =>
+  (field?.TagControl ?? field?.tagControl ?? field?.tagcontrol ?? '')
+    .toString()
+    .toUpperCase();
+
+const isFieldPermanentlyDisabled = field =>
+  ALWAYS_DISABLED_TAG_CONTROLS.has(getFieldTagControl(field));
+
 // Track used field IDs to disable them in the available fields list
 const usedFieldIds = computed(() => {
 // Collect all field IDs that are currently used in the form
@@ -441,11 +461,20 @@ usedIds.add(field.field_id);
 return usedIds;
 });
 
+const isFieldDisabled = field => {
+  if (isFieldPermanentlyDisabled(field)) {
+    return true;
+  }
+
+  const fieldId = field?.ID || field?.field_id;
+  return fieldId ? usedFieldIds.value.has(fieldId) : false;
+};
+
 // Computed
 const filteredAvailableFields = computed(() => {
 if (!searchQuery.value) return availableFields.value;
 const query = searchQuery.value.toLowerCase();
-return availableFields.value.filter(field => 
+return availableFields.value.filter(field =>
 (field.name || '').toLowerCase().includes(query)
 );
 });
@@ -1433,9 +1462,10 @@ isNewField,
 isNewSection,
 allAvailableFields,
 searchQuery,
-filteredAvailableFields,
-usedFieldIds,
-showAddFieldModal,
+  filteredAvailableFields,
+  usedFieldIds,
+  isFieldDisabled,
+  showAddFieldModal,
 editField,
 saveField,
 removeAvailableField,
