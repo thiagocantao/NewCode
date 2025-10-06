@@ -1734,6 +1734,35 @@ width: 255px;
   color: #ffffff;
 }
 
+:deep(.status-select-group) {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+:deep(.status-label-text) {
+  font-size: 12px;
+  color: #5f6368;
+  font-weight: 500;
+}
+
+:deep(.status-select) {
+  border: 1px solid #c0c0c0;
+  border-radius: 999px;
+  padding: 6px 16px;
+  background-color: #5c74a4;
+  color: #fff;
+  font-size: 13px;
+  appearance: none;
+  min-width: 120px;
+  min-height: 32px;
+}
+
+:deep(.status-select:focus) {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(92, 116, 164, 0.2);
+}
+
 .debug-panel {
   position: fixed;
   bottom: 20px;
