@@ -32,6 +32,30 @@ export function normalizeFieldDataSource(fieldOrSource) {
   };
 }
 
+export function hasFetchableDataSource(fieldOrSource) {
+  const normalized = normalizeFieldDataSource(fieldOrSource);
+
+  if (!normalized) {
+    return false;
+  }
+
+  if (typeof normalized === 'string') {
+    return normalized.trim().length > 0;
+  }
+
+  if (typeof normalized !== 'object') {
+    return false;
+  }
+
+  const functionName = normalized.functionName ?? normalized.FunctionName;
+  const url = normalized.url ?? normalized.Url;
+
+  return (
+    (typeof functionName === 'string' && functionName.trim().length > 0) ||
+    (typeof url === 'string' && url.trim().length > 0)
+  );
+}
+
 export function combineUrl(baseUrl, path) {
   if (!path) return baseUrl || '';
   if (/^https?:\/\//i.test(path)) {
@@ -252,5 +276,5 @@ export async function fetchDataSourceOptions(rawDataSource, context) {
 
 export function shouldLoadDataSource(field) {
   if (!field) return false;
-  return LIST_FIELD_TYPES.includes(field.fieldType) && !!normalizeFieldDataSource(field);
+  return LIST_FIELD_TYPES.includes(field.fieldType) && hasFetchableDataSource(field);
 }
