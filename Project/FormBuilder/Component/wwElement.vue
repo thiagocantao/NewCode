@@ -70,7 +70,7 @@ v-for="field in filteredAvailableFields"
             class="select-wrapper tag-select-wrapper"
             :style="computeSelectWidthStyle(headerPriority, translateText('Select priority'))"
           >
-            <select class="tag-selectPriority" v-model="headerPriority">
+            <select disabled="true" class="tag-selectPriority" v-model="headerPriority">
               <option
                 v-for="option in priorityOptions"
                 :key="option.value ?? option.label ?? option"
@@ -87,7 +87,7 @@ v-for="field in filteredAvailableFields"
             class="select-wrapper tag-select-wrapper"
             :style="computeSelectWidthStyle(headerCategory, translateText('Category'))"
           >
-            <select class="tag-selectCat1" v-model="headerCategory"></select>
+            <select disabled="true" class="tag-selectCat1" v-model="headerCategory"></select>
             <span v-if="!headerCategory" class="select-placeholder">
               {{ translateText('Category') }}
             </span>
@@ -96,7 +96,7 @@ v-for="field in filteredAvailableFields"
             class="select-wrapper tag-select-wrapper"
             :style="computeSelectWidthStyle(headerSubcategory, translateText('Subcategory'))"
           >
-            <select class="tag-selectCat2" v-model="headerSubcategory"></select>
+            <select disabled="true" class="tag-selectCat2" v-model="headerSubcategory"></select>
             <span v-if="!headerSubcategory" class="select-placeholder">
               {{ translateText('Subcategory') }}
             </span>
@@ -105,7 +105,7 @@ v-for="field in filteredAvailableFields"
             class="select-wrapper tag-select-wrapper"
             :style="computeSelectWidthStyle(headerThirdLevelCategory, translateText('Third-level category'))"
           >
-            <select class="tag-selectCat3" v-model="headerThirdLevelCategory"></select>
+            <select disabled="true" class="tag-selectCat3" v-model="headerThirdLevelCategory"></select>
             <span v-if="!headerThirdLevelCategory" class="select-placeholder">
               {{ translateText('Third-level category') }}
             </span>
@@ -120,7 +120,7 @@ v-for="field in filteredAvailableFields"
               class="select-wrapper assignee-select-wrapper"
               :style="computeSelectWidthStyle(headerAssignee, translateText('Unassigned'))"
             >
-              <select class="user-select" v-model="headerAssignee"></select>
+              <select disabled="true" class="user-select" v-model="headerAssignee"></select>
               <span v-if="!headerAssignee" class="select-placeholder">
                 {{ translateText('Unassigned') }}
               </span>
@@ -131,7 +131,7 @@ v-for="field in filteredAvailableFields"
               class="select-wrapper status-select-wrapper"
               :style="computeSelectWidthStyle(headerStatus, translateText('New'))"
             >
-              <select class="status-select" v-model="headerStatus"></select>
+              <select disabled="true" class="status-select" v-model="headerStatus"></select>
               <span v-if="!headerStatus" class="select-placeholder status-placeholder">
                 {{ translateText('New') }}
               </span>
@@ -360,9 +360,9 @@ const normalizePriorityOption = option => {
 };
 
 const priorityOptions = computed(() => {
-  const collectionData =
-    props.content?.collections?.['913fd277-8f18-420e-977e-ce52b6a751f9']?.['data'];
-
+  console.log("Prioridades -->> ");
+  const collectionData = wwLib.wwCollection.getCollection("913fd277-8f18-420e-977e-ce52b6a751f9").data;
+console.log(collectionData);
   if (!Array.isArray(collectionData)) {
     return [];
   }
