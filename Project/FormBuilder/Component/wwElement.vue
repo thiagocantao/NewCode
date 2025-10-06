@@ -70,7 +70,15 @@ v-for="field in filteredAvailableFields"
             class="select-wrapper tag-select-wrapper"
             :style="computeSelectWidthStyle(headerPriority, translateText('Select priority'))"
           >
-            <select class="tag-selectPriority" v-model="headerPriority"></select>
+            <select class="tag-selectPriority" v-model="headerPriority">
+              <option
+                v-for="option in priorityOptions"
+                :key="option.value ?? option.label ?? option"
+                :value="option.value ?? option.label ?? option"
+              >
+                {{ option.label ?? option.value ?? option }}
+              </option>
+            </select>
             <span v-if="!headerPriority" class="select-placeholder">
               {{ translateText('Select priority') }}
             </span>
@@ -295,6 +303,73 @@ const headerSubcategory = ref('');
 const headerThirdLevelCategory = ref('');
 const headerAssignee = ref('');
 const headerStatus = ref('');
+
+const normalizePriorityOption = option => {
+  if (option == null) {
+    return null;
+  }
+
+  if (typeof option !== 'object') {
+    const primitiveValue = String(option);
+    return { value: primitiveValue, label: primitiveValue };
+  }
+
+  const value =
+    option.value ??
+    option.Value ??
+    option.id ??
+    option.ID ??
+    option.Id ??
+    option.key ??
+    option.Key ??
+    option.slug ??
+    option.Slug ??
+    null;
+
+  const label =
+    option.label ??
+    option.Label ??
+    option.name ??
+    option.Name ??
+    option.title ??
+    option.Title ??
+    option.description ??
+    option.Description ??
+    (typeof value !== 'object' && value !== null && value !== undefined
+      ? String(value)
+      : null);
+
+  if (value == null && label == null) {
+    return null;
+  }
+
+  const normalizedValue = value == null ? String(label) : value;
+  const normalizedLabel = label == null ? String(value) : label;
+
+  return {
+    value: normalizedValue,
+    label: normalizedLabel
+  };
+};
+
+const priorityOptions = computed(() => {
+  const collection =
+    props.content?.collections?.['913fd277-8f18-420e-977e-ce52b6a751f9']?.data ?? [];
+
+  if (!Array.isArray(collection)) {
+    return [];
+  }
+
+  return collection
+    .map(normalizePriorityOption)
+    .filter(option => option && option.value !== undefined && option.value !== null);
+});
+
+watch(priorityOptions, newOptions => {
+  if (!newOptions.some(option => option.value === headerPriority.value)) {
+    headerPriority.value = '';
+  }
+});
 
 const getDisplayLength = (value) => {
   if (!value && value !== 0) {
@@ -1371,6 +1446,7 @@ headerSubcategory,
   headerThirdLevelCategory,
   headerAssignee,
   headerStatus,
+  priorityOptions,
   computeSelectWidthStyle,
   translateText,
 showTranslatedMessage,
