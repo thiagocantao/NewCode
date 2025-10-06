@@ -4,7 +4,7 @@
 <!-- Debug Panel -->
 <div v-if="isEditing" class="debug-panel">
   <h4>Debug Info</h4>
-  <pre>{{ JSON.stringify(debugInfo, null, 2) }}</pre>
+  <pre>{{ JSON.stringify(debugInfo, null, 2) }}</pre> 
 </div> 
 
 <!-- Combined Form Builder with both field definition and form builder sections -->
@@ -70,7 +70,7 @@ v-for="field in filteredAvailableFields"
             class="select-wrapper tag-select-wrapper"
             :style="computeSelectWidthStyle(headerPriority, translateText('Select priority'))"
           >
-            <select class="tag-select" v-model="headerPriority"></select>
+            <select class="tag-selectPriority" v-model="headerPriority"></select>
             <span v-if="!headerPriority" class="select-placeholder">
               {{ translateText('Select priority') }}
             </span>
@@ -79,7 +79,7 @@ v-for="field in filteredAvailableFields"
             class="select-wrapper tag-select-wrapper"
             :style="computeSelectWidthStyle(headerCategory, translateText('Category'))"
           >
-            <select class="tag-select" v-model="headerCategory"></select>
+            <select class="tag-selectCat1" v-model="headerCategory"></select>
             <span v-if="!headerCategory" class="select-placeholder">
               {{ translateText('Category') }}
             </span>
@@ -88,7 +88,7 @@ v-for="field in filteredAvailableFields"
             class="select-wrapper tag-select-wrapper"
             :style="computeSelectWidthStyle(headerSubcategory, translateText('Subcategory'))"
           >
-            <select class="tag-select" v-model="headerSubcategory"></select>
+            <select class="tag-selectCat2" v-model="headerSubcategory"></select>
             <span v-if="!headerSubcategory" class="select-placeholder">
               {{ translateText('Subcategory') }}
             </span>
@@ -97,13 +97,13 @@ v-for="field in filteredAvailableFields"
             class="select-wrapper tag-select-wrapper"
             :style="computeSelectWidthStyle(headerThirdLevelCategory, translateText('Third-level category'))"
           >
-            <select class="tag-select" v-model="headerThirdLevelCategory"></select>
+            <select class="tag-selectCat3" v-model="headerThirdLevelCategory"></select>
             <span v-if="!headerThirdLevelCategory" class="select-placeholder">
               {{ translateText('Third-level category') }}
             </span>
           </div>
         </div>
-        <div class="header-meta">
+        <div class="header-tags-rigth">
           <div class="assignee-wrapper">
             <span class="user-icon">
               <i class="material-symbols-outlined">{{ translateText('person') }}</i>
@@ -1684,10 +1684,20 @@ width: 255px;
 .header-tags {
   display: flex;
   flex: 1 1 auto;
-  gap: 8px;
+  gap: 12px;
   row-gap: 6px;
   flex-wrap: wrap;
   align-items: center;
+}
+
+.header-tags-rigth {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 12px;
+  row-gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: right;
 }
 
 .select-wrapper {
@@ -1699,20 +1709,59 @@ width: 255px;
 }
 
 .tag-select-wrapper {
-  min-width: calc(var(--select-placeholder-length) * 0.6em + 2.75rem);
+  min-width: calc(var(--select-placeholder-length) * 0.3em + 2.75rem);
 }
 
-.tag-select {
+.tag-selectPriority {
   border: 1px solid #d0d4dc;
   border-radius: 999px;
-  padding: 6px 18px;
+  padding: 2px 12px;
   background-color: #eef1f7;
   color: #3a3f4b;
   font-size: 13px;
   appearance: none;
-  min-height: 34px;
+  min-height: 26px;
   width: auto;
-  min-width: 0;
+  min-width: 100px;
+}
+
+.tag-selectCat1 {
+border: 1px solid #d0d4dc;
+border-radius: 999px;
+padding: 2px 12px;
+background-color: #eef1f7;
+color: #3a3f4b;
+font-size: 13px;
+appearance: none;
+min-height: 26px;
+width: auto;
+min-width: 75px;
+}
+
+.tag-selectCat2 {
+border: 1px solid #d0d4dc;
+border-radius: 999px;
+padding: 2px 12px;
+background-color: #eef1f7;
+color: #3a3f4b;
+font-size: 13px;
+appearance: none;
+min-height: 26px;
+width: auto;
+min-width: 95px;
+}
+
+.tag-selectCat3 {
+border: 1px solid #d0d4dc;
+border-radius: 999px;
+padding: 2px 12px;
+background-color: #eef1f7;
+color: #3a3f4b;
+font-size: 13px;
+appearance: none;
+min-height: 26px;
+width: auto;
+min-width: 140px;
 }
 
 .tag-select:focus {
@@ -1723,7 +1772,7 @@ width: 255px;
 
 .select-placeholder {
   position: absolute;
-  left: 18px;
+  left: 12px;
   top: 50%;
   transform: translateY(-50%);
   color: #5f6368;
@@ -1735,7 +1784,7 @@ width: 255px;
 .header-meta {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
   margin-left: auto;
   flex: 0 0 auto;
 }
@@ -1743,16 +1792,16 @@ width: 255px;
 .assignee-wrapper {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 12px;
+  gap: 0px;
+  padding: 0px 12px;
   border-radius: 999px;
   border: 1px solid #d0d4dc;
-  background-color: #ffffff;
+  background-color: #0000;
 }
 
 .user-icon {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   display: inline-flex;
   justify-content: center;
   align-items: center;
@@ -1763,7 +1812,7 @@ width: 255px;
 }
 
 .assignee-select-wrapper {
-  min-width: calc(var(--select-placeholder-length) * 0.6em + 2.5rem);
+  min-width: calc(var(--select-placeholder-length) * 0.3em + 2.5rem);
 }
 
 .user-select {
@@ -1772,7 +1821,7 @@ width: 255px;
   background: transparent;
   font-size: 13px;
   color: #3a3f4b;
-  padding: 4px 8px 4px 0;
+  padding: 4px 4px 4px 0;
   min-width: 0;
   width: auto;
 }
@@ -1787,20 +1836,20 @@ width: 255px;
 }
 
 .status-select-wrapper {
-  min-width: calc(var(--select-placeholder-length) * 0.6em + 2.5rem);
+  min-width: calc(var(--select-placeholder-length) * 0.3em + 1.5rem);
 }
 
 .status-select {
   border: 1px solid #4d6dc3;
-  border-radius: 999px;
-  padding: 6px 20px;
+  border-radius: 8px;
+  padding: 2px 12px;
   background-color: #4d6dc3;
   color: #ffffff;
   font-size: 13px;
   appearance: none;
-  min-height: 34px;
+  min-height: 26px;
   width: auto;
-  min-width: 0;
+  min-width: 50px;
 }
 
 .status-select:focus {
