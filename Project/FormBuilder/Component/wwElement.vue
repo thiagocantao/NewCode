@@ -428,7 +428,7 @@ const usedFieldIds = computed(() => {
   const usedIds = new Set();
 
   const addIdToSet = (value) => {
-    if (value === undefined || value === null) {
+    if (value === undefined || value === null || value === '') {
       return;
     }
 
@@ -439,52 +439,26 @@ const usedFieldIds = computed(() => {
     }
   };
 
-  const isFieldMarkedInUse = (field) => {
-    if (!field || typeof field !== 'object') {
-      return false;
-    }
-
-    const rawValue =
-      field.FieldInUseOnForm ??
-      field.field_in_use_on_form ??
-      field.fieldInUseOnForm;
-
-    if (rawValue === true || rawValue === false) {
-      return rawValue;
-    }
-
-    if (typeof rawValue === 'string') {
-      return rawValue.toLowerCase() === 'true';
-    }
-
-    if (typeof rawValue === 'number') {
-      return rawValue === 1;
-    }
-
-    return Boolean(rawValue);
-  };
-
-  const collectFieldIdentifiers = (field) => {
-    if (!field || typeof field !== 'object') {
-      return;
-    }
-
-    addIdToSet(field.field_id ?? field.fieldId);
-    addIdToSet(field.ID ?? field.Id);
-    addIdToSet(field.id);
-  };
-
   formSections.value.forEach(section => {
     if (section.fields && Array.isArray(section.fields)) {
       section.fields.forEach(field => {
-        collectFieldIdentifiers(field);
+        // Add the original field ID to the set of used IDs
+        addIdToSet(field.field_id ?? field.fieldId ?? field.id ?? field.ID ?? field.Id);
       });
     }
   });
 
   availableFields.value.forEach(field => {
-    if (isFieldMarkedInUse(field)) {
-      collectFieldIdentifiers(field);
+    const rawFlag = field?.FieldInUseOnForm ?? field?.field_in_use_on_form ?? field?.fieldInUseOnForm;
+
+    const normalizedFlag =
+      rawFlag === true ||
+      rawFlag === 1 ||
+      rawFlag === '1' ||
+      (typeof rawFlag === 'string' && rawFlag.toLowerCase() === 'true');
+
+    if (normalizedFlag) {
+      addIdToSet(field.ID ?? field.Id ?? field.id ?? field.field_id ?? field.fieldId);
     }
   });
 
