@@ -54,58 +54,80 @@ v-for="field in filteredAvailableFields"
 <!-- Form Builder Section -->
 <div class="form-builder">
     <div v-if="content.showCabecalhoFormBuilder" class="cabecalhoFormBuilder">
-      <div class="header-title">
-        <input
-          type="text"
-          class="inputCabecalho"
-          v-model="headerTitle"
-          :placeholder="translateText('Insert text')"
-        />
-      </div>
-      <div class="header-tags">
-        <div class="select-wrapper tag-select-wrapper">
-          <select class="tag-select" v-model="headerPriority"></select>
-          <span v-if="!headerPriority" class="select-placeholder">
-            {{ translateText('Select priority') }}
-          </span>
-        </div>
-        <div class="select-wrapper tag-select-wrapper">
-          <select class="tag-select" v-model="headerCategory"></select>
-          <span v-if="!headerCategory" class="select-placeholder">
-            {{ translateText('Category') }}
-          </span>
-        </div>
-        <div class="select-wrapper tag-select-wrapper">
-          <select class="tag-select" v-model="headerSubcategory"></select>
-          <span v-if="!headerSubcategory" class="select-placeholder">
-            {{ translateText('Subcategory') }}
-          </span>
-        </div>
-        <div class="select-wrapper tag-select-wrapper">
-          <select class="tag-select" v-model="headerThirdLevelCategory"></select>
-          <span v-if="!headerThirdLevelCategory" class="select-placeholder">
-            {{ translateText('Third-level category') }}
-          </span>
+      <div class="header-row header-row-title">
+        <div class="header-title">
+          <input
+            type="text"
+            class="inputCabecalho"
+            v-model="headerTitle"
+            :placeholder="translateText('Insert text')"
+          />
         </div>
       </div>
-      <div class="header-meta">
-        <div class="assignee-wrapper">
-          <span class="user-icon">
-            <i class="material-symbols-outlined">{{ translateText('person') }}</i>
-          </span>
-          <div class="select-wrapper assignee-select-wrapper">
-            <select class="user-select" v-model="headerAssignee"></select>
-            <span v-if="!headerAssignee" class="select-placeholder">
-              {{ translateText('Unassigned') }}
+      <div class="header-row header-row-controls">
+        <div class="header-tags">
+          <div
+            class="select-wrapper tag-select-wrapper"
+            :style="computeSelectWidthStyle(headerPriority, translateText('Select priority'))"
+          >
+            <select class="tag-select" v-model="headerPriority"></select>
+            <span v-if="!headerPriority" class="select-placeholder">
+              {{ translateText('Select priority') }}
+            </span>
+          </div>
+          <div
+            class="select-wrapper tag-select-wrapper"
+            :style="computeSelectWidthStyle(headerCategory, translateText('Category'))"
+          >
+            <select class="tag-select" v-model="headerCategory"></select>
+            <span v-if="!headerCategory" class="select-placeholder">
+              {{ translateText('Category') }}
+            </span>
+          </div>
+          <div
+            class="select-wrapper tag-select-wrapper"
+            :style="computeSelectWidthStyle(headerSubcategory, translateText('Subcategory'))"
+          >
+            <select class="tag-select" v-model="headerSubcategory"></select>
+            <span v-if="!headerSubcategory" class="select-placeholder">
+              {{ translateText('Subcategory') }}
+            </span>
+          </div>
+          <div
+            class="select-wrapper tag-select-wrapper"
+            :style="computeSelectWidthStyle(headerThirdLevelCategory, translateText('Third-level category'))"
+          >
+            <select class="tag-select" v-model="headerThirdLevelCategory"></select>
+            <span v-if="!headerThirdLevelCategory" class="select-placeholder">
+              {{ translateText('Third-level category') }}
             </span>
           </div>
         </div>
-        <div class="status-wrapper">
-          <div class="select-wrapper status-select-wrapper">
-            <select class="status-select" v-model="headerStatus"></select>
-            <span v-if="!headerStatus" class="select-placeholder status-placeholder">
-              {{ translateText('New') }}
+        <div class="header-meta">
+          <div class="assignee-wrapper">
+            <span class="user-icon">
+              <i class="material-symbols-outlined">{{ translateText('person') }}</i>
             </span>
+            <div
+              class="select-wrapper assignee-select-wrapper"
+              :style="computeSelectWidthStyle(headerAssignee, translateText('Unassigned'))"
+            >
+              <select class="user-select" v-model="headerAssignee"></select>
+              <span v-if="!headerAssignee" class="select-placeholder">
+                {{ translateText('Unassigned') }}
+              </span>
+            </div>
+          </div>
+          <div class="status-wrapper">
+            <div
+              class="select-wrapper status-select-wrapper"
+              :style="computeSelectWidthStyle(headerStatus, translateText('New'))"
+            >
+              <select class="status-select" v-model="headerStatus"></select>
+              <span v-if="!headerStatus" class="select-placeholder status-placeholder">
+                {{ translateText('New') }}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -273,6 +295,37 @@ const headerSubcategory = ref('');
 const headerThirdLevelCategory = ref('');
 const headerAssignee = ref('');
 const headerStatus = ref('');
+
+const getDisplayLength = (value) => {
+  if (!value && value !== 0) {
+    return 0;
+  }
+  if (typeof value === 'string') {
+    return value.length;
+  }
+  if (typeof value === 'number') {
+    return value.toString().length;
+  }
+  if (value && typeof value === 'object') {
+    if (typeof value.label === 'string') {
+      return value.label.length;
+    }
+    if (typeof value.name === 'string') {
+      return value.name.length;
+    }
+  }
+  return String(value).length;
+};
+
+const computeSelectWidthStyle = (value, fallbackLabel = '') => {
+  const fallbackLength = typeof fallbackLabel === 'string' ? fallbackLabel.length : 0;
+  const valueLength = getDisplayLength(value);
+  const computedLength = Math.max(valueLength, fallbackLength, 6);
+
+  return {
+    '--select-placeholder-length': computedLength
+  };
+};
 
 // Track used field IDs to disable them in the available fields list
 const usedFieldIds = computed(() => {
@@ -1315,10 +1368,11 @@ headerTitle,
 headerPriority,
 headerCategory,
 headerSubcategory,
-headerThirdLevelCategory,
-headerAssignee,
-headerStatus,
-translateText,
+  headerThirdLevelCategory,
+  headerAssignee,
+  headerStatus,
+  computeSelectWidthStyle,
+  translateText,
 showTranslatedMessage,
 handleFieldValueChange
 };
@@ -1573,16 +1627,32 @@ width: 255px;
   top: 0;
   z-index: 5;
   display: flex;
-  align-items: center;
-  gap: 16px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
   background: #f5f6fa;
   border-radius: 10px 10px 0 0;
   padding: 16px 24px;
   border-bottom: 1px solid #dadcde;
 }
 
+.header-row {
+  width: 100%;
+  display: flex;
+}
+
+.header-row-title {
+  align-items: center;
+}
+
+.header-row-controls {
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
 .header-title {
-  flex: 1 1 240px;
+  flex: 1 1 auto;
   min-width: 200px;
 }
 
@@ -1613,19 +1683,23 @@ width: 255px;
 
 .header-tags {
   display: flex;
+  flex: 1 1 auto;
   gap: 8px;
-  flex-wrap: wrap;
   row-gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 .select-wrapper {
   position: relative;
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  flex: 0 0 auto;
+  --select-placeholder-length: 10;
 }
 
 .tag-select-wrapper {
-  min-width: 140px;
+  min-width: calc(var(--select-placeholder-length) * 0.6em + 2.75rem);
 }
 
 .tag-select {
@@ -1637,7 +1711,8 @@ width: 255px;
   font-size: 13px;
   appearance: none;
   min-height: 34px;
-  width: 100%;
+  width: auto;
+  min-width: 0;
 }
 
 .tag-select:focus {
@@ -1662,6 +1737,7 @@ width: 255px;
   align-items: center;
   gap: 12px;
   margin-left: auto;
+  flex: 0 0 auto;
 }
 
 .assignee-wrapper {
@@ -1687,7 +1763,7 @@ width: 255px;
 }
 
 .assignee-select-wrapper {
-  min-width: 120px;
+  min-width: calc(var(--select-placeholder-length) * 0.6em + 2.5rem);
 }
 
 .user-select {
@@ -1697,7 +1773,8 @@ width: 255px;
   font-size: 13px;
   color: #3a3f4b;
   padding: 4px 8px 4px 0;
-  min-width: 120px;
+  min-width: 0;
+  width: auto;
 }
 
 .user-select:focus {
@@ -1710,7 +1787,7 @@ width: 255px;
 }
 
 .status-select-wrapper {
-  min-width: 110px;
+  min-width: calc(var(--select-placeholder-length) * 0.6em + 2.5rem);
 }
 
 .status-select {
@@ -1722,7 +1799,8 @@ width: 255px;
   font-size: 13px;
   appearance: none;
   min-height: 34px;
-  width: 100%;
+  width: auto;
+  min-width: 0;
 }
 
 .status-select:focus {
@@ -1732,35 +1810,6 @@ width: 255px;
 
 .status-placeholder {
   color: #ffffff;
-}
-
-:deep(.status-select-group) {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-:deep(.status-label-text) {
-  font-size: 12px;
-  color: #5f6368;
-  font-weight: 500;
-}
-
-:deep(.status-select) {
-  border: 1px solid #c0c0c0;
-  border-radius: 999px;
-  padding: 6px 16px;
-  background-color: #5c74a4;
-  color: #fff;
-  font-size: 13px;
-  appearance: none;
-  min-width: 120px;
-  min-height: 32px;
-}
-
-:deep(.status-select:focus) {
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(92, 116, 164, 0.2);
 }
 
 .debug-panel {
