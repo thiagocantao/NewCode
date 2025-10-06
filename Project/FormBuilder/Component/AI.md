@@ -25,6 +25,7 @@ This component provides a complete form building system that combines available 
 - Real-time state updates as fields are moved or modified
 - Field search functionality for available fields
 - Grid layout for available fields for better organization
+- Fixed form header with styled title input and empty select fields for priority, categories, assignment, and status
 - Sections can be dragged and reordered but cannot be nested within other sections
 - Sections cannot be dragged outside the form builder container
 - Action buttons are always visible when fields are in the form builder
@@ -39,7 +40,6 @@ This component provides a complete form building system that combines available 
 ***Properties:***
 - availableFieldsTitle: string - Custom heading for the available fields container
 - formBuilderTitle: string - Custom heading for the form builder container
-- cabecalhoHtml: string - HTML content displayed inside the form header
 - fieldsJson: string - JSON string containing field definitions
 - defaultFields: array - Default fields to show when no JSON is provided
 - formJson: string - JSON string containing form definition with sections
