@@ -65,7 +65,8 @@ import DraggableField from './DraggableField.vue';
 import {
   LIST_FIELD_TYPES,
   normalizeFieldDataSource,
-  fetchDataSourceOptions
+  fetchDataSourceOptions,
+  hasFetchableDataSource
 } from '../utils/dataSource';
 
 export default {
@@ -113,6 +114,75 @@ setup(props, { emit }) {
 
     const getFieldKey = field => field?.id || field?.field_id || field?.ID || null;
 
+    const getRawListOptionsCandidate = source => {
+      if (!source || typeof source !== 'object') {
+        return null;
+      }
+
+      if ('list_options' in source || 'listOptions' in source || 'ListOptions' in source) {
+        return source.list_options ?? source.listOptions ?? source.ListOptions ?? null;
+      }
+
+      return null;
+    };
+
+    const convertRawOptionsToArray = rawOptions => {
+      if (rawOptions === null || rawOptions === undefined) {
+        return [];
+      }
+
+      if (Array.isArray(rawOptions)) {
+        return rawOptions;
+      }
+
+      if (typeof rawOptions === 'string') {
+        const trimmed = rawOptions.trim();
+        if (!trimmed) {
+          return [];
+        }
+
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (Array.isArray(parsed)) {
+            return parsed;
+          }
+        } catch (error) {
+          // Ignore JSON parse errors and fallback to comma separated parsing
+        }
+
+        return trimmed
+          .split(',')
+          .map(option => option.trim())
+          .filter(option => option.length > 0);
+      }
+
+      if (typeof rawOptions === 'object') {
+        if (
+          rawOptions.value !== undefined ||
+          rawOptions.Value !== undefined ||
+          rawOptions.label !== undefined ||
+          rawOptions.Label !== undefined
+        ) {
+          return [rawOptions];
+        }
+
+        const values = Object.values(rawOptions);
+        return Array.isArray(values) ? values : [values];
+      }
+
+      return [];
+    };
+
+    const cloneOptionLikeArray = options => {
+      if (!Array.isArray(options)) {
+        return options;
+      }
+
+      return options.map(option =>
+        option && typeof option === 'object' ? { ...option } : option
+      );
+    };
+
     const toComparableOption = option => {
       if (option === null || option === undefined) {
         return null;
@@ -123,15 +193,26 @@ setup(props, { emit }) {
         return { value: option, label: normalizedLabel };
       }
 
-      const value =
+      let value =
         option.value ?? option.Value ?? option.id ?? option.ID ?? option.key ?? option.Key ?? null;
-      const label = option.label ?? option.Label ?? option.name ?? option.Name ?? null;
+      let label = option.label ?? option.Label ?? option.name ?? option.Name ?? null;
 
-      if (value === null || label === null) {
+      if (value === null && label === null) {
         return null;
       }
 
-      return { value, label };
+      if (value === null) {
+        value = label;
+      }
+
+      if (label === null) {
+        label = value;
+      }
+
+      const normalizedValue = value;
+      const normalizedLabel = typeof label === 'string' ? label : String(label);
+
+      return { value: normalizedValue, label: normalizedLabel };
     };
 
     const normalizeOptionList = optionsArray => {
@@ -209,6 +290,23 @@ setup(props, { emit }) {
       const resolvedDataSource = normalizedDataSource || normalizeFieldDataSource(field);
 
       if (!resolvedDataSource || !LIST_FIELD_TYPES.includes(field?.fieldType)) {
+        fieldOptionSignatureMap.delete(fieldKey);
+        pendingDataSourceLoads.delete(fieldKey);
+        return undefined;
+      }
+
+      const staticOptionsArray = convertRawOptionsToArray(
+        getRawListOptionsCandidate(resolvedDataSource)
+      );
+
+      if (staticOptionsArray.length > 0) {
+        const changed = applyOptionsToField(fieldKey, staticOptionsArray);
+        if (changed) {
+          emit('update-section');
+        }
+      }
+
+      if (!hasFetchableDataSource(resolvedDataSource)) {
         fieldOptionSignatureMap.delete(fieldKey);
         pendingDataSourceLoads.delete(fieldKey);
         return undefined;
@@ -517,18 +615,33 @@ setup(props, { emit }) {
             if (evt.item && evt.item.__draggableField__) {
               fieldData = evt.item.__draggableField__;
             } else if (fieldId) {
-              const fieldType = evt.item?.dataset?.fieldType || 'text';
-              const fieldName = evt.item?.dataset?.fieldName || 'Unnamed Field';
+              const catalogField = (props.allFields || []).find(candidate => {
+                const candidateId =
+                  candidate?.ID ?? candidate?.id ?? candidate?.field_id ?? null;
+                return candidateId && String(candidateId) === String(fieldId);
+              });
 
-              fieldData = {
-                ID: fieldId,
-                name: fieldName,
-                fieldType: fieldType,
-                columns: parseInt(evt.item?.dataset?.columns || '1'),
-                is_mandatory: false,
-                is_readonly: false,
-                is_hide_legend: false
-              };
+              if (catalogField) {
+                try {
+                  fieldData = JSON.parse(JSON.stringify(catalogField));
+                } catch (error) {
+                  console.warn('Failed to clone catalog field data', error);
+                  fieldData = { ...catalogField };
+                }
+              } else {
+                const fieldType = evt.item?.dataset?.fieldType || 'text';
+                const fieldName = evt.item?.dataset?.fieldName || 'Unnamed Field';
+
+                fieldData = {
+                  ID: fieldId,
+                  name: fieldName,
+                  fieldType: fieldType,
+                  columns: parseInt(evt.item?.dataset?.columns || '1'),
+                  is_mandatory: false,
+                  is_readonly: false,
+                  is_hide_legend: false
+                };
+              }
             }
 
             if (fieldId && fieldData) {
@@ -548,15 +661,27 @@ setup(props, { emit }) {
                 clonedFieldData = { ...fieldData };
               }
               const normalizedDataSource = normalizeFieldDataSource(clonedFieldData);
-              const normalizedListOptions =
-                clonedFieldData.list_options ??
-                clonedFieldData.listOptions ??
-                clonedFieldData.ListOptions ??
-                null;
+              const rawListOptionsValue =
+                clonedFieldData.list_options !== undefined
+                  ? clonedFieldData.list_options
+                  : clonedFieldData.listOptions !== undefined
+                    ? clonedFieldData.listOptions
+                    : clonedFieldData.ListOptions !== undefined
+                      ? clonedFieldData.ListOptions
+                      : null;
+              const fieldListOptionsArray = convertRawOptionsToArray(rawListOptionsValue);
+              const dataSourceListOptionsArray = convertRawOptionsToArray(
+                getRawListOptionsCandidate(normalizedDataSource)
+              );
+              const resolvedListOptionsArray =
+                fieldListOptionsArray.length > 0
+                  ? fieldListOptionsArray
+                  : dataSourceListOptionsArray;
+              const normalizedListOptions = normalizeOptionList(resolvedListOptionsArray);
               const normalizedOptions = Array.isArray(clonedFieldData.options)
-                ? clonedFieldData.options
+                ? normalizeOptionList(clonedFieldData.options)
                 : Array.isArray(clonedFieldData.Options)
-                  ? clonedFieldData.Options
+                  ? normalizeOptionList(clonedFieldData.Options)
                   : null;
               const resolvedDefaultValue = clonedFieldData.default_value !== undefined
                 ? clonedFieldData.default_value
@@ -596,13 +721,22 @@ setup(props, { emit }) {
                 dataSource: normalizedDataSource,
                 DataSource: normalizedDataSource,
                 FieldInUseOnForm: true,
-                ...(normalizedListOptions !== null
+                ...(normalizedListOptions.length
                   ? {
-                      list_options: normalizedListOptions,
-                      listOptions: normalizedListOptions
+                      list_options: Array.isArray(rawListOptionsValue)
+                        ? cloneOptionLikeArray(rawListOptionsValue)
+                        : rawListOptionsValue ?? normalizedListOptions,
+                      listOptions: Array.isArray(rawListOptionsValue)
+                        ? cloneOptionLikeArray(rawListOptionsValue)
+                        : rawListOptionsValue ?? normalizedListOptions,
+                      ...(normalizedOptions === null
+                        ? { options: normalizedListOptions.map(option => ({ ...option })) }
+                        : {})
                     }
                   : {}),
-                ...(normalizedOptions !== null ? { options: normalizedOptions } : {})
+                ...(normalizedOptions !== null
+                  ? { options: normalizedOptions.map(option => ({ ...option })) }
+                  : {})
               };
 
               // Add the field to the section at the correct position
