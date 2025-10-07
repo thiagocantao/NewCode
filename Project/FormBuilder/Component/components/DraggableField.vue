@@ -133,28 +133,47 @@ const el = document.querySelector(selector);
 
 if (el) {
 // Store a complete copy of the field data to ensure all properties are available during drag
-const fieldData = JSON.parse(JSON.stringify(props.field));
+        const fieldData = JSON.parse(JSON.stringify(props.field));
 
-// Make sure the field data has all required properties
-fieldData.ID = fieldData.ID || fieldData.field_id;
-fieldData.Name = fieldData.Name || 'Unnamed Field';
-fieldData.fieldType = fieldData.fieldType || 'text';
-fieldData.columns = parseInt(fieldData.columns) || 1;
+        // Make sure the field data has all required properties
+        const normalizedId =
+          fieldData.ID || fieldData.id || fieldData.field_id || fieldData.FieldId;
+        const normalizedFieldId =
+          fieldData.field_id || fieldData.FieldId || normalizedId || fieldData.id;
+        const normalizedName =
+          fieldData.Name || fieldData.name || fieldData.Title || 'Unnamed Field';
+        const normalizedFieldType =
+          fieldData.fieldType || fieldData.FieldType || fieldData.type || 'text';
+        const normalizedColumns =
+          parseInt(fieldData.columns ?? fieldData.Columns ?? 1, 10) || 1;
 
-// Store the data on the element
-el.__draggableField__ = fieldData;
+        fieldData.ID = normalizedId;
+        fieldData.id = fieldData.id || normalizedId;
+        fieldData.field_id = normalizedFieldId;
+        fieldData.FieldId = fieldData.FieldId || normalizedFieldId;
+        fieldData.Name = normalizedName;
+        fieldData.name = fieldData.name || normalizedName;
+        fieldData.fieldType = normalizedFieldType;
+        fieldData.FieldType = fieldData.FieldType || normalizedFieldType;
+        fieldData.columns = normalizedColumns;
+        fieldData.Columns = fieldData.Columns || normalizedColumns;
 
-// Add a unique identifier to help with drag operations
-el.setAttribute('data-unique-id', uniqueId);
+        // Store the data on the element
+        el.__draggableField__ = fieldData;
 
-// Ensure all necessary data attributes are set
-el.dataset.fieldId = fieldData.ID;
-el.dataset.fieldType = fieldData.fieldType;
-el.dataset.fieldName = fieldData.Name;
-el.dataset.columns = fieldData.columns;
-} else {
-console.warn('Element not found for selector:', selector);
-}
+        // Add a unique identifier to help with drag operations
+        el.setAttribute('data-unique-id', uniqueId);
+
+        // Ensure all necessary data attributes are set
+        if (normalizedId) {
+          el.dataset.fieldId = normalizedId;
+        }
+        el.dataset.fieldType = normalizedFieldType;
+        el.dataset.fieldName = normalizedName;
+        el.dataset.columns = String(normalizedColumns);
+      } else {
+        console.warn('Element not found for selector:', selector);
+      }
 } catch (error) {
 console.error('Error setting draggable field data:', error);
 }
