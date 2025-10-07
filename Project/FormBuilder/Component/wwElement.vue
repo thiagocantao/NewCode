@@ -517,7 +517,11 @@ draggable: '.single-draggable:not(.is-disabled)',
 multiDrag: false,
 forceFallback: false,
 fallbackOnBody: false,
+onStart: () => {
+setSectionsSortableDisabled(true);
+},
 onEnd: (evt) => {
+setSectionsSortableDisabled(false);
 if (evt && evt.item && evt.item.parentNode) {
 updateFormState();
 }
@@ -606,6 +610,14 @@ console.error('Error initializing Sortable in field definition container:', erro
 }
 }
 }
+// Helper to temporarily disable the sections Sortable instance while dragging fields
+const setSectionsSortableDisabled = (disabled) => {
+const sortableInstance = formSectionsContainer.value && formSectionsContainer.value._sortable;
+if (sortableInstance && typeof sortableInstance.option === 'function') {
+sortableInstance.option('disabled', !!disabled);
+}
+};
+
 // Initialize sortable for form sections
 const initSectionsSortable = () => {
 if (!formSectionsContainer.value) {
@@ -700,8 +712,14 @@ const initFieldsContainers = () => {
       ghostClass: 'sortable-ghost',
       chosenClass: 'sortable-chosen',
       dragClass: 'sortable-drag',
+      onStart: () => {
+        setSectionsSortableDisabled(true);
+      },
       onAdd: (evt) => {
-        if (!evt || !evt.item) return;
+        if (!evt || !evt.item) {
+          setSectionsSortableDisabled(false);
+          return;
+        }
 
         try {
           // Verifica se o drop é em um container válido
@@ -757,9 +775,51 @@ const initFieldsContainers = () => {
           }
         } catch (error) {
           console.error('Error in onAdd handler:', error);
-          if (evt.item) {
+          if (evt && evt.item) {
             evt.item.remove();
           }
+        } finally {
+          setSectionsSortableDisabled(false);
+        }
+      },
+      onEnd: () => {
+        setSectionsSortableDisabled(false);
+      },
+      onUpdate: (evt) => {
+        try {
+          if (!evt || !evt.item) return;
+
+          const sectionElement = evt.to.closest('.form-section');
+          if (!sectionElement) {
+            evt.item.remove();
+            return;
+          }
+
+          const sectionId = sectionElement.querySelector('.section-title')?.dataset.sectionId;
+          const section = formSections.value.find(s => s.id === sectionId);
+          if (!section) {
+            evt.item.remove();
+            return;
+          }
+
+          const targetElement = evt.to.children[evt.newIndex];
+          const allElements = Array.from(evt.to.children);
+          const targetIndex = allElements.indexOf(targetElement);
+
+          if (!section.fields) {
+            section.fields = [];
+          }
+
+          const movedField = section.fields.splice(evt.oldIndex, 1)[0];
+          section.fields.splice(targetIndex, 0, movedField);
+          updateFormState();
+        } catch (error) {
+          console.error('Error in onUpdate handler:', error);
+          if (evt && evt.item) {
+            evt.item.remove();
+          }
+        } finally {
+          setSectionsSortableDisabled(false);
         }
       }
     });
