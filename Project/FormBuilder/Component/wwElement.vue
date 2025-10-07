@@ -282,6 +282,113 @@ const cloneDeep = (value) => {
 
 // State
 const availableFields = ref([]);
+
+// ===== Helpers: cache/normalize list options for SIMPLE_LIST/CONTROLLED_LIST =====
+function __toOptionLike(opt) {
+  if (opt && typeof opt === 'object') {
+    const value = opt.value ?? opt.id ?? opt.ID ?? opt.key ?? opt.Key ?? opt.name ?? opt.Name ?? null;
+    const label = opt.label ?? opt.Label ?? opt.name ?? opt.Name ?? (value != null ? String(value) : '');
+    const v = value != null ? value : label;
+    return v != null ? { value: v, label: String(label ?? v) } : null;
+  }
+  if (opt == null) return null;
+  return { value: opt, label: String(opt) };
+}
+function __parseOptionList(raw) {
+  if (raw == null) return [];
+  if (Array.isArray(raw)) return raw.map(__toOptionLike).filter(Boolean);
+  if (typeof raw === 'string') {
+    const s = raw.trim();
+    if (!s) return [];
+    try {
+      const parsed = JSON.parse(s);
+      if (Array.isArray(parsed)) return parsed.map(__toOptionLike).filter(Boolean);
+    } catch (_) {}
+    return s.split(',').map(x => x.trim()).filter(Boolean).map(x => ({ value: x, label: x }));
+  }
+  if (typeof raw === 'object') {
+    const values = Object.values(raw);
+    return Array.isArray(values) ? values.map(__toOptionLike).filter(Boolean) : [];
+  }
+  return [];
+}
+function __isListType(t) {
+  const x = String(t || '').toUpperCase();
+  return x === 'SIMPLE_LIST' || x === 'CONTROLLED_LIST' || x === 'LIST';
+}
+function __withOptionsCache(field) {
+  try { console.debug('[FB-LIST][inflate:start]', { id: field?.ID || field?.id || field?.field_id, type: field?.fieldType }); } catch(_) {}
+
+  const f = { ...field };
+  try {
+    const rawLO =
+      f.list_options ?? f.listOptions ?? f.ListOptions ??
+      f?.dataSource?.list_options ?? f?.DataSource?.list_options ?? null;
+    const cache = __parseOptionList(rawLO);
+    // Armazena o cache sem quebrar o que já existe
+    f.__optionsCache = cache;
+    if (__isListType(f.fieldType) && (!Array.isArray(f.options) || f.options.length === 0) && cache.length) {
+      f.options = cache;
+      f.list_options = cache;
+      f.listOptions = cache;
+    }
+  } catch (e) { try { console.warn('[FB-LIST][inflate:error]', e); } catch(_) {} }
+  try { console.debug('[FB-LIST][inflate:done]', { id: f?.ID || f?.id || f?.field_id, type: f?.fieldType, cacheLen: Array.isArray(f?.__optionsCache) ? f.__optionsCache.length : null, hasOptions: Array.isArray(f?.options) ? f.options.length : null }); } catch(_) {}
+  return f;
+}
+// ===== End Helpers =====
+
+// ===== Helpers: inflate/normalize list options from JSON/DataSource =====
+function toOptionLike(opt) {
+  if (opt && typeof opt === 'object') {
+    const value = opt.value ?? opt.id ?? opt.ID ?? opt.key ?? opt.Key ?? opt.name ?? opt.Name ?? null;
+    const label = opt.label ?? opt.Label ?? opt.name ?? opt.Name ?? (value != null ? String(value) : '');
+    const v = value != null ? value : label;
+    return v != null ? { value: v, label: String(label ?? v) } : null;
+  }
+  if (opt == null) return null;
+  return { value: opt, label: String(opt) };
+}
+function parseOptionList(raw) {
+  if (raw == null) return [];
+  if (Array.isArray(raw)) return raw.map(toOptionLike).filter(Boolean);
+  if (typeof raw === 'string') {
+    const s = raw.trim();
+    if (!s) return [];
+    try {
+      const parsed = JSON.parse(s);
+      if (Array.isArray(parsed)) return parsed.map(toOptionLike).filter(Boolean);
+    } catch (_) {}
+    // CSV fallback
+    return s.split(',').map(x => x.trim()).filter(Boolean).map(x => ({ value: x, label: x }));
+  }
+  if (typeof raw === 'object') {
+    const values = Object.values(raw);
+    return Array.isArray(values) ? values.map(toOptionLike).filter(Boolean) : [];
+  }
+  return [];
+}
+function isListType(t) {
+  const x = String(t || '').toUpperCase();
+  return x === 'SIMPLE_LIST' || x === 'CONTROLLED_LIST' || x === 'LIST';
+}
+function inflateFieldFromJson(field) {
+  const f = field || {};
+  try {
+    const rawLO =
+      f.list_options ?? f.listOptions ?? f.ListOptions ??
+      f?.dataSource?.list_options ?? f?.DataSource?.list_options ?? null;
+    const opts = parseOptionList(rawLO);
+    if (opts.length) {
+      f.list_options = opts;
+      f.listOptions  = opts;
+      f.options      = Array.isArray(f.options) && f.options.length ? f.options : opts;
+    }
+  } catch (e) { /* ignore */ }
+  return f;
+}
+// ===== End Helpers =====
+
 const formSections = ref([]);
 const fieldDefinitionCache = new Map();
 const availableFieldsContainer = ref(null);
@@ -644,8 +751,22 @@ updateFormState();
           evt.clone.dataset.fieldId = normalizedId != null ? String(normalizedId) : '';
           evt.clone.dataset.fieldType = normalizedFieldType;
           evt.clone.dataset.fieldName = normalizedName;
-          evt.clone.dataset.columns = String(normalizedColumns);
-          evt.clone.setAttribute('data-unique-id', `field-${normalizedId ?? 'temp'}-${Date.now()}`);
+          
+          try {
+            const srcField = evt.clone.__draggableField__ || storedField || sourceField || {};
+            const cache = srcField.__optionsCache || [];
+            evt.clone.dataset.cachedOptionsJson = JSON.stringify(cache);
+          
+          try { console.groupCollapsed('[FB-LIST][onClone]'); console.log('clone.dataset.fieldId', evt.clone?.dataset?.fieldId, 'fieldType', evt.clone?.dataset?.fieldType); console.log('cacheLen', Array.isArray(cache) ? cache.length : null); console.groupEnd(); } catch(_) {}
+} catch (_) {}
+evt.clone.dataset.columns = String(normalizedColumns);
+          
+          try {
+            const srcField = evt.clone.__draggableField__ || storedField || sourceField || {};
+            const cache = srcField.__optionsCache || [];
+            evt.clone.dataset.cachedOptionsJson = JSON.stringify(cache);
+          } catch (_) {}
+evt.clone.setAttribute('data-unique-id', `field-${normalizedId ?? 'temp'}-${Date.now()}`);
         } catch (error) {
           console.error('Error preparing cloned field metadata:', error);
         }
@@ -796,7 +917,29 @@ const initFieldsContainers = () => {
 
           if (originalField) {
             const clonedField = JSON.parse(JSON.stringify(originalField));
-            const normalizedSourceId =
+            
+          
+          console.groupCollapsed('[FB-LIST][onAdd]');
+          try {
+            const ds = evt.item?.dataset || {};
+            console.log('dataset fieldId/type', ds.fieldId, ds.fieldType);
+            if (ds.cachedOptionsJson && ds.cachedOptionsJson !== 'undefined') {
+              const cache = JSON.parse(ds.cachedOptionsJson);
+              console.log('cachedOptions len', Array.isArray(cache) ? cache.length : null);
+            } else {
+              console.log('cachedOptionsJson not present');
+            }
+          } catch (e) { console.warn('[FB-LIST][onAdd] dataset read error', e); }
+try {
+            const ds = evt.item?.dataset || {};
+            if (ds.cachedOptionsJson && ds.cachedOptionsJson !== 'undefined') {
+              const cache = JSON.parse(ds.cachedOptionsJson);
+              if (Array.isArray(cache) && cache.length) {
+                clonedField.options = cache; clonedField.list_options = cache; clonedField.listOptions = cache;
+              }
+            }
+          } catch (_) {}
+const normalizedSourceId =
               originalField.field_id ||
               originalField.FieldId ||
               originalField.ID ||
@@ -902,7 +1045,7 @@ const initFieldsContainers = () => {
             }
 
             if (!section.fields) {
-              section.fields = [];
+              section.fields = (Array.isArray((Array.isArray([]) ? [].map(inflateFieldFromJson) : [])) ? (Array.isArray([]) ? [].map(inflateFieldFromJson) : []).map(__withOptionsCache) : (Array.isArray([]) ? [].map(inflateFieldFromJson) : []));
             }
 
             // Calcula a posição correta baseada no elemento alvo
@@ -912,10 +1055,24 @@ const initFieldsContainers = () => {
 
             // Se o elemento está sendo movido para o final
             if (targetIndex === allElements.length - 1) {
-              section.fields.push(clonedField);
+              /* ensure options populated before insert */
+          try {
+            if (!Array.isArray(clonedField.options) || clonedField.options.length === 0) {
+              try { console.log('before-insert options empty, will try cache/raw'); } catch(_) {}
+              if (Array.isArray(clonedField.__optionsCache) && clonedField.__optionsCache.length) { try { console.log('using __optionsCache', clonedField.__optionsCache.length); } catch(_) {}
+                clonedField.options = clonedField.__optionsCache; clonedField.list_options = clonedField.__optionsCache; clonedField.listOptions = clonedField.__optionsCache;
+              } else {
+                const rawLO = clonedField.list_options ?? clonedField.listOptions ?? clonedField.ListOptions ?? clonedField?.dataSource?.list_options ?? clonedField?.DataSource?.list_options ?? null;
+                const opts = __parseOptionList(rawLO);
+                if (opts.length) { try { console.log('using parsed raw options', opts.length); } catch(_) {} clonedField.options = opts; clonedField.list_options = opts; clonedField.listOptions = opts; }
+              }
+            }
+          } catch (_) {}
+section.fields.push(clonedField);
             } else {
               // Insere o campo na posição correta
-              section.fields.splice(targetIndex, 0, clonedField);
+              try { console.log('final clonedField optionsLen', Array.isArray(clonedField.options) ? clonedField.options.length : null); } catch(_) {}
+          section.fields.splice(targetIndex, 0, clonedField);
             }
 
             updateFormState();
@@ -968,10 +1125,12 @@ const initFieldsContainers = () => {
           const targetIndex = allElements.indexOf(targetElement);
 
           if (!section.fields) {
-            section.fields = [];
+            section.fields = (Array.isArray((Array.isArray([]) ? [].map(inflateFieldFromJson) : [])) ? (Array.isArray([]) ? [].map(inflateFieldFromJson) : []).map(__withOptionsCache) : (Array.isArray([]) ? [].map(inflateFieldFromJson) : []));
           }
 
-          const movedField = section.fields.splice(evt.oldIndex, 1)[0];
+          const movedField = try { console.log('final clonedField optionsLen', Array.isArray(clonedField.options) ? clonedField.options.length : null); } catch(_) {}
+          section.fields.splice(evt.oldIndex, 1)[0];
+          try { console.log('final clonedField optionsLen', Array.isArray(clonedField.options) ? clonedField.options.length : null); } catch(_) {}
           section.fields.splice(targetIndex, 0, movedField);
           updateFormState();
         } catch (error) {
@@ -1291,7 +1450,8 @@ if (fieldIndex === -1) {
 }
 
 // Remover o campo da seção
-const removedField = section.fields.splice(fieldIndex, 1)[0];
+const removedField = try { console.log('final clonedField optionsLen', Array.isArray(clonedField.options) ? clonedField.options.length : null); } catch(_) {}
+          section.fields.splice(fieldIndex, 1)[0];
 
 // Adicionar o campo de volta à lista de campos disponíveis
 const normalizedRemovedId =
