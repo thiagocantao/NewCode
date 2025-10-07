@@ -784,28 +784,62 @@ const loadData = () => {
 };
 
 const loadFieldsData = () => {
-try {
-let data = [];
+  try {
+    let data = [];
 
-// Try to load from JSON string
-if (props.content.fieldsJson) {
-try {
-data = JSON.parse(props.content.fieldsJson);
-} catch (e) {
-console.error('Failed to parse fields JSON:', e);
-}
-}
+    const cloneArray = array => {
+      if (!Array.isArray(array)) {
+        return [];
+      }
 
-// If no data from JSON or parsing failed, use default fields
-if (!data || !data.length) {
-data = props.content.defaultFields || [];
-}
+      try {
+        return JSON.parse(JSON.stringify(array));
+      } catch (cloneError) {
+        console.warn('Failed to deeply clone fields array, falling back to shallow copy.', cloneError);
+        return array.map(item => (item && typeof item === 'object' ? { ...item } : item));
+      }
+    };
 
-availableFields.value = data;
-setFieldsData(data);
-} catch (error) {
-console.error('Error loading fields data:', error);
-}
+    const rawFields = props.content.fieldsJson;
+
+    if (rawFields) {
+      if (typeof rawFields === 'string') {
+        try {
+          const parsed = JSON.parse(rawFields);
+          if (Array.isArray(parsed)) {
+            data = cloneArray(parsed);
+          } else if (parsed && typeof parsed === 'object' && Array.isArray(parsed.fields)) {
+            data = cloneArray(parsed.fields);
+          } else {
+            console.warn('fieldsJson string did not contain an array of fields.');
+          }
+        } catch (e) {
+          console.error('Failed to parse fields JSON:', e);
+        }
+      } else if (Array.isArray(rawFields)) {
+        data = cloneArray(rawFields);
+      } else if (typeof rawFields === 'object') {
+        if (Array.isArray(rawFields.fields)) {
+          data = cloneArray(rawFields.fields);
+        } else {
+          console.warn(
+            'Unsupported fieldsJson object format. Expected an array or a { fields: [] } object.',
+            rawFields
+          );
+        }
+      }
+    }
+
+    // If no data from JSON or parsing failed, use default fields
+    if (!Array.isArray(data) || !data.length) {
+      data = cloneArray(props.content.defaultFields || []);
+    }
+
+    availableFields.value = Array.isArray(data) ? data : [];
+    setFieldsData(availableFields.value);
+  } catch (error) {
+    console.error('Error loading fields data:', error);
+  }
 };
 
 const loadFormData = () => {
