@@ -5,7 +5,7 @@ class="draggable-field single-draggable"
 'is-required': field?.is_mandatory, 
 'is-readonly': field?.is_readonly,
 'is-disabled': isDisabled,
-[`col-span-${Math.min(Math.max(parseInt(field?.columns) || 1, 1), 4)}`]: isInFormSection
+[`col-span-${Math.min(Math.max(parseInt(field?.columns) || 1, 1), 4)}`]: true
 }" 
 :data-field-id="field?.ID || field?.field_id"
 :data-section-field-id="field?.id || null"
@@ -21,7 +21,7 @@ class="draggable-field single-draggable"
 </div>
 
 <template v-if="showFieldComponent || isInFormSection">
-<FieldComponent :field="field" @field-value-change="onFieldValueChange" />
+<FieldComponent :field="field" />
 </template>
 <template v-else>
 <i class="material-symbols-outlined" style="padding-right:10px; ">{{iconType}}</i>
@@ -75,7 +75,7 @@ type: Boolean,
 default: false
 }
 },
-emits: ['edit-field', 'remove-field', 'click', 'field-value-change'],
+emits: ['edit-field', 'remove-field', 'click'],
 setup(props, { emit }) {
 const fieldName = computed(() => {
 // Try to get the name from different possible properties
@@ -97,15 +97,16 @@ switch(props.field?.fieldType)
     case "INTEGER": return "numbers";
     case "YES_NO": return "radio_button_checked";
     case "MULTILINE_TEXT": return "text_ad";
+    default: return "stars"
 
 }
 });
 
 const currentLang = computed(() => {
   if (typeof window !== 'undefined' && window.wwLib && window.wwLib.wwVariable) {
-    return window.wwLib.wwVariable.getValue('aa44dc4c-476b-45e9-a094-16687e063342') || 'pt-BR';
+    return window.wwLib.wwVariable.getValue('aa44dc4c-476b-45e9-a094-16687e063342') || 'en-US';
   }
-  return 'pt-BR';
+  return 'en-US';
 });
 
 
@@ -120,7 +121,6 @@ const sectionFieldId = props.field.id || 'null';
 
 // Add null checks
 if (!fieldId) {
-console.warn('Field ID is missing');
 return;
 }
 
@@ -132,41 +132,27 @@ const selector = `[data-field-id="${fieldId}"][data-section-field-id="${sectionF
 const el = document.querySelector(selector);
 
 if (el) {
-  // Store a complete copy of the field data to ensure all properties are available during drag
-  const fieldData = JSON.parse(JSON.stringify(props.field));
+// Store a complete copy of the field data to ensure all properties are available during drag
+const fieldData = JSON.parse(JSON.stringify(props.field));
 
-  // Make sure the field data has all required properties without
-  // overriding any existing metadata that may contain list options
-  // or data source information.
-  const normalizedId = fieldData.ID || fieldData.id || fieldData.field_id;
-  const normalizedName = fieldData.Name || fieldData.name || 'Unnamed Field';
-  const normalizedFieldType = fieldData.fieldType || fieldData.FieldType || 'text';
-  const normalizedColumns = parseInt(fieldData.columns ?? fieldData.Columns, 10) || 1;
+// Make sure the field data has all required properties
+fieldData.ID = fieldData.ID || fieldData.field_id;
+fieldData.Name = fieldData.Name || 'Unnamed Field';
+fieldData.fieldType = fieldData.fieldType || 'text';
+fieldData.columns = parseInt(fieldData.columns) || 1;
 
-  fieldData.ID = normalizedId;
-  fieldData.id = fieldData.id || normalizedId;
-  fieldData.field_id = fieldData.field_id || normalizedId;
-  fieldData.FieldId = fieldData.FieldId || fieldData.field_id;
-  fieldData.Name = normalizedName;
-  fieldData.name = fieldData.name || normalizedName;
-  fieldData.fieldType = normalizedFieldType;
-  fieldData.FieldType = fieldData.FieldType || normalizedFieldType;
-  fieldData.columns = normalizedColumns;
-  fieldData.Columns = fieldData.Columns || normalizedColumns;
+// Store the data on the element
+el.__draggableField__ = fieldData;
 
-  // Store the data on the element
-  el.__draggableField__ = fieldData;
+// Add a unique identifier to help with drag operations
+el.setAttribute('data-unique-id', uniqueId);
 
-  // Add a unique identifier to help with drag operations
-  el.setAttribute('data-unique-id', uniqueId);
-
-  // Ensure all necessary data attributes are set
-  el.dataset.fieldId = String(fieldData.field_id || fieldData.ID || '');
-  el.dataset.fieldType = fieldData.fieldType;
-  el.dataset.fieldName = fieldData.Name;
-  el.dataset.columns = String(fieldData.columns);
+// Ensure all necessary data attributes are set
+el.dataset.fieldId = fieldData.ID;
+el.dataset.fieldType = fieldData.fieldType;
+el.dataset.fieldName = fieldData.Name;
+el.dataset.columns = fieldData.columns;
 } else {
-  console.warn('Element not found for selector:', selector);
 }
 } catch (error) {
 console.error('Error setting draggable field data:', error);
@@ -174,14 +160,6 @@ console.error('Error setting draggable field data:', error);
 });
 }
 });
-
-const onFieldValueChange = (payload) => {
-  emit('field-value-change', {
-    ...payload,
-    fieldId: payload?.fieldId || props.field?.id || props.field?.ID || props.field?.field_id || null,
-    field: props.field
-  });
-};
 
 const onFieldClick = (event) => {
 // Only emit click if this is a direct click on the field, not on action buttons
@@ -213,8 +191,7 @@ return {
 fieldName,
 onFieldClick,
 iconType,
-onRemoveClick,
-onFieldValueChange
+onRemoveClick
 };
 }
 };
@@ -326,15 +303,15 @@ grid-column: span 1;
 }
 
 .col-span-2 {
-  grid-column: span 2;
+grid-column: span 1;
 }
 
 .col-span-3 {
-  grid-column: span 3;
+grid-column: span 1;
 }
 
 .col-span-4 {
-  grid-column: span 4;
+grid-column: span 1;
 }
 
 .material-symbols-outlined {
