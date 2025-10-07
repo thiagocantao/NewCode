@@ -425,12 +425,10 @@ const computeSelectWidthStyle = (value, fallbackLabel = '') => {
 // Tag controls that must remain disabled in the available fields list
 const ALWAYS_DISABLED_TAG_CONTROLS = new Set([
   'STATUSID',
-  'URGENCYID',
-  'IMPACTID',
+  'PRIORITYID',
   'CATEGORYID',
   'SUBCATEGORYID',
   'CATEGORYLEVEL3ID',
-  'REQUESTUSERID',
   'RESPONSIBLEUSERID'
 ]);
 
