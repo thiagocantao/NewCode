@@ -283,6 +283,7 @@ const cloneDeep = (value) => {
 // State
 const availableFields = ref([]);
 const formSections = ref([]);
+const fieldDefinitionCache = new Map();
 const availableFieldsContainer = ref(null);
 const formSectionsContainer = ref(null);
 const fieldModalVisible = ref(false);
@@ -294,6 +295,66 @@ const isNewSection = ref(false);
 const searchQuery = ref('');
 const selectedFieldForProperties = ref(null);
 const forceUpdate = ref(0);
+
+const cloneFieldDefinition = (field) => {
+  if (!field || typeof field !== 'object') {
+    return null;
+  }
+
+  try {
+    return JSON.parse(JSON.stringify(field));
+  } catch (error) {
+    console.warn('Failed to clone field definition for cache', error);
+    return { ...field };
+  }
+};
+
+const getFieldCacheKey = (field) => {
+  if (!field || typeof field !== 'object') {
+    return null;
+  }
+
+  const rawId =
+    field.ID ||
+    field.id ||
+    field.field_id ||
+    field.FieldId ||
+    null;
+
+  if (rawId == null) {
+    return null;
+  }
+
+  return String(rawId);
+};
+
+const rememberFieldDefinition = (field) => {
+  const cacheKey = getFieldCacheKey(field);
+  if (!cacheKey) {
+    return;
+  }
+
+  const cloned = cloneFieldDefinition(field);
+  if (cloned) {
+    fieldDefinitionCache.set(cacheKey, cloned);
+  }
+};
+
+const rememberFieldDefinitions = (fields) => {
+  if (!Array.isArray(fields)) {
+    return;
+  }
+
+  fields.forEach(field => rememberFieldDefinition(field));
+};
+
+const getCachedFieldDefinition = (fieldId) => {
+  if (fieldId == null) {
+    return null;
+  }
+
+  return fieldDefinitionCache.get(String(fieldId)) || null;
+};
 
 // Form header state
 const headerTitle = ref('');
@@ -742,6 +803,60 @@ const initFieldsContainers = () => {
               originalField.id ||
               originalFieldEl.dataset?.fieldId ||
               null;
+            const cachedDefinition = getCachedFieldDefinition(normalizedSourceId);
+            if (cachedDefinition) {
+              let clonedCached;
+              try {
+                clonedCached = JSON.parse(JSON.stringify(cachedDefinition));
+              } catch (cacheError) {
+                console.warn('Failed to clone cached field definition', cacheError);
+                clonedCached = { ...cachedDefinition };
+              }
+
+              if (clonedField.dataSource == null && clonedCached) {
+                clonedField.dataSource = clonedCached.dataSource ?? clonedCached.DataSource ?? clonedField.dataSource;
+              }
+
+              if (clonedField.DataSource == null && clonedCached) {
+                clonedField.DataSource = clonedCached.DataSource ?? clonedCached.dataSource ?? clonedField.DataSource;
+              }
+
+              if (clonedField.list_options == null && clonedCached?.list_options != null) {
+                clonedField.list_options = Array.isArray(clonedCached.list_options)
+                  ? clonedCached.list_options.map(option =>
+                      option && typeof option === 'object' ? { ...option } : option
+                    )
+                  : clonedCached.list_options;
+              }
+
+              if (clonedField.listOptions == null && clonedCached?.listOptions != null) {
+                clonedField.listOptions = Array.isArray(clonedCached.listOptions)
+                  ? clonedCached.listOptions.map(option =>
+                      option && typeof option === 'object' ? { ...option } : option
+                    )
+                  : clonedCached.listOptions;
+              }
+
+              if (clonedField.options == null && clonedCached?.options != null) {
+                clonedField.options = Array.isArray(clonedCached.options)
+                  ? clonedCached.options.map(option =>
+                      option && typeof option === 'object' ? { ...option } : option
+                    )
+                  : clonedCached.options;
+              }
+
+              if (clonedField.default_value === undefined && clonedCached?.default_value !== undefined) {
+                clonedField.default_value = clonedCached.default_value;
+              }
+
+              if (clonedField.defaultValue === undefined && clonedCached?.defaultValue !== undefined) {
+                clonedField.defaultValue = clonedCached.defaultValue;
+              }
+
+              if (clonedField.value === undefined && clonedCached?.value !== undefined) {
+                clonedField.value = clonedCached.value;
+              }
+            }
             const normalizedFieldType =
               originalField.fieldType || originalField.FieldType || 'text';
             const normalizedName =
@@ -940,6 +1055,7 @@ const loadFieldsData = () => {
     }
 
     availableFields.value = Array.isArray(data) ? data : [];
+    rememberFieldDefinitions(availableFields.value);
     setFieldsData(availableFields.value);
   } catch (error) {
     console.error('Error loading fields data:', error);
@@ -1002,6 +1118,15 @@ if (typeof window !== 'undefined') {
 
 // Convert sections array to the format expected by the component
     formSections.value = cloneDeep(data.sections || []);
+    const formSectionFields = [];
+    formSections.value.forEach(section => {
+      if (section && Array.isArray(section.fields)) {
+        section.fields.forEach(field => {
+          formSectionFields.push(field);
+        });
+      }
+    });
+    rememberFieldDefinitions(formSectionFields);
     setFormData(cloneDeep(data));
   } catch (error) {
     console.error('Error loading form data:', error);
@@ -1035,6 +1160,7 @@ field.columns = Math.min(Math.max(parseInt(field.columns) || 1, 1), 4);
 
 if (isNewField.value) {
 availableFields.value.push(field);
+rememberFieldDefinition(field);
 } else {
 const index = availableFields.value.findIndex(candidate => {
   const candidateId =
@@ -1044,6 +1170,7 @@ const index = availableFields.value.findIndex(candidate => {
 });
 if (index !== -1) {
 availableFields.value[index] = field;
+rememberFieldDefinition(field);
 }
 }
 updateFieldsState();
@@ -1063,6 +1190,7 @@ updateFieldsState();
 };
 
 const updateFieldsState = () => {
+rememberFieldDefinitions(availableFields.value);
 setFieldsData([...availableFields.value]);
 emit('trigger-event', {
 name: 'fieldsUpdated',
@@ -1227,6 +1355,7 @@ const existingFieldIndex = availableFields.value.findIndex(candidate => {
 
 if (existingFieldIndex === -1) {
   availableFields.value.push(fieldToAdd);
+  rememberFieldDefinition(fieldToAdd);
   updateFieldsState();
 }
 
