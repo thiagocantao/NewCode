@@ -119,6 +119,9 @@ setup(props, { emit }) {
     const fieldOptionSignatureMap = new Map();
     const pendingDataSourceLoads = new Map();
 
+    const normalizeFieldType = type => String(type ?? '').toUpperCase();
+    const isListFieldType = type => LIST_FIELD_TYPES.includes(normalizeFieldType(type));
+
     const getFieldKey = field => field?.id || field?.field_id || field?.ID || null;
 
     const getRawListOptionsCandidate = source => {
@@ -296,7 +299,7 @@ setup(props, { emit }) {
 
       const resolvedDataSource = normalizedDataSource || normalizeFieldDataSource(field);
 
-      if (!resolvedDataSource || !LIST_FIELD_TYPES.includes(field?.fieldType)) {
+      if (!resolvedDataSource || !isListFieldType(field?.fieldType)) {
         fieldOptionSignatureMap.delete(fieldKey);
         pendingDataSourceLoads.delete(fieldKey);
         return undefined;
@@ -358,7 +361,7 @@ setup(props, { emit }) {
       () => (props.section.fields || []).map(field => ({
         key: getFieldKey(field),
         dataSource: normalizeFieldDataSource(field),
-        fieldType: field?.fieldType
+        fieldType: normalizeFieldType(field?.fieldType)
       })),
       descriptors => {
         const activeKeys = new Set();
@@ -376,7 +379,7 @@ setup(props, { emit }) {
             return;
           }
 
-          if (!dataSource || !LIST_FIELD_TYPES.includes(fieldType)) {
+          if (!dataSource || !isListFieldType(fieldType)) {
             fieldOptionSignatureMap.delete(key);
             pendingDataSourceLoads.delete(key);
             return;

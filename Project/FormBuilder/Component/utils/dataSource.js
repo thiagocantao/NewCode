@@ -276,7 +276,8 @@ export async function fetchDataSourceOptions(rawDataSource, context) {
 
 export function shouldLoadDataSource(field) {
   if (!field) return false;
-  return LIST_FIELD_TYPES.includes(field.fieldType) && hasFetchableDataSource(field);
+  const normalizedType = String(field?.fieldType ?? '').toUpperCase();
+  return LIST_FIELD_TYPES.includes(normalizedType) && hasFetchableDataSource(field);
 }
 
 export default {

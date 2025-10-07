@@ -356,7 +356,8 @@ export default {
       return normalizeFieldDataSource(this.field);
     },
     isListField() {
-      return LIST_FIELD_TYPES.includes(this.field.fieldType);
+      const normalizedType = String(this.field?.fieldType ?? '').toUpperCase();
+      return LIST_FIELD_TYPES.includes(normalizedType);
     },
     dropdownPlaceholder() {
       return (
