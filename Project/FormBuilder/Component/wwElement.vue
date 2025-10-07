@@ -526,83 +526,70 @@ if (evt && evt.item && evt.item.parentNode) {
 updateFormState();
 }
 },
-onClone: (evt) => {
-if (!evt || !evt.item) return;
+      onClone: (evt) => {
+        if (!evt || !evt.item || !evt.clone) {
+          return;
+        }
 
-try {
-const originalFieldEl = evt.item;
-const originalField = originalFieldEl.__draggableField__;
+        try {
+          const originalFieldEl = evt.item;
+          const elementFieldId = originalFieldEl.dataset?.fieldId || null;
+          const storedField = originalFieldEl.__draggableField__ || null;
 
-if (originalField) {
-const clonedField = JSON.parse(JSON.stringify(originalField));
-clonedField.id = null;
-clonedField.field_id = originalField.ID;
+          const findFieldById = (id) => {
+            if (!id) return null;
+            return (
+              availableFields.value.find(candidate => {
+                const candidateId =
+                  candidate.ID || candidate.id || candidate.field_id || candidate.FieldId;
+                return candidateId != null && String(candidateId) === String(id);
+              }) || null
+            );
+          };
 
-if (evt.clone) {
-evt.clone.__draggableField__ = clonedField;
+          const sourceField = storedField || findFieldById(elementFieldId);
+          if (!sourceField) {
+            return;
+          }
 
-evt.clone.dataset.fieldId = clonedField.field_id;
-evt.clone.dataset.fieldType = clonedField.fieldType || 'text';
-evt.clone.dataset.fieldName = clonedField.name;
-evt.clone.dataset.columns = clonedField.columns || '1';
+          const clonedField = JSON.parse(JSON.stringify(sourceField));
 
-evt.clone.setAttribute('data-unique-id', `field-${clonedField.field_id}-${Date.now()}`);
-}
+          const normalizedId =
+            clonedField.field_id ||
+            clonedField.FieldId ||
+            clonedField.ID ||
+            clonedField.id ||
+            elementFieldId ||
+            null;
+          const normalizedName =
+            clonedField.Name || clonedField.name || clonedField.title || 'Unnamed Field';
+          const normalizedFieldType =
+            clonedField.fieldType || clonedField.FieldType || clonedField.type || 'text';
+          const normalizedColumns =
+            parseInt(clonedField.columns ?? clonedField.Columns ?? 1, 10) || 1;
 
-// Encontra a seção de destino
-const targetSection = evt.to.closest('.form-section');
-if (targetSection) {
-const sectionId = targetSection.querySelector('.section-title')?.dataset.sectionId;
-const section = formSections.value.find(s => s.id === sectionId);
-if (section) {
-if (!section.fields) {
-section.fields = [];
-}
+          clonedField.ID = normalizedId;
+          clonedField.id = clonedField.id || normalizedId;
+          clonedField.field_id = clonedField.field_id || normalizedId;
+          clonedField.FieldId = clonedField.FieldId || clonedField.field_id;
+          clonedField.Name = normalizedName;
+          clonedField.name = clonedField.name || normalizedName;
+          clonedField.fieldType = normalizedFieldType;
+          clonedField.FieldType = clonedField.FieldType || normalizedFieldType;
+          clonedField.columns = normalizedColumns;
+          clonedField.Columns = clonedField.Columns || normalizedColumns;
 
-// Adiciona o campo à seção
-section.fields.push(clonedField);
-} else if (formSections.value.length > 0) {
-// Fallback: adiciona à primeira seção se não encontrar a seção de destino
-const firstSection = formSections.value[0];
-if (!firstSection.fields) {
-firstSection.fields = [];
-}
-firstSection.fields.push(clonedField);
-}
-}
-
-updateFormState();
-
-const index = availableFields.value.findIndex(f => f.ID === originalField.ID);
-if (index !== -1) {
-availableFields.value.splice(index, 1);
-}
-} else {
-
-const fieldId = originalFieldEl.dataset.fieldId;
-if (fieldId && evt.clone) {
-Object.keys(originalFieldEl.dataset).forEach(key => {
-evt.clone.dataset[key] = originalFieldEl.dataset[key];
-});
-
-evt.clone.__draggableField__ = {
-ID: fieldId,
-field_id: fieldId,
-name: originalFieldEl.dataset.fieldName || 'Unnamed Field',
-fieldType: originalFieldEl.dataset.fieldType || 'text',
-columns: parseInt(originalFieldEl.dataset.columns || '1'),
-is_mandatory: false,
-is_readonly: false,
-is_hide_legend: false
-};
-}
-}
-
-} catch (error) {
-alert('Error in onClone handler:', error);
-}
-}
-});
+          evt.clone.__draggableField__ = clonedField;
+          evt.clone.dataset.fieldId = normalizedId != null ? String(normalizedId) : '';
+          evt.clone.dataset.fieldType = normalizedFieldType;
+          evt.clone.dataset.fieldName = normalizedName;
+          evt.clone.dataset.columns = String(normalizedColumns);
+          evt.clone.setAttribute('data-unique-id', `field-${normalizedId ?? 'temp'}-${Date.now()}`);
+        } catch (error) {
+          console.error('Error preparing cloned field metadata:', error);
+        }
+      }
+    });
 } else {
 }
 } catch (error) {
@@ -748,8 +735,56 @@ const initFieldsContainers = () => {
 
           if (originalField) {
             const clonedField = JSON.parse(JSON.stringify(originalField));
+            const normalizedSourceId =
+              originalField.field_id ||
+              originalField.FieldId ||
+              originalField.ID ||
+              originalField.id ||
+              originalFieldEl.dataset?.fieldId ||
+              null;
+            const normalizedFieldType =
+              originalField.fieldType || originalField.FieldType || 'text';
+            const normalizedName =
+              originalField.Name || originalField.name || 'Unnamed Field';
+            const normalizedColumns =
+              parseInt(originalField.columns ?? originalField.Columns ?? 1, 10) || 1;
+
             clonedField.id = null;
-            clonedField.field_id = originalField.ID;
+            clonedField.ID = normalizedSourceId;
+            clonedField.field_id = normalizedSourceId;
+            clonedField.FieldId = originalField.FieldId || normalizedSourceId;
+            clonedField.fieldType = normalizedFieldType;
+            clonedField.FieldType = originalField.FieldType || normalizedFieldType;
+            clonedField.Name = normalizedName;
+            clonedField.name = originalField.name || normalizedName;
+            clonedField.columns = normalizedColumns;
+            clonedField.Columns = originalField.Columns || normalizedColumns;
+            if (clonedField.dataSource && !clonedField.DataSource) {
+              clonedField.DataSource = clonedField.dataSource;
+            }
+            if (clonedField.DataSource && !clonedField.dataSource) {
+              clonedField.dataSource = clonedField.DataSource;
+            }
+
+            // Preserve list options metadata for SIMPLE_LIST fields
+            if (
+              clonedField.fieldType === 'SIMPLE_LIST' &&
+              clonedField.list_options == null &&
+              clonedField.listOptions == null &&
+              Array.isArray(clonedField.options)
+            ) {
+              const optionsClone = clonedField.options.map(option => ({ ...option }));
+              clonedField.list_options = optionsClone;
+              clonedField.listOptions = optionsClone;
+            }
+
+            if (
+              clonedField.fieldType === 'SIMPLE_LIST' &&
+              clonedField.options == null &&
+              Array.isArray(clonedField.list_options)
+            ) {
+              clonedField.options = clonedField.list_options.map(option => ({ ...option }));
+            }
 
             if (!section.fields) {
               section.fields = [];
@@ -770,9 +805,18 @@ const initFieldsContainers = () => {
 
             updateFormState();
 
-            const index = availableFields.value.findIndex(f => f.ID === originalField.ID);
+            const index = availableFields.value.findIndex(candidate => {
+              const candidateId =
+                candidate.ID || candidate.id || candidate.field_id || candidate.FieldId;
+              return (
+                candidateId != null &&
+                normalizedSourceId != null &&
+                String(candidateId) === String(normalizedSourceId)
+              );
+            });
             if (index !== -1) {
               availableFields.value.splice(index, 1);
+              updateFieldsState();
             }
           }
         } catch (error) {
@@ -992,7 +1036,12 @@ field.columns = Math.min(Math.max(parseInt(field.columns) || 1, 1), 4);
 if (isNewField.value) {
 availableFields.value.push(field);
 } else {
-const index = availableFields.value.findIndex(f => f.ID === field.ID);
+const index = availableFields.value.findIndex(candidate => {
+  const candidateId =
+    candidate.ID || candidate.id || candidate.field_id || candidate.FieldId;
+  const fieldId = field.ID || field.id || field.field_id || field.FieldId;
+  return candidateId != null && fieldId != null && String(candidateId) === String(fieldId);
+});
 if (index !== -1) {
 availableFields.value[index] = field;
 }
@@ -1001,7 +1050,12 @@ updateFieldsState();
 };
 
 const removeAvailableField = (field) => {
-const index = availableFields.value.findIndex(f => f.ID === field.ID);
+const index = availableFields.value.findIndex(candidate => {
+  const candidateId =
+    candidate.ID || candidate.id || candidate.field_id || candidate.FieldId;
+  const fieldId = field.ID || field.id || field.field_id || field.FieldId;
+  return candidateId != null && fieldId != null && String(candidateId) === String(fieldId);
+});
 if (index !== -1) {
 availableFields.value.splice(index, 1);
 updateFieldsState();
@@ -1112,18 +1166,64 @@ if (fieldIndex === -1) {
 const removedField = section.fields.splice(fieldIndex, 1)[0];
 
 // Adicionar o campo de volta à lista de campos disponíveis
+const normalizedRemovedId =
+  removedField.field_id ||
+  removedField.FieldId ||
+  removedField.ID ||
+  removedField.id ||
+  null;
+
 const fieldToAdd = {
-  ID: removedField.field_id || removedField.ID,
+  ...JSON.parse(JSON.stringify(removedField)),
+  ID: normalizedRemovedId,
+  field_id: normalizedRemovedId,
+  FieldId: removedField.FieldId || normalizedRemovedId,
   Name: removedField.Name || removedField.name,
-  fieldType: removedField.fieldType || 'text',
-  columns: parseInt(removedField.columns) || 1,
-  is_mandatory: Boolean(removedField.is_mandatory),
-  is_readonly: Boolean(removedField.is_readonly),
-  is_hide_legend: Boolean(removedField.is_hide_legend)
+  name: removedField.name || removedField.Name,
+  fieldType: removedField.fieldType || removedField.FieldType || 'text',
+  FieldType: removedField.FieldType || removedField.fieldType || 'text',
+  columns: parseInt(removedField.columns ?? removedField.Columns ?? 1, 10) || 1,
+  Columns: removedField.Columns || parseInt(removedField.columns ?? 1, 10) || 1,
+  is_mandatory: Boolean(removedField.is_mandatory ?? removedField.IsMandatory),
+  is_readonly: Boolean(removedField.is_readonly ?? removedField.IsReadOnly),
+  is_hide_legend: Boolean(removedField.is_hide_legend ?? removedField.IsHideLegend)
 };
 
+if (fieldToAdd.dataSource && !fieldToAdd.DataSource) {
+  fieldToAdd.DataSource = fieldToAdd.dataSource;
+}
+if (fieldToAdd.DataSource && !fieldToAdd.dataSource) {
+  fieldToAdd.dataSource = fieldToAdd.DataSource;
+}
+
+if (
+  fieldToAdd.fieldType === 'SIMPLE_LIST' &&
+  Array.isArray(fieldToAdd.list_options) &&
+  !fieldToAdd.options
+) {
+  fieldToAdd.options = fieldToAdd.list_options.map(option => ({ ...option }));
+}
+
+if (
+  fieldToAdd.fieldType === 'SIMPLE_LIST' &&
+  !fieldToAdd.list_options &&
+  Array.isArray(fieldToAdd.options)
+) {
+  const optionsClone = fieldToAdd.options.map(option => ({ ...option }));
+  fieldToAdd.list_options = optionsClone;
+  fieldToAdd.listOptions = optionsClone;
+}
+
 // Verificar se o campo já existe na lista de campos disponíveis
-const existingFieldIndex = availableFields.value.findIndex(f => f.ID === fieldToAdd.ID);
+const existingFieldIndex = availableFields.value.findIndex(candidate => {
+  const candidateId =
+    candidate.ID || candidate.id || candidate.field_id || candidate.FieldId;
+  return (
+    candidateId != null &&
+    fieldToAdd.ID != null &&
+    String(candidateId) === String(fieldToAdd.ID)
+  );
+});
 
 if (existingFieldIndex === -1) {
   availableFields.value.push(fieldToAdd);
