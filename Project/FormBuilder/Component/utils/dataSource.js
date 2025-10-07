@@ -278,3 +278,15 @@ export function shouldLoadDataSource(field) {
   if (!field) return false;
   return LIST_FIELD_TYPES.includes(field.fieldType) && hasFetchableDataSource(field);
 }
+
+export default {
+  LIST_FIELD_TYPES,
+  normalizeFieldDataSource,
+  hasFetchableDataSource,
+  combineUrl,
+  extractArrayFromResponse,
+  mapOptionsFromData,
+  getPlatformContext,
+  fetchDataSourceOptions,
+  shouldLoadDataSource
+};
