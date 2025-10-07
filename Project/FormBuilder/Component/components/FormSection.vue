@@ -62,12 +62,19 @@ v-for="field in sectionFields"
 import { computed, ref, onMounted, watch, nextTick } from 'vue';
 import Sortable from 'sortablejs';
 import DraggableField from './DraggableField.vue';
-import {
+import dataSourceUtils, {
   LIST_FIELD_TYPES,
   normalizeFieldDataSource,
   fetchDataSourceOptions,
-  hasFetchableDataSource
+  hasFetchableDataSource as rawHasFetchableDataSource
 } from '../utils/dataSource';
+
+const hasFetchableDataSource =
+  typeof rawHasFetchableDataSource === 'function'
+    ? rawHasFetchableDataSource
+    : typeof (dataSourceUtils && dataSourceUtils.hasFetchableDataSource) === 'function'
+      ? dataSourceUtils.hasFetchableDataSource.bind(dataSourceUtils)
+      : () => false;
 
 export default {
 name: 'FormSection',
