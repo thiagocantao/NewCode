@@ -611,12 +611,14 @@ console.error('Error initializing Sortable in field definition container:', erro
 }
 }
 // Helper to temporarily disable the sections Sortable instance while dragging fields
-const setSectionsSortableDisabled = (disabled) => {
-const sortableInstance = formSectionsContainer.value && formSectionsContainer.value._sortable;
-if (sortableInstance && typeof sortableInstance.option === 'function') {
-sortableInstance.option('disabled', !!disabled);
+function setSectionsSortableDisabled(disabled) {
+  const sortableInstance =
+    formSectionsContainer.value && formSectionsContainer.value._sortable;
+
+  if (sortableInstance && typeof sortableInstance.option === 'function') {
+    sortableInstance.option('disabled', !!disabled);
+  }
 }
-};
 
 // Initialize sortable for form sections
 const initSectionsSortable = () => {
