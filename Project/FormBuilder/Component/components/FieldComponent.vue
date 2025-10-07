@@ -1241,7 +1241,6 @@ export default {
   }
 
   .is-required .field-label::after {
-    content: "*";
     color: #e53935;
     margin-left: 2px;
   }
