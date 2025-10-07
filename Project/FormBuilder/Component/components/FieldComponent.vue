@@ -235,12 +235,19 @@
 
 <script>
 import CustomDatePicker from './CustomDatePicker.vue';
-import {
+import dataSourceUtils, {
   LIST_FIELD_TYPES,
   normalizeFieldDataSource,
   fetchDataSourceOptions,
-  hasFetchableDataSource
+  hasFetchableDataSource as rawHasFetchableDataSource
 } from '../utils/dataSource';
+
+const hasFetchableDataSource =
+  typeof rawHasFetchableDataSource === 'function'
+    ? rawHasFetchableDataSource
+    : typeof (dataSourceUtils && dataSourceUtils.hasFetchableDataSource) === 'function'
+      ? dataSourceUtils.hasFetchableDataSource.bind(dataSourceUtils)
+      : () => false;
 
 const TRUE_VALUES = new Set(['true', '1', 1, true, 'yes', 'sim']);
 const FALSE_VALUES = new Set(['false', '0', 0, false, 'no', 'nao', 'não']);
