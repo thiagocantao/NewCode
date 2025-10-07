@@ -751,6 +751,138 @@ const initFieldsContainers = () => {
             clonedField.id = null;
             clonedField.field_id = originalField.ID;
 
+            const extractRawOptions = source => {
+              if (!source || typeof source !== 'object') {
+                return null;
+              }
+
+              if (
+                Object.prototype.hasOwnProperty.call(source, 'list_options') ||
+                Object.prototype.hasOwnProperty.call(source, 'listOptions') ||
+                Object.prototype.hasOwnProperty.call(source, 'ListOptions')
+              ) {
+                return (
+                  source.list_options ??
+                  source.listOptions ??
+                  source.ListOptions ??
+                  null
+                );
+              }
+
+              return null;
+            };
+
+            const toOptionObject = option => {
+              if (option == null) {
+                return null;
+              }
+
+              if (typeof option !== 'object') {
+                const label = String(option);
+                return { value: option, label };
+              }
+
+              const value =
+                option.value ??
+                option.Value ??
+                option.id ??
+                option.ID ??
+                option.key ??
+                option.Key ??
+                option.slug ??
+                option.Slug ??
+                null;
+
+              const label =
+                option.label ??
+                option.Label ??
+                option.name ??
+                option.Name ??
+                (value != null ? String(value) : null);
+
+              if (value == null && label == null) {
+                return null;
+              }
+
+              return {
+                value: value == null ? label : value,
+                label: label == null ? String(value) : String(label)
+              };
+            };
+
+            const normalizeOptions = rawOptions => {
+              if (rawOptions == null) {
+                return [];
+              }
+
+              if (Array.isArray(rawOptions)) {
+                return rawOptions
+                  .map(toOptionObject)
+                  .filter(option => option !== null)
+                  .map(option => ({ ...option }));
+              }
+
+              if (typeof rawOptions === 'string') {
+                const trimmed = rawOptions.trim();
+                if (!trimmed) {
+                  return [];
+                }
+
+                try {
+                  const parsed = JSON.parse(trimmed);
+                  if (Array.isArray(parsed)) {
+                    return parsed
+                      .map(toOptionObject)
+                      .filter(option => option !== null)
+                      .map(option => ({ ...option }));
+                  }
+                } catch (error) {
+                  // Ignore JSON parse error and fallback to comma separated values
+                }
+
+                return trimmed
+                  .split(',')
+                  .map(value => value.trim())
+                  .filter(value => value.length > 0)
+                  .map(value => ({ value, label: value }));
+              }
+
+              if (typeof rawOptions === 'object') {
+                const option = toOptionObject(rawOptions);
+                return option ? [{ ...option }] : [];
+              }
+
+              return [];
+            };
+
+            const rawOptionsFromField =
+              originalField.list_options ??
+              originalField.listOptions ??
+              originalField.ListOptions ??
+              null;
+
+            const rawOptionsFromDataSource = extractRawOptions(
+              originalField.dataSource ?? originalField.DataSource ?? null
+            );
+
+            const normalizedOptions = normalizeOptions(
+              rawOptionsFromField != null ? rawOptionsFromField : rawOptionsFromDataSource
+            );
+
+            if (normalizedOptions.length) {
+              const clonedOptions = normalizedOptions.map(option => ({ ...option }));
+              clonedField.options = clonedOptions;
+              clonedField.list_options = clonedOptions.map(option => ({ ...option }));
+              clonedField.listOptions = clonedOptions.map(option => ({ ...option }));
+            }
+
+            const normalizedDataSource =
+              originalField.dataSource ?? originalField.DataSource ?? null;
+            if (normalizedDataSource) {
+              clonedField.dataSource = normalizedDataSource;
+              clonedField.DataSource = normalizedDataSource;
+            }
+
             if (!section.fields) {
               section.fields = [];
             }
