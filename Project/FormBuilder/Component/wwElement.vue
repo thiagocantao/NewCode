@@ -519,7 +519,11 @@ draggable: '.single-draggable:not(.is-disabled)',
 multiDrag: false,
 forceFallback: false,
 fallbackOnBody: false,
+onStart: () => {
+setSectionsSortableDisabled(true);
+},
 onEnd: (evt) => {
+setSectionsSortableDisabled(false);
 if (evt && evt.item && evt.item.parentNode) {
 updateFormState();
 }
@@ -608,6 +612,14 @@ console.error('Error initializing Sortable in field definition container:', erro
 }
 }
 }
+// Helper to temporarily disable the sections Sortable instance while dragging fields
+const setSectionsSortableDisabled = (disabled) => {
+const sortableInstance = formSectionsContainer.value && formSectionsContainer.value._sortable;
+if (sortableInstance && typeof sortableInstance.option === 'function') {
+sortableInstance.option('disabled', !!disabled);
+}
+};
+
 // Initialize sortable for form sections
 const initSectionsSortable = () => {
 if (!formSectionsContainer.value) {
@@ -702,8 +714,14 @@ const initFieldsContainers = () => {
       ghostClass: 'sortable-ghost',
       chosenClass: 'sortable-chosen',
       dragClass: 'sortable-drag',
+      onStart: () => {
+        setSectionsSortableDisabled(true);
+      },
       onAdd: (evt) => {
-        if (!evt || !evt.item) return;
+        if (!evt || !evt.item) {
+          setSectionsSortableDisabled(false);
+          return;
+        }
 
         try {
           // Verifica se o drop é em um container válido
@@ -759,9 +777,51 @@ const initFieldsContainers = () => {
           }
         } catch (error) {
           console.error('Error in onAdd handler:', error);
-          if (evt.item) {
+          if (evt && evt.item) {
             evt.item.remove();
           }
+        } finally {
+          setSectionsSortableDisabled(false);
+        }
+      },
+      onEnd: () => {
+        setSectionsSortableDisabled(false);
+      },
+      onUpdate: (evt) => {
+        try {
+          if (!evt || !evt.item) return;
+
+          const sectionElement = evt.to.closest('.form-section');
+          if (!sectionElement) {
+            evt.item.remove();
+            return;
+          }
+
+          const sectionId = sectionElement.querySelector('.section-title')?.dataset.sectionId;
+          const section = formSections.value.find(s => s.id === sectionId);
+          if (!section) {
+            evt.item.remove();
+            return;
+          }
+
+          const targetElement = evt.to.children[evt.newIndex];
+          const allElements = Array.from(evt.to.children);
+          const targetIndex = allElements.indexOf(targetElement);
+
+          if (!section.fields) {
+            section.fields = [];
+          }
+
+          const movedField = section.fields.splice(evt.oldIndex, 1)[0];
+          section.fields.splice(targetIndex, 0, movedField);
+          updateFormState();
+        } catch (error) {
+          console.error('Error in onUpdate handler:', error);
+          if (evt && evt.item) {
+            evt.item.remove();
+          }
+        } finally {
+          setSectionsSortableDisabled(false);
         }
       }
     });
@@ -784,28 +844,62 @@ const loadData = () => {
 };
 
 const loadFieldsData = () => {
-try {
-let data = [];
+  try {
+    let data = [];
 
-// Try to load from JSON string
-if (props.content.fieldsJson) {
-try {
-data = JSON.parse(props.content.fieldsJson);
-} catch (e) {
-console.error('Failed to parse fields JSON:', e);
-}
-}
+    const cloneArray = array => {
+      if (!Array.isArray(array)) {
+        return [];
+      }
 
-// If no data from JSON or parsing failed, use default fields
-if (!data || !data.length) {
-data = props.content.defaultFields || [];
-}
+      try {
+        return JSON.parse(JSON.stringify(array));
+      } catch (cloneError) {
+        console.warn('Failed to deeply clone fields array, falling back to shallow copy.', cloneError);
+        return array.map(item => (item && typeof item === 'object' ? { ...item } : item));
+      }
+    };
 
-availableFields.value = data;
-setFieldsData(data);
-} catch (error) {
-console.error('Error loading fields data:', error);
-}
+    const rawFields = props.content.fieldsJson;
+
+    if (rawFields) {
+      if (typeof rawFields === 'string') {
+        try {
+          const parsed = JSON.parse(rawFields);
+          if (Array.isArray(parsed)) {
+            data = cloneArray(parsed);
+          } else if (parsed && typeof parsed === 'object' && Array.isArray(parsed.fields)) {
+            data = cloneArray(parsed.fields);
+          } else {
+            console.warn('fieldsJson string did not contain an array of fields.');
+          }
+        } catch (e) {
+          console.error('Failed to parse fields JSON:', e);
+        }
+      } else if (Array.isArray(rawFields)) {
+        data = cloneArray(rawFields);
+      } else if (typeof rawFields === 'object') {
+        if (Array.isArray(rawFields.fields)) {
+          data = cloneArray(rawFields.fields);
+        } else {
+          console.warn(
+            'Unsupported fieldsJson object format. Expected an array or a { fields: [] } object.',
+            rawFields
+          );
+        }
+      }
+    }
+
+    // If no data from JSON or parsing failed, use default fields
+    if (!Array.isArray(data) || !data.length) {
+      data = cloneArray(props.content.defaultFields || []);
+    }
+
+    availableFields.value = Array.isArray(data) ? data : [];
+    setFieldsData(availableFields.value);
+  } catch (error) {
+    console.error('Error loading fields data:', error);
+  }
 };
 
 const loadFormData = () => {
