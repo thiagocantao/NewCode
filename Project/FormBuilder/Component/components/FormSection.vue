@@ -183,15 +183,26 @@ setup(props, { emit }) {
         return { value: option, label: normalizedLabel };
       }
 
-      const value =
+      let value =
         option.value ?? option.Value ?? option.id ?? option.ID ?? option.key ?? option.Key ?? null;
-      const label = option.label ?? option.Label ?? option.name ?? option.Name ?? null;
+      let label = option.label ?? option.Label ?? option.name ?? option.Name ?? null;
 
-      if (value === null || label === null) {
+      if (value === null && label === null) {
         return null;
       }
 
-      return { value, label };
+      if (value === null) {
+        value = label;
+      }
+
+      if (label === null) {
+        label = value;
+      }
+
+      const normalizedValue = value;
+      const normalizedLabel = typeof label === 'string' ? label : String(label);
+
+      return { value: normalizedValue, label: normalizedLabel };
     };
 
     const normalizeOptionList = optionsArray => {
