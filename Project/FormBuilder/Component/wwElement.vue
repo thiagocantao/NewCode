@@ -526,143 +526,70 @@ if (evt && evt.item && evt.item.parentNode) {
 updateFormState();
 }
 },
-onClone: (evt) => {
-if (!evt || !evt.item) return;
+      onClone: (evt) => {
+        if (!evt || !evt.item || !evt.clone) {
+          return;
+        }
 
-try {
-const originalFieldEl = evt.item;
-          const originalField = originalFieldEl.__draggableField__;
+        try {
+          const originalFieldEl = evt.item;
+          const elementFieldId = originalFieldEl.dataset?.fieldId || null;
+          const storedField = originalFieldEl.__draggableField__ || null;
 
-          if (originalField) {
-            const clonedField = JSON.parse(JSON.stringify(originalField));
-            const normalizedFieldId =
-              originalField.field_id ||
-              originalField.FieldId ||
-              originalField.ID ||
-              originalField.id ||
-              null;
-            const normalizedFieldType =
-              originalField.fieldType ||
-              originalField.FieldType ||
-              originalField.type ||
-              'text';
-            const normalizedName =
-              originalField.name ||
-              originalField.Name ||
-              originalField.title ||
-              'Unnamed Field';
-            const normalizedColumns =
-              parseInt(
-                originalField.columns ?? originalField.Columns ?? originalField.colspan ?? 1,
-                10
-              ) || 1;
-
-            clonedField.id = null;
-            clonedField.field_id = normalizedFieldId;
-            clonedField.FieldId = clonedField.FieldId || normalizedFieldId;
-            clonedField.fieldType = normalizedFieldType;
-            clonedField.FieldType = clonedField.FieldType || normalizedFieldType;
-            clonedField.name = clonedField.name || normalizedName;
-            clonedField.Name = clonedField.Name || normalizedName;
-            clonedField.columns = normalizedColumns;
-            clonedField.Columns = clonedField.Columns || normalizedColumns;
-
-            if (evt.clone) {
-              evt.clone.__draggableField__ = clonedField;
-
-              if (normalizedFieldId != null) {
-                evt.clone.dataset.fieldId = normalizedFieldId;
-              }
-              evt.clone.dataset.fieldType = normalizedFieldType;
-              evt.clone.dataset.fieldName = normalizedName;
-              evt.clone.dataset.columns = String(normalizedColumns);
-
-              evt.clone.setAttribute('data-unique-id', `field-${clonedField.field_id}-${Date.now()}`);
-            }
-
-// Encontra a seção de destino
-const targetSection = evt.to.closest('.form-section');
-if (targetSection) {
-const sectionId = targetSection.querySelector('.section-title')?.dataset.sectionId;
-const section = formSections.value.find(s => s.id === sectionId);
-if (section) {
-if (!section.fields) {
-section.fields = [];
-}
-
-// Adiciona o campo à seção
-section.fields.push(clonedField);
-} else if (formSections.value.length > 0) {
-// Fallback: adiciona à primeira seção se não encontrar a seção de destino
-const firstSection = formSections.value[0];
-if (!firstSection.fields) {
-firstSection.fields = [];
-}
-firstSection.fields.push(clonedField);
-}
-}
-
-updateFormState();
-
-            const sourceFieldId =
-              normalizedFieldId ||
-              originalField.ID ||
-              originalField.id ||
-              originalField.field_id ||
-              originalField.FieldId ||
-              null;
-            if (sourceFieldId != null) {
-              const index = availableFields.value.findIndex(candidate => {
+          const findFieldById = (id) => {
+            if (!id) return null;
+            return (
+              availableFields.value.find(candidate => {
                 const candidateId =
                   candidate.ID || candidate.id || candidate.field_id || candidate.FieldId;
-                return candidateId != null && String(candidateId) === String(sourceFieldId);
-              });
-              if (index !== -1) {
-                availableFields.value.splice(index, 1);
-              }
-            }
-} else {
+                return candidateId != null && String(candidateId) === String(id);
+              }) || null
+            );
+          };
 
-const fieldId = originalFieldEl.dataset.fieldId;
-            if (fieldId && evt.clone) {
-              Object.keys(originalFieldEl.dataset).forEach(key => {
-                evt.clone.dataset[key] = originalFieldEl.dataset[key];
-              });
-
-              const fallbackFieldType =
-                originalFieldEl.dataset.fieldType ||
-                originalFieldEl.__draggableField__?.fieldType ||
-                originalFieldEl.__draggableField__?.FieldType ||
-                'text';
-              const fallbackName =
-                originalFieldEl.dataset.fieldName ||
-                originalFieldEl.__draggableField__?.name ||
-                originalFieldEl.__draggableField__?.Name ||
-                'Unnamed Field';
-              const fallbackColumns = parseInt(originalFieldEl.dataset.columns || '1', 10) || 1;
-
-              evt.clone.__draggableField__ = {
-                ID: fieldId,
-                field_id: fieldId,
-                FieldId: fieldId,
-                name: fallbackName,
-                Name: fallbackName,
-                fieldType: fallbackFieldType,
-                FieldType: fallbackFieldType,
-                columns: fallbackColumns,
-                Columns: fallbackColumns,
-                is_mandatory: false,
-                is_readonly: false,
-                is_hide_legend: false
-              };
-            }
+          const sourceField = storedField || findFieldById(elementFieldId);
+          if (!sourceField) {
+            return;
           }
 
-} catch (error) {
-alert('Error in onClone handler:', error);
-}
-}
-});
+          const clonedField = JSON.parse(JSON.stringify(sourceField));
+
+          const normalizedId =
+            clonedField.field_id ||
+            clonedField.FieldId ||
+            clonedField.ID ||
+            clonedField.id ||
+            elementFieldId ||
+            null;
+          const normalizedName =
+            clonedField.Name || clonedField.name || clonedField.title || 'Unnamed Field';
+          const normalizedFieldType =
+            clonedField.fieldType || clonedField.FieldType || clonedField.type || 'text';
+          const normalizedColumns =
+            parseInt(clonedField.columns ?? clonedField.Columns ?? 1, 10) || 1;
+
+          clonedField.ID = normalizedId;
+          clonedField.id = clonedField.id || normalizedId;
+          clonedField.field_id = clonedField.field_id || normalizedId;
+          clonedField.FieldId = clonedField.FieldId || clonedField.field_id;
+          clonedField.Name = normalizedName;
+          clonedField.name = clonedField.name || normalizedName;
+          clonedField.fieldType = normalizedFieldType;
+          clonedField.FieldType = clonedField.FieldType || normalizedFieldType;
+          clonedField.columns = normalizedColumns;
+          clonedField.Columns = clonedField.Columns || normalizedColumns;
+
+          evt.clone.__draggableField__ = clonedField;
+          evt.clone.dataset.fieldId = normalizedId != null ? String(normalizedId) : '';
+          evt.clone.dataset.fieldType = normalizedFieldType;
+          evt.clone.dataset.fieldName = normalizedName;
+          evt.clone.dataset.columns = String(normalizedColumns);
+          evt.clone.setAttribute('data-unique-id', `field-${normalizedId ?? 'temp'}-${Date.now()}`);
+        } catch (error) {
+          console.error('Error preparing cloned field metadata:', error);
+        }
+      }
+    });
 } else {
 }
 } catch (error) {
@@ -808,300 +735,55 @@ const initFieldsContainers = () => {
 
           if (originalField) {
             const clonedField = JSON.parse(JSON.stringify(originalField));
-            const normalizedFieldId =
+            const normalizedSourceId =
               originalField.field_id ||
               originalField.FieldId ||
               originalField.ID ||
               originalField.id ||
+              originalFieldEl.dataset?.fieldId ||
               null;
             const normalizedFieldType =
-              originalField.fieldType ||
-              originalField.FieldType ||
-              originalField.type ||
-              'text';
+              originalField.fieldType || originalField.FieldType || 'text';
             const normalizedName =
-              originalField.name ||
-              originalField.Name ||
-              originalField.title ||
-              'Unnamed Field';
+              originalField.Name || originalField.name || 'Unnamed Field';
             const normalizedColumns =
-              parseInt(
-                originalField.columns ?? originalField.Columns ?? originalField.colspan ?? 1,
-                10
-              ) || 1;
+              parseInt(originalField.columns ?? originalField.Columns ?? 1, 10) || 1;
 
             clonedField.id = null;
-            clonedField.field_id = normalizedFieldId;
-            clonedField.FieldId = clonedField.FieldId || normalizedFieldId;
+            clonedField.ID = normalizedSourceId;
+            clonedField.field_id = normalizedSourceId;
+            clonedField.FieldId = originalField.FieldId || normalizedSourceId;
             clonedField.fieldType = normalizedFieldType;
-            clonedField.FieldType = clonedField.FieldType || normalizedFieldType;
-            clonedField.name = clonedField.name || normalizedName;
-            clonedField.Name = clonedField.Name || normalizedName;
+            clonedField.FieldType = originalField.FieldType || normalizedFieldType;
+            clonedField.Name = normalizedName;
+            clonedField.name = originalField.name || normalizedName;
             clonedField.columns = normalizedColumns;
-            clonedField.Columns = clonedField.Columns || normalizedColumns;
-
-            const extractRawOptions = source => {
-              if (!source || typeof source !== 'object') {
-                return null;
-              }
-
-              if (
-                Object.prototype.hasOwnProperty.call(source, 'list_options') ||
-                Object.prototype.hasOwnProperty.call(source, 'listOptions') ||
-                Object.prototype.hasOwnProperty.call(source, 'ListOptions')
-              ) {
-                return (
-                  source.list_options ??
-                  source.listOptions ??
-                  source.ListOptions ??
-                  null
-                );
-              }
-
-              return null;
-            };
-
-            const toOptionObject = option => {
-              if (option == null) {
-                return null;
-              }
-
-              if (typeof option !== 'object') {
-                const label = String(option);
-                return { value: option, label };
-              }
-
-              const value =
-                option.value ??
-                option.Value ??
-                option.id ??
-                option.ID ??
-                option.key ??
-                option.Key ??
-                option.slug ??
-                option.Slug ??
-                null;
-
-              const label =
-                option.label ??
-                option.Label ??
-                option.name ??
-                option.Name ??
-                (value != null ? String(value) : null);
-
-              if (value == null && label == null) {
-                return null;
-              }
-
-              return {
-                value: value == null ? label : value,
-                label: label == null ? String(value) : String(label)
-              };
-            };
-
-            const normalizeOptions = rawOptions => {
-              if (rawOptions == null) {
-                return [];
-              }
-
-              if (Array.isArray(rawOptions)) {
-                return rawOptions
-                  .map(toOptionObject)
-                  .filter(option => option !== null)
-                  .map(option => ({ ...option }));
-              }
-
-              if (typeof rawOptions === 'string') {
-                const trimmed = rawOptions.trim();
-                if (!trimmed) {
-                  return [];
-                }
-
-                try {
-                  const parsed = JSON.parse(trimmed);
-                  if (Array.isArray(parsed)) {
-                    return parsed
-                      .map(toOptionObject)
-                      .filter(option => option !== null)
-                      .map(option => ({ ...option }));
-                  }
-                } catch (error) {
-                  // Ignore JSON parse error and fallback to comma separated values
-                }
-
-                return trimmed
-                  .split(',')
-                  .map(value => value.trim())
-                  .filter(value => value.length > 0)
-                  .map(value => ({ value, label: value }));
-              }
-
-              if (typeof rawOptions === 'object') {
-                const option = toOptionObject(rawOptions);
-                return option ? [{ ...option }] : [];
-              }
-
-              return [];
-            };
-
-            const rawOptionsFromField =
-              originalField.list_options ??
-              originalField.listOptions ??
-              originalField.ListOptions ??
-              null;
-
-            const rawOptionsFromDataSource = extractRawOptions(
-              originalField.dataSource ?? originalField.DataSource ?? null
-            );
-
-            const normalizedOptions = normalizeOptions(
-              rawOptionsFromField != null ? rawOptionsFromField : rawOptionsFromDataSource
-            );
-
-            if (normalizedOptions.length) {
-              const clonedOptions = normalizedOptions.map(option => ({ ...option }));
-              clonedField.options = clonedOptions;
-              clonedField.list_options = clonedOptions.map(option => ({ ...option }));
-              clonedField.listOptions = clonedOptions.map(option => ({ ...option }));
+            clonedField.Columns = originalField.Columns || normalizedColumns;
+            if (clonedField.dataSource && !clonedField.DataSource) {
+              clonedField.DataSource = clonedField.dataSource;
+            }
+            if (clonedField.DataSource && !clonedField.dataSource) {
+              clonedField.dataSource = clonedField.DataSource;
             }
 
-            const normalizedDataSource =
-              originalField.dataSource ?? originalField.DataSource ?? null;
-            if (normalizedDataSource) {
-              clonedField.dataSource = normalizedDataSource;
-              clonedField.DataSource = normalizedDataSource;
+            // Preserve list options metadata for SIMPLE_LIST fields
+            if (
+              clonedField.fieldType === 'SIMPLE_LIST' &&
+              clonedField.list_options == null &&
+              clonedField.listOptions == null &&
+              Array.isArray(clonedField.options)
+            ) {
+              const optionsClone = clonedField.options.map(option => ({ ...option }));
+              clonedField.list_options = optionsClone;
+              clonedField.listOptions = optionsClone;
             }
 
-            const extractRawOptions = source => {
-              if (!source || typeof source !== 'object') {
-                return null;
-              }
-
-              if (
-                Object.prototype.hasOwnProperty.call(source, 'list_options') ||
-                Object.prototype.hasOwnProperty.call(source, 'listOptions') ||
-                Object.prototype.hasOwnProperty.call(source, 'ListOptions')
-              ) {
-                return (
-                  source.list_options ??
-                  source.listOptions ??
-                  source.ListOptions ??
-                  null
-                );
-              }
-
-              return null;
-            };
-
-            const toOptionObject = option => {
-              if (option == null) {
-                return null;
-              }
-
-              if (typeof option !== 'object') {
-                const label = String(option);
-                return { value: option, label };
-              }
-
-              const value =
-                option.value ??
-                option.Value ??
-                option.id ??
-                option.ID ??
-                option.key ??
-                option.Key ??
-                option.slug ??
-                option.Slug ??
-                null;
-
-              const label =
-                option.label ??
-                option.Label ??
-                option.name ??
-                option.Name ??
-                (value != null ? String(value) : null);
-
-              if (value == null && label == null) {
-                return null;
-              }
-
-              return {
-                value: value == null ? label : value,
-                label: label == null ? String(value) : String(label)
-              };
-            };
-
-            const normalizeOptions = rawOptions => {
-              if (rawOptions == null) {
-                return [];
-              }
-
-              if (Array.isArray(rawOptions)) {
-                return rawOptions
-                  .map(toOptionObject)
-                  .filter(option => option !== null)
-                  .map(option => ({ ...option }));
-              }
-
-              if (typeof rawOptions === 'string') {
-                const trimmed = rawOptions.trim();
-                if (!trimmed) {
-                  return [];
-                }
-
-                try {
-                  const parsed = JSON.parse(trimmed);
-                  if (Array.isArray(parsed)) {
-                    return parsed
-                      .map(toOptionObject)
-                      .filter(option => option !== null)
-                      .map(option => ({ ...option }));
-                  }
-                } catch (error) {
-                  // Ignore JSON parse error and fallback to comma separated values
-                }
-
-                return trimmed
-                  .split(',')
-                  .map(value => value.trim())
-                  .filter(value => value.length > 0)
-                  .map(value => ({ value, label: value }));
-              }
-
-              if (typeof rawOptions === 'object') {
-                const option = toOptionObject(rawOptions);
-                return option ? [{ ...option }] : [];
-              }
-
-              return [];
-            };
-
-            const rawOptionsFromField =
-              originalField.list_options ??
-              originalField.listOptions ??
-              originalField.ListOptions ??
-              null;
-
-            const rawOptionsFromDataSource = extractRawOptions(
-              originalField.dataSource ?? originalField.DataSource ?? null
-            );
-
-            const normalizedOptions = normalizeOptions(
-              rawOptionsFromField != null ? rawOptionsFromField : rawOptionsFromDataSource
-            );
-
-            if (normalizedOptions.length) {
-              const clonedOptions = normalizedOptions.map(option => ({ ...option }));
-              clonedField.options = clonedOptions;
-              clonedField.list_options = clonedOptions.map(option => ({ ...option }));
-              clonedField.listOptions = clonedOptions.map(option => ({ ...option }));
-            }
-
-            const normalizedDataSource =
-              originalField.dataSource ?? originalField.DataSource ?? null;
-            if (normalizedDataSource) {
-              clonedField.dataSource = normalizedDataSource;
-              clonedField.DataSource = normalizedDataSource;
+            if (
+              clonedField.fieldType === 'SIMPLE_LIST' &&
+              clonedField.options == null &&
+              Array.isArray(clonedField.list_options)
+            ) {
+              clonedField.options = clonedField.list_options.map(option => ({ ...option }));
             }
 
             if (!section.fields) {
@@ -1123,22 +805,18 @@ const initFieldsContainers = () => {
 
             updateFormState();
 
-            const sourceFieldId =
-              normalizedFieldId ||
-              originalField.ID ||
-              originalField.id ||
-              originalField.field_id ||
-              originalField.FieldId ||
-              null;
-            if (sourceFieldId != null) {
-              const index = availableFields.value.findIndex(candidate => {
-                const candidateId =
-                  candidate.ID || candidate.id || candidate.field_id || candidate.FieldId;
-                return candidateId != null && String(candidateId) === String(sourceFieldId);
-              });
-              if (index !== -1) {
-                availableFields.value.splice(index, 1);
-              }
+            const index = availableFields.value.findIndex(candidate => {
+              const candidateId =
+                candidate.ID || candidate.id || candidate.field_id || candidate.FieldId;
+              return (
+                candidateId != null &&
+                normalizedSourceId != null &&
+                String(candidateId) === String(normalizedSourceId)
+              );
+            });
+            if (index !== -1) {
+              availableFields.value.splice(index, 1);
+              updateFieldsState();
             }
           }
         } catch (error) {
@@ -1359,7 +1037,8 @@ if (isNewField.value) {
 availableFields.value.push(field);
 } else {
 const index = availableFields.value.findIndex(candidate => {
-  const candidateId = candidate.ID || candidate.id || candidate.field_id || candidate.FieldId;
+  const candidateId =
+    candidate.ID || candidate.id || candidate.field_id || candidate.FieldId;
   const fieldId = field.ID || field.id || field.field_id || field.FieldId;
   return candidateId != null && fieldId != null && String(candidateId) === String(fieldId);
 });
@@ -1372,7 +1051,8 @@ updateFieldsState();
 
 const removeAvailableField = (field) => {
 const index = availableFields.value.findIndex(candidate => {
-  const candidateId = candidate.ID || candidate.id || candidate.field_id || candidate.FieldId;
+  const candidateId =
+    candidate.ID || candidate.id || candidate.field_id || candidate.FieldId;
   const fieldId = field.ID || field.id || field.field_id || field.FieldId;
   return candidateId != null && fieldId != null && String(candidateId) === String(fieldId);
 });
@@ -1486,41 +1166,63 @@ if (fieldIndex === -1) {
 const removedField = section.fields.splice(fieldIndex, 1)[0];
 
 // Adicionar o campo de volta à lista de campos disponíveis
-const normalizedFieldId =
+const normalizedRemovedId =
   removedField.field_id ||
   removedField.FieldId ||
   removedField.ID ||
   removedField.id ||
   null;
-const normalizedFieldName =
-  removedField.Name ||
-  removedField.name ||
-  removedField.title ||
-  'Unnamed Field';
-const normalizedFieldType =
-  removedField.fieldType ||
-  removedField.FieldType ||
-  removedField.type ||
-  'text';
-const normalizedColumns =
-  parseInt(removedField.columns ?? removedField.Columns ?? 1, 10) || 1;
 
 const fieldToAdd = {
-  ID: normalizedFieldId,
-  Name: normalizedFieldName,
-  fieldType: normalizedFieldType,
-  FieldType: normalizedFieldType,
-  columns: normalizedColumns,
-  Columns: normalizedColumns,
-  is_mandatory: Boolean(removedField.is_mandatory),
-  is_readonly: Boolean(removedField.is_readonly),
-  is_hide_legend: Boolean(removedField.is_hide_legend)
+  ...JSON.parse(JSON.stringify(removedField)),
+  ID: normalizedRemovedId,
+  field_id: normalizedRemovedId,
+  FieldId: removedField.FieldId || normalizedRemovedId,
+  Name: removedField.Name || removedField.name,
+  name: removedField.name || removedField.Name,
+  fieldType: removedField.fieldType || removedField.FieldType || 'text',
+  FieldType: removedField.FieldType || removedField.fieldType || 'text',
+  columns: parseInt(removedField.columns ?? removedField.Columns ?? 1, 10) || 1,
+  Columns: removedField.Columns || parseInt(removedField.columns ?? 1, 10) || 1,
+  is_mandatory: Boolean(removedField.is_mandatory ?? removedField.IsMandatory),
+  is_readonly: Boolean(removedField.is_readonly ?? removedField.IsReadOnly),
+  is_hide_legend: Boolean(removedField.is_hide_legend ?? removedField.IsHideLegend)
 };
 
+if (fieldToAdd.dataSource && !fieldToAdd.DataSource) {
+  fieldToAdd.DataSource = fieldToAdd.dataSource;
+}
+if (fieldToAdd.DataSource && !fieldToAdd.dataSource) {
+  fieldToAdd.dataSource = fieldToAdd.DataSource;
+}
+
+if (
+  fieldToAdd.fieldType === 'SIMPLE_LIST' &&
+  Array.isArray(fieldToAdd.list_options) &&
+  !fieldToAdd.options
+) {
+  fieldToAdd.options = fieldToAdd.list_options.map(option => ({ ...option }));
+}
+
+if (
+  fieldToAdd.fieldType === 'SIMPLE_LIST' &&
+  !fieldToAdd.list_options &&
+  Array.isArray(fieldToAdd.options)
+) {
+  const optionsClone = fieldToAdd.options.map(option => ({ ...option }));
+  fieldToAdd.list_options = optionsClone;
+  fieldToAdd.listOptions = optionsClone;
+}
+
 // Verificar se o campo já existe na lista de campos disponíveis
-const existingFieldIndex = availableFields.value.findIndex(f => {
-  const candidateId = f.ID || f.id || f.field_id || f.FieldId;
-  return candidateId != null && fieldToAdd.ID != null && String(candidateId) === String(fieldToAdd.ID);
+const existingFieldIndex = availableFields.value.findIndex(candidate => {
+  const candidateId =
+    candidate.ID || candidate.id || candidate.field_id || candidate.FieldId;
+  return (
+    candidateId != null &&
+    fieldToAdd.ID != null &&
+    String(candidateId) === String(fieldToAdd.ID)
+  );
 });
 
 if (existingFieldIndex === -1) {
