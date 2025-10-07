@@ -859,6 +859,9 @@ export default {
     document.removeEventListener('click', this.handleClickOutsideDropdown);
   },
   methods: {
+    normalizeDataSource(fieldLike) {
+      return normalizeFieldDataSource(fieldLike);
+    },
     translateText(text) {
       return text;
     },
