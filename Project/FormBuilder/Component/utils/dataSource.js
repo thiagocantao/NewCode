@@ -4,8 +4,15 @@ export function normalizeFieldDataSource(fieldOrSource) {
   if (!fieldOrSource) return null;
 
   const rawDataSource =
-    fieldOrSource.dataSource !== undefined || fieldOrSource.DataSource !== undefined
-      ? fieldOrSource.dataSource ?? fieldOrSource.DataSource ?? null
+    fieldOrSource.dataSource !== undefined ||
+    fieldOrSource.DataSource !== undefined ||
+    fieldOrSource.data_source !== undefined ||
+    fieldOrSource.Data_Source !== undefined
+      ? fieldOrSource.dataSource ??
+        fieldOrSource.DataSource ??
+        fieldOrSource.data_source ??
+        fieldOrSource.Data_Source ??
+        null
       : fieldOrSource;
 
   if (!rawDataSource) return null;
@@ -274,9 +281,27 @@ export async function fetchDataSourceOptions(rawDataSource, context) {
   });
 }
 
+export function normalizeFieldType(value) {
+  return String(value ?? '').trim().toUpperCase();
+}
+
+export function getFieldType(field) {
+  if (!field || typeof field !== 'object') {
+    return null;
+  }
+
+  return (
+    field.fieldType ??
+    field.FieldType ??
+    field.type ??
+    field.Type ??
+    null
+  );
+}
+
 export function shouldLoadDataSource(field) {
   if (!field) return false;
-  const normalizedType = String(field?.fieldType ?? '').toUpperCase();
+  const normalizedType = normalizeFieldType(getFieldType(field));
   return LIST_FIELD_TYPES.includes(normalizedType) && hasFetchableDataSource(field);
 }
 
@@ -284,6 +309,8 @@ export default {
   LIST_FIELD_TYPES,
   normalizeFieldDataSource,
   hasFetchableDataSource,
+  normalizeFieldType,
+  getFieldType,
   combineUrl,
   extractArrayFromResponse,
   mapOptionsFromData,

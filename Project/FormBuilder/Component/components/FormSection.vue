@@ -119,8 +119,15 @@ setup(props, { emit }) {
     const fieldOptionSignatureMap = new Map();
     const pendingDataSourceLoads = new Map();
 
-    const normalizeFieldType = type => String(type ?? '').toUpperCase();
-    const isListFieldType = type => LIST_FIELD_TYPES.includes(normalizeFieldType(type));
+    const normalizeFieldType = type => String(type ?? '').trim().toUpperCase();
+    const getFieldTypeValue = field =>
+      field?.fieldType ?? field?.FieldType ?? field?.type ?? null;
+    const isListFieldType = candidate =>
+      LIST_FIELD_TYPES.includes(
+        normalizeFieldType(
+          typeof candidate === 'object' ? getFieldTypeValue(candidate) : candidate
+        )
+      );
 
     const getFieldKey = field => field?.id || field?.field_id || field?.ID || null;
 
@@ -298,8 +305,9 @@ setup(props, { emit }) {
       }
 
       const resolvedDataSource = normalizedDataSource || normalizeFieldDataSource(field);
+      const normalizedFieldType = getFieldTypeValue(field);
 
-      if (!resolvedDataSource || !isListFieldType(field?.fieldType)) {
+      if (!resolvedDataSource || !isListFieldType(normalizedFieldType)) {
         fieldOptionSignatureMap.delete(fieldKey);
         pendingDataSourceLoads.delete(fieldKey);
         return undefined;
@@ -361,7 +369,7 @@ setup(props, { emit }) {
       () => (props.section.fields || []).map(field => ({
         key: getFieldKey(field),
         dataSource: normalizeFieldDataSource(field),
-        fieldType: normalizeFieldType(field?.fieldType)
+        fieldType: normalizeFieldType(getFieldTypeValue(field))
       })),
       descriptors => {
         const activeKeys = new Set();
@@ -693,6 +701,9 @@ setup(props, { emit }) {
                 : Array.isArray(clonedFieldData.Options)
                   ? normalizeOptionList(clonedFieldData.Options)
                   : null;
+              const normalizedFieldTypeValue = normalizeFieldType(
+                getFieldTypeValue(clonedFieldData) || 'text'
+              );
               const resolvedDefaultValue = clonedFieldData.default_value !== undefined
                 ? clonedFieldData.default_value
                 : clonedFieldData.defaultValue !== undefined
@@ -724,7 +735,9 @@ setup(props, { emit }) {
                 tip_translations: clonedFieldData.tip_translations || { [currentLang.value]: clonedFieldData.tip || '' },
                 deleted: false,
                 name: clonedFieldData.name || clonedFieldData.Name,
-                fieldType: clonedFieldData.fieldType || clonedFieldData.FieldType || 'text',
+                fieldType: normalizedFieldTypeValue,
+                FieldType: normalizedFieldTypeValue,
+                type: normalizedFieldTypeValue,
                 default_value: resolvedDefaultValue,
                 defaultValue: resolvedDefaultValue,
                 value: clonedFieldData.value !== undefined ? clonedFieldData.value : resolvedDefaultValue,
