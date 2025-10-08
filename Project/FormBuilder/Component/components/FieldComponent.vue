@@ -1,22 +1,22 @@
 <template>
   <div
     class="field-component"
-    :class="[`field-type-${(field.fieldType || '').toLowerCase()}`, { 'is-mandatory': field.is_mandatory }]"
+    :class="[`field-type-${(field.fieldType || '').toLowerCase()}`, { 'is-mandatory': isMandatory }]"
     :style="componentStyleVars"
   >
-    <label v-if="!field.is_hide_legend" class="field-label">
+    <label v-if="!isLegendHidden" class="field-label">
       {{ field.name }}
-      <span v-if="field.is_mandatory" class="required-indicator">*</span>
+      <span v-if="isMandatory" class="required-indicator">*</span>
     </label>
 
     <div class="field-input-container">
       <template v-if="field.fieldType === 'DATE'">
         <CustomDatePicker
           v-model="localValue"
-          :disabled="field.is_readonly"
-          :error="!!error && field.is_mandatory"
+          :disabled="isReadOnly"
+          :error="!!error && isMandatory"
           @update:modelValue="onDateChange"
-          :class="['field-input', 'date-input', { error: !!error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
+          :class="['field-input', 'date-input', { error: !!error && isMandatory }, { 'readonly-field': isReadOnly }]"
         />
       </template>
 
@@ -26,11 +26,11 @@
             class="deadline-visual"
             :class="[
               deadlineColorClass,
-              { 'readonly-field': field.is_readonly, 'deadline-empty': !deadlineHasValue }
+              { 'readonly-field': isReadOnly, 'deadline-empty': !deadlineHasValue }
             ]"
             :title="deadlineOriginalFormatted"
             role="button"
-            :tabindex="field.is_readonly ? -1 : 0"
+            :tabindex="isReadOnly ? -1 : 0"
             @click="openDeadlinePicker"
             @keydown.enter.prevent="openDeadlinePicker"
             @keydown.space.prevent="openDeadlinePicker"
@@ -46,11 +46,11 @@
           <CustomDatePicker
             ref="deadlineDatePicker"
             v-model="deadlineValue"
-            :disabled="field.is_readonly"
+            :disabled="isReadOnly"
             :show-time="true"
             :open-up-offset="60"
             @update:modelValue="onDeadlineChange"
-            :class="['field-input', 'date-input', { error: !!error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
+            :class="['field-input', 'date-input', { error: !!error && isMandatory }, { 'readonly-field': isReadOnly }]"
             style="position: absolute; top: 0; left: 0; width: 100%; height: 0; overflow: hidden;"
           />
         </div>
@@ -61,9 +61,9 @@
           type="number"
           step="0.01"
           v-model="localValue"
-          :disabled="field.is_readonly"
+          :disabled="isReadOnly"
           @blur="updateValue"
-          :class="['field-input', 'decimal-input', { error: !!error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
+          :class="['field-input', 'decimal-input', { error: !!error && isMandatory }, { 'readonly-field': isReadOnly }]"
         />
       </template>
 
@@ -72,9 +72,9 @@
           type="number"
           step="1"
           v-model="localValue"
-          :disabled="field.is_readonly"
+          :disabled="isReadOnly"
           @blur="updateValue"
-          :class="['field-input', 'integer-input', { error: !!error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
+          :class="['field-input', 'integer-input', { error: !!error && isMandatory }, { 'readonly-field': isReadOnly }]"
         />
       </template>
 
@@ -86,7 +86,7 @@
               :name="field.id"
               value="true"
               :checked="localValue === true"
-              :disabled="field.is_readonly"
+              :disabled="isReadOnly"
               @change="onYesNoChange(true)"
             />
             Sim
@@ -97,7 +97,7 @@
               :name="field.id"
               value="false"
               :checked="localValue === false"
-              :disabled="field.is_readonly"
+              :disabled="isReadOnly"
               @change="onYesNoChange(false)"
             />
             Não
@@ -107,7 +107,7 @@
 
       <template v-else-if="field.fieldType === 'FORMATED_TEXT'">
         <div class="formatted-text-wrapper">
-          <div v-if="!field.is_readonly" class="toolbar">
+          <div v-if="!isReadOnly" class="toolbar">
             <button type="button" @click="format('bold')" title="Negrito"><span class="material-symbols-outlined">format_bold</span></button>
             <button type="button" @click="format('italic')" title="Itálico"><span class="material-symbols-outlined">format_italic</span></button>
             <button type="button" @click="format('underline')" title="Sublinhado"><span class="material-symbols-outlined">format_underlined</span></button>
@@ -123,9 +123,9 @@
           </div>
           <div
             ref="rte"
-            :contenteditable="!field.is_readonly"
+            :contenteditable="!isReadOnly"
             dir="ltr"
-            :class="['field-input', 'rich-text-input', { 'readonly-field': field.is_readonly }]"
+            :class="['field-input', 'rich-text-input', { 'readonly-field': isReadOnly }]"
             :data-placeholder="field.placeholder || field.placeholder_translations?.pt_br || ''"
             @input="onContentEditableInput"
             @blur="updateValue"
@@ -135,17 +135,17 @@
       </template>
 
       <template v-else-if="isListField">
-        <div class="custom-dropdown-wrapper" :class="{ 'readonly-field': field.is_readonly }">
+        <div class="custom-dropdown-wrapper" :class="{ 'readonly-field': isReadOnly }">
           <div
             class="custom-dropdown-selected"
             :class="{
               open: dropdownOpen,
-              'readonly-field': field.is_readonly,
-              error: !!error && field.is_mandatory
+              'readonly-field': isReadOnly,
+              error: !!error && isMandatory
             }"
             @click="onDropdownClick"
             tabindex="0"
-            @keydown.enter.prevent="!field.is_readonly && toggleDropdown()"
+            @keydown.enter.prevent="!isReadOnly && toggleDropdown()"
           >
             <span
               v-if="selectedOption"
@@ -208,9 +208,9 @@
       <template v-else-if="field.fieldType === 'MULTILINE_TEXT'">
         <textarea
           v-model="localValue"
-          :disabled="field.is_readonly"
+          :disabled="isReadOnly"
           @blur="updateValue"
-          :class="['field-input', 'multiline-input', { error: !!error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
+          :class="['field-input', 'multiline-input', { error: !!error && isMandatory }, { 'readonly-field': isReadOnly }]"
           rows="4"
         ></textarea>
       </template>
@@ -219,9 +219,9 @@
         <input
           type="text"
           v-model="localValue"
-          :disabled="field.is_readonly"
+          :disabled="isReadOnly"
           @blur="updateValue"
-          :class="['field-input', 'text-input', { error: !!error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
+          :class="['field-input', 'text-input', { error: !!error && isMandatory }, { 'readonly-field': isReadOnly }]"
         />
       </template>
     </div>
@@ -249,8 +249,70 @@ const hasFetchableDataSource =
       ? dataSourceUtils.hasFetchableDataSource.bind(dataSourceUtils)
       : () => false;
 
-const TRUE_VALUES = new Set(['true', '1', 1, true, 'yes', 'sim']);
-const FALSE_VALUES = new Set(['false', '0', 0, false, 'no', 'nao', 'não']);
+const TRUE_VALUES = new Set([
+  'true',
+  '1',
+  1,
+  true,
+  'yes',
+  'sim',
+  'verdadeiro',
+  'v',
+  'on',
+  'habilitado',
+  'ativado',
+  'ativo',
+  'enabled'
+]);
+const FALSE_VALUES = new Set([
+  'false',
+  '0',
+  0,
+  false,
+  'no',
+  'nao',
+  'não',
+  'falso',
+  'n',
+  'off',
+  'desabilitado',
+  'desativado',
+  'inativo',
+  'disabled'
+]);
+
+function normalizeBoolean(value, defaultValue = false) {
+  if (value === undefined || value === null || value === '') {
+    return defaultValue;
+  }
+
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (typeof value === 'number') {
+    if (Number.isNaN(value)) {
+      return defaultValue;
+    }
+    return value !== 0;
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === '') {
+      return defaultValue;
+    }
+    if (TRUE_VALUES.has(normalized)) {
+      return true;
+    }
+    if (FALSE_VALUES.has(normalized)) {
+      return false;
+    }
+    return defaultValue;
+  }
+
+  return defaultValue;
+}
 
 function computeInitialValue(field) {
   if (!field) return '';
@@ -354,6 +416,30 @@ export default {
     },
     dataSourceConfig() {
       return normalizeFieldDataSource(this.field);
+    },
+    isReadOnly() {
+      const raw =
+        this.field?.is_readonly ??
+        this.field?.isReadOnly ??
+        this.field?.readonly ??
+        null;
+      return normalizeBoolean(raw, false);
+    },
+    isMandatory() {
+      const raw =
+        this.field?.is_mandatory ??
+        this.field?.isMandatory ??
+        this.field?.mandatory ??
+        null;
+      return normalizeBoolean(raw, false);
+    },
+    isLegendHidden() {
+      const raw =
+        this.field?.is_hide_legend ??
+        this.field?.isHideLegend ??
+        this.field?.hideLegend ??
+        null;
+      return normalizeBoolean(raw, false);
     },
     isListField() {
       const rawType =
@@ -585,7 +671,7 @@ export default {
     if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
       this.$refs.rte.innerHTML = this.localValue || '';
     }
-    if (this.field.fieldType === 'DEADLINE') {
+    if (this.field.fieldType === 'DEADLINE' && !this.isReadOnly) {
       this.deadlineTimer = setInterval(() => {
         this.dataNow = new Date();
       }, 1000);
@@ -602,11 +688,21 @@ export default {
             }
           });
         }
-        if (newField?.fieldType === 'DEADLINE' && !this.deadlineTimer) {
+        const newFieldReadonly = normalizeBoolean(
+          newField?.is_readonly ?? newField?.isReadOnly ?? newField?.readonly,
+          false
+        );
+        if (newField?.fieldType === 'DEADLINE' && !newFieldReadonly && !this.deadlineTimer) {
           this.deadlineTimer = setInterval(() => {
             this.dataNow = new Date();
           }, 1000);
-        } else if (oldField?.fieldType === 'DEADLINE' && newField?.fieldType !== 'DEADLINE' && this.deadlineTimer) {
+        } else if (
+          this.deadlineTimer &&
+          (
+            (oldField?.fieldType === 'DEADLINE' && newField?.fieldType !== 'DEADLINE') ||
+            (newField?.fieldType === 'DEADLINE' && newFieldReadonly)
+          )
+        ) {
           clearInterval(this.deadlineTimer);
           this.deadlineTimer = null;
         }
@@ -721,7 +817,7 @@ export default {
     if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
       this.$refs.rte.innerHTML = this.localValue || '';
     }
-    if (this.field.fieldType === 'DEADLINE') {
+    if (this.field.fieldType === 'DEADLINE' && !this.isReadOnly) {
       this.deadlineTimer = setInterval(() => {
         this.dataNow = new Date();
       }, 1000);
@@ -738,16 +834,26 @@ export default {
             }
           });
         }
-        if (newField?.fieldType === 'DEADLINE' && !this.deadlineTimer) {
+        const newFieldReadonly = normalizeBoolean(
+          newField?.is_readonly ?? newField?.isReadOnly ?? newField?.readonly,
+          false
+        );
+        if (newField?.fieldType === 'DEADLINE' && !newFieldReadonly && !this.deadlineTimer) {
           this.deadlineTimer = setInterval(() => {
             this.dataNow = new Date();
           }, 1000);
-        } else if (oldField?.fieldType === 'DEADLINE' && newField?.fieldType !== 'DEADLINE' && this.deadlineTimer) {
+        } else if (
+          this.deadlineTimer &&
+          (
+            (oldField?.fieldType === 'DEADLINE' && newField?.fieldType !== 'DEADLINE') ||
+            (newField?.fieldType === 'DEADLINE' && newFieldReadonly)
+          )
+        ) {
           clearInterval(this.deadlineTimer);
           this.deadlineTimer = null;
         }
-        const newSource = JSON.stringify(this.normalizeDataSource(newField));
-        const oldSource = JSON.stringify(this.normalizeDataSource(oldField));
+        const newSource = JSON.stringify(normalizeFieldDataSource(newField));
+        const oldSource = JSON.stringify(normalizeFieldDataSource(oldField));
         if (newSource !== oldSource) {
           this.loadDataSourceOptions();
         }
@@ -929,7 +1035,7 @@ export default {
       this.updateValue(value);
     },
     openDeadlinePicker() {
-      if (this.field.fieldType === 'DEADLINE' && !this.field.is_readonly) {
+      if (this.field.fieldType === 'DEADLINE' && !this.isReadOnly) {
         const dp = this.$refs.deadlineDatePicker;
         if (dp && typeof dp.openDp === 'function') {
           dp.openDp();
@@ -971,7 +1077,7 @@ export default {
       }
     },
     onDropdownClick() {
-      if (this.field.is_readonly) return;
+      if (this.isReadOnly) return;
       this.toggleDropdown();
     },
     toggleDropdown() {
@@ -1094,7 +1200,7 @@ export default {
     },
     validateDate(value) {
       if (!value) {
-        this.error = this.field.is_mandatory ? this.translateText('Campo obrigatório') : null;
+        this.error = this.isMandatory ? this.translateText('Campo obrigatório') : null;
         return;
       }
       const date = new Date(`${value}T00:00:00`);
@@ -1102,7 +1208,7 @@ export default {
     },
     validateDeadline(value) {
       if (!value) {
-        this.error = this.field.is_mandatory ? this.translateText('Campo obrigatório') : null;
+        this.error = this.isMandatory ? this.translateText('Campo obrigatório') : null;
         return;
       }
       const date = new Date(value);
@@ -1114,34 +1220,34 @@ export default {
     },
     validateDecimal(value) {
       if (value === null || isNaN(value)) {
-        this.error = this.field.is_mandatory ? this.translateText('Campo obrigatório') : null;
+        this.error = this.isMandatory ? this.translateText('Campo obrigatório') : null;
         return;
       }
       this.error = null;
     },
     validateInteger(value) {
       if (value === null || isNaN(value)) {
-        this.error = this.field.is_mandatory ? this.translateText('Campo obrigatório') : null;
+        this.error = this.isMandatory ? this.translateText('Campo obrigatório') : null;
         return;
       }
       this.error = null;
     },
     validateList(value) {
-      if (this.field.is_mandatory && !value) {
+      if (this.isMandatory && !value) {
         this.error = this.translateText('Campo obrigatório');
       } else {
         this.error = null;
       }
     },
     validateMultilineText(value) {
-      if (this.field.is_mandatory && !value.trim()) {
+      if (this.isMandatory && !value.trim()) {
         this.error = this.translateText('Campo obrigatório');
       } else {
         this.error = null;
       }
     },
     validateText(value) {
-      if (this.field.is_mandatory && !value.trim()) {
+      if (this.isMandatory && !value.trim()) {
         this.error = this.translateText('Campo obrigatório');
       } else {
         this.error = null;
