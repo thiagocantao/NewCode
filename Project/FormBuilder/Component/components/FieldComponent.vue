@@ -249,8 +249,70 @@ const hasFetchableDataSource =
       ? dataSourceUtils.hasFetchableDataSource.bind(dataSourceUtils)
       : () => false;
 
-const TRUE_VALUES = new Set(['true', '1', 1, true, 'yes', 'sim']);
-const FALSE_VALUES = new Set(['false', '0', 0, false, 'no', 'nao', 'não']);
+const TRUE_VALUES = new Set([
+  'true',
+  '1',
+  1,
+  true,
+  'yes',
+  'sim',
+  'verdadeiro',
+  'v',
+  'on',
+  'habilitado',
+  'ativado',
+  'ativo',
+  'enabled'
+]);
+const FALSE_VALUES = new Set([
+  'false',
+  '0',
+  0,
+  false,
+  'no',
+  'nao',
+  'não',
+  'falso',
+  'n',
+  'off',
+  'desabilitado',
+  'desativado',
+  'inativo',
+  'disabled'
+]);
+
+function normalizeBoolean(value, defaultValue = false) {
+  if (value === undefined || value === null || value === '') {
+    return defaultValue;
+  }
+
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (typeof value === 'number') {
+    if (Number.isNaN(value)) {
+      return defaultValue;
+    }
+    return value !== 0;
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === '') {
+      return defaultValue;
+    }
+    if (TRUE_VALUES.has(normalized)) {
+      return true;
+    }
+    if (FALSE_VALUES.has(normalized)) {
+      return false;
+    }
+    return defaultValue;
+  }
+
+  return defaultValue;
+}
 
 function normalizeBoolean(value, defaultValue = false) {
   if (value === undefined || value === null || value === '') {
