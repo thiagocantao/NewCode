@@ -216,6 +216,64 @@ wwEditorState: { type: Object, required: true },
 emits: ['trigger-event'],
 setup(props, { emit }) {
 
+function normalizeOptions(raw) {
+  function toOpt(o) {
+    if (o && typeof o === 'object') {
+      var value = o.value != null ? o.value : (o.id != null ? o.id : (o.ID != null ? o.ID : (o.key != null ? o.key : (o.Key != null ? o.Key : (o.name != null ? o.name : o.Name)))));
+      var label = o.label != null ? o.label : (o.Label != null ? o.Label : (o.name != null ? o.name : (o.Name != null ? o.Name : (value != null ? String(value) : ''))));
+      var v = value != null ? value : label;
+      return v != null ? { value: v, label: String(label != null ? label : v) } : null;
+    }
+    if (o == null) return null;
+    return { value: o, label: String(o) };
+  }
+  if (raw == null) return [];
+  if (Array.isArray(raw)) return raw.map(toOpt).filter(Boolean);
+  if (typeof raw === 'string') {
+    var s = raw.trim();
+    if (!s) return [];
+    try { var parsed = JSON.parse(s); if (Array.isArray(parsed)) return parsed.map(toOpt).filter(Boolean); } catch (e) {}
+    return s.split(',').map(function(x){return x.trim();}).filter(Boolean).map(function(x){return { value: x, label: x };});
+  }
+  if (typeof raw === 'object') return Object.values(raw).map(toOpt).filter(Boolean);
+  return [];
+}
+
+function resolveFullById(fieldId) {
+  var id = fieldId != null ? String(fieldId) : null;
+  if (!id) return null;
+  function byId(arr) {
+    return (arr || []).find(function(c){
+      var cid = c && (c.ID != null ? c.ID : (c.id != null ? c.id : (c.field_id != null ? c.field_id : c.FieldId)));
+      return cid != null && String(cid) === id;
+    });
+  }
+  try {
+    // 1) availableFields.value (se existir no escopo)
+    if (typeof availableFields !== 'undefined' && availableFields && Array.isArray(availableFields.value)) {
+      var f1 = byId(availableFields.value);
+      if (f1) return f1;
+    }
+  } catch (e) {}
+  try {
+    // 2) fontes globais
+    if (typeof window !== 'undefined') {
+      if (Array.isArray(window.__fieldsMaster)) {
+        var f2 = byId(window.__fieldsMaster); if (f2) return f2;
+      }
+      if (Array.isArray(window.__fieldsCatalog)) {
+        var f3 = byId(window.__fieldsCatalog); if (f3) return f3;
+      }
+      if (Array.isArray(window.__allFieldsFull)) {
+        var f4 = byId(window.__allFieldsFull); if (f4) return f4;
+      }
+    }
+  } catch (e) {}
+  return null;
+}
+
+
+
 
 
 // Editor state
@@ -525,9 +583,9 @@ const normalizePriorityOption = option => {
 };
 
 const priorityOptions = computed(() => {
-  console.log("Prioridades -->> ");
+ 
   const collectionData = wwLib.wwCollection.getCollection("913fd277-8f18-420e-977e-ce52b6a751f9").data;
-console.log(collectionData);
+
   if (!Array.isArray(collectionData)) {
     return [];
   }
@@ -692,6 +750,28 @@ updateFormState();
 }
 },
       onClone: (evt) => {
+      try {
+        var _fid = null;
+        try { _fid = evt.clone && evt.clone.dataset && evt.clone.dataset.fieldId ? evt.clone.dataset.fieldId : null; } catch(e){}
+        if (!_fid) {
+          try { _fid = evt.item && evt.item.dataset && evt.item.dataset.fieldId ? evt.item.dataset.fieldId : null; } catch(e){}
+        }
+        var full = resolveFullById(_fid) || (evt.clone && evt.clone.__draggableField__) || (evt.item && evt.item.__draggableField__) || null;
+        var rawLO = full && (full.list_options != null ? full.list_options :
+                            (full.listOptions != null ? full.listOptions :
+                            (full.ListOptions != null ? full.ListOptions :
+                            (full.dataSource && full.dataSource.list_options) ? full.dataSource.list_options :
+                            (full.DataSource && full.DataSource.list_options) ? full.DataSource.list_options : null)));
+        var norm = normalizeOptions(rawLO);
+        try { evt.clone.dataset.listOptionsJson = JSON.stringify(norm); } catch(e){}
+        try { evt.clone.dataset.dataSourceJson  = JSON.stringify(full && (full.dataSource || full.DataSource) || null); } catch(e){}
+               
+      } catch (e) {
+        try { console.warn('[FB-LIST][onClone:set] error', e); } catch(_){}
+
+      }
+
+
         if (!evt || !evt.item || !evt.clone) {
           return;
         }
