@@ -21,7 +21,7 @@ class="draggable-field single-draggable"
 </div>
 
 <template v-if="showFieldComponent || isInFormSection">
-<FieldComponent :field="field" />
+  <FieldComponent :field="field" @field-value-change="onFieldValueChange" />
 </template>
 <template v-else>
 <i class="material-symbols-outlined" style="padding-right:10px; ">{{iconType}}</i>
@@ -75,7 +75,7 @@ type: Boolean,
 default: false
 }
 },
-emits: ['edit-field', 'remove-field', 'click'],
+emits: ['edit-field', 'remove-field', 'click', 'field-value-change'],
 setup(props, { emit }) {
 const fieldName = computed(() => {
 // Try to get the name from different possible properties
@@ -187,11 +187,16 @@ const onRemoveClick = (event) => {
   emit('remove-field', fieldToRemove);
 };
 
+const onFieldValueChange = (payload) => {
+  emit('field-value-change', payload);
+};
+
 return {
 fieldName,
 onFieldClick,
 iconType,
-onRemoveClick
+onRemoveClick,
+onFieldValueChange
 };
 }
 };
