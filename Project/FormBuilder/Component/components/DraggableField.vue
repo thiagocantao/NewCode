@@ -21,7 +21,7 @@ class="draggable-field single-draggable"
 </div>
 
 <template v-if="showFieldComponent || isInFormSection">
-<FieldComponent :field="field" />
+  <FieldComponent :field="field" />
 </template>
 <template v-else>
 <i class="material-symbols-outlined" style="padding-right:10px; ">{{iconType}}</i>
@@ -37,7 +37,7 @@ class="draggable-field single-draggable"
 </template>
 
 <script>
-import { computed, onMounted, nextTick } from 'vue';
+import { computed, onMounted, nextTick, watch } from 'vue';
 import FieldComponent from './FieldComponent.vue';
 
 export default {
@@ -75,7 +75,7 @@ type: Boolean,
 default: false
 }
 },
-emits: ['edit-field', 'remove-field', 'click'],
+emits: ['edit-field', 'remove-field', 'click', 'field-value-change'],
 setup(props, { emit }) {
 const fieldName = computed(() => {
 // Try to get the name from different possible properties
@@ -186,6 +186,93 @@ const onRemoveClick = (event) => {
   
   emit('remove-field', fieldToRemove);
 };
+
+const getFieldCurrentValue = (field) => {
+  if (!field) {
+    return null;
+  }
+
+  if (field.default_value !== undefined) {
+    return field.default_value;
+  }
+
+  if (field.defaultValue !== undefined) {
+    return field.defaultValue;
+  }
+
+  if (field.value !== undefined) {
+    return field.value;
+  }
+
+  return null;
+};
+
+const cloneValue = (value) => {
+  if (value === undefined) {
+    return null;
+  }
+
+  if (value === null || typeof value !== 'object') {
+    return value;
+  }
+
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch (error) {
+    return value;
+  }
+};
+
+const valuesAreEqual = (a, b) => {
+  if (a === b) {
+    return true;
+  }
+
+  if (a === null || b === null) {
+    return a === b;
+  }
+
+  if (typeof a !== typeof b) {
+    return false;
+  }
+
+  if (typeof a === 'object') {
+    try {
+      return JSON.stringify(a) === JSON.stringify(b);
+    } catch (error) {
+      return false;
+    }
+  }
+
+  return false;
+};
+
+let lastEmittedValue = cloneValue(getFieldCurrentValue(props.field));
+
+watch(
+  () => [
+    props.field?.default_value,
+    props.field?.defaultValue,
+    props.field?.value
+  ],
+  () => {
+    const currentValue = cloneValue(getFieldCurrentValue(props.field));
+
+    if (valuesAreEqual(currentValue, lastEmittedValue)) {
+      return;
+    }
+
+    lastEmittedValue = cloneValue(currentValue);
+
+    emit('field-value-change', {
+      fieldId: props.field?.id || props.field?.field_id || props.field?.ID || null,
+      value: currentValue,
+      fieldType: props.field?.fieldType || null,
+      field: props.field
+    });
+  },
+  { deep: true }
+);
 
 return {
 fieldName,
