@@ -15,6 +15,8 @@
           v-model="localValue"
           :disabled="isReadOnly"
           :error="!!error && isMandatory"
+          @mousedown.stop
+          @touchstart.stop
           @update:modelValue="onDateChange"
           :class="['field-input', 'date-input', { error: !!error && isMandatory }, { 'readonly-field': isReadOnly }]"
         />
@@ -31,6 +33,8 @@
             :title="deadlineOriginalFormatted"
             role="button"
             :tabindex="isReadOnly ? -1 : 0"
+            @mousedown.stop
+            @touchstart.stop
             @click="openDeadlinePicker"
             @keydown.enter.prevent="openDeadlinePicker"
             @keydown.space.prevent="openDeadlinePicker"
@@ -49,6 +53,8 @@
             :disabled="isReadOnly"
             :show-time="true"
             :open-up-offset="60"
+            @mousedown.stop
+            @touchstart.stop
             @update:modelValue="onDeadlineChange"
             :class="['field-input', 'date-input', { error: !!error && isMandatory }, { 'readonly-field': isReadOnly }]"
             style="position: absolute; top: 0; left: 0; width: 100%; height: 0; overflow: hidden;"
@@ -62,6 +68,8 @@
           step="0.01"
           v-model="localValue"
           :disabled="isReadOnly"
+          @mousedown.stop
+          @touchstart.stop
           @blur="updateValue"
           :class="['field-input', 'decimal-input', { error: !!error && isMandatory }, { 'readonly-field': isReadOnly }]"
         />
@@ -73,6 +81,8 @@
           step="1"
           v-model="localValue"
           :disabled="isReadOnly"
+          @mousedown.stop
+          @touchstart.stop
           @blur="updateValue"
           :class="['field-input', 'integer-input', { error: !!error && isMandatory }, { 'readonly-field': isReadOnly }]"
         />
@@ -87,6 +97,8 @@
               value="true"
               :checked="localValue === true"
               :disabled="isReadOnly"
+              @mousedown.stop
+              @touchstart.stop
               @change="onYesNoChange(true)"
             />
             Sim
@@ -98,6 +110,8 @@
               value="false"
               :checked="localValue === false"
               :disabled="isReadOnly"
+              @mousedown.stop
+              @touchstart.stop
               @change="onYesNoChange(false)"
             />
             Não
@@ -127,6 +141,8 @@
             dir="ltr"
             :class="['field-input', 'rich-text-input', { 'readonly-field': isReadOnly }]"
             :data-placeholder="field.placeholder || field.placeholder_translations?.pt_br || ''"
+            @mousedown.stop
+            @touchstart.stop
             @input="onContentEditableInput"
             @blur="updateValue"
           >
@@ -144,6 +160,8 @@
               error: !!error && isMandatory
             }"
             @click="onDropdownClick"
+            @mousedown.stop
+            @touchstart.stop
             tabindex="0"
             @keydown.enter.prevent="!isReadOnly && toggleDropdown()"
           >
@@ -183,6 +201,8 @@
                 placeholder="Pesquisar..."
                 class="list-search-input"
                 @keydown.stop
+                @mousedown.stop
+                @touchstart.stop
                 autofocus
               />
             </div>
@@ -198,6 +218,8 @@
               class="custom-dropdown-option"
               :class="{ selected: localValue == option.value }"
               @click="selectDropdownOption(option)"
+              @mousedown.stop
+              @touchstart.stop
             >
               {{ option.label }}
             </div>
@@ -209,6 +231,8 @@
         <textarea
           v-model="localValue"
           :disabled="isReadOnly"
+          @mousedown.stop
+          @touchstart.stop
           @blur="updateValue"
           :class="['field-input', 'multiline-input', { error: !!error && isMandatory }, { 'readonly-field': isReadOnly }]"
           rows="4"
@@ -220,6 +244,8 @@
           type="text"
           v-model="localValue"
           :disabled="isReadOnly"
+          @mousedown.stop
+          @touchstart.stop
           @blur="updateValue"
           :class="['field-input', 'text-input', { error: !!error && isMandatory }, { 'readonly-field': isReadOnly }]"
         />
@@ -312,24 +338,6 @@ function normalizeBoolean(value, defaultValue = false) {
   }
 
   return defaultValue;
-}
-
-function normalizeBoolean(value, defaultValue = false) {
-  if (value === undefined || value === null || value === '') {
-    return defaultValue;
-  }
-
-  if (typeof value === 'string') {
-    const normalized = value.trim().toLowerCase();
-    if (TRUE_VALUES.has(normalized)) {
-      return true;
-    }
-    if (FALSE_VALUES.has(normalized)) {
-      return false;
-    }
-  }
-
-  return Boolean(value);
 }
 
 function computeInitialValue(field) {
