@@ -106,6 +106,31 @@ emits: [
   'field-value-change'
 ],
 setup(props, { emit }) {
+
+function normalizeOptions(raw) {
+  const toOpt = (o) => {
+    if (o && typeof o === 'object') {
+      const value = o.value ?? o.id ?? o.ID ?? o.key ?? o.Key ?? o.name ?? o.Name ?? null;
+      const label = o.label ?? o.Label ?? o.name ?? o.Name ?? (value != null ? String(value) : '');
+      const v = value != null ? value : label;
+      return v != null ? { value: v, label: String(label ?? v) } : null;
+    }
+    if (o == null) return null;
+    return { value: o, label: String(o) };
+  };
+  if (raw == null) return [];
+  if (Array.isArray(raw)) return raw.map(toOpt).filter(Boolean);
+  if (typeof raw === 'string') {
+    const s = raw.trim();
+    if (!s) return [];
+    try { const parsed = JSON.parse(s); if (Array.isArray(parsed)) return parsed.map(toOpt).filter(Boolean); } catch {}
+    return s.split(',').map(x => x.trim()).filter(Boolean).map(x => ({ value: x, label: x }));
+  }
+  if (typeof raw === 'object') return Object.values(raw).map(toOpt).filter(Boolean);
+  return [];
+}
+
+
     const sectionRef = ref(null);
     const dragHandle = ref(null);
     const isExpanded = ref(true);
@@ -619,7 +644,23 @@ setup(props, { emit }) {
             }
           },
           onAdd: async (evt) => {
-            if (!evt || !evt.to) return;
+            
+      // DND dataset vars
+      let listOptionsFromDataset = null;
+      let dataSourceFromDataset  = null;
+      try {
+        const ds = (evt.item && evt.item.dataset) ? evt.item.dataset : {};
+        if (ds.listOptionsJson && ds.listOptionsJson !== 'undefined') {
+          try { listOptionsFromDataset = JSON.parse(ds.listOptionsJson); } catch {}
+        }
+        if (ds.dataSourceJson && ds.dataSourceJson !== 'undefined') {
+          try { dataSourceFromDataset = JSON.parse(ds.dataSourceJson); } catch {}
+        }
+        
+      } catch (e) {
+        console.warn('[FB-LIST][onAdd] dataset parse failed', e);
+      }
+if (!evt || !evt.to) return;
 
             // Get the section ID - use a fallback for null IDs
             const sectionId = evt.to.dataset.sectionId || `temp-${Date.now()}`;
@@ -762,7 +803,22 @@ setup(props, { emit }) {
                   : {})
               };
 
-              // Add the field to the section at the correct position
+              
+      try {
+        if (Array.isArray(listOptionsFromDataset) && listOptionsFromDataset.length) {
+          const opts0 = normalizeOptions(listOptionsFromDataset);
+          if (opts0.length) { newField.list_options = opts0; newField.listOptions = opts0; newField.options = opts0; }
+        }
+        if (!Array.isArray(newField.options) || newField.options.length === 0) {
+          const raw = newField.list_options ?? newField.listOptions ?? newField.ListOptions ?? newField?.dataSource?.list_options ?? null;
+          const opts1 = normalizeOptions(raw);
+          if (opts1.length) { newField.list_options = opts1; newField.listOptions = opts1; newField.options = opts1; }
+        }
+        
+      } catch (e) {
+        console.warn('[FB-LIST] apply options error', e);
+      }
+// Add the field to the section at the correct position
               if (!props.section.fields) {
                 props.section.fields = [];
               }
