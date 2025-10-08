@@ -278,7 +278,8 @@ return {
 fieldName,
 onFieldClick,
 iconType,
-onRemoveClick
+onRemoveClick,
+onFieldValueChange
 };
 }
 };
