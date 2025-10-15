@@ -6,6 +6,10 @@
       '--connector-color': content.connectorColor || '#E5E7EB',
       '--connector-width': content.connectorWidth || '2px',
       '--connector-full-width': `${connectorWidth}px`,
+      '--marker-background-color': content.markerBackgroundColor || '#d0e7df',
+      '--marker-icon-color': content.markerIconColor || '#344767',
+      '--card-title-color': content.cardTitleColor || '#8c8c8d',
+      '--card-text-color': content.cardTextColor || '#333',
     }">
     <div ref="containerRef" class="ww-timeline__container">
       <div v-for="(item, index) in events" :key="index" class="ww-timeline__event" :class="{
@@ -1958,7 +1962,7 @@ const getAssigneeTooltip = (item, side) => {
     justify-content: center;
     width: 30px;
     height: 30px;
-    background-color: #d0e7df;
+    background-color: var(--marker-background-color, #d0e7df);
     z-index: 2;
     cursor: pointer;
 
@@ -1977,7 +1981,7 @@ const getAssigneeTooltip = (item, side) => {
     justify-content: center;
     width: 100%;
     height: 100%;
-    color: #344767;
+    color: var(--marker-icon-color, #344767);
     font-size: 16px;
     line-height: 1;
   }
@@ -2004,6 +2008,7 @@ const getAssigneeTooltip = (item, side) => {
     column-gap: 16px;
     row-gap: 6px;
     padding: 6px 0;
+    color: var(--card-text-color, #333);
 
     &__left {
       min-width: 0;
@@ -2022,7 +2027,7 @@ const getAssigneeTooltip = (item, side) => {
     &__title {
       font-weight: 500;
       font-size: 14px;
-      color: #8c8c8d;
+      color: var(--card-title-color, #8c8c8d);
       margin-bottom: 8px;
       display: flex;
       align-items: center;
@@ -2037,13 +2042,13 @@ const getAssigneeTooltip = (item, side) => {
 
     &__created-by {
       font-weight: 400;
-      color: #333;
+      color: var(--card-text-color, #333);
       font-size: 12px;
       margin-bottom: 15px;
     }
 
     &__created-date {
-      color: #6b7280;
+      color: var(--card-text-color, #333);
       font-size: 13px;
     }
 
@@ -2062,13 +2067,13 @@ const getAssigneeTooltip = (item, side) => {
 
     dt {
       font-weight: 500;
-      color: #333;
+      color: var(--card-text-color, #333);
       font-size: 13.5px;
     }
 
     dd {
       margin: 0;
-      color: #333;
+      color: var(--card-text-color, #333);
       word-break: break-word;
       font-size: 13.5px;
     }
@@ -2085,20 +2090,20 @@ const getAssigneeTooltip = (item, side) => {
       padding: 6px;
       border-radius: 4px;
       background: transparent;
-      color: #333;
+      color: var(--card-text-color, #333);
       line-height: 1.25;
       font-size: 13px;
     }
 
     .value-change .arrow {
       font-size: 18px;
-      color: #6b7280;
+      color: var(--card-text-color, #333);
     }
 
     .comment-content :deep(p) {
       margin: 0 0 6px 0;
       font-size: 13.5px;
-      color: #333;
+      color: var(--card-text-color, #333);
     }
 
     .comment-content :deep(a) {
@@ -2469,7 +2474,7 @@ const getAssigneeTooltip = (item, side) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 99999;
 }
 .tl-modal-content {
   background: transparent;
