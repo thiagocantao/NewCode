@@ -289,6 +289,30 @@ export default {
                 tooltip: 'Disable to require manual saving of field values'
             }
             /* wwEditor:end */
+        },
+        isMobile: {
+            label: { en: 'Mobile layout' },
+            type: 'Responsive',
+            section: 'settings',
+            bindable: true,
+            defaultValue: {
+                value: false
+            },
+            options: {
+                property: {
+                    type: 'OnOff',
+                    defaultValue: false
+                }
+            },
+            /* wwEditor:start */
+            bindingValidation: {
+                type: 'boolean',
+                tooltip: 'Toggle mobile layout with single-column fields'
+            },
+            propertyHelp: {
+                tooltip: 'Enable to display each field on its own row for mobile layouts'
+            }
+            /* wwEditor:end */
         }
     },
     triggerEvents: [
