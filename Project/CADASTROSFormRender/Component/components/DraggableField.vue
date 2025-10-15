@@ -303,15 +303,15 @@ grid-column: span 1;
 }
 
 .col-span-2 {
-  grid-column: span 2;
+grid-column: span 1;
 }
 
 .col-span-3 {
-  grid-column: span 3;
+grid-column: span 1;
 }
 
 .col-span-4 {
-  grid-column: span 4;
+grid-column: span 1;
 }
 
 .material-symbols-outlined {
