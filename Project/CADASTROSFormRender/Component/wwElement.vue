@@ -20,6 +20,7 @@
               ref="sectionComponents"
               :all-fields="allAvailableFields" :is-editing="isEditing" :api-url="apiUrl" :api-key="apiKey"
               :api-authorization="apiAuthorization" :ticket-id="ticketId" :company-id="companyId" :language="language"
+              :is-mobile="isMobile"
               @update-section="updateFormState" @edit-section="editSection" @edit-field="editFormField"
               @remove-field="removeFormField" @select-field="selectFieldForProperties"
               @remove-section="handleRemoveSection" @update:value="updateFieldValue" />
@@ -71,10 +72,14 @@ export default {
     autoSave: {
       type: Boolean,
       default: true
+    },
+    isMobile: {
+      type: Boolean,
+      default: undefined
     }
   },
   setup(props) {
-    
+
     const isEditing = computed(() => {
       return props.wwEditorState?.isEditing || false;
     });
@@ -101,6 +106,11 @@ export default {
     const ticketId = computed(() => props.ticketId || props.content.ticketId);
     const companyId = computed(() => props.content.companyId);
     const language = computed(() => props.content.language);
+    const isMobile = computed(() => {
+      if (typeof props.isMobile === 'boolean') return props.isMobile;
+      if (typeof props.content.isMobile === 'boolean') return props.content.isMobile;
+      return false;
+    });
     const autoSave = computed(() => {
       if (typeof props.autoSave === 'boolean') return props.autoSave;
       if (typeof props.content.autoSave === 'boolean') return props.content.autoSave;
@@ -404,6 +414,7 @@ export default {
       ticketId,
       companyId,
       language,
+      isMobile,
       isLoading,
       renderKey,
       formHeightStyle,
