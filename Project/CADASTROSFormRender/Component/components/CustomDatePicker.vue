@@ -1,6 +1,7 @@
 <template>
   <div class="dp-wrapper" ref="dpWrapper">
     <input
+      ref="dpInput"
       :class="['dp-input', { error }]"
       type="text"
       :value="displayDate"
@@ -23,7 +24,12 @@
     >
       <span class="material-symbols-outlined">calendar_month</span>
     </button>
-    <div v-if="dpOpen" class="datepicker-pop" :style="dpPopStyle">
+    <div
+      v-if="dpOpen"
+      ref="dpPopover"
+      class="datepicker-pop"
+      :style="dpPopStyle"
+    >
       <div class="dp-header">
         <button type="button" class="dp-nav" @click="prevMonth">&lt;</button>
         <div class="dp-title">{{ monthLabel }}</div>
@@ -108,6 +114,7 @@ export default {
     const dpInput = ref(null);
     const dpOpen = ref(false);
     const dpPopStyle = ref({});
+    const dpPopover = ref(null);
     const selectedDate = ref('');
     const timePart = ref('00:00');
 
@@ -207,13 +214,33 @@ export default {
       const wrap = dpWrapper.value;
       if (!wrap) return;
       const rect = wrap.getBoundingClientRect();
-      const left = Math.round(rect.left);
-      const bottom = Math.round(window.innerHeight - rect.top + 4);
+      const viewportHeight = window.innerHeight;
+      const viewportWidth = window.innerWidth;
+      const margin = 6;
+      const popEl = dpPopover.value;
+      const popRect = popEl ? popEl.getBoundingClientRect() : null;
+      const baseWidth = Math.max(rect.width, 230);
+      const popWidth = popRect?.width || baseWidth;
+      const popHeight = popRect?.height || 300;
+      const spaceBelow = viewportHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const shouldOpenUp = spaceBelow < popHeight + margin && spaceAbove > spaceBelow;
+      let top = shouldOpenUp
+        ? Math.max(margin, rect.top - popHeight - margin)
+        : Math.min(
+            viewportHeight - popHeight - margin,
+            Math.max(margin, rect.bottom + margin)
+          );
+      top = Math.max(margin, Math.min(top, viewportHeight - popHeight - margin));
+      let left = Math.max(margin, rect.left);
+      if (left + popWidth + margin > viewportWidth) {
+        left = Math.max(margin, viewportWidth - popWidth - margin);
+      }
       dpPopStyle.value = {
         position: 'fixed',
-        left: `${left}px`,
-        bottom: `${bottom}px`,
-        minWidth: `${Math.max(rect.width, 230)}px`,
+        left: `${Math.round(left)}px`,
+        top: `${Math.round(top)}px`,
+        minWidth: `${baseWidth}px`,
         zIndex: 2147483647
       };
     }
@@ -292,6 +319,7 @@ export default {
       dpInput,
       dpOpen,
       dpPopStyle,
+      dpPopover,
       openDp,
       prevMonth,
       nextMonth,
