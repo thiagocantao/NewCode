@@ -74,7 +74,7 @@ export default {
       default: true
     },
     isMobile: {
-      type: Boolean,
+      type: [Boolean, Object],
       default: undefined
     }
   },
@@ -106,10 +106,48 @@ export default {
     const ticketId = computed(() => props.ticketId || props.content.ticketId);
     const companyId = computed(() => props.content.companyId);
     const language = computed(() => props.content.language);
+    const resolveResponsiveBoolean = (value) => {
+      if (typeof value === 'boolean') return value;
+      if (!value || typeof value !== 'object') return false;
+
+      const getResponsiveValue = wwLib?.wwResponsive?.getValue;
+      if (typeof getResponsiveValue === 'function') {
+        try {
+          const resolved = getResponsiveValue(value, props.wwEditorState);
+          if (typeof resolved === 'boolean') return resolved;
+        } catch (error) {
+        }
+      }
+
+      if (typeof value.value === 'boolean') return value.value;
+
+      const breakpoint = props?.wwEditorState?.deviceId || props?.wwEditorState?.device?.id || props?.wwEditorState?.device;
+      if (breakpoint && typeof value[breakpoint] === 'boolean') {
+        return value[breakpoint];
+      }
+
+      if (breakpoint && value[breakpoint] && typeof value[breakpoint].value === 'boolean') {
+        return value[breakpoint].value;
+      }
+
+      const fallbackKeys = ['desktop', 'tablet', 'mobile', 'default'];
+      for (const key of fallbackKeys) {
+        if (typeof value[key] === 'boolean') return value[key];
+        if (value[key] && typeof value[key].value === 'boolean') return value[key].value;
+      }
+
+      const firstBoolean = Object.values(value).find(entry => typeof entry === 'boolean');
+      if (typeof firstBoolean === 'boolean') return firstBoolean;
+
+      const nestedBoolean = Object.values(value).find(entry => entry && typeof entry === 'object' && typeof entry.value === 'boolean');
+      if (nestedBoolean && typeof nestedBoolean.value === 'boolean') return nestedBoolean.value;
+
+      return false;
+    };
+
     const isMobile = computed(() => {
       if (typeof props.isMobile === 'boolean') return props.isMobile;
-      if (typeof props.content.isMobile === 'boolean') return props.content.isMobile;
-      return false;
+      return resolveResponsiveBoolean(props.content.isMobile);
     });
     const autoSave = computed(() => {
       if (typeof props.autoSave === 'boolean') return props.autoSave;

@@ -292,10 +292,18 @@ export default {
         },
         isMobile: {
             label: { en: 'Mobile layout' },
-            type: 'boolean',
+            type: 'Responsive',
             section: 'settings',
             bindable: true,
-            defaultValue: false,
+            defaultValue: {
+                value: false
+            },
+            options: {
+                property: {
+                    type: 'OnOff',
+                    defaultValue: false
+                }
+            },
             /* wwEditor:start */
             bindingValidation: {
                 type: 'boolean',
