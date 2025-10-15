@@ -659,6 +659,25 @@
               </div>
             </template>
 
+            <!-- TicketClosed -->
+            <template v-else-if="(item.TagControl || item.tagControl) === 'TicketClosed'">
+              <div class="activity-added-card">
+                <div class="activity-added-card__left">
+                  <div class="activity-added-card__title">{{ item.Title }}</div>
+                  <div
+                    v-if="getTicketClosedSolution(item)"
+                    class="comment-content ticket-closed-solution"
+                    v-html="getTicketClosedSolution(item)"
+                  ></div>
+                </div>
+
+                <div class="activity-added-card__right">
+                  <div class="activity-added-card__created-by">{{ item.CreatedByName }}</div>
+                  <div class="activity-added-card__created-date">{{ formatDateDash(item.CreatedDate) }}</div>
+                </div>
+              </div>
+            </template>
+
             <!-- MessageSent -->
             <template v-else-if="(item.TagControl || item.tagControl) === 'MessageSent'">
               <div class="activity-added-card">
@@ -935,6 +954,13 @@ export default {
       return o?.Title ?? o?.title ?? "";
     };
 
+    /* ========= TicketClosed ========= */
+    const getTicketClosedObj = (item) => {
+      if (item?.FieldNewValue && typeof item.FieldNewValue === "object") return item.FieldNewValue;
+      const parsed = parseMaybeJSON(item?.NewValueTitle);
+      return parsed || {};
+    };
+
     // --- FORMATED_TEXT
     const ftModalOpen = ref(false);
     const ftModalItem = ref(null);
@@ -1139,6 +1165,13 @@ async function confirmActDelete() {
       out = out.replace(/href\s*=\s*"(javascript:[^"]*)"/gi, 'href="#"');
       out = out.replace(/href\s*=\s*'(javascript:[^']*)'/gi, "href='#'");
       return out;
+    };
+
+    const getTicketClosedSolution = (item) => {
+      const obj = getTicketClosedObj(item);
+      const html =
+        obj?.Solution ?? obj?.solution ?? obj?.Resolution ?? obj?.resolution ?? obj?.NewValueTitle ?? "";
+      return sanitizeHtml(html);
     };
     const getCommentHtml = (item) => {
       const obj = getActivityObj(item);
@@ -1852,6 +1885,7 @@ const getAssigneeTooltip = (item, side) => {
       getTicketLinkedLabel,
       getTicketClonedLabel,
       getTicketCreatedTitle,
+      getTicketClosedSolution,
       // FT modal
       isFormattedText,
       openFtModal,
@@ -2120,6 +2154,14 @@ const getAssigneeTooltip = (item, side) => {
       border-radius: 4px;
       padding: 0 4px;
       display: inline-block;
+    }
+
+    .ticket-closed-solution {
+      margin-top: 8px;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
     }
 
     /* Avatares assignee + hint */
