@@ -25,6 +25,10 @@ export default {
         "timelineLayout",
         "eventsAlignment",
       ],
+      [
+        "cardTitleColor",
+        "cardTextColor",
+      ],
     ],
     customSettingsPropertiesOrder: [["dataSource", "data"]],
   },
@@ -98,13 +102,13 @@ export default {
       bindable: true,
       responsive: true,
       classes: true,
-      defaultValue: "#FFFFFF",
+      defaultValue: "#344767",
       hidden: (content) => !content.markerIconOnOff,
       /* wwEditor:start */
       bindingValidation: {
         type: "string",
         tooltip:
-          'The color of the icon in timeline markers\n\nColor string (e.g., "#FFFFFF", "rgba(255,255,255,0.5)")',
+          'The color of the icon in timeline markers\n\nColor string (e.g., "#344767", "rgba(52,71,103,0.8)")',
       },
       /* wwEditor:end */
     },
@@ -148,12 +152,46 @@ export default {
       bindable: true,
       responsive: true,
       classes: true,
-      defaultValue: "#4B5563",
+      defaultValue: "#d0e7df",
       /* wwEditor:start */
       bindingValidation: {
         type: "string",
         tooltip:
-          'The background color of timeline markers\n\nColor string (e.g., "#4B5563", "rgba(75,85,99,0.8)")',
+          'The background color of timeline markers\n\nColor string (e.g., "#d0e7df", "rgba(208,231,223,0.8)")',
+      },
+      /* wwEditor:end */
+    },
+
+    cardTitleColor: {
+      label: { en: "Card Title Color" },
+      type: "Color",
+      section: "style",
+      bindable: true,
+      responsive: true,
+      classes: true,
+      defaultValue: "#8c8c8d",
+      /* wwEditor:start */
+      bindingValidation: {
+        type: "string",
+        tooltip:
+          'The text color for card titles\n\nColor string (e.g., "#8c8c8d", "rgba(140,140,141,1)")',
+      },
+      /* wwEditor:end */
+    },
+
+    cardTextColor: {
+      label: { en: "Card Text Color" },
+      type: "Color",
+      section: "style",
+      bindable: true,
+      responsive: true,
+      classes: true,
+      defaultValue: "#333333",
+      /* wwEditor:start */
+      bindingValidation: {
+        type: "string",
+        tooltip:
+          'The text color for the card body\n\nColor string (e.g., "#333333", "rgba(51,51,51,1)")',
       },
       /* wwEditor:end */
     },
