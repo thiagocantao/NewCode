@@ -1156,7 +1156,9 @@ export default {
   .toolbar {
     margin-bottom: 0;
     display: flex;
+    flex-wrap: wrap;
     gap: 6px;
+    row-gap: 6px;
     background: #f8f9fa;
     border: 1px solid #e0e0e0;
     border-radius: 6px 6px 0 0;
