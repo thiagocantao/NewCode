@@ -308,7 +308,12 @@
                   <div class="activity-added-card__title">{{ item.Title }}</div>
 
                   <!-- Botão de menu (3 pontos) -->
-                  <button class="comment-menu-btn" title="More" @click.stop="toggleCommentMenu(item)">
+                  <button
+                    v-if="!isCommentDeleted(item)"
+                    class="comment-menu-btn"
+                    title="More"
+                    @click.stop="toggleCommentMenu(item)"
+                  >
                     <i class="material-symbols-outlined">more_vert</i>
                   </button>
 
