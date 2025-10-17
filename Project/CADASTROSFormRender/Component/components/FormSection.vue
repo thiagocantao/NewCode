@@ -17,6 +17,7 @@
             :ticket-id="ticketId"
             :options="getFieldOptions(field.id)"
             :user-id="userId"
+            :is-form-readonly="isReadOnly"
             @update:value="value => updateFieldValue(field.id, value)"
           />
         </div>
@@ -74,6 +75,10 @@ export default {
     isMobile: {
       type: Boolean,
       default: false
+    },
+    isReadOnly: {
+      type: Boolean,
+      default: false
     }
   },
   emits: ['update:value'],
@@ -81,6 +86,7 @@ export default {
     
     const isExpanded = ref(true);
     const isMobile = toRef(props, 'isMobile');
+    const isReadOnly = toRef(props, 'isReadOnly');
     const loadingOptions = ref({});
     const fieldOptions = ref({});
     const options = ref({});
@@ -335,7 +341,8 @@ export default {
       fieldRows,
       fieldComponents,
       validateFields,
-      getFieldGridStyle
+      getFieldGridStyle,
+      isReadOnly
     };
   }
 };
