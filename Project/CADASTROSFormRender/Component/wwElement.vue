@@ -176,9 +176,20 @@ export default {
           title: section.title[window.wwLib.wwVariable.getValue('aa44dc4c-476b-45e9-a094-16687e063342')] || section.title || 'Nova Seção',
           fields: (section.fields || []).map(field => {
             let processedValue = field.value;
+
+            const hasDefaultValue = Object.prototype.hasOwnProperty.call(field, 'default_value');
+            if (
+              hasDefaultValue &&
+              (processedValue === undefined || processedValue === null || processedValue === '')
+            ) {
+              processedValue = field.default_value;
+            }
+
             if (field.fieldType === 'YES_NO') {
               if (typeof processedValue === 'string') {
                 processedValue = processedValue === 'true' || processedValue === '1';
+              } else if (processedValue === undefined || processedValue === null) {
+                processedValue = false;
               } else {
                 processedValue = Boolean(processedValue);
               }
@@ -197,6 +208,7 @@ export default {
               is_hide_legend: Boolean(field.is_hide_legend),
               dataSource: field.dataSource || field.data_source,
               list_options: field.list_options || field.listOptions,
+              default_value: field.default_value,
               value: processedValue
             };
             return processedField;
@@ -239,7 +251,7 @@ export default {
         const formState = {
           sections: formSections.value.map(section => ({
             ...section,
-          fields: section.fields.map(field => ({
+            fields: section.fields.map(field => ({
               ...field,
               id: field.id || field.ID || field.field_id,
               field_id: field.field_id || field.ID || field.id,
@@ -249,6 +261,7 @@ export default {
               is_mandatory: Boolean(field.is_mandatory),
               is_readonly: Boolean(field.is_readonly),
               is_hide_legend: Boolean(field.is_hide_legend),
+              default_value: field.default_value,
               value: field.value
             }))
           }))
@@ -312,9 +325,13 @@ export default {
     };
 
     const updateFieldValue = ({ fieldId, value }) => {
-      const section = formSections.value.find(s => s.fields.some(f => f.id === fieldId));
+      const section = formSections.value.find(s =>
+        s.fields.some(f => f.id === fieldId || f.field_id === fieldId || f.ID === fieldId)
+      );
       if (section) {
-        const field = section.fields.find(f => f.id === fieldId);
+        const field = section.fields.find(
+          f => f.id === fieldId || f.field_id === fieldId || f.ID === fieldId
+        );
         if (field) {
           field.value = value;
           if (autoSave.value) {
