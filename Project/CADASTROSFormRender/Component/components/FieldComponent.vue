@@ -261,10 +261,10 @@ export default {
   },
   computed: {
     isFieldReadonly() {
-      return this.isFormReadonly || Boolean(this.field?.is_readonly);
+      return this.parseBoolean(this.isFormReadonly) || this.parseBoolean(this.field?.is_readonly);
     },
     shouldApplyReadonlyStyle() {
-      return !this.isFormReadonly && Boolean(this.field?.is_readonly);
+      return !this.parseBoolean(this.isFormReadonly) && this.parseBoolean(this.field?.is_readonly);
     },
     themeTokens() {
       if (typeof window !== 'undefined' && window.wwLib?.wwVariable?.getValue) {

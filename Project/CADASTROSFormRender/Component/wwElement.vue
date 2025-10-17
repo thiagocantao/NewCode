@@ -74,8 +74,8 @@ export default {
       default: true
     },
     readonly: {
-      type: Boolean,
-      default: false
+      type: [Boolean, String, Number],
+      default: undefined
     },
     isMobile: {
       type: [Boolean, Object],
@@ -87,6 +87,17 @@ export default {
     const isEditing = computed(() => {
       return props.wwEditorState?.isEditing || false;
     });
+
+    const coerceBoolean = (value) => {
+      if (typeof value === 'boolean') return value;
+      if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+        if (['true', '1', 'yes', 'sim', 's', 'y', 'on'].includes(normalized)) return true;
+        if (['false', '0', 'no', 'nao', 'não', 'n', 'off'].includes(normalized)) return false;
+      }
+      if (typeof value === 'number') return value !== 0;
+      return Boolean(value);
+    };
 
     const { value: formData, setValue: setFormData } = wwLib.wwVariable.useComponentVariable({
       uid: props.uid,
@@ -160,8 +171,13 @@ export default {
     });
 
     const isFormReadonly = computed(() => {
-      if (typeof props.readonly === 'boolean') return props.readonly;
-      if (typeof props.content?.isReadonly === 'boolean') return props.content.isReadonly;
+      if (props.readonly !== undefined && props.readonly !== null) {
+        return coerceBoolean(props.readonly);
+      }
+      const contentValue = props.content?.isReadonly;
+      if (contentValue !== undefined && contentValue !== null) {
+        return coerceBoolean(contentValue);
+      }
       return false;
     });
 
