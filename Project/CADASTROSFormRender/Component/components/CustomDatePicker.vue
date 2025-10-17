@@ -224,25 +224,43 @@ export default {
       const minWidth = isMobile.value ? 200 : 230;
       const maxWidth = isMobile.value ? 260 : Number.POSITIVE_INFINITY;
       const anchorWidth = rect.width;
+      const spaceLimitedMaxWidth = isFinite(maxWidth)
+        ? Math.min(maxWidth, Math.max(minWidth, viewportWidth - margin * 2))
+        : Math.max(minWidth, viewportWidth - margin * 2);
       const baseWidth = isMobile.value
-        ? Math.min(Math.max(minWidth, anchorWidth), maxWidth)
+        ? spaceLimitedMaxWidth
         : Math.max(anchorWidth, minWidth);
-      const popWidth = popRect?.width || baseWidth;
+      const popWidth = Math.min(
+        popRect?.width || baseWidth,
+        isMobile.value ? Math.max(minWidth, viewportWidth - margin * 2) : Number.POSITIVE_INFINITY
+      );
       const popHeight = popRect?.height || (isMobile.value ? 260 : 300);
-      const spaceBelow = viewportHeight - rect.bottom;
-      const spaceAbove = rect.top;
-      const shouldOpenUp = spaceBelow < popHeight + margin && spaceAbove > spaceBelow;
-      let top = shouldOpenUp
-        ? Math.max(margin, rect.top - popHeight - margin)
-        : Math.min(
-            viewportHeight - popHeight - margin,
-            Math.max(margin, rect.bottom + margin)
-          );
-      top = Math.max(margin, Math.min(top, viewportHeight - popHeight - margin));
-      let left = Math.max(margin, rect.left);
-      if (left + popWidth + margin > viewportWidth) {
-        left = Math.max(margin, viewportWidth - popWidth - margin);
+
+      let top;
+      let left;
+
+      if (isMobile.value) {
+        const centeredTop = (viewportHeight - popHeight) / 2;
+        const centeredLeft = (viewportWidth - popWidth) / 2;
+        top = Math.max(margin, Math.min(centeredTop, viewportHeight - popHeight - margin));
+        left = Math.max(margin, Math.min(centeredLeft, viewportWidth - popWidth - margin));
+      } else {
+        const spaceBelow = viewportHeight - rect.bottom;
+        const spaceAbove = rect.top;
+        const shouldOpenUp = spaceBelow < popHeight + margin && spaceAbove > spaceBelow;
+        top = shouldOpenUp
+          ? Math.max(margin, rect.top - popHeight - margin)
+          : Math.min(
+              viewportHeight - popHeight - margin,
+              Math.max(margin, rect.bottom + margin)
+            );
+        top = Math.max(margin, Math.min(top, viewportHeight - popHeight - margin));
+        left = Math.max(margin, rect.left);
+        if (left + popWidth + margin > viewportWidth) {
+          left = Math.max(margin, viewportWidth - popWidth - margin);
+        }
       }
+
       const style = {
         position: 'fixed',
         left: `${Math.round(left)}px`,
@@ -252,7 +270,7 @@ export default {
         zIndex: 2147483647
       };
       if (isFinite(maxWidth)) {
-        style.maxWidth = `${Math.round(maxWidth)}px`;
+        style.maxWidth = `${Math.round(Math.min(maxWidth, viewportWidth - margin * 2))}px`;
       }
       dpPopStyle.value = style;
     }
