@@ -24,35 +24,37 @@
     >
       <span class="material-symbols-outlined">calendar_month</span>
     </button>
-    <div v-if="dpOpen" class="datepicker-pop" :style="dpPopStyle" ref="dpPop">
-      <div class="dp-header">
-        <button type="button" class="dp-nav" @click="prevMonth">&lt;</button>
-        <div class="dp-title">{{ monthLabel }}</div>
-        <button type="button" class="dp-nav" @click="nextMonth">&gt;</button>
+    <Teleport to="body">
+      <div v-if="dpOpen" class="datepicker-pop" :style="dpPopStyle" ref="dpPop">
+        <div class="dp-header">
+          <button type="button" class="dp-nav" @click="prevMonth">&lt;</button>
+          <div class="dp-title">{{ monthLabel }}</div>
+          <button type="button" class="dp-nav" @click="nextMonth">&gt;</button>
+        </div>
+        <div class="dp-weekdays">
+          <div class="dp-weekday" v-for="d in weekdayAbbrs" :key="d">{{ d }}</div>
+        </div>
+        <div class="dp-grid">
+          <button
+            v-for="d in gridDays"
+            :key="d.dateStr"
+            type="button"
+            class="dp-cell"
+            :class="{ 'is-muted': !d.inMonth, 'is-selected': d.isSelected, 'is-today': d.isToday }"
+            @click="selectDay(d)"
+          >
+            {{ d.label }}
+          </button>
+        </div>
+        <div v-if="showTime" class="dp-time">
+          <input type="time" v-model="timePart" @input="onTimeInput" />
+        </div>
+        <div class="dp-actions">
+          <button type="button" class="dp-action" @click="pickToday">{{ labelToday }}</button>
+          <button type="button" class="dp-action" @click="clearDate">{{ labelClear }}</button>
+        </div>
       </div>
-      <div class="dp-weekdays">
-        <div class="dp-weekday" v-for="d in weekdayAbbrs" :key="d">{{ d }}</div>
-      </div>
-      <div class="dp-grid">
-        <button
-          v-for="d in gridDays"
-          :key="d.dateStr"
-          type="button"
-          class="dp-cell"
-          :class="{ 'is-muted': !d.inMonth, 'is-selected': d.isSelected, 'is-today': d.isToday }"
-          @click="selectDay(d)"
-        >
-          {{ d.label }}
-        </button>
-      </div>
-      <div v-if="showTime" class="dp-time">
-        <input type="time" v-model="timePart" @input="onTimeInput" />
-      </div>
-      <div class="dp-actions">
-        <button type="button" class="dp-action" @click="pickToday">{{ labelToday }}</button>
-        <button type="button" class="dp-action" @click="clearDate">{{ labelClear }}</button>
-      </div>
-    </div>
+    </Teleport>
   </div>
 </template>
 
@@ -310,8 +312,12 @@ export default {
 
     function onDocClick(e){
       if(!dpOpen.value) return;
-      const inside = dpWrapper.value && dpWrapper.value.contains(e.target);
-      if(!inside) closeDp();
+      const wrapper = dpWrapper.value;
+      const popEl = dpPop.value;
+      const target = e.target;
+      const insideWrapper = wrapper ? wrapper.contains(target) : false;
+      const insidePop = popEl ? popEl.contains(target) : false;
+      if(!insideWrapper && !insidePop) closeDp();
     }
     onMounted(() => document.addEventListener('click', onDocClick, true));
     onBeforeUnmount(() => {
