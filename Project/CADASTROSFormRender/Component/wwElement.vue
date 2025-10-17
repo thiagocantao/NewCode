@@ -20,7 +20,7 @@
               ref="sectionComponents"
               :all-fields="allAvailableFields" :is-editing="isEditing" :api-url="apiUrl" :api-key="apiKey"
               :api-authorization="apiAuthorization" :ticket-id="ticketId" :company-id="companyId" :language="language"
-              :is-mobile="isMobile"
+              :is-mobile="isMobile" :is-read-only="isFormReadonly"
               @update-section="updateFormState" @edit-section="editSection" @edit-field="editFormField"
               @remove-field="removeFormField" @select-field="selectFieldForProperties"
               @remove-section="handleRemoveSection" @update:value="updateFieldValue" />
@@ -73,6 +73,10 @@ export default {
       type: Boolean,
       default: true
     },
+    readonly: {
+      type: [Boolean, String, Number],
+      default: undefined
+    },
     isMobile: {
       type: [Boolean, Object],
       default: undefined
@@ -84,6 +88,17 @@ export default {
       return props.wwEditorState?.isEditing || false;
     });
 
+    const coerceBoolean = (value) => {
+      if (typeof value === 'boolean') return value;
+      if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+        if (['true', '1', 'yes', 'sim', 's', 'y', 'on'].includes(normalized)) return true;
+        if (['false', '0', 'no', 'nao', 'não', 'n', 'off'].includes(normalized)) return false;
+      }
+      if (typeof value === 'number') return value !== 0;
+      return Boolean(value);
+    };
+
     const { value: formData, setValue: setFormData } = wwLib.wwVariable.useComponentVariable({
       uid: props.uid,
       name: 'formData',
@@ -94,6 +109,7 @@ export default {
  
 
     const formSections = ref([]);
+    const formReadOnly = ref(false);
     const formSectionsContainer = ref(null);
     const allAvailableFields = ref([]);
     const isLoading = ref(true); // Estado de carregamento global
@@ -153,6 +169,17 @@ export default {
       if (typeof props.autoSave === 'boolean') return props.autoSave;
       if (typeof props.content.autoSave === 'boolean') return props.content.autoSave;
       return true;
+    });
+
+    const isFormReadonly = computed(() => {
+      if (props.readonly !== undefined && props.readonly !== null) {
+        return coerceBoolean(props.readonly);
+      }
+      const contentValue = props.content?.isReadonly;
+      if (contentValue !== undefined && contentValue !== null) {
+        return coerceBoolean(contentValue);
+      }
+      return false;
     });
 
     const componentFontFamily = ref('');
@@ -217,6 +244,8 @@ export default {
       }
 
       // Processar as seções com verificações de segurança
+      const normalizedFormReadonly = coerceBoolean(isFormReadonly.value);
+
       const processedSections = (formData.sections || []).map(section => {
         return {
           ...section,
@@ -231,6 +260,7 @@ export default {
                 processedValue = Boolean(processedValue);
               }
             }
+            const originalReadonly = coerceBoolean(field.is_readonly);
             // FORMATED_TEXT mantém como string
             // Outros tipos mantêm valor original
             const processedField = {
@@ -241,7 +271,8 @@ export default {
               fieldType: field.fieldType || 'text',
               columns: parseInt(field.columns) || 1,
               is_mandatory: Boolean(field.is_mandatory),
-              is_readonly: Boolean(field.is_readonly),
+              original_readonly: originalReadonly,
+              is_readonly: Boolean(originalReadonly || normalizedFormReadonly),
               is_hide_legend: Boolean(field.is_hide_legend),
               dataSource: field.dataSource || field.data_source,
               list_options: field.list_options || field.listOptions,
@@ -253,7 +284,8 @@ export default {
       });
 
       formSections.value = [...processedSections];
-      
+      formReadOnly.value = normalizedFormReadonly;
+
       // Atualizar o estado do formulário
       updateFormState();
     };
@@ -284,21 +316,27 @@ export default {
 
     const updateFormState = () => {
       try {
+        const normalizedFormReadonly = coerceBoolean(formReadOnly.value ?? isFormReadonly.value);
         const formState = {
           sections: formSections.value.map(section => ({
             ...section,
-          fields: section.fields.map(field => ({
-              ...field,
-              id: field.id || field.ID || field.field_id,
-              field_id: field.field_id || field.ID || field.id,
-              name: field.name || field.Name,
-              fieldType: field.fieldType || 'text',
-              columns: parseInt(field.columns) || 1,
-              is_mandatory: Boolean(field.is_mandatory),
-              is_readonly: Boolean(field.is_readonly),
-              is_hide_legend: Boolean(field.is_hide_legend),
-              value: field.value
-            }))
+            fields: section.fields.map(field => {
+              const originalReadonly = coerceBoolean(field.original_readonly ?? field.is_readonly);
+              const effectiveReadonly = Boolean(originalReadonly || normalizedFormReadonly);
+              return {
+                ...field,
+                id: field.id || field.ID || field.field_id,
+                field_id: field.field_id || field.ID || field.id,
+                name: field.name || field.Name,
+                fieldType: field.fieldType || 'text',
+                columns: parseInt(field.columns) || 1,
+                is_mandatory: Boolean(field.is_mandatory),
+                original_readonly: originalReadonly,
+                is_readonly: effectiveReadonly,
+                is_hide_legend: Boolean(field.is_hide_legend),
+                value: field.value
+              };
+            })
           }))
         };
         setFormData(formState);
@@ -416,6 +454,25 @@ export default {
       updateComponentFontFamily();
     }, { deep: true });
 
+    watch(
+      isFormReadonly,
+      newVal => {
+        const normalized = coerceBoolean(newVal);
+        formReadOnly.value = normalized;
+        formSections.value.forEach(section => {
+          section.fields.forEach(field => {
+            if (field.original_readonly === undefined) {
+              field.original_readonly = coerceBoolean(field.is_readonly);
+            }
+            field.original_readonly = coerceBoolean(field.original_readonly);
+            field.is_readonly = field.original_readonly || normalized;
+          });
+        });
+        updateFormState();
+      },
+      { immediate: true }
+    );
+
     // Watch para formSections para debug
     watch(formSections, (newSections, oldSections) => {
     }, { deep: true });
@@ -458,7 +515,8 @@ export default {
       formHeightStyle,
       hasCustomFormHeight,
       sectionComponents,
-      validateRequiredFields
+      validateRequiredFields,
+      isFormReadonly
     };
   }
 };
