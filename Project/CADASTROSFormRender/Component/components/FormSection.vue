@@ -350,7 +350,7 @@ export default {
 
 <style scoped>
 .form-section {
-  margin-bottom: 0px;
+  margin-bottom: 16px;
   border: 0px;
   background-color: #fff;
   font-size: 14px;
