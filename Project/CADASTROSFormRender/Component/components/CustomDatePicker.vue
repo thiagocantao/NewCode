@@ -27,7 +27,7 @@
     <div
       v-if="dpOpen"
       ref="dpPopover"
-      class="datepicker-pop"
+      :class="['datepicker-pop', { 'is-mobile': isMobile }]"
       :style="dpPopStyle"
     >
       <div class="dp-header">
@@ -70,7 +70,8 @@ export default {
     modelValue: { type: String, default: '' },
     disabled: { type: Boolean, default: false },
     showTime: { type: Boolean, default: false },
-    error: { type: Boolean, default: false }
+    error: { type: Boolean, default: false },
+    isMobile: { type: Boolean, default: false }
   },
   emits: ['update:modelValue'],
   setup(props, { emit }) {
@@ -117,6 +118,7 @@ export default {
     const dpPopover = ref(null);
     const selectedDate = ref('');
     const timePart = ref('00:00');
+    const isMobile = computed(() => !!props.isMobile);
 
     watch(
       () => props.modelValue,
@@ -219,9 +221,14 @@ export default {
       const margin = 6;
       const popEl = dpPopover.value;
       const popRect = popEl ? popEl.getBoundingClientRect() : null;
-      const baseWidth = Math.max(rect.width, 230);
+      const minWidth = isMobile.value ? 200 : 230;
+      const maxWidth = isMobile.value ? 260 : Number.POSITIVE_INFINITY;
+      const anchorWidth = rect.width;
+      const baseWidth = isMobile.value
+        ? Math.min(Math.max(minWidth, anchorWidth), maxWidth)
+        : Math.max(anchorWidth, minWidth);
       const popWidth = popRect?.width || baseWidth;
-      const popHeight = popRect?.height || 300;
+      const popHeight = popRect?.height || (isMobile.value ? 260 : 300);
       const spaceBelow = viewportHeight - rect.bottom;
       const spaceAbove = rect.top;
       const shouldOpenUp = spaceBelow < popHeight + margin && spaceAbove > spaceBelow;
@@ -236,13 +243,18 @@ export default {
       if (left + popWidth + margin > viewportWidth) {
         left = Math.max(margin, viewportWidth - popWidth - margin);
       }
-      dpPopStyle.value = {
+      const style = {
         position: 'fixed',
         left: `${Math.round(left)}px`,
         top: `${Math.round(top)}px`,
-        minWidth: `${baseWidth}px`,
+        minWidth: `${Math.round(Math.max(minWidth, 0))}px`,
+        width: `${Math.round(baseWidth)}px`,
         zIndex: 2147483647
       };
+      if (isFinite(maxWidth)) {
+        style.maxWidth = `${Math.round(maxWidth)}px`;
+      }
+      dpPopStyle.value = style;
     }
 
     function openDp(){
@@ -308,6 +320,12 @@ export default {
       window.removeEventListener('resize', updatePopoverPosition, true);
     });
 
+    watch(isMobile, () => {
+      if (dpOpen.value) {
+        nextTick(updatePopoverPosition);
+      }
+    });
+
     const displayDate = computed(() => {
       if (!selectedDate.value) return '';
       const base = formatDateByStyle(selectedDate.value, formatStyle);
@@ -336,7 +354,8 @@ export default {
       onTimeInput,
       showTime: props.showTime,
       disabled: props.disabled,
-      error: props.error
+      error: props.error,
+      isMobile
     };
   }
 };
@@ -414,4 +433,35 @@ export default {
 .dp-cell.is-today { outline: 1px dashed #689d8c; }
 .dp-actions { display: flex; justify-content: space-between; margin-top: 6px; }
 .dp-action { border: 1px solid #ccc; background: #f7f7f7; border-radius: 6px; padding: 4px 8px; cursor: pointer; }
+
+.datepicker-pop.is-mobile {
+  padding: 6px;
+  border-radius: 6px;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+}
+.datepicker-pop.is-mobile .dp-header {
+  margin-bottom: 4px;
+}
+.datepicker-pop.is-mobile .dp-title {
+  font-size: 13px;
+}
+.datepicker-pop.is-mobile .dp-weekday {
+  font-size: 11px;
+  padding: 3px 0;
+}
+.datepicker-pop.is-mobile .dp-cell {
+  padding: 5px 0;
+  font-size: 13px;
+}
+.datepicker-pop.is-mobile .dp-actions {
+  gap: 6px;
+}
+.datepicker-pop.is-mobile .dp-action {
+  flex: 1;
+  font-size: 12px;
+  padding: 4px 6px;
+}
+.datepicker-pop.is-mobile .dp-time input[type='time'] {
+  font-size: 13px;
+}
 </style>
