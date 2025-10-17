@@ -14,7 +14,7 @@
     <!-- Campos de entrada baseados no tipo -->
     <div class="field-input-container">
       <template v-if="field.fieldType === 'DATE'">
-        <CustomDatePicker v-model="localValue" :disabled="isFieldReadonly"
+        <CustomDatePicker v-model="localValue" :disabled="isFieldReadonly" :is-mobile="isMobile"
           @update:modelValue="val => updateValue({ target: { value: val } })"
           :class="[
             'field-input',
@@ -27,7 +27,7 @@
           ]" />
       </template>
       <template v-else-if="field.fieldType === 'DEADLINE'">
-        <CustomDatePicker v-model="deadlineValue" :disabled="isFieldReadonly" :show-time="true"
+        <CustomDatePicker v-model="deadlineValue" :disabled="isFieldReadonly" :show-time="true" :is-mobile="isMobile"
           @update:modelValue="val => updateValue({ target: { value: val } })"
           :class="[
             'field-input',
@@ -241,7 +241,8 @@ export default {
     ticketId: { type: String, required: false },
     options: { type: Array, default: () => [] },
     userId: { type: String, required: false },
-    isFormReadonly: { type: Boolean, default: false }
+    isFormReadonly: { type: Boolean, default: false },
+    isMobile: { type: Boolean, default: false }
   },
   data() {
     return {
