@@ -290,6 +290,22 @@ export default {
             }
             /* wwEditor:end */
         },
+        isReadonly: {
+            label: { en: 'Read-only form' },
+            type: 'OnOff',
+            section: 'settings',
+            bindable: true,
+            defaultValue: false,
+            /* wwEditor:start */
+            bindingValidation: {
+                type: 'boolean',
+                tooltip: 'Toggle to make the entire form read-only'
+            },
+            propertyHelp: {
+                tooltip: 'Enable to prevent editing while keeping the existing field appearance'
+            }
+            /* wwEditor:end */
+        },
         isMobile: {
             label: { en: 'Mobile layout' },
             type: 'Responsive',
