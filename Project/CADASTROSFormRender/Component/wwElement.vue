@@ -20,7 +20,7 @@
               ref="sectionComponents"
               :all-fields="allAvailableFields" :is-editing="isEditing" :api-url="apiUrl" :api-key="apiKey"
               :api-authorization="apiAuthorization" :ticket-id="ticketId" :company-id="companyId" :language="language"
-              :is-mobile="isMobile"
+              :is-mobile="isMobile" :is-read-only="isFormReadonly"
               @update-section="updateFormState" @edit-section="editSection" @edit-field="editFormField"
               @remove-field="removeFormField" @select-field="selectFieldForProperties"
               @remove-section="handleRemoveSection" @update:value="updateFieldValue" />
@@ -72,6 +72,10 @@ export default {
     autoSave: {
       type: Boolean,
       default: true
+    },
+    readonly: {
+      type: Boolean,
+      default: false
     },
     isMobile: {
       type: [Boolean, Object],
@@ -153,6 +157,12 @@ export default {
       if (typeof props.autoSave === 'boolean') return props.autoSave;
       if (typeof props.content.autoSave === 'boolean') return props.content.autoSave;
       return true;
+    });
+
+    const isFormReadonly = computed(() => {
+      if (typeof props.readonly === 'boolean') return props.readonly;
+      if (typeof props.content?.isReadonly === 'boolean') return props.content.isReadonly;
+      return false;
     });
 
     const componentFontFamily = ref('');
@@ -458,7 +468,8 @@ export default {
       formHeightStyle,
       hasCustomFormHeight,
       sectionComponents,
-      validateRequiredFields
+      validateRequiredFields,
+      isFormReadonly
     };
   }
 };
