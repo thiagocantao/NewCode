@@ -1,6 +1,9 @@
 <template>
   <div class="field-component"
-    :class="[`field-type-${field.fieldType.toLowerCase()}`, { 'is-mandatory': field.is_mandatory }]"
+    :class="[
+      `field-type-${field.fieldType.toLowerCase()}`,
+      { 'is-mandatory': field.is_mandatory, 'readonly-cursor': isFieldReadonly }
+    ]"
     :style="componentStyleVars">
     <!-- Label do campo -->
     <label v-if="!field.is_hide_legend" class="field-label">
@@ -11,23 +14,47 @@
     <!-- Campos de entrada baseados no tipo -->
     <div class="field-input-container">
       <template v-if="field.fieldType === 'DATE'">
-        <CustomDatePicker v-model="localValue" :disabled="field.is_readonly"
+        <CustomDatePicker v-model="localValue" :disabled="isFieldReadonly"
           @update:modelValue="val => updateValue({ target: { value: val } })"
-          :class="['field-input', 'date-input', { error: error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]" />
+          :class="[
+            'field-input',
+            'date-input',
+            {
+              error: error && field.is_mandatory,
+              'readonly-field': shouldApplyReadonlyStyle,
+              'readonly-cursor': isFieldReadonly
+            }
+          ]" />
       </template>
       <template v-else-if="field.fieldType === 'DEADLINE'">
-        <CustomDatePicker v-model="deadlineValue" :disabled="field.is_readonly" :show-time="true"
+        <CustomDatePicker v-model="deadlineValue" :disabled="isFieldReadonly" :show-time="true"
           @update:modelValue="val => updateValue({ target: { value: val } })"
-          :class="['field-input', 'date-input', { error: error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]" />
+          :class="[
+            'field-input',
+            'date-input',
+            {
+              error: error && field.is_mandatory,
+              'readonly-field': shouldApplyReadonlyStyle,
+              'readonly-cursor': isFieldReadonly
+            }
+          ]" />
       </template>
       <template v-else-if="field.fieldType === 'DECIMAL'">
         <input
           type="number"
           step="0.01"
           v-model="localValue"
-          :disabled="field.is_readonly"
+          :disabled="isFieldReadonly"
           @blur="updateValue"
-          :class="['field-input', 'decimal-input', { error: error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
+          :class="[
+            'field-input',
+            'decimal-input',
+            {
+              error: error && field.is_mandatory,
+              'readonly-field': shouldApplyReadonlyStyle,
+              'readonly-cursor': isFieldReadonly
+            }
+          ]"
         />
       </template>
       <template v-else-if="field.fieldType === 'INTEGER'">
@@ -35,15 +62,23 @@
           type="number"
           step="1"
           v-model="localValue"
-          :disabled="field.is_readonly"
+          :disabled="isFieldReadonly"
           @blur="updateValue"
-          :class="['field-input', 'integer-input', { error: error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
+          :class="[
+            'field-input',
+            'integer-input',
+            {
+              error: error && field.is_mandatory,
+              'readonly-field': shouldApplyReadonlyStyle,
+              'readonly-cursor': isFieldReadonly
+            }
+          ]"
         />
       </template>
 
       <!-- YES_NO -->
       <template v-else-if="field.fieldType === 'YES_NO'">
-        <div class="yes-no-container" :class="{ error: error && field.is_mandatory }">
+        <div class="yes-no-container" :class="{ error: error && field.is_mandatory, 'readonly-cursor': isFieldReadonly }">
           <label class="radio-label">
             <input
               type="radio"
@@ -51,7 +86,7 @@
               :value="true"
               v-model="localValue"
               @change="updateValue"
-              :disabled="field.is_readonly"
+              :disabled="isFieldReadonly"
             />
             Sim
           </label>
@@ -62,7 +97,7 @@
               :value="false"
               v-model="localValue"
               @change="updateValue"
-              :disabled="field.is_readonly"
+              :disabled="isFieldReadonly"
             />
             Não
           </label>
@@ -72,10 +107,10 @@
       <template
         v-else-if="field.fieldType === 'SIMPLE_LIST' || field.fieldType === 'CONTROLLED_LIST' || field.fieldType === 'LIST'">
         <div class="custom-dropdown-wrapper"
-          :class="{ 'readonly-field': field.is_readonly, 'dropdown-open': dropdownOpen }" ref="dropdownWrapper">
+          :class="{ 'readonly-field': shouldApplyReadonlyStyle, 'dropdown-open': dropdownOpen, 'readonly-cursor': isFieldReadonly }" ref="dropdownWrapper">
           <div class="custom-dropdown-selected"
-            :class="{ 'open': dropdownOpen, 'readonly-field': field.is_readonly, error: error && field.is_mandatory }"
-            @click="onDropdownClick" tabindex="0" @keydown.enter.prevent="!field.is_readonly && toggleDropdown()">
+            :class="{ 'open': dropdownOpen, 'readonly-field': shouldApplyReadonlyStyle, error: error && field.is_mandatory, 'readonly-cursor': isFieldReadonly }"
+            @click="onDropdownClick" tabindex="0" @keydown.enter.prevent="!isFieldReadonly && toggleDropdown()">
             <span
               v-if="selectedOption"
               @click.stop="onDropdownClick"
@@ -114,7 +149,7 @@
       </template>
       <template v-else-if="field.fieldType === 'FORMATED_TEXT'">
         <div class="formatted-text-wrapper">
-          <div v-if="!field.is_readonly" class="toolbar">
+          <div v-if="!isFieldReadonly" class="toolbar">
             <button type="button" @click="format('bold')" title="Negrito"><span class="material-symbols-outlined">format_bold</span></button>
             <button type="button" @click="format('italic')" title="Itálico"><span class="material-symbols-outlined">format_italic</span></button>
             <button type="button" @click="format('underline')" title="Sublinhado"><span class="material-symbols-outlined">format_underlined</span></button>
@@ -135,8 +170,16 @@
               />
             </button>
           </div>
-          <div ref="rte" :contenteditable="!field.is_readonly" dir="ltr"
-            :class="['field-input', 'rich-text-input', { error: error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
+          <div ref="rte" :contenteditable="!isFieldReadonly" dir="ltr"
+            :class="[
+              'field-input',
+              'rich-text-input',
+              {
+                error: error && field.is_mandatory,
+                'readonly-field': shouldApplyReadonlyStyle,
+                'readonly-cursor': isFieldReadonly
+              }
+            ]"
             :data-placeholder="field.placeholder || field.placeholder_translations?.pt_br || ''"
             @input="onContentEditableInput" @blur="updateValue"></div>
         </div>
@@ -144,9 +187,17 @@
       <template v-else-if="field.fieldType === 'MULTILINE_TEXT'">
         <textarea
           v-model="localValue"
-          :disabled="field.is_readonly"
+          :disabled="isFieldReadonly"
           @blur="updateValue"
-          :class="['field-input', 'multiline-input', { error: error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
+          :class="[
+            'field-input',
+            'multiline-input',
+            {
+              error: error && field.is_mandatory,
+              'readonly-field': shouldApplyReadonlyStyle,
+              'readonly-cursor': isFieldReadonly
+            }
+          ]"
           rows="4"
         ></textarea>
       </template>
@@ -154,9 +205,17 @@
         <input
           type="text"
           v-model="localValue"
-          :disabled="field.is_readonly"
+          :disabled="isFieldReadonly"
           @blur="updateValue"
-          :class="['field-input', 'text-input', { error: error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
+          :class="[
+            'field-input',
+            'text-input',
+            {
+              error: error && field.is_mandatory,
+              'readonly-field': shouldApplyReadonlyStyle,
+              'readonly-cursor': isFieldReadonly
+            }
+          ]"
         />
       </template>
     </div>
@@ -181,7 +240,8 @@ export default {
     apiAuthorization: { type: String, required: false },
     ticketId: { type: String, required: false },
     options: { type: Array, default: () => [] },
-    userId: { type: String, required: false }
+    userId: { type: String, required: false },
+    isFormReadonly: { type: Boolean, default: false }
   },
   data() {
     return {
@@ -200,6 +260,12 @@ export default {
     };
   },
   computed: {
+    isFieldReadonly() {
+      return this.isFormReadonly || Boolean(this.field?.is_readonly);
+    },
+    shouldApplyReadonlyStyle() {
+      return !this.isFormReadonly && Boolean(this.field?.is_readonly);
+    },
     themeTokens() {
       if (typeof window !== 'undefined' && window.wwLib?.wwVariable?.getValue) {
         const value = window.wwLib.wwVariable.getValue('61c1b425-10e8-40dc-8f1f-b117c08b9726');
@@ -318,6 +384,11 @@ export default {
     options: {
       handler() { if (this.dropdownOpen) this.$nextTick(this.updateDropdownDirection); },
       deep: true
+    },
+    isFieldReadonly(newVal) {
+      if (newVal) {
+        this.closeDropdown();
+      }
     }
   },
   methods: {
@@ -433,7 +504,7 @@ export default {
       }
     },
     toggleDropdown() {
-      if (this.field.is_readonly) return;
+      if (this.isFieldReadonly) return;
       if (this.dropdownOpen) {
         this.closeDropdown();
       } else {
@@ -942,6 +1013,11 @@ export default {
     cursor: not-allowed !important;
     border-style: dashed !important;
     opacity: 1 !important;
+  }
+
+  .readonly-cursor,
+  .readonly-cursor * {
+    cursor: not-allowed !important;
   }
 
   .formatted-text-wrapper {
