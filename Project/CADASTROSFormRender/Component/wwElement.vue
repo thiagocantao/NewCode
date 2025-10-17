@@ -20,6 +20,7 @@
               ref="sectionComponents"
               :all-fields="allAvailableFields" :is-editing="isEditing" :api-url="apiUrl" :api-key="apiKey"
               :api-authorization="apiAuthorization" :ticket-id="ticketId" :company-id="companyId" :language="language"
+              :is-mobile="isMobile" :is-read-only="isFormReadonly"
               @update-section="updateFormState" @edit-section="editSection" @edit-field="editFormField"
               @remove-field="removeFormField" @select-field="selectFieldForProperties"
               @remove-section="handleRemoveSection" @update:value="updateFieldValue" />
@@ -71,13 +72,32 @@ export default {
     autoSave: {
       type: Boolean,
       default: true
+    },
+    readonly: {
+      type: [Boolean, String, Number],
+      default: undefined
+    },
+    isMobile: {
+      type: [Boolean, Object],
+      default: undefined
     }
   },
   setup(props) {
-    
+
     const isEditing = computed(() => {
       return props.wwEditorState?.isEditing || false;
     });
+
+    const coerceBoolean = (value) => {
+      if (typeof value === 'boolean') return value;
+      if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+        if (['true', '1', 'yes', 'sim', 's', 'y', 'on'].includes(normalized)) return true;
+        if (['false', '0', 'no', 'nao', 'não', 'n', 'off'].includes(normalized)) return false;
+      }
+      if (typeof value === 'number') return value !== 0;
+      return Boolean(value);
+    };
 
     const { value: formData, setValue: setFormData } = wwLib.wwVariable.useComponentVariable({
       uid: props.uid,
@@ -89,6 +109,7 @@ export default {
  
 
     const formSections = ref([]);
+    const formReadOnly = ref(false);
     const formSectionsContainer = ref(null);
     const allAvailableFields = ref([]);
     const isLoading = ref(true); // Estado de carregamento global
@@ -101,10 +122,64 @@ export default {
     const ticketId = computed(() => props.ticketId || props.content.ticketId);
     const companyId = computed(() => props.content.companyId);
     const language = computed(() => props.content.language);
+    const resolveResponsiveBoolean = (value) => {
+      if (typeof value === 'boolean') return value;
+      if (!value || typeof value !== 'object') return false;
+
+      const getResponsiveValue = wwLib?.wwResponsive?.getValue;
+      if (typeof getResponsiveValue === 'function') {
+        try {
+          const resolved = getResponsiveValue(value, props.wwEditorState);
+          if (typeof resolved === 'boolean') return resolved;
+        } catch (error) {
+        }
+      }
+
+      if (typeof value.value === 'boolean') return value.value;
+
+      const breakpoint = props?.wwEditorState?.deviceId || props?.wwEditorState?.device?.id || props?.wwEditorState?.device;
+      if (breakpoint && typeof value[breakpoint] === 'boolean') {
+        return value[breakpoint];
+      }
+
+      if (breakpoint && value[breakpoint] && typeof value[breakpoint].value === 'boolean') {
+        return value[breakpoint].value;
+      }
+
+      const fallbackKeys = ['desktop', 'tablet', 'mobile', 'default'];
+      for (const key of fallbackKeys) {
+        if (typeof value[key] === 'boolean') return value[key];
+        if (value[key] && typeof value[key].value === 'boolean') return value[key].value;
+      }
+
+      const firstBoolean = Object.values(value).find(entry => typeof entry === 'boolean');
+      if (typeof firstBoolean === 'boolean') return firstBoolean;
+
+      const nestedBoolean = Object.values(value).find(entry => entry && typeof entry === 'object' && typeof entry.value === 'boolean');
+      if (nestedBoolean && typeof nestedBoolean.value === 'boolean') return nestedBoolean.value;
+
+      return false;
+    };
+
+    const isMobile = computed(() => {
+      if (typeof props.isMobile === 'boolean') return props.isMobile;
+      return resolveResponsiveBoolean(props.content.isMobile);
+    });
     const autoSave = computed(() => {
       if (typeof props.autoSave === 'boolean') return props.autoSave;
       if (typeof props.content.autoSave === 'boolean') return props.content.autoSave;
       return true;
+    });
+
+    const isFormReadonly = computed(() => {
+      if (props.readonly !== undefined && props.readonly !== null) {
+        return coerceBoolean(props.readonly);
+      }
+      const contentValue = props.content?.isReadonly;
+      if (contentValue !== undefined && contentValue !== null) {
+        return coerceBoolean(contentValue);
+      }
+      return false;
     });
 
     const componentFontFamily = ref('');
@@ -169,6 +244,8 @@ export default {
       }
 
       // Processar as seções com verificações de segurança
+      const normalizedFormReadonly = coerceBoolean(isFormReadonly.value);
+
       const processedSections = (formData.sections || []).map(section => {
         return {
           ...section,
@@ -194,6 +271,7 @@ export default {
                 processedValue = Boolean(processedValue);
               }
             }
+            const originalReadonly = coerceBoolean(field.is_readonly);
             // FORMATED_TEXT mantém como string
             // Outros tipos mantêm valor original
             const processedField = {
@@ -204,7 +282,8 @@ export default {
               fieldType: field.fieldType || 'text',
               columns: parseInt(field.columns) || 1,
               is_mandatory: Boolean(field.is_mandatory),
-              is_readonly: Boolean(field.is_readonly),
+              original_readonly: originalReadonly,
+              is_readonly: Boolean(originalReadonly || normalizedFormReadonly),
               is_hide_legend: Boolean(field.is_hide_legend),
               dataSource: field.dataSource || field.data_source,
               list_options: field.list_options || field.listOptions,
@@ -217,7 +296,8 @@ export default {
       });
 
       formSections.value = [...processedSections];
-      
+      formReadOnly.value = normalizedFormReadonly;
+
       // Atualizar o estado do formulário
       updateFormState();
     };
@@ -248,6 +328,7 @@ export default {
 
     const updateFormState = () => {
       try {
+        const normalizedFormReadonly = coerceBoolean(formReadOnly.value ?? isFormReadonly.value);
         const formState = {
           sections: formSections.value.map(section => ({
             ...section,
@@ -385,6 +466,25 @@ export default {
       updateComponentFontFamily();
     }, { deep: true });
 
+    watch(
+      isFormReadonly,
+      newVal => {
+        const normalized = coerceBoolean(newVal);
+        formReadOnly.value = normalized;
+        formSections.value.forEach(section => {
+          section.fields.forEach(field => {
+            if (field.original_readonly === undefined) {
+              field.original_readonly = coerceBoolean(field.is_readonly);
+            }
+            field.original_readonly = coerceBoolean(field.original_readonly);
+            field.is_readonly = field.original_readonly || normalized;
+          });
+        });
+        updateFormState();
+      },
+      { immediate: true }
+    );
+
     // Watch para formSections para debug
     watch(formSections, (newSections, oldSections) => {
     }, { deep: true });
@@ -421,12 +521,14 @@ export default {
       ticketId,
       companyId,
       language,
+      isMobile,
       isLoading,
       renderKey,
       formHeightStyle,
       hasCustomFormHeight,
       sectionComponents,
-      validateRequiredFields
+      validateRequiredFields,
+      isFormReadonly
     };
   }
 };

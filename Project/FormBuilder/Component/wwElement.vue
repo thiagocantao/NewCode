@@ -2,9 +2,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
 <div class="form-builder-container">
 <!-- Debug Panel -->
-<div v-if="isEditing" class="debug-panel">
+<div v-if="isEditing" class="debug-panel"> 
   <h4>Debug Info</h4>
-  <pre>{{ JSON.stringify(debugInfo, null, 2) }}</pre>
+  <pre>{{ JSON.stringify(debugInfo, null, 2) }}</pre> 
 </div> 
 
 <!-- Combined Form Builder with both field definition and form builder sections -->
@@ -31,21 +31,21 @@ v-model="searchQuery"
 class="available-fields-container"
 ref="availableFieldsContainer"
 >
-<div class="fields-grid scrollable">
-<DraggableField
-v-for="field in filteredAvailableFields"
-:key="field.ID + '-' + (usedFieldIds.has(field.ID) ? 'used' : 'free')"
-:field="field"
-:show-properties="false"
-:show-actions="true" 
-:is-editing="isEditing"
-:show-field-component="false"
-:is-disabled="usedFieldIds.has(field.ID)"
-@edit-field="editField"
-@remove-field="removeAvailableField"
-@select-field="selectFieldForProperties"
-/>
-</div>
+        <div class="fields-grid scrollable">
+          <DraggableField
+            v-for="field in filteredAvailableFields"
+            :key="field.ID + '-' + (isFieldDisabled(field) ? 'disabled' : 'free')"
+            :field="field"
+            :show-properties="false"
+            :show-actions="true"
+            :is-editing="isEditing"
+            :show-field-component="false"
+            :is-disabled="isFieldDisabled(field)"
+            @edit-field="editField"
+            @remove-field="removeAvailableField"
+            @select-field="selectFieldForProperties"
+          />
+        </div>
 </div>
 
 
@@ -53,9 +53,93 @@ v-for="field in filteredAvailableFields"
 
 <!-- Form Builder Section -->
 <div class="form-builder">
-<div v-if="content.showCabecalhoFormBuilder" class="cabecalhoFormBuilder" v-html="content.cabecalhoHtml">
-
-</div>
+    <div v-if="content.showCabecalhoFormBuilder" class="cabecalhoFormBuilder">
+      <div class="header-row header-row-title">
+        <div class="header-title">
+          <input
+            type="text"
+            class="inputCabecalho"
+            v-model="headerTitle"
+            :placeholder="translateText('Insert text')"
+          />
+        </div>
+      </div>
+      <div class="header-row header-row-controls">
+        <div class="header-tags">
+          <div
+            class="select-wrapper tag-select-wrapper"
+            :style="computeSelectWidthStyle(headerPriority, translateText('Select priority'))"
+          >
+            <select disabled="true" class="tag-selectPriority" v-model="headerPriority">
+              <option
+                v-for="option in priorityOptions"
+                :key="option.value ?? option.label ?? option"
+                :value="option.value ?? option.label ?? option"
+              >
+                {{ option.label ?? option.value ?? option }}
+              </option>
+            </select>
+            <span v-if="!headerPriority" class="select-placeholder">
+              {{ translateText('Select priority') }}
+            </span>
+          </div>
+          <div
+            class="select-wrapper tag-select-wrapper"
+            :style="computeSelectWidthStyle(headerCategory, translateText('Category'))"
+          >
+            <select disabled="true" class="tag-selectCat1" v-model="headerCategory"></select>
+            <span v-if="!headerCategory" class="select-placeholder">
+              {{ translateText('Category') }}
+            </span>
+          </div>
+          <div
+            class="select-wrapper tag-select-wrapper"
+            :style="computeSelectWidthStyle(headerSubcategory, translateText('Subcategory'))"
+          >
+            <select disabled="true" class="tag-selectCat2" v-model="headerSubcategory"></select>
+            <span v-if="!headerSubcategory" class="select-placeholder">
+              {{ translateText('Subcategory') }}
+            </span>
+          </div>
+          <div
+            class="select-wrapper tag-select-wrapper"
+            :style="computeSelectWidthStyle(headerThirdLevelCategory, translateText('Third-level category'))"
+          >
+            <select disabled="true" class="tag-selectCat3" v-model="headerThirdLevelCategory"></select>
+            <span v-if="!headerThirdLevelCategory" class="select-placeholder">
+              {{ translateText('Third-level category') }}
+            </span>
+          </div>
+        </div>
+        <div class="header-tags-rigth">
+          <div class="assignee-wrapper">
+            <span class="user-icon">
+              <i class="material-symbols-outlined">{{ translateText('person') }}</i>
+            </span>
+            <div
+              class="select-wrapper assignee-select-wrapper"
+              :style="computeSelectWidthStyle(headerAssignee, translateText('Unassigned'))"
+            >
+              <select disabled="true" class="user-select" v-model="headerAssignee"></select>
+              <span v-if="!headerAssignee" class="select-placeholder">
+                {{ translateText('Unassigned') }}
+              </span>
+            </div>
+          </div>
+          <div class="status-wrapper">
+            <div
+              class="select-wrapper status-select-wrapper"
+              :style="computeSelectWidthStyle(headerStatus, translateText('New'))"
+            >
+              <select disabled="true" class="status-select" v-model="headerStatus"></select>
+              <span v-if="!headerStatus" class="select-placeholder status-placeholder">
+                {{ translateText('New') }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 <div style="display: flex; width:100%; justify-content:end; align-items:end; height:50px; padding:12px">
 <button 
 v-if="!isEditing" 
@@ -132,6 +216,64 @@ wwEditorState: { type: Object, required: true },
 emits: ['trigger-event'],
 setup(props, { emit }) {
 
+function normalizeOptions(raw) {
+  function toOpt(o) {
+    if (o && typeof o === 'object') {
+      var value = o.value != null ? o.value : (o.id != null ? o.id : (o.ID != null ? o.ID : (o.key != null ? o.key : (o.Key != null ? o.Key : (o.name != null ? o.name : o.Name)))));
+      var label = o.label != null ? o.label : (o.Label != null ? o.Label : (o.name != null ? o.name : (o.Name != null ? o.Name : (value != null ? String(value) : ''))));
+      var v = value != null ? value : label;
+      return v != null ? { value: v, label: String(label != null ? label : v) } : null;
+    }
+    if (o == null) return null;
+    return { value: o, label: String(o) };
+  }
+  if (raw == null) return [];
+  if (Array.isArray(raw)) return raw.map(toOpt).filter(Boolean);
+  if (typeof raw === 'string') {
+    var s = raw.trim();
+    if (!s) return [];
+    try { var parsed = JSON.parse(s); if (Array.isArray(parsed)) return parsed.map(toOpt).filter(Boolean); } catch (e) {}
+    return s.split(',').map(function(x){return x.trim();}).filter(Boolean).map(function(x){return { value: x, label: x };});
+  }
+  if (typeof raw === 'object') return Object.values(raw).map(toOpt).filter(Boolean);
+  return [];
+}
+
+function resolveFullById(fieldId) {
+  var id = fieldId != null ? String(fieldId) : null;
+  if (!id) return null;
+  function byId(arr) {
+    return (arr || []).find(function(c){
+      var cid = c && (c.ID != null ? c.ID : (c.id != null ? c.id : (c.field_id != null ? c.field_id : c.FieldId)));
+      return cid != null && String(cid) === id;
+    });
+  }
+  try {
+    // 1) availableFields.value (se existir no escopo)
+    if (typeof availableFields !== 'undefined' && availableFields && Array.isArray(availableFields.value)) {
+      var f1 = byId(availableFields.value);
+      if (f1) return f1;
+    }
+  } catch (e) {}
+  try {
+    // 2) fontes globais
+    if (typeof window !== 'undefined') {
+      if (Array.isArray(window.__fieldsMaster)) {
+        var f2 = byId(window.__fieldsMaster); if (f2) return f2;
+      }
+      if (Array.isArray(window.__fieldsCatalog)) {
+        var f3 = byId(window.__fieldsCatalog); if (f3) return f3;
+      }
+      if (Array.isArray(window.__allFieldsFull)) {
+        var f4 = byId(window.__allFieldsFull); if (f4) return f4;
+      }
+    }
+  } catch (e) {}
+  return null;
+}
+
+
+
 
 
 // Editor state
@@ -198,7 +340,112 @@ const cloneDeep = (value) => {
 
 // State
 const availableFields = ref([]);
+
+// ===== Helpers: cache/normalize list options for SIMPLE_LIST/CONTROLLED_LIST =====
+function __toOptionLike(opt) {
+  if (opt && typeof opt === 'object') {
+    const value = opt.value ?? opt.id ?? opt.ID ?? opt.key ?? opt.Key ?? opt.name ?? opt.Name ?? null;
+    const label = opt.label ?? opt.Label ?? opt.name ?? opt.Name ?? (value != null ? String(value) : '');
+    const v = value != null ? value : label;
+    return v != null ? { value: v, label: String(label ?? v) } : null;
+  }
+  if (opt == null) return null;
+  return { value: opt, label: String(opt) };
+}
+function __parseOptionList(raw) {
+  if (raw == null) return [];
+  if (Array.isArray(raw)) return raw.map(__toOptionLike).filter(Boolean);
+  if (typeof raw === 'string') {
+    const s = raw.trim();
+    if (!s) return [];
+    try {
+      const parsed = JSON.parse(s);
+      if (Array.isArray(parsed)) return parsed.map(__toOptionLike).filter(Boolean);
+    } catch (_) {}
+    return s.split(',').map(x => x.trim()).filter(Boolean).map(x => ({ value: x, label: x }));
+  }
+  if (typeof raw === 'object') {
+    const values = Object.values(raw);
+    return Array.isArray(values) ? values.map(__toOptionLike).filter(Boolean) : [];
+  }
+  return [];
+}
+function __isListType(t) {
+  const x = String(t || '').toUpperCase();
+  return x === 'SIMPLE_LIST' || x === 'CONTROLLED_LIST' || x === 'LIST';
+}
+function __withOptionsCache(field) {
+  const f = { ...field };
+  try {
+    const rawLO =
+      f.list_options ?? f.listOptions ?? f.ListOptions ??
+      f?.dataSource?.list_options ?? f?.DataSource?.list_options ?? null;
+    const cache = __parseOptionList(rawLO);
+    // Armazena o cache sem quebrar o que já existe
+    f.__optionsCache = cache;
+    if (__isListType(f.fieldType) && (!Array.isArray(f.options) || f.options.length === 0) && cache.length) {
+      f.options = cache;
+      f.list_options = cache;
+      f.listOptions = cache;
+    }
+  } catch (_) {}
+  return f;
+}
+// ===== End Helpers =====
+
+// ===== Helpers: inflate/normalize list options from JSON/DataSource =====
+function toOptionLike(opt) {
+  if (opt && typeof opt === 'object') {
+    const value = opt.value ?? opt.id ?? opt.ID ?? opt.key ?? opt.Key ?? opt.name ?? opt.Name ?? null;
+    const label = opt.label ?? opt.Label ?? opt.name ?? opt.Name ?? (value != null ? String(value) : '');
+    const v = value != null ? value : label;
+    return v != null ? { value: v, label: String(label ?? v) } : null;
+  }
+  if (opt == null) return null;
+  return { value: opt, label: String(opt) };
+}
+function parseOptionList(raw) {
+  if (raw == null) return [];
+  if (Array.isArray(raw)) return raw.map(toOptionLike).filter(Boolean);
+  if (typeof raw === 'string') {
+    const s = raw.trim();
+    if (!s) return [];
+    try {
+      const parsed = JSON.parse(s);
+      if (Array.isArray(parsed)) return parsed.map(toOptionLike).filter(Boolean);
+    } catch (_) {}
+    // CSV fallback
+    return s.split(',').map(x => x.trim()).filter(Boolean).map(x => ({ value: x, label: x }));
+  }
+  if (typeof raw === 'object') {
+    const values = Object.values(raw);
+    return Array.isArray(values) ? values.map(toOptionLike).filter(Boolean) : [];
+  }
+  return [];
+}
+function isListType(t) {
+  const x = String(t || '').toUpperCase();
+  return x === 'SIMPLE_LIST' || x === 'CONTROLLED_LIST' || x === 'LIST';
+}
+function inflateFieldFromJson(field) {
+  const f = field || {};
+  try {
+    const rawLO =
+      f.list_options ?? f.listOptions ?? f.ListOptions ??
+      f?.dataSource?.list_options ?? f?.DataSource?.list_options ?? null;
+    const opts = parseOptionList(rawLO);
+    if (opts.length) {
+      f.list_options = opts;
+      f.listOptions  = opts;
+      f.options      = Array.isArray(f.options) && f.options.length ? f.options : opts;
+    }
+  } catch (e) { /* ignore */ }
+  return f;
+}
+// ===== End Helpers =====
+
 const formSections = ref([]);
+const fieldDefinitionCache = new Map();
 const availableFieldsContainer = ref(null);
 const formSectionsContainer = ref(null);
 const fieldModalVisible = ref(false);
@@ -210,6 +457,211 @@ const isNewSection = ref(false);
 const searchQuery = ref('');
 const selectedFieldForProperties = ref(null);
 const forceUpdate = ref(0);
+
+const cloneFieldDefinition = (field) => {
+  if (!field || typeof field !== 'object') {
+    return null;
+  }
+
+  try {
+    return JSON.parse(JSON.stringify(field));
+  } catch (error) {
+    console.warn('Failed to clone field definition for cache', error);
+    return { ...field };
+  }
+};
+
+const getFieldCacheKey = (field) => {
+  if (!field || typeof field !== 'object') {
+    return null;
+  }
+
+  const rawId =
+    field.ID ||
+    field.id ||
+    field.field_id ||
+    field.FieldId ||
+    null;
+
+  if (rawId == null) {
+    return null;
+  }
+
+  return String(rawId);
+};
+
+const rememberFieldDefinition = (field) => {
+  const cacheKey = getFieldCacheKey(field);
+  if (!cacheKey) {
+    return;
+  }
+
+  const cloned = cloneFieldDefinition(field);
+  if (cloned) {
+    fieldDefinitionCache.set(cacheKey, cloned);
+  }
+};
+
+const rememberFieldDefinitions = (fields) => {
+  if (!Array.isArray(fields)) {
+    return;
+  }
+
+  fields.forEach(field => rememberFieldDefinition(field));
+};
+
+const getCachedFieldDefinition = (fieldId) => {
+  if (fieldId == null) {
+    return null;
+  }
+
+  return fieldDefinitionCache.get(String(fieldId)) || null;
+};
+
+// Form header state
+const headerTitle = ref('');
+const headerPriority = ref('');
+const headerCategory = ref('');
+const headerSubcategory = ref('');
+const headerThirdLevelCategory = ref('');
+const headerAssignee = ref('');
+const headerStatus = ref('');
+
+const normalizePriorityOption = option => {
+  if (option == null) {
+    return null;
+  }
+
+  if (typeof option !== 'object') {
+    const primitiveValue = String(option);
+    return { value: primitiveValue, label: primitiveValue };
+  }
+
+  const rawValue =
+    option.value ??
+    option.Value ??
+    option.id ??
+    option.ID ??
+    option.Id ??
+    option.key ??
+    option.Key ??
+    option.slug ??
+    option.Slug ??
+    null;
+
+  const rawLabel =
+    option.label ??
+    option.Label ??
+    option.name ??
+    option.Name ??
+    option.title ??
+    option.Title ??
+    option.description ??
+    option.Description ??
+    null;
+
+  const normalizedValueCandidate =
+    rawValue != null && typeof rawValue !== 'object'
+      ? String(rawValue)
+      : rawLabel != null && typeof rawLabel !== 'object'
+        ? String(rawLabel)
+        : null;
+
+  if (!normalizedValueCandidate) {
+    return null;
+  }
+
+  const normalizedLabelCandidate =
+    rawLabel != null && typeof rawLabel !== 'object'
+      ? String(rawLabel)
+      : normalizedValueCandidate;
+
+  return {
+    value: normalizedValueCandidate,
+    label: normalizedLabelCandidate
+  };
+};
+
+const priorityOptions = computed(() => {
+ 
+  const collectionData = wwLib.wwCollection.getCollection("913fd277-8f18-420e-977e-ce52b6a751f9").data;
+
+  if (!Array.isArray(collectionData)) {
+    return [];
+  }
+
+  const seenValues = new Set();
+
+  return collectionData
+    .map(normalizePriorityOption)
+    .filter(option => {
+      if (!option || !option.value) {
+        return false;
+      }
+
+      if (seenValues.has(option.value)) {
+        return false;
+      }
+
+      seenValues.add(option.value);
+      return true;
+    });
+});
+
+watch(priorityOptions, newOptions => {
+  if (!newOptions.some(option => option.value === headerPriority.value)) {
+    headerPriority.value = '';
+  }
+});
+
+const getDisplayLength = (value) => {
+  if (!value && value !== 0) {
+    return 0;
+  }
+  if (typeof value === 'string') {
+    return value.length;
+  }
+  if (typeof value === 'number') {
+    return value.toString().length;
+  }
+  if (value && typeof value === 'object') {
+    if (typeof value.label === 'string') {
+      return value.label.length;
+    }
+    if (typeof value.name === 'string') {
+      return value.name.length;
+    }
+  }
+  return String(value).length;
+};
+
+const computeSelectWidthStyle = (value, fallbackLabel = '') => {
+  const fallbackLength = typeof fallbackLabel === 'string' ? fallbackLabel.length : 0;
+  const valueLength = getDisplayLength(value);
+  const computedLength = Math.max(valueLength, fallbackLength, 6);
+
+  return {
+    '--select-placeholder-length': computedLength
+  };
+};
+
+// Tag controls that must remain disabled in the available fields list
+const ALWAYS_DISABLED_TAG_CONTROLS = new Set([
+  'STATUSID',
+  'PRIORITYID',
+  'CATEGORYID',
+  'SUBCATEGORYID',
+  'CATEGORYLEVEL3ID',
+  'RESPONSIBLEUSERID'
+]);
+
+const getFieldTagControl = field =>
+  (field?.TagControl ?? field?.tagControl ?? field?.tagcontrol ?? '')
+    .toString()
+    .toUpperCase();
+
+const isFieldPermanentlyDisabled = field =>
+  ALWAYS_DISABLED_TAG_CONTROLS.has(getFieldTagControl(field));
 
 // Track used field IDs to disable them in the available fields list
 const usedFieldIds = computed(() => {
@@ -230,11 +682,20 @@ usedIds.add(field.field_id);
 return usedIds;
 });
 
+const isFieldDisabled = field => {
+  if (isFieldPermanentlyDisabled(field)) {
+    return true;
+  }
+
+  const fieldId = field?.ID || field?.field_id;
+  return fieldId ? usedFieldIds.value.has(fieldId) : false;
+};
+
 // Computed
 const filteredAvailableFields = computed(() => {
 if (!searchQuery.value) return availableFields.value;
 const query = searchQuery.value.toLowerCase();
-return availableFields.value.filter(field => 
+return availableFields.value.filter(field =>
 (field.name || '').toLowerCase().includes(query)
 );
 });
@@ -279,88 +740,113 @@ draggable: '.single-draggable:not(.is-disabled)',
 multiDrag: false,
 forceFallback: false,
 fallbackOnBody: false,
+onStart: () => {
+setSectionsSortableDisabled(true);
+},
 onEnd: (evt) => {
+setSectionsSortableDisabled(false);
 if (evt && evt.item && evt.item.parentNode) {
 updateFormState();
 }
 },
-onClone: (evt) => {
-if (!evt || !evt.item) return;
+      onClone: (evt) => {
+      try {
+        var _fid = null;
+        try { _fid = evt.clone && evt.clone.dataset && evt.clone.dataset.fieldId ? evt.clone.dataset.fieldId : null; } catch(e){}
+        if (!_fid) {
+          try { _fid = evt.item && evt.item.dataset && evt.item.dataset.fieldId ? evt.item.dataset.fieldId : null; } catch(e){}
+        }
+        var full = resolveFullById(_fid) || (evt.clone && evt.clone.__draggableField__) || (evt.item && evt.item.__draggableField__) || null;
+        var rawLO = full && (full.list_options != null ? full.list_options :
+                            (full.listOptions != null ? full.listOptions :
+                            (full.ListOptions != null ? full.ListOptions :
+                            (full.dataSource && full.dataSource.list_options) ? full.dataSource.list_options :
+                            (full.DataSource && full.DataSource.list_options) ? full.DataSource.list_options : null)));
+        var norm = normalizeOptions(rawLO);
+        try { evt.clone.dataset.listOptionsJson = JSON.stringify(norm); } catch(e){}
+        try { evt.clone.dataset.dataSourceJson  = JSON.stringify(full && (full.dataSource || full.DataSource) || null); } catch(e){}
+               
+      } catch (e) {
+        try { console.warn('[FB-LIST][onClone:set] error', e); } catch(_){}
 
-try {
-const originalFieldEl = evt.item;
-const originalField = originalFieldEl.__draggableField__;
+      }
 
-if (originalField) {
-const clonedField = JSON.parse(JSON.stringify(originalField));
-clonedField.id = null;
-clonedField.field_id = originalField.ID;
 
-if (evt.clone) {
-evt.clone.__draggableField__ = clonedField;
+        if (!evt || !evt.item || !evt.clone) {
+          return;
+        }
 
-evt.clone.dataset.fieldId = clonedField.field_id;
-evt.clone.dataset.fieldType = clonedField.fieldType || 'text';
-evt.clone.dataset.fieldName = clonedField.name;
-evt.clone.dataset.columns = clonedField.columns || '1';
+        try {
+          const originalFieldEl = evt.item;
+          const elementFieldId = originalFieldEl.dataset?.fieldId || null;
+          const storedField = originalFieldEl.__draggableField__ || null;
 
-evt.clone.setAttribute('data-unique-id', `field-${clonedField.field_id}-${Date.now()}`);
-}
+          const findFieldById = (id) => {
+            if (!id) return null;
+            return (
+              availableFields.value.find(candidate => {
+                const candidateId =
+                  candidate.ID || candidate.id || candidate.field_id || candidate.FieldId;
+                return candidateId != null && String(candidateId) === String(id);
+              }) || null
+            );
+          };
 
-// Encontra a seção de destino
-const targetSection = evt.to.closest('.form-section');
-if (targetSection) {
-const sectionId = targetSection.querySelector('.section-title')?.dataset.sectionId;
-const section = formSections.value.find(s => s.id === sectionId);
-if (section) {
-if (!section.fields) {
-section.fields = [];
-}
+          const sourceField = storedField || findFieldById(elementFieldId);
+          if (!sourceField) {
+            return;
+          }
 
-// Adiciona o campo à seção
-section.fields.push(clonedField);
-} else if (formSections.value.length > 0) {
-// Fallback: adiciona à primeira seção se não encontrar a seção de destino
-const firstSection = formSections.value[0];
-if (!firstSection.fields) {
-firstSection.fields = [];
-}
-firstSection.fields.push(clonedField);
-}
-}
+          const clonedField = JSON.parse(JSON.stringify(sourceField));
 
-updateFormState();
+          const normalizedId =
+            clonedField.field_id ||
+            clonedField.FieldId ||
+            clonedField.ID ||
+            clonedField.id ||
+            elementFieldId ||
+            null;
+          const normalizedName =
+            clonedField.Name || clonedField.name || clonedField.title || 'Unnamed Field';
+          const normalizedFieldType =
+            clonedField.fieldType || clonedField.FieldType || clonedField.type || 'text';
+          const normalizedColumns =
+            parseInt(clonedField.columns ?? clonedField.Columns ?? 1, 10) || 1;
 
-const index = availableFields.value.findIndex(f => f.ID === originalField.ID);
-if (index !== -1) {
-availableFields.value.splice(index, 1);
-}
-} else {
+          clonedField.ID = normalizedId;
+          clonedField.id = clonedField.id || normalizedId;
+          clonedField.field_id = clonedField.field_id || normalizedId;
+          clonedField.FieldId = clonedField.FieldId || clonedField.field_id;
+          clonedField.Name = normalizedName;
+          clonedField.name = clonedField.name || normalizedName;
+          clonedField.fieldType = normalizedFieldType;
+          clonedField.FieldType = clonedField.FieldType || normalizedFieldType;
+          clonedField.columns = normalizedColumns;
+          clonedField.Columns = clonedField.Columns || normalizedColumns;
 
-const fieldId = originalFieldEl.dataset.fieldId;
-if (fieldId && evt.clone) {
-Object.keys(originalFieldEl.dataset).forEach(key => {
-evt.clone.dataset[key] = originalFieldEl.dataset[key];
-});
-
-evt.clone.__draggableField__ = {
-ID: fieldId,
-field_id: fieldId,
-name: originalFieldEl.dataset.fieldName || 'Unnamed Field',
-fieldType: originalFieldEl.dataset.fieldType || 'text',
-columns: parseInt(originalFieldEl.dataset.columns || '1'),
-is_mandatory: false,
-is_readonly: false,
-is_hide_legend: false
-};
-}
-}
-
-} catch (error) {
-alert('Error in onClone handler:', error);
-}
-}
-});
+          evt.clone.__draggableField__ = clonedField;
+          evt.clone.dataset.fieldId = normalizedId != null ? String(normalizedId) : '';
+          evt.clone.dataset.fieldType = normalizedFieldType;
+          evt.clone.dataset.fieldName = normalizedName;
+          
+          try {
+            const srcField = evt.clone.__draggableField__ || storedField || sourceField || {};
+            const cache = srcField.__optionsCache || [];
+            evt.clone.dataset.cachedOptionsJson = JSON.stringify(cache);
+          } catch (_) {}
+evt.clone.dataset.columns = String(normalizedColumns);
+          
+          try {
+            const srcField = evt.clone.__draggableField__ || storedField || sourceField || {};
+            const cache = srcField.__optionsCache || [];
+            evt.clone.dataset.cachedOptionsJson = JSON.stringify(cache);
+          } catch (_) {}
+evt.clone.setAttribute('data-unique-id', `field-${normalizedId ?? 'temp'}-${Date.now()}`);
+        } catch (error) {
+          console.error('Error preparing cloned field metadata:', error);
+        }
+      }
+    });
 } else {
 }
 } catch (error) {
@@ -368,6 +854,16 @@ console.error('Error initializing Sortable in field definition container:', erro
 }
 }
 }
+// Helper to temporarily disable the sections Sortable instance while dragging fields
+function setSectionsSortableDisabled(disabled) {
+  const sortableInstance =
+    formSectionsContainer.value && formSectionsContainer.value._sortable;
+
+  if (sortableInstance && typeof sortableInstance.option === 'function') {
+    sortableInstance.option('disabled', !!disabled);
+  }
+}
+
 // Initialize sortable for form sections
 const initSectionsSortable = () => {
 if (!formSectionsContainer.value) {
@@ -462,8 +958,14 @@ const initFieldsContainers = () => {
       ghostClass: 'sortable-ghost',
       chosenClass: 'sortable-chosen',
       dragClass: 'sortable-drag',
+      onStart: () => {
+        setSectionsSortableDisabled(true);
+      },
       onAdd: (evt) => {
-        if (!evt || !evt.item) return;
+        if (!evt || !evt.item) {
+          setSectionsSortableDisabled(false);
+          return;
+        }
 
         try {
           // Verifica se o drop é em um container válido
@@ -490,11 +992,123 @@ const initFieldsContainers = () => {
 
           if (originalField) {
             const clonedField = JSON.parse(JSON.stringify(originalField));
+            
+          try {
+            const ds = evt.item?.dataset || {};
+            if (ds.cachedOptionsJson && ds.cachedOptionsJson !== 'undefined') {
+              const cache = JSON.parse(ds.cachedOptionsJson);
+              if (Array.isArray(cache) && cache.length) {
+                clonedField.options = cache; clonedField.list_options = cache; clonedField.listOptions = cache;
+              }
+            }
+          } catch (_) {}
+const normalizedSourceId =
+              originalField.field_id ||
+              originalField.FieldId ||
+              originalField.ID ||
+              originalField.id ||
+              originalFieldEl.dataset?.fieldId ||
+              null;
+            const cachedDefinition = getCachedFieldDefinition(normalizedSourceId);
+            if (cachedDefinition) {
+              let clonedCached;
+              try {
+                clonedCached = JSON.parse(JSON.stringify(cachedDefinition));
+              } catch (cacheError) {
+                console.warn('Failed to clone cached field definition', cacheError);
+                clonedCached = { ...cachedDefinition };
+              }
+
+              if (clonedField.dataSource == null && clonedCached) {
+                clonedField.dataSource = clonedCached.dataSource ?? clonedCached.DataSource ?? clonedField.dataSource;
+              }
+
+              if (clonedField.DataSource == null && clonedCached) {
+                clonedField.DataSource = clonedCached.DataSource ?? clonedCached.dataSource ?? clonedField.DataSource;
+              }
+
+              if (clonedField.list_options == null && clonedCached?.list_options != null) {
+                clonedField.list_options = Array.isArray(clonedCached.list_options)
+                  ? clonedCached.list_options.map(option =>
+                      option && typeof option === 'object' ? { ...option } : option
+                    )
+                  : clonedCached.list_options;
+              }
+
+              if (clonedField.listOptions == null && clonedCached?.listOptions != null) {
+                clonedField.listOptions = Array.isArray(clonedCached.listOptions)
+                  ? clonedCached.listOptions.map(option =>
+                      option && typeof option === 'object' ? { ...option } : option
+                    )
+                  : clonedCached.listOptions;
+              }
+
+              if (clonedField.options == null && clonedCached?.options != null) {
+                clonedField.options = Array.isArray(clonedCached.options)
+                  ? clonedCached.options.map(option =>
+                      option && typeof option === 'object' ? { ...option } : option
+                    )
+                  : clonedCached.options;
+              }
+
+              if (clonedField.default_value === undefined && clonedCached?.default_value !== undefined) {
+                clonedField.default_value = clonedCached.default_value;
+              }
+
+              if (clonedField.defaultValue === undefined && clonedCached?.defaultValue !== undefined) {
+                clonedField.defaultValue = clonedCached.defaultValue;
+              }
+
+              if (clonedField.value === undefined && clonedCached?.value !== undefined) {
+                clonedField.value = clonedCached.value;
+              }
+            }
+            const normalizedFieldType =
+              originalField.fieldType || originalField.FieldType || 'text';
+            const normalizedName =
+              originalField.Name || originalField.name || 'Unnamed Field';
+            const normalizedColumns =
+              parseInt(originalField.columns ?? originalField.Columns ?? 1, 10) || 1;
+
             clonedField.id = null;
-            clonedField.field_id = originalField.ID;
+            clonedField.ID = normalizedSourceId;
+            clonedField.field_id = normalizedSourceId;
+            clonedField.FieldId = originalField.FieldId || normalizedSourceId;
+            clonedField.fieldType = normalizedFieldType;
+            clonedField.FieldType = originalField.FieldType || normalizedFieldType;
+            clonedField.Name = normalizedName;
+            clonedField.name = originalField.name || normalizedName;
+            clonedField.columns = normalizedColumns;
+            clonedField.Columns = originalField.Columns || normalizedColumns;
+            if (clonedField.dataSource && !clonedField.DataSource) {
+              clonedField.DataSource = clonedField.dataSource;
+            }
+            if (clonedField.DataSource && !clonedField.dataSource) {
+              clonedField.dataSource = clonedField.DataSource;
+            }
+
+            // Preserve list options metadata for SIMPLE_LIST fields
+            if (
+              clonedField.fieldType === 'SIMPLE_LIST' &&
+              clonedField.list_options == null &&
+              clonedField.listOptions == null &&
+              Array.isArray(clonedField.options)
+            ) {
+              const optionsClone = clonedField.options.map(option => ({ ...option }));
+              clonedField.list_options = optionsClone;
+              clonedField.listOptions = optionsClone;
+            }
+
+            if (
+              clonedField.fieldType === 'SIMPLE_LIST' &&
+              clonedField.options == null &&
+              Array.isArray(clonedField.list_options)
+            ) {
+              clonedField.options = clonedField.list_options.map(option => ({ ...option }));
+            }
 
             if (!section.fields) {
-              section.fields = [];
+              section.fields = (Array.isArray((Array.isArray([]) ? [].map(inflateFieldFromJson) : [])) ? (Array.isArray([]) ? [].map(inflateFieldFromJson) : []).map(__withOptionsCache) : (Array.isArray([]) ? [].map(inflateFieldFromJson) : []));
             }
 
             // Calcula a posição correta baseada no elemento alvo
@@ -504,7 +1118,19 @@ const initFieldsContainers = () => {
 
             // Se o elemento está sendo movido para o final
             if (targetIndex === allElements.length - 1) {
-              section.fields.push(clonedField);
+              /* ensure options populated before insert */
+          try {
+            if (!Array.isArray(clonedField.options) || clonedField.options.length === 0) {
+              if (Array.isArray(clonedField.__optionsCache) && clonedField.__optionsCache.length) {
+                clonedField.options = clonedField.__optionsCache; clonedField.list_options = clonedField.__optionsCache; clonedField.listOptions = clonedField.__optionsCache;
+              } else {
+                const rawLO = clonedField.list_options ?? clonedField.listOptions ?? clonedField.ListOptions ?? clonedField?.dataSource?.list_options ?? clonedField?.DataSource?.list_options ?? null;
+                const opts = __parseOptionList(rawLO);
+                if (opts.length) { clonedField.options = opts; clonedField.list_options = opts; clonedField.listOptions = opts; }
+              }
+            }
+          } catch (_) {}
+section.fields.push(clonedField);
             } else {
               // Insere o campo na posição correta
               section.fields.splice(targetIndex, 0, clonedField);
@@ -512,16 +1138,67 @@ const initFieldsContainers = () => {
 
             updateFormState();
 
-            const index = availableFields.value.findIndex(f => f.ID === originalField.ID);
+            const index = availableFields.value.findIndex(candidate => {
+              const candidateId =
+                candidate.ID || candidate.id || candidate.field_id || candidate.FieldId;
+              return (
+                candidateId != null &&
+                normalizedSourceId != null &&
+                String(candidateId) === String(normalizedSourceId)
+              );
+            });
             if (index !== -1) {
               availableFields.value.splice(index, 1);
+              updateFieldsState();
             }
           }
         } catch (error) {
           console.error('Error in onAdd handler:', error);
-          if (evt.item) {
+          if (evt && evt.item) {
             evt.item.remove();
           }
+        } finally {
+          setSectionsSortableDisabled(false);
+        }
+      },
+      onEnd: () => {
+        setSectionsSortableDisabled(false);
+      },
+      onUpdate: (evt) => {
+        try {
+          if (!evt || !evt.item) return;
+
+          const sectionElement = evt.to.closest('.form-section');
+          if (!sectionElement) {
+            evt.item.remove();
+            return;
+          }
+
+          const sectionId = sectionElement.querySelector('.section-title')?.dataset.sectionId;
+          const section = formSections.value.find(s => s.id === sectionId);
+          if (!section) {
+            evt.item.remove();
+            return;
+          }
+
+          const targetElement = evt.to.children[evt.newIndex];
+          const allElements = Array.from(evt.to.children);
+          const targetIndex = allElements.indexOf(targetElement);
+
+          if (!section.fields) {
+            section.fields = (Array.isArray((Array.isArray([]) ? [].map(inflateFieldFromJson) : [])) ? (Array.isArray([]) ? [].map(inflateFieldFromJson) : []).map(__withOptionsCache) : (Array.isArray([]) ? [].map(inflateFieldFromJson) : []));
+          }
+
+          const movedField = section.fields.splice(evt.oldIndex, 1)[0];
+          section.fields.splice(targetIndex, 0, movedField);
+          updateFormState();
+        } catch (error) {
+          console.error('Error in onUpdate handler:', error);
+          if (evt && evt.item) {
+            evt.item.remove();
+          }
+        } finally {
+          setSectionsSortableDisabled(false);
         }
       }
     });
@@ -544,28 +1221,63 @@ const loadData = () => {
 };
 
 const loadFieldsData = () => {
-try {
-let data = [];
+  try {
+    let data = [];
 
-// Try to load from JSON string
-if (props.content.fieldsJson) {
-try {
-data = JSON.parse(props.content.fieldsJson);
-} catch (e) {
-console.error('Failed to parse fields JSON:', e);
-}
-}
+    const cloneArray = array => {
+      if (!Array.isArray(array)) {
+        return [];
+      }
 
-// If no data from JSON or parsing failed, use default fields
-if (!data || !data.length) {
-data = props.content.defaultFields || [];
-}
+      try {
+        return JSON.parse(JSON.stringify(array));
+      } catch (cloneError) {
+        console.warn('Failed to deeply clone fields array, falling back to shallow copy.', cloneError);
+        return array.map(item => (item && typeof item === 'object' ? { ...item } : item));
+      }
+    };
 
-availableFields.value = data;
-setFieldsData(data);
-} catch (error) {
-console.error('Error loading fields data:', error);
-}
+    const rawFields = props.content.fieldsJson;
+
+    if (rawFields) {
+      if (typeof rawFields === 'string') {
+        try {
+          const parsed = JSON.parse(rawFields);
+          if (Array.isArray(parsed)) {
+            data = cloneArray(parsed);
+          } else if (parsed && typeof parsed === 'object' && Array.isArray(parsed.fields)) {
+            data = cloneArray(parsed.fields);
+          } else {
+            console.warn('fieldsJson string did not contain an array of fields.');
+          }
+        } catch (e) {
+          console.error('Failed to parse fields JSON:', e);
+        }
+      } else if (Array.isArray(rawFields)) {
+        data = cloneArray(rawFields);
+      } else if (typeof rawFields === 'object') {
+        if (Array.isArray(rawFields.fields)) {
+          data = cloneArray(rawFields.fields);
+        } else {
+          console.warn(
+            'Unsupported fieldsJson object format. Expected an array or a { fields: [] } object.',
+            rawFields
+          );
+        }
+      }
+    }
+
+    // If no data from JSON or parsing failed, use default fields
+    if (!Array.isArray(data) || !data.length) {
+      data = cloneArray(props.content.defaultFields || []);
+    }
+
+    availableFields.value = Array.isArray(data) ? data : [];
+    rememberFieldDefinitions(availableFields.value);
+    setFieldsData(availableFields.value);
+  } catch (error) {
+    console.error('Error loading fields data:', error);
+  }
 };
 
 const loadFormData = () => {
@@ -624,6 +1336,15 @@ if (typeof window !== 'undefined') {
 
 // Convert sections array to the format expected by the component
     formSections.value = cloneDeep(data.sections || []);
+    const formSectionFields = [];
+    formSections.value.forEach(section => {
+      if (section && Array.isArray(section.fields)) {
+        section.fields.forEach(field => {
+          formSectionFields.push(field);
+        });
+      }
+    });
+    rememberFieldDefinitions(formSectionFields);
     setFormData(cloneDeep(data));
   } catch (error) {
     console.error('Error loading form data:', error);
@@ -657,17 +1378,29 @@ field.columns = Math.min(Math.max(parseInt(field.columns) || 1, 1), 4);
 
 if (isNewField.value) {
 availableFields.value.push(field);
+rememberFieldDefinition(field);
 } else {
-const index = availableFields.value.findIndex(f => f.ID === field.ID);
+const index = availableFields.value.findIndex(candidate => {
+  const candidateId =
+    candidate.ID || candidate.id || candidate.field_id || candidate.FieldId;
+  const fieldId = field.ID || field.id || field.field_id || field.FieldId;
+  return candidateId != null && fieldId != null && String(candidateId) === String(fieldId);
+});
 if (index !== -1) {
 availableFields.value[index] = field;
+rememberFieldDefinition(field);
 }
 }
 updateFieldsState();
 };
 
 const removeAvailableField = (field) => {
-const index = availableFields.value.findIndex(f => f.ID === field.ID);
+const index = availableFields.value.findIndex(candidate => {
+  const candidateId =
+    candidate.ID || candidate.id || candidate.field_id || candidate.FieldId;
+  const fieldId = field.ID || field.id || field.field_id || field.FieldId;
+  return candidateId != null && fieldId != null && String(candidateId) === String(fieldId);
+});
 if (index !== -1) {
 availableFields.value.splice(index, 1);
 updateFieldsState();
@@ -675,6 +1408,7 @@ updateFieldsState();
 };
 
 const updateFieldsState = () => {
+rememberFieldDefinitions(availableFields.value);
 setFieldsData([...availableFields.value]);
 emit('trigger-event', {
 name: 'fieldsUpdated',
@@ -778,21 +1512,68 @@ if (fieldIndex === -1) {
 const removedField = section.fields.splice(fieldIndex, 1)[0];
 
 // Adicionar o campo de volta à lista de campos disponíveis
+const normalizedRemovedId =
+  removedField.field_id ||
+  removedField.FieldId ||
+  removedField.ID ||
+  removedField.id ||
+  null;
+
 const fieldToAdd = {
-  ID: removedField.field_id || removedField.ID,
+  ...JSON.parse(JSON.stringify(removedField)),
+  ID: normalizedRemovedId,
+  field_id: normalizedRemovedId,
+  FieldId: removedField.FieldId || normalizedRemovedId,
   Name: removedField.Name || removedField.name,
-  fieldType: removedField.fieldType || 'text',
-  columns: parseInt(removedField.columns) || 1,
-  is_mandatory: Boolean(removedField.is_mandatory),
-  is_readonly: Boolean(removedField.is_readonly),
-  is_hide_legend: Boolean(removedField.is_hide_legend)
+  name: removedField.name || removedField.Name,
+  fieldType: removedField.fieldType || removedField.FieldType || 'text',
+  FieldType: removedField.FieldType || removedField.fieldType || 'text',
+  columns: parseInt(removedField.columns ?? removedField.Columns ?? 1, 10) || 1,
+  Columns: removedField.Columns || parseInt(removedField.columns ?? 1, 10) || 1,
+  is_mandatory: Boolean(removedField.is_mandatory ?? removedField.IsMandatory),
+  is_readonly: Boolean(removedField.is_readonly ?? removedField.IsReadOnly),
+  is_hide_legend: Boolean(removedField.is_hide_legend ?? removedField.IsHideLegend)
 };
 
+if (fieldToAdd.dataSource && !fieldToAdd.DataSource) {
+  fieldToAdd.DataSource = fieldToAdd.dataSource;
+}
+if (fieldToAdd.DataSource && !fieldToAdd.dataSource) {
+  fieldToAdd.dataSource = fieldToAdd.DataSource;
+}
+
+if (
+  fieldToAdd.fieldType === 'SIMPLE_LIST' &&
+  Array.isArray(fieldToAdd.list_options) &&
+  !fieldToAdd.options
+) {
+  fieldToAdd.options = fieldToAdd.list_options.map(option => ({ ...option }));
+}
+
+if (
+  fieldToAdd.fieldType === 'SIMPLE_LIST' &&
+  !fieldToAdd.list_options &&
+  Array.isArray(fieldToAdd.options)
+) {
+  const optionsClone = fieldToAdd.options.map(option => ({ ...option }));
+  fieldToAdd.list_options = optionsClone;
+  fieldToAdd.listOptions = optionsClone;
+}
+
 // Verificar se o campo já existe na lista de campos disponíveis
-const existingFieldIndex = availableFields.value.findIndex(f => f.ID === fieldToAdd.ID);
+const existingFieldIndex = availableFields.value.findIndex(candidate => {
+  const candidateId =
+    candidate.ID || candidate.id || candidate.field_id || candidate.FieldId;
+  return (
+    candidateId != null &&
+    fieldToAdd.ID != null &&
+    String(candidateId) === String(fieldToAdd.ID)
+  );
+});
 
 if (existingFieldIndex === -1) {
   availableFields.value.push(fieldToAdd);
+  rememberFieldDefinition(fieldToAdd);
   updateFieldsState();
 }
 
@@ -1222,9 +2003,10 @@ isNewField,
 isNewSection,
 allAvailableFields,
 searchQuery,
-filteredAvailableFields,
-usedFieldIds,
-showAddFieldModal,
+  filteredAvailableFields,
+  usedFieldIds,
+  isFieldDisabled,
+  showAddFieldModal,
 editField,
 saveField,
 removeAvailableField,
@@ -1248,7 +2030,16 @@ onRemoveField,
 handleRemoveSection,
 updateFieldInUse,
 orderedSections,
-translateText,
+headerTitle,
+headerPriority,
+headerCategory,
+headerSubcategory,
+  headerThirdLevelCategory,
+  headerAssignee,
+  headerStatus,
+  priorityOptions,
+  computeSelectWidthStyle,
+  translateText,
 showTranslatedMessage,
 handleFieldValueChange
 };
@@ -1498,134 +2289,243 @@ width: 255px;
 }
 
 
-:deep(.inputCabecalhoDiv) {
-    width: 100%;
-    height: 32px;
-}
-
-.cabecalhoFormBuilder
-{
-    display: flex;
-    flex-direction: column;
-    background: rgb(245, 246, 250);
-    border-radius: 10px 10px 0px 0px;
-    padding: 10px 24px;
-    border-bottom: 1px solid rgb(218, 220, 222);  
-}
-
-:deep(.inputCabecalho) {
-    font-size: 1.25rem;
-    font-family: Roboto-Light, "Open Sans", Arial, sans-serif;
-    border-radius: 4px;
-    height: 30px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    border: 1px solid transparent;
-    padding: 4px 8px;
-    background: transparent;
-    width: 100%;
-    color: rgb(79, 79, 79);
-    padding-block: 3px;
-    padding-inline: 4px;
-}
-
-:deep(.inputCabecalho:hover) {
-    background-color: #dedede;
-}
-
-:deep(.inputCabecalho:focus) {
-    background-color: transparent;
-    border: 1px solid rgb(79, 79, 79);
-    outline: none;
-}
-
-
-:deep(.elementsformBuilderTop) {
-    width: 100%;
-    display: flex;
-    -webkit-box-align: center;
-    align-items: center;
-    -webkit-box-pack: justify;
-    justify-content: space-between;
-    margin-top: 12px;
-    column-gap: 24px;
-}
-
-
-:deep(.css-fvhee8 .header-footer-div) {
-    width: 50%;
-    gap: 8px;
-    display: flex;
-    -webkit-box-align: center;
-    align-items: center;
-    flex-shrink: inherit;
-    flex-flow: row;
-    overflow: hidden;
-}
-
-:deep(.css-fvhee8 .header-footer-div > div.template-header) {
-    max-width: 23%;
-}
-
-:deep(.status-header-display) {
+.cabecalhoFormBuilder {
+  position: sticky;
+  top: 0;
+  z-index: 5;
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  background: #f5f6fa;
+  border-radius: 10px 10px 0 0;
+  padding: 16px 24px;
+  border-bottom: 1px solid #dadcde;
+}
+
+.header-row {
+  width: 100%;
+  display: flex;
+}
+
+.header-row-title {
   align-items: center;
-  padding: 6px 0;
-  background: transparent;
-  font-family: Roboto, sans-serif;
-  font-size: 14px;
 }
 
-:deep(.status-tags) {
-  display: flex;
-  gap: 8px;
-}
-
-:deep(.tag) {
-  border: 1px solid #c0c0c0;
-  border-radius: 999px;
-  padding: 4px 12px;
-  background-color: #f7f8fa;
-  color: #333;
-  white-space: nowrap;
-  font-size: 13px;
-}
-
-:deep(.status-user) {
-  display: flex;
+.header-row-controls {
   align-items: center;
   gap: 16px;
+  flex-wrap: wrap;
 }
 
-:deep(.user-info) {
+.header-title {
+  flex: 1 1 auto;
+  min-width: 200px;
+}
+
+.inputCabecalho {
+  font-size: 1.25rem;
+  font-family: Roboto-Light, "Open Sans", Arial, sans-serif;
+  border-radius: 6px;
+  height: 36px;
+  border: 1px solid transparent;
+  padding: 4px 8px;
+  background: transparent;
+  width: 100%;
+  color: #4f4f4f;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inputCabecalho:hover {
+  background-color: #e4e7ef;
+}
+
+.inputCabecalho:focus {
+  background-color: transparent;
+  border: 1px solid #4f4f4f;
+  outline: none;
+}
+
+.header-tags {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 12px;
+  row-gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.header-tags-rigth {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 12px;
+  row-gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: right;
+}
+
+.select-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  --select-placeholder-length: 10;
+}
+
+.tag-select-wrapper {
+  min-width: calc(var(--select-placeholder-length) * 0.3em + 2.75rem);
+}
+
+.tag-selectPriority {
+  border: 1px solid #d0d4dc;
+  border-radius: 999px;
+  padding: 2px 12px;
+  background-color: #eef1f7;
+  color: #3a3f4b;
+  font-size: 13px;
+  appearance: none;
+  min-height: 26px;
+  width: auto;
+  min-width: 100px;
+}
+
+.tag-selectCat1 {
+border: 1px solid #d0d4dc;
+border-radius: 999px;
+padding: 2px 12px;
+background-color: #eef1f7;
+color: #3a3f4b;
+font-size: 13px;
+appearance: none;
+min-height: 26px;
+width: auto;
+min-width: 75px;
+}
+
+.tag-selectCat2 {
+border: 1px solid #d0d4dc;
+border-radius: 999px;
+padding: 2px 12px;
+background-color: #eef1f7;
+color: #3a3f4b;
+font-size: 13px;
+appearance: none;
+min-height: 26px;
+width: auto;
+min-width: 95px;
+}
+
+.tag-selectCat3 {
+border: 1px solid #d0d4dc;
+border-radius: 999px;
+padding: 2px 12px;
+background-color: #eef1f7;
+color: #3a3f4b;
+font-size: 13px;
+appearance: none;
+min-height: 26px;
+width: auto;
+min-width: 140px;
+}
+
+.tag-select:focus {
+  outline: none;
+  border-color: #5c74a4;
+  box-shadow: 0 0 0 2px rgba(92, 116, 164, 0.2);
+}
+
+.select-placeholder {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #5f6368;
+  font-size: 13px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.header-meta {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #2f2f2f;
-  font-size: 14px;
+  margin-left: auto;
+  flex: 0 0 auto;
 }
 
-:deep(.user-icon) {
-  width: 24px;
-  height: 24px;
+.assignee-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0px;
+  padding: 0px 12px;
+  border-radius: 999px;
+  border: 1px solid #d0d4dc;
+  background-color: #0000;
+}
+
+.user-icon {
+  width: 26px;
+  height: 26px;
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  background: #f0f0f0;
-  border: 1px dashed #bbb;
+  background: #f0f1f5;
   border-radius: 50%;
-  font-size: 14px;
+  color: #4f4f4f;
+  font-size: 16px;
 }
 
-:deep(.status-label) {
-  background-color: #5c74a4;
-  color: #fff;
-  padding: 4px 12px;
-  border-radius: 6px;
+.assignee-select-wrapper {
+  min-width: calc(var(--select-placeholder-length) * 0.3em + 2.5rem);
+}
+
+.user-select {
+  appearance: none;
+  border: none;
+  background: transparent;
   font-size: 13px;
-  font-weight: bold;
+  color: #3a3f4b;
+  padding: 4px 4px 4px 0;
+  min-width: 0;
+  width: auto;
+}
+
+.user-select:focus {
+  outline: none;
+}
+
+.status-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.status-select-wrapper {
+  min-width: calc(var(--select-placeholder-length) * 0.3em + 1.5rem);
+}
+
+.status-select {
+  border: 1px solid #4d6dc3;
+  border-radius: 8px;
+  padding: 2px 12px;
+  background-color: #4d6dc3;
+  color: #ffffff;
+  font-size: 13px;
+  appearance: none;
+  min-height: 26px;
+  width: auto;
+  min-width: 50px;
+}
+
+.status-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(77, 109, 195, 0.25);
+}
+
+.status-placeholder {
+  color: #ffffff;
 }
 
 .debug-panel {

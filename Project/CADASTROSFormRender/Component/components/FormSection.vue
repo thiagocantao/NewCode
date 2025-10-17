@@ -1,8 +1,13 @@
 <template>
   <div class="form-section">
-    <div class="section-fields">
+    <div class="section-fields" :class="{ 'mobile-layout': isMobile }">
       <div v-for="(row, rowIndex) in fieldRows" :key="'row-' + rowIndex" class="form-row">
-        <div v-for="field in row" :key="field.id" class="field-wrapper" :style="{ gridColumn: 'span ' + Math.min(Math.max(parseInt(field.columns) || 1, 1), 4) }">
+        <div
+          v-for="field in row"
+          :key="field.id"
+          class="field-wrapper"
+          :style="getFieldGridStyle(field)"
+        >
           <FieldComponent
             ref="fieldComponents"
             :field="field"
@@ -12,6 +17,7 @@
             :ticket-id="ticketId"
             :options="getFieldOptions(field.id)"
             :user-id="userId"
+            :is-form-readonly="isReadOnly"
             @update:value="value => updateFieldValue(field.id, value)"
           />
         </div>
@@ -21,7 +27,7 @@
 </template>
 
 <script>
-import { computed, ref, onMounted, onUnmounted } from 'vue';
+import { computed, ref, onMounted, onUnmounted, toRef } from 'vue';
 import FieldComponent from './FieldComponent.vue';
 
 export default {
@@ -65,12 +71,22 @@ export default {
     userId: {
       type: String,
       required: false
+    },
+    isMobile: {
+      type: Boolean,
+      default: false
+    },
+    isReadOnly: {
+      type: Boolean,
+      default: false
     }
   },
   emits: ['update:value'],
   setup(props, { emit }) {
     
     const isExpanded = ref(true);
+    const isMobile = toRef(props, 'isMobile');
+    const isReadOnly = toRef(props, 'isReadOnly');
     const loadingOptions = ref({});
     const fieldOptions = ref({});
     const options = ref({});
@@ -109,6 +125,12 @@ export default {
     const fieldRows = computed(() => {
       const fields = [...sectionFields.value].sort((a, b) => (a.position || 0) - (b.position || 0));
       const rows = [];
+      if (isMobile.value) {
+        fields.forEach(field => {
+          rows.push([field]);
+        });
+        return rows;
+      }
       let currentRow = [];
       let currentSum = 0;
       fields.forEach(field => {
@@ -124,6 +146,14 @@ export default {
       if (currentRow.length) rows.push(currentRow);
       return rows;
     });
+
+    const getFieldGridStyle = (field) => {
+      if (isMobile.value) {
+        return { gridColumn: '1 / -1' };
+      }
+      const col = Math.min(Math.max(parseInt(field.columns) || 1, 1), 4);
+      return { gridColumn: 'span ' + col };
+    };
 
     const getInputType = (fieldType) => {
       switch (fieldType) {
@@ -295,6 +325,7 @@ export default {
     });
 
     return {
+      isMobile,
       isExpanded,
       toggleFields,
       sectionTitle,
@@ -309,7 +340,9 @@ export default {
       getFieldOptions,
       fieldRows,
       fieldComponents,
-      validateFields
+      validateFields,
+      getFieldGridStyle,
+      isReadOnly
     };
   }
 };
@@ -317,7 +350,7 @@ export default {
 
 <style scoped>
 .form-section {
-  margin-bottom: 0px;
+  margin-bottom: 16px;
   border: 0px;
   background-color: #fff;
   font-size: 14px;
@@ -348,6 +381,11 @@ export default {
   row-gap: 16px;
   justify-items: start;
   align-items: stretch;
+}
+
+.section-fields.mobile-layout {
+  grid-template-columns: 1fr;
+  column-gap: 0;
 }
 
 .form-row {

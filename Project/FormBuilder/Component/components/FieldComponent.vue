@@ -1,22 +1,24 @@
 <template>
   <div
     class="field-component"
-    :class="[`field-type-${(field.fieldType || '').toLowerCase()}`, { 'is-mandatory': field.is_mandatory }]"
+    :class="[`field-type-${(field.fieldType || '').toLowerCase()}`, { 'is-mandatory': isMandatory }]"
     :style="componentStyleVars"
   >
-    <label v-if="!field.is_hide_legend" class="field-label">
+    <label v-if="!isLegendHidden" class="field-label">
       {{ field.name }}
-      <span v-if="field.is_mandatory" class="required-indicator">*</span>
+      <span v-if="isMandatory" class="required-indicator">*</span>
     </label>
 
     <div class="field-input-container">
       <template v-if="field.fieldType === 'DATE'">
         <CustomDatePicker
           v-model="localValue"
-          :disabled="field.is_readonly"
-          :error="!!error && field.is_mandatory"
+          :disabled="isReadOnly"
+          :error="!!error && isMandatory"
+          @mousedown.stop
+          @touchstart.stop
           @update:modelValue="onDateChange"
-          :class="['field-input', 'date-input', { error: !!error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
+          :class="['field-input', 'date-input', { error: !!error && isMandatory }, { 'readonly-field': isReadOnly }]"
         />
       </template>
 
@@ -26,11 +28,13 @@
             class="deadline-visual"
             :class="[
               deadlineColorClass,
-              { 'readonly-field': field.is_readonly, 'deadline-empty': !deadlineHasValue }
+              { 'readonly-field': isReadOnly, 'deadline-empty': !deadlineHasValue }
             ]"
             :title="deadlineOriginalFormatted"
             role="button"
-            :tabindex="field.is_readonly ? -1 : 0"
+            :tabindex="isReadOnly ? -1 : 0"
+            @mousedown.stop
+            @touchstart.stop
             @click="openDeadlinePicker"
             @keydown.enter.prevent="openDeadlinePicker"
             @keydown.space.prevent="openDeadlinePicker"
@@ -46,11 +50,13 @@
           <CustomDatePicker
             ref="deadlineDatePicker"
             v-model="deadlineValue"
-            :disabled="field.is_readonly"
+            :disabled="isReadOnly"
             :show-time="true"
             :open-up-offset="60"
+            @mousedown.stop
+            @touchstart.stop
             @update:modelValue="onDeadlineChange"
-            :class="['field-input', 'date-input', { error: !!error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
+            :class="['field-input', 'date-input', { error: !!error && isMandatory }, { 'readonly-field': isReadOnly }]"
             style="position: absolute; top: 0; left: 0; width: 100%; height: 0; overflow: hidden;"
           />
         </div>
@@ -61,9 +67,11 @@
           type="number"
           step="0.01"
           v-model="localValue"
-          :disabled="field.is_readonly"
+          :disabled="isReadOnly"
+          @mousedown.stop
+          @touchstart.stop
           @blur="updateValue"
-          :class="['field-input', 'decimal-input', { error: !!error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
+          :class="['field-input', 'decimal-input', { error: !!error && isMandatory }, { 'readonly-field': isReadOnly }]"
         />
       </template>
 
@@ -72,9 +80,11 @@
           type="number"
           step="1"
           v-model="localValue"
-          :disabled="field.is_readonly"
+          :disabled="isReadOnly"
+          @mousedown.stop
+          @touchstart.stop
           @blur="updateValue"
-          :class="['field-input', 'integer-input', { error: !!error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
+          :class="['field-input', 'integer-input', { error: !!error && isMandatory }, { 'readonly-field': isReadOnly }]"
         />
       </template>
 
@@ -86,7 +96,9 @@
               :name="field.id"
               value="true"
               :checked="localValue === true"
-              :disabled="field.is_readonly"
+              :disabled="isReadOnly"
+              @mousedown.stop
+              @touchstart.stop
               @change="onYesNoChange(true)"
             />
             Sim
@@ -97,7 +109,9 @@
               :name="field.id"
               value="false"
               :checked="localValue === false"
-              :disabled="field.is_readonly"
+              :disabled="isReadOnly"
+              @mousedown.stop
+              @touchstart.stop
               @change="onYesNoChange(false)"
             />
             Não
@@ -107,7 +121,7 @@
 
       <template v-else-if="field.fieldType === 'FORMATED_TEXT'">
         <div class="formatted-text-wrapper">
-          <div v-if="!field.is_readonly" class="toolbar">
+          <div v-if="!isReadOnly" class="toolbar">
             <button type="button" @click="format('bold')" title="Negrito"><span class="material-symbols-outlined">format_bold</span></button>
             <button type="button" @click="format('italic')" title="Itálico"><span class="material-symbols-outlined">format_italic</span></button>
             <button type="button" @click="format('underline')" title="Sublinhado"><span class="material-symbols-outlined">format_underlined</span></button>
@@ -123,10 +137,12 @@
           </div>
           <div
             ref="rte"
-            :contenteditable="!field.is_readonly"
+            :contenteditable="!isReadOnly"
             dir="ltr"
-            :class="['field-input', 'rich-text-input', { 'readonly-field': field.is_readonly }]"
+            :class="['field-input', 'rich-text-input', { 'readonly-field': isReadOnly }]"
             :data-placeholder="field.placeholder || field.placeholder_translations?.pt_br || ''"
+            @mousedown.stop
+            @touchstart.stop
             @input="onContentEditableInput"
             @blur="updateValue"
           >
@@ -135,17 +151,19 @@
       </template>
 
       <template v-else-if="isListField">
-        <div class="custom-dropdown-wrapper" :class="{ 'readonly-field': field.is_readonly }">
+        <div class="custom-dropdown-wrapper" :class="{ 'readonly-field': isReadOnly }">
           <div
             class="custom-dropdown-selected"
             :class="{
               open: dropdownOpen,
-              'readonly-field': field.is_readonly,
-              error: !!error && field.is_mandatory
+              'readonly-field': isReadOnly,
+              error: !!error && isMandatory
             }"
             @click="onDropdownClick"
+            @mousedown.stop
+            @touchstart.stop
             tabindex="0"
-            @keydown.enter.prevent="!field.is_readonly && toggleDropdown()"
+            @keydown.enter.prevent="!isReadOnly && toggleDropdown()"
           >
             <span
               v-if="selectedOption"
@@ -183,6 +201,8 @@
                 placeholder="Pesquisar..."
                 class="list-search-input"
                 @keydown.stop
+                @mousedown.stop
+                @touchstart.stop
                 autofocus
               />
             </div>
@@ -198,6 +218,8 @@
               class="custom-dropdown-option"
               :class="{ selected: localValue == option.value }"
               @click="selectDropdownOption(option)"
+              @mousedown.stop
+              @touchstart.stop
             >
               {{ option.label }}
             </div>
@@ -208,9 +230,11 @@
       <template v-else-if="field.fieldType === 'MULTILINE_TEXT'">
         <textarea
           v-model="localValue"
-          :disabled="field.is_readonly"
+          :disabled="isReadOnly"
+          @mousedown.stop
+          @touchstart.stop
           @blur="updateValue"
-          :class="['field-input', 'multiline-input', { error: !!error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
+          :class="['field-input', 'multiline-input', { error: !!error && isMandatory }, { 'readonly-field': isReadOnly }]"
           rows="4"
         ></textarea>
       </template>
@@ -219,9 +243,11 @@
         <input
           type="text"
           v-model="localValue"
-          :disabled="field.is_readonly"
+          :disabled="isReadOnly"
+          @mousedown.stop
+          @touchstart.stop
           @blur="updateValue"
-          :class="['field-input', 'text-input', { error: !!error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
+          :class="['field-input', 'text-input', { error: !!error && isMandatory }, { 'readonly-field': isReadOnly }]"
         />
       </template>
     </div>
@@ -235,9 +261,84 @@
 
 <script>
 import CustomDatePicker from './CustomDatePicker.vue';
+import dataSourceUtils, {
+  LIST_FIELD_TYPES,
+  normalizeFieldDataSource,
+  fetchDataSourceOptions,
+  hasFetchableDataSource as rawHasFetchableDataSource
+} from '../utils/dataSource';
 
-const TRUE_VALUES = new Set(['true', '1', 1, true, 'yes', 'sim']);
-const FALSE_VALUES = new Set(['false', '0', 0, false, 'no', 'nao', 'não']);
+const hasFetchableDataSource =
+  typeof rawHasFetchableDataSource === 'function'
+    ? rawHasFetchableDataSource
+    : typeof (dataSourceUtils && dataSourceUtils.hasFetchableDataSource) === 'function'
+      ? dataSourceUtils.hasFetchableDataSource.bind(dataSourceUtils)
+      : () => false;
+
+const TRUE_VALUES = new Set([
+  'true',
+  '1',
+  1,
+  true,
+  'yes',
+  'sim',
+  'verdadeiro',
+  'v',
+  'on',
+  'habilitado',
+  'ativado',
+  'ativo',
+  'enabled'
+]);
+const FALSE_VALUES = new Set([
+  'false',
+  '0',
+  0,
+  false,
+  'no',
+  'nao',
+  'não',
+  'falso',
+  'n',
+  'off',
+  'desabilitado',
+  'desativado',
+  'inativo',
+  'disabled'
+]);
+
+function normalizeBoolean(value, defaultValue = false) {
+  if (value === undefined || value === null || value === '') {
+    return defaultValue;
+  }
+
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (typeof value === 'number') {
+    if (Number.isNaN(value)) {
+      return defaultValue;
+    }
+    return value !== 0;
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === '') {
+      return defaultValue;
+    }
+    if (TRUE_VALUES.has(normalized)) {
+      return true;
+    }
+    if (FALSE_VALUES.has(normalized)) {
+      return false;
+    }
+    return defaultValue;
+  }
+
+  return defaultValue;
+}
 
 function computeInitialValue(field) {
   if (!field) return '';
@@ -340,10 +441,37 @@ export default {
       return 'pt-BR';
     },
     dataSourceConfig() {
-      return this.normalizeDataSource(this.field);
+      return normalizeFieldDataSource(this.field);
+    },
+    isReadOnly() {
+      const raw =
+        this.field?.is_readonly ??
+        this.field?.isReadOnly ??
+        this.field?.readonly ??
+        null;
+      return normalizeBoolean(raw, false);
+    },
+    isMandatory() {
+      const raw =
+        this.field?.is_mandatory ??
+        this.field?.isMandatory ??
+        this.field?.mandatory ??
+        null;
+      return normalizeBoolean(raw, false);
+    },
+    isLegendHidden() {
+      const raw =
+        this.field?.is_hide_legend ??
+        this.field?.isHideLegend ??
+        this.field?.hideLegend ??
+        null;
+      return normalizeBoolean(raw, false);
     },
     isListField() {
-      return ['SIMPLE_LIST', 'LIST', 'CONTROLLED_LIST'].includes(this.field.fieldType);
+      const rawType =
+        this.field?.fieldType ?? this.field?.FieldType ?? this.field?.type ?? '';
+      const normalizedType = String(rawType).trim().toUpperCase();
+      return LIST_FIELD_TYPES.includes(normalizedType);
     },
     dropdownPlaceholder() {
       return (
@@ -531,8 +659,227 @@ export default {
           clearInterval(this.deadlineTimer);
           this.deadlineTimer = null;
         }
-        const newSource = JSON.stringify(this.normalizeDataSource(newField));
-        const oldSource = JSON.stringify(this.normalizeDataSource(oldField));
+        const newSource = JSON.stringify(normalizeFieldDataSource(newField));
+        const oldSource = JSON.stringify(normalizeFieldDataSource(oldField));
+        if (newSource !== oldSource) {
+          this.loadDataSourceOptions();
+        }
+      },
+      deep: true
+    },
+    localValue(newVal) {
+      if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte && this.$refs.rte.innerHTML !== newVal) {
+        this.$refs.rte.innerHTML = newVal || '';
+      }
+    },
+    dataSourceConfig: {
+      handler() {
+        this.loadDataSourceOptions();
+      },
+      deep: true,
+      immediate: true
+    },
+    dropdownOpen(val) {
+      if (!val) {
+        this.searchTerm = '';
+        document.removeEventListener('click', this.handleClickOutsideDropdown);
+      }
+    }
+  },
+  beforeUnmount() {
+    document.removeEventListener('click', this.handleClickOutsideDropdown);
+    if (this.deadlineTimer) {
+      clearInterval(this.deadlineTimer);
+      this.deadlineTimer = null;
+    }
+  },
+  mounted() {
+    if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
+      this.$refs.rte.innerHTML = this.localValue || '';
+    }
+    if (this.field.fieldType === 'DEADLINE' && !this.isReadOnly) {
+      this.deadlineTimer = setInterval(() => {
+        this.dataNow = new Date();
+      }, 1000);
+    }
+  },
+  watch: {
+    field: {
+      handler(newField, oldField) {
+        this.localValue = computeInitialValue(newField);
+        if (newField?.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
+          this.$nextTick(() => {
+            if (this.$refs.rte) {
+              this.$refs.rte.innerHTML = this.localValue || '';
+            }
+          });
+        }
+        const newFieldReadonly = normalizeBoolean(
+          newField?.is_readonly ?? newField?.isReadOnly ?? newField?.readonly,
+          false
+        );
+        if (newField?.fieldType === 'DEADLINE' && !newFieldReadonly && !this.deadlineTimer) {
+          this.deadlineTimer = setInterval(() => {
+            this.dataNow = new Date();
+          }, 1000);
+        } else if (
+          this.deadlineTimer &&
+          (
+            (oldField?.fieldType === 'DEADLINE' && newField?.fieldType !== 'DEADLINE') ||
+            (newField?.fieldType === 'DEADLINE' && newFieldReadonly)
+          )
+        ) {
+          clearInterval(this.deadlineTimer);
+          this.deadlineTimer = null;
+        }
+        const newSource = JSON.stringify(normalizeFieldDataSource(newField));
+        const oldSource = JSON.stringify(normalizeFieldDataSource(oldField));
+        if (newSource !== oldSource) {
+          this.loadDataSourceOptions();
+        }
+      },
+      deep: true
+    },
+    localValue(newVal) {
+      if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte && this.$refs.rte.innerHTML !== newVal) {
+        this.$refs.rte.innerHTML = newVal || '';
+      }
+    },
+    dataSourceConfig: {
+      handler() {
+        this.loadDataSourceOptions();
+      },
+      deep: true,
+      immediate: true
+    },
+    dropdownOpen(val) {
+      if (!val) {
+        this.searchTerm = '';
+        document.removeEventListener('click', this.handleClickOutsideDropdown);
+      }
+    }
+  },
+  beforeUnmount() {
+    document.removeEventListener('click', this.handleClickOutsideDropdown);
+    if (this.deadlineTimer) {
+      clearInterval(this.deadlineTimer);
+      this.deadlineTimer = null;
+    }
+  },
+  mounted() {
+    if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
+      this.$refs.rte.innerHTML = this.localValue || '';
+    }
+    if (this.field.fieldType === 'DEADLINE') {
+      this.deadlineTimer = setInterval(() => {
+        this.dataNow = new Date();
+      }, 1000);
+    }
+  },
+  watch: {
+    field: {
+      handler(newField, oldField) {
+        this.localValue = computeInitialValue(newField);
+        if (newField?.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
+          this.$nextTick(() => {
+            if (this.$refs.rte) {
+              this.$refs.rte.innerHTML = this.localValue || '';
+            }
+          });
+        }
+        if (newField?.fieldType === 'DEADLINE' && !this.deadlineTimer) {
+          this.deadlineTimer = setInterval(() => {
+            this.dataNow = new Date();
+          }, 1000);
+        } else if (oldField?.fieldType === 'DEADLINE' && newField?.fieldType !== 'DEADLINE' && this.deadlineTimer) {
+          clearInterval(this.deadlineTimer);
+          this.deadlineTimer = null;
+        }
+        const newSource = JSON.stringify(normalizeFieldDataSource(newField));
+        const oldSource = JSON.stringify(normalizeFieldDataSource(oldField));
+        if (newSource !== oldSource) {
+          this.loadDataSourceOptions();
+        }
+      },
+      deep: true
+    },
+    localValue(newVal) {
+      if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte && this.$refs.rte.innerHTML !== newVal) {
+        this.$refs.rte.innerHTML = newVal || '';
+      }
+    },
+    dataSourceConfig: {
+      handler() {
+        this.loadDataSourceOptions();
+      },
+      deep: true,
+      immediate: true
+    },
+    dropdownOpen(val) {
+      if (!val) {
+        this.searchTerm = '';
+        document.removeEventListener('click', this.handleClickOutsideDropdown);
+      }
+    }
+  },
+  beforeUnmount() {
+    document.removeEventListener('click', this.handleClickOutsideDropdown);
+    if (this.deadlineTimer) {
+      clearInterval(this.deadlineTimer);
+      this.deadlineTimer = null;
+    }
+  },
+  mounted() {
+    if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
+      this.$refs.rte.innerHTML = this.localValue || '';
+    }
+    if (this.field.fieldType === 'DEADLINE') {
+      this.deadlineTimer = setInterval(() => {
+        this.dataNow = new Date();
+      }, 1000);
+    }
+  },
+  mounted() {
+    if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
+      this.$refs.rte.innerHTML = this.localValue || '';
+    }
+    if (this.field.fieldType === 'DEADLINE' && !this.isReadOnly) {
+      this.deadlineTimer = setInterval(() => {
+        this.dataNow = new Date();
+      }, 1000);
+    }
+  },
+  watch: {
+    field: {
+      handler(newField, oldField) {
+        this.localValue = computeInitialValue(newField);
+        if (newField?.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
+          this.$nextTick(() => {
+            if (this.$refs.rte) {
+              this.$refs.rte.innerHTML = this.localValue || '';
+            }
+          });
+        }
+        const newFieldReadonly = normalizeBoolean(
+          newField?.is_readonly ?? newField?.isReadOnly ?? newField?.readonly,
+          false
+        );
+        if (newField?.fieldType === 'DEADLINE' && !newFieldReadonly && !this.deadlineTimer) {
+          this.deadlineTimer = setInterval(() => {
+            this.dataNow = new Date();
+          }, 1000);
+        } else if (
+          this.deadlineTimer &&
+          (
+            (oldField?.fieldType === 'DEADLINE' && newField?.fieldType !== 'DEADLINE') ||
+            (newField?.fieldType === 'DEADLINE' && newFieldReadonly)
+          )
+        ) {
+          clearInterval(this.deadlineTimer);
+          this.deadlineTimer = null;
+        }
+        const newSource = JSON.stringify(normalizeFieldDataSource(newField));
+        const oldSource = JSON.stringify(normalizeFieldDataSource(oldField));
         if (newSource !== oldSource) {
           this.loadDataSourceOptions();
         }
@@ -647,226 +994,61 @@ export default {
     document.removeEventListener('click', this.handleClickOutsideDropdown);
   },
   methods: {
+    normalizeDataSource(fieldLike) {
+      return normalizeFieldDataSource(fieldLike);
+    },
     translateText(text) {
       return text;
     },
-    normalizeDataSource(field) {
-      if (!field) return null;
-      const rawDataSource = field.dataSource ?? field.DataSource ?? null;
-      if (!rawDataSource) return null;
-
-      if (typeof rawDataSource !== 'object') {
-        return rawDataSource;
-      }
-
-      const transform = rawDataSource.transform ?? rawDataSource.Transform ?? null;
-      const method = rawDataSource.method ?? rawDataSource.Method ?? undefined;
-      const valueField = rawDataSource.valueField ?? rawDataSource.ValueField ?? undefined;
-      const labelField = rawDataSource.labelField ?? rawDataSource.LabelField ?? undefined;
-      const functionName = rawDataSource.functionName ?? rawDataSource.FunctionName ?? undefined;
-
-      return {
-        ...rawDataSource,
-        ...(transform ? { transform } : {}),
-        ...(method ? { method } : {}),
-        ...(valueField ? { valueField } : {}),
-        ...(labelField ? { labelField } : {}),
-        ...(functionName ? { functionName } : {}),
-      };
-    },
-    extractArrayFromResponse(payload, visited = new WeakSet()) {
-      if (Array.isArray(payload)) {
-        return payload;
-      }
-
-      if (!payload || typeof payload !== 'object') {
-        return null;
-      }
-
-      if (visited.has(payload)) {
-        return null;
-      }
-
-      visited.add(payload);
-
-      const priorityKeys = [
-        'items',
-        'data',
-        'results',
-        'value',
-        'values',
-        'options',
-        'records',
-        'list',
-        'rows',
-        'collection',
-      ];
-
-      for (const key of priorityKeys) {
-        if (Array.isArray(payload?.[key])) {
-          return payload[key];
-        }
-      }
-
-      for (const key of Object.keys(payload)) {
-        const value = payload[key];
-        const result = this.extractArrayFromResponse(value, visited);
-        if (Array.isArray(result)) {
-          return result;
-        }
-      }
-
-      return null;
-    },
-    mapOptionsFromData(dataArray, dataSource) {
-      if (!Array.isArray(dataArray)) {
-        return [];
-      }
-
-      const transform = dataSource && typeof dataSource === 'object'
-        ? (dataSource.transform ?? null)
-        : null;
-
-      if (transform && (transform.value || transform.label)) {
-        return dataArray
-          .map(item => {
-            if (!item || typeof item !== 'object') return null;
-            const value = item?.[transform.value] ?? item?.id ?? item?.ID;
-            const label = item?.[transform.label] ?? item?.name ?? item?.Name;
-            if (value === undefined || label === undefined) {
-              return null;
-            }
-            return { value, label };
-          })
-          .filter(option => option !== null);
-      }
-
-      const valueField =
-        (dataSource && typeof dataSource === 'object' && (dataSource.valueField ?? dataSource.ValueField)) ||
-        'id';
-      const labelField =
-        (dataSource && typeof dataSource === 'object' && (dataSource.labelField ?? dataSource.LabelField)) ||
-        'name';
-
-      return dataArray
-        .map(item => {
-          if (!item || typeof item !== 'object') {
-            const primitiveValue = item;
-            if (primitiveValue === undefined || primitiveValue === null) {
-              return null;
-            }
-            const normalized = String(primitiveValue);
-            return { value: primitiveValue, label: normalized };
-          }
-
-          const value = item?.[valueField] ?? item?.id ?? item?.ID;
-          const label = item?.[labelField] ?? item?.name ?? item?.Name;
-
-          if (value === undefined || label === undefined) {
-            return null;
-          }
-
-          return { value, label };
-        })
-        .filter(option => option !== null);
-    },
     async loadDataSourceOptions() {
-      if (typeof window === 'undefined') {
-        this.remoteOptions = [];
-        return;
-      }
-
       const dataSource = this.dataSourceConfig;
 
-      if (!dataSource) {
+      if (!hasFetchableDataSource(dataSource)) {
         this.remoteOptions = [];
+        this.isLoadingOptions = false;
         return;
-      }
-
-      const lang = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
-      const companyId = window.wwLib?.wwVariable?.getValue('5d099f04-cd42-41fd-94ad-22d4de368c3a');
-      const apiUrl = window.wwLib?.wwVariable?.getValue('1195995b-34c3-42a5-b436-693f0f4f8825') || '';
-      const apiKey = window.wwLib?.wwVariable?.getValue('d180be98-8926-47a7-b7f1-6375fbb95fa3');
-      const apiAuth = window.wwLib?.wwVariable?.getValue('dfcde09f-42f3-4b5c-b2e8-4314650655db');
-
-      const headers = { 'Content-Type': 'application/json' };
-      if (apiKey) headers.apikey = apiKey;
-      if (apiAuth) headers.Authorization = apiAuth;
-
-      let url = '';
-      let method = 'POST';
-
-      if (typeof dataSource === 'string') {
-        if (!dataSource.trim()) {
-          this.remoteOptions = [];
-          return;
-        }
-        url = this.combineUrl(apiUrl, dataSource);
-      } else if (dataSource.url) {
-        url = this.combineUrl(apiUrl, dataSource.url);
-        const rawMethod = dataSource.method ?? dataSource.Method;
-        if (rawMethod && rawMethod.toUpperCase() === 'GET') {
-          method = 'GET';
-        }
-      } else if (dataSource.functionName) {
-        url = this.combineUrl(apiUrl, dataSource.functionName);
-      } else {
-        this.remoteOptions = [];
-        return;
-      }
-
-      const fetchOptions = { method, headers };
-      if (method !== 'GET') {
-        fetchOptions.body = JSON.stringify({
-          ...(companyId ? { p_idcompany: companyId } : {}),
-          ...(lang ? { p_language: lang } : {})
-        });
       }
 
       this.isLoadingOptions = true;
       try {
-        const response = await fetch(url, fetchOptions);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+        const options = await fetchDataSourceOptions(dataSource);
+        const normalizedOptions = Array.isArray(options)
+          ? options
+              .map(option => {
+                if (!option || typeof option !== 'object') {
+                  const value = option;
+                  const label = option === null || option === undefined ? '' : String(option);
+                  return { value, label };
+                }
+                const value = option.value ?? option.Value ?? option.id ?? option.ID ?? null;
+                const label = option.label ?? option.Label ?? option.name ?? option.Name ?? null;
+                if (value === null || label === null) {
+                  return null;
+                }
+                return { value, label };
+              })
+              .filter(Boolean)
+          : [];
+
+        this.remoteOptions = normalizedOptions;
+
+        if (this.field) {
+          const clonedOptions = normalizedOptions.map(option => ({ ...option }));
+          this.field.options = clonedOptions;
+          this.field.list_options = clonedOptions;
+          this.field.listOptions = clonedOptions;
         }
-
-        const data = await response.json();
-        const dataArray = this.extractArrayFromResponse(data);
-
-        if (!Array.isArray(dataArray)) {
-          this.remoteOptions = [];
-          return;
-        }
-
-        const options = this.mapOptionsFromData(dataArray, dataSource);
-
-        this.remoteOptions = options.sort((a, b) => {
-          if (typeof a.label === 'string' && typeof b.label === 'string') {
-            return a.label.localeCompare(b.label);
-          }
-          return 0;
-        });
       } catch (err) {
         console.error('Failed to load data source options', err);
         this.remoteOptions = [];
+        if (this.field) {
+          this.field.options = [];
+          this.field.list_options = [];
+          this.field.listOptions = [];
+        }
       } finally {
         this.isLoadingOptions = false;
       }
-    },
-    combineUrl(baseUrl, path) {
-      if (!path) return baseUrl || '';
-      if (/^https?:\/\//i.test(path)) {
-        return path;
-      }
-
-      const sanitizedBase = (baseUrl || '').replace(/\/+$/, '');
-      const sanitizedPath = path.replace(/^\/+/, '');
-
-      if (!sanitizedBase) {
-        return `/${sanitizedPath}`;
-      }
-
-      return `${sanitizedBase}/${sanitizedPath}`;
     },
     onDateChange(value) {
       this.updateValue(value);
@@ -879,7 +1061,7 @@ export default {
       this.updateValue(value);
     },
     openDeadlinePicker() {
-      if (this.field.fieldType === 'DEADLINE' && !this.field.is_readonly) {
+      if (this.field.fieldType === 'DEADLINE' && !this.isReadOnly) {
         const dp = this.$refs.deadlineDatePicker;
         if (dp && typeof dp.openDp === 'function') {
           dp.openDp();
@@ -921,7 +1103,7 @@ export default {
       }
     },
     onDropdownClick() {
-      if (this.field.is_readonly) return;
+      if (this.isReadOnly) return;
       this.toggleDropdown();
     },
     toggleDropdown() {
@@ -1044,7 +1226,7 @@ export default {
     },
     validateDate(value) {
       if (!value) {
-        this.error = this.field.is_mandatory ? this.translateText('Campo obrigatório') : null;
+        this.error = this.isMandatory ? this.translateText('Campo obrigatório') : null;
         return;
       }
       const date = new Date(`${value}T00:00:00`);
@@ -1052,7 +1234,7 @@ export default {
     },
     validateDeadline(value) {
       if (!value) {
-        this.error = this.field.is_mandatory ? this.translateText('Campo obrigatório') : null;
+        this.error = this.isMandatory ? this.translateText('Campo obrigatório') : null;
         return;
       }
       const date = new Date(value);
@@ -1064,34 +1246,34 @@ export default {
     },
     validateDecimal(value) {
       if (value === null || isNaN(value)) {
-        this.error = this.field.is_mandatory ? this.translateText('Campo obrigatório') : null;
+        this.error = this.isMandatory ? this.translateText('Campo obrigatório') : null;
         return;
       }
       this.error = null;
     },
     validateInteger(value) {
       if (value === null || isNaN(value)) {
-        this.error = this.field.is_mandatory ? this.translateText('Campo obrigatório') : null;
+        this.error = this.isMandatory ? this.translateText('Campo obrigatório') : null;
         return;
       }
       this.error = null;
     },
     validateList(value) {
-      if (this.field.is_mandatory && !value) {
+      if (this.isMandatory && !value) {
         this.error = this.translateText('Campo obrigatório');
       } else {
         this.error = null;
       }
     },
     validateMultilineText(value) {
-      if (this.field.is_mandatory && !value.trim()) {
+      if (this.isMandatory && !value.trim()) {
         this.error = this.translateText('Campo obrigatório');
       } else {
         this.error = null;
       }
     },
     validateText(value) {
-      if (this.field.is_mandatory && !value.trim()) {
+      if (this.isMandatory && !value.trim()) {
         this.error = this.translateText('Campo obrigatório');
       } else {
         this.error = null;
@@ -1197,7 +1379,6 @@ export default {
   }
 
   .is-required .field-label::after {
-    content: "*";
     color: #e53935;
     margin-left: 2px;
   }
@@ -1387,7 +1568,9 @@ export default {
   .toolbar {
     margin-bottom: 0;
     display: flex;
+    flex-wrap: wrap;
     gap: 6px;
+    row-gap: 6px;
     background: #f8f9fa;
     border: 1px solid #e0e0e0;
     border-radius: 6px 6px 0 0;

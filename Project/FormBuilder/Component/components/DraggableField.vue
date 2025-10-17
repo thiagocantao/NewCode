@@ -5,7 +5,7 @@ class="draggable-field single-draggable"
 'is-required': field?.is_mandatory, 
 'is-readonly': field?.is_readonly,
 'is-disabled': isDisabled,
-[`col-span-${Math.min(Math.max(parseInt(field?.columns) || 1, 1), 4)}`]: isInFormSection
+[`col-span-${Math.min(Math.max(parseInt(field?.columns) || 1, 1), 4)}`]: true
 }" 
 :data-field-id="field?.ID || field?.field_id"
 :data-section-field-id="field?.id || null"
@@ -21,7 +21,7 @@ class="draggable-field single-draggable"
 </div>
 
 <template v-if="showFieldComponent || isInFormSection">
-<FieldComponent :field="field" @field-value-change="onFieldValueChange" />
+  <FieldComponent :field="field" @field-value-change="onFieldValueChange" />
 </template>
 <template v-else>
 <i class="material-symbols-outlined" style="padding-right:10px; ">{{iconType}}</i>
@@ -97,15 +97,16 @@ switch(props.field?.fieldType)
     case "INTEGER": return "numbers";
     case "YES_NO": return "radio_button_checked";
     case "MULTILINE_TEXT": return "text_ad";
+    default: return "stars"
 
 }
 });
 
 const currentLang = computed(() => {
   if (typeof window !== 'undefined' && window.wwLib && window.wwLib.wwVariable) {
-    return window.wwLib.wwVariable.getValue('aa44dc4c-476b-45e9-a094-16687e063342') || 'pt-BR';
+    return window.wwLib.wwVariable.getValue('aa44dc4c-476b-45e9-a094-16687e063342') || 'en-US';
   }
-  return 'pt-BR';
+  return 'en-US';
 });
 
 
@@ -120,7 +121,6 @@ const sectionFieldId = props.field.id || 'null';
 
 // Add null checks
 if (!fieldId) {
-console.warn('Field ID is missing');
 return;
 }
 
@@ -153,7 +153,6 @@ el.dataset.fieldType = fieldData.fieldType;
 el.dataset.fieldName = fieldData.Name;
 el.dataset.columns = fieldData.columns;
 } else {
-console.warn('Element not found for selector:', selector);
 }
 } catch (error) {
 console.error('Error setting draggable field data:', error);
@@ -161,14 +160,6 @@ console.error('Error setting draggable field data:', error);
 });
 }
 });
-
-const onFieldValueChange = (payload) => {
-  emit('field-value-change', {
-    ...payload,
-    fieldId: payload?.fieldId || props.field?.id || props.field?.ID || props.field?.field_id || null,
-    field: props.field
-  });
-};
 
 const onFieldClick = (event) => {
 // Only emit click if this is a direct click on the field, not on action buttons
@@ -194,6 +185,10 @@ const onRemoveClick = (event) => {
   };
   
   emit('remove-field', fieldToRemove);
+};
+
+const onFieldValueChange = (payload) => {
+  emit('field-value-change', payload);
 };
 
 return {
@@ -313,15 +308,15 @@ grid-column: span 1;
 }
 
 .col-span-2 {
-  grid-column: span 2;
+grid-column: span 1;
 }
 
 .col-span-3 {
-  grid-column: span 3;
+grid-column: span 1;
 }
 
 .col-span-4 {
-  grid-column: span 4;
+grid-column: span 1;
 }
 
 .material-symbols-outlined {

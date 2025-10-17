@@ -1,35 +1,27 @@
 <template>
-  <div
-    class="ww-timeline"
-    :class="[
+  <div class="ww-timeline" :class="[
       `ww-timeline--${content.timelineLayout}`,
       `ww-timeline--align-${validAlignment}`,
-    ]"
-    :style="{
+    ]" :style="{
       '--connector-color': content.connectorColor || '#E5E7EB',
       '--connector-width': content.connectorWidth || '2px',
       '--connector-full-width': `${connectorWidth}px`,
-    }"
-  >
+      '--marker-background-color': content.markerBackgroundColor || '#d0e7df',
+      '--marker-icon-color': content.markerIconColor || '#344767',
+      '--card-title-color': content.cardTitleColor || '#8c8c8d',
+      '--card-text-color': content.cardTextColor || '#333',
+    }">
     <div ref="containerRef" class="ww-timeline__container">
-      <div
-        v-for="(item, index) in events"
-        :key="index"
-        class="ww-timeline__event"
-        :class="{
+      <div v-for="(item, index) in events" :key="index" class="ww-timeline__event" :class="{
           'ww-timeline__event--alternate':
             content.timelineLayout === 'vertical' &&
             validAlignment === 'alternate' &&
             index % 2 === 1,
-        }"
-      >
+        }">
         <wwLayoutItemContext is-repeat :index="index" :data="item">
           <!-- Marker -->
-          <div
-            class="ww-timeline__marker"
-            :class="[`ww-timeline__marker--${content.markerShape || 'circle'}`]"
-            @click.stop="onMarkerClick(item)"
-          >
+          <div class="ww-timeline__marker" :class="[`ww-timeline__marker--${content.markerShape || 'circle'}`]"
+            @click.stop="onMarkerClick(item)">
             <i class="material-symbols-outlined ww-timeline__marker-icon">
               {{ getItemIcon(item) }}
             </i>
@@ -39,9 +31,17 @@
           <div class="ww-timeline__content" @click.stop="onClick(item)">
             <!-- ActivityAdded -->
             <template v-if="(item.TagControl || item.tagControl) === 'ActivityAdded'">
-              <div class="activity-added-card">
+              <div class="activity-added-card activity-card">
                 <div class="activity-added-card__left">
-                  <div class="activity-added-card__title">{{ item.Title }}</div>
+                  <div class="activity-added-card__title">{{ item.Title }} <!-- botão lixeira (hover) -->
+                    <button
+                      class="activity-trash-btn"
+                      title="Delete"
+                      @click.stop="requestActivityDelete(item)"
+                    >
+                      <i class="material-symbols-outlined">delete</i>
+                    </button>
+                  </div>
 
                   <dl class="activity-added-card__list">
                     <div class="row">
@@ -126,9 +126,17 @@
 
             <!-- ActivityUpdated -->
             <template v-else-if="(item.TagControl || item.tagControl) === 'ActivityUpdated'">
-              <div class="activity-added-card">
+              <div class="activity-added-card activity-card">
                 <div class="activity-added-card__left">
-                  <div class="activity-added-card__title">{{ item.Title }}</div>
+                  <div class="activity-added-card__title">{{ item.Title }} <!-- botão lixeira (hover) -->
+                    <button
+    class="activity-trash-btn"
+    title="Delete"
+    @click.stop="requestActivityDelete(item)"
+  >
+    <i class="material-symbols-outlined">delete</i>
+  </button>
+                  </div>
 
                   <dl class="activity-added-card__list">
                     <div class="row value-change">
@@ -300,7 +308,12 @@
                   <div class="activity-added-card__title">{{ item.Title }}</div>
 
                   <!-- Botão de menu (3 pontos) -->
-                  <button class="comment-menu-btn" title="More" @click.stop="toggleCommentMenu(item)">
+                  <button
+                    v-if="!isCommentDeleted(item)"
+                    class="comment-menu-btn"
+                    title="More"
+                    @click.stop="toggleCommentMenu(item)"
+                  >
                     <i class="material-symbols-outlined">more_vert</i>
                   </button>
 
@@ -316,7 +329,8 @@
                     </button>
                   </div>
 
-                  <div class="comment-content" v-html="getCommentHtml(item)"></div>
+                  <div class="comment-content" :class="{ 'is-deleted': isCommentDeleted(item) }"
+                    v-html="getCommentHtml(item)"></div>
                 </div>
 
                 <div class="activity-added-card__right">
@@ -333,7 +347,7 @@
                   <div class="activity-added-card__title">{{ item.Title }}</div>
 
                   <!-- Botão de menu (3 pontos) -->
-                  <button class="comment-menu-btn" title="More" @click.stop="toggleCommentMenu(item)">
+                  <button v-if="!isCommentDeleted(item)" class="comment-menu-btn" title="More" @click.stop="toggleCommentMenu(item)">
                     <i class="material-symbols-outlined">more_vert</i>
                   </button>
 
@@ -349,7 +363,8 @@
                     </button>
                   </div>
 
-                  <div class="comment-content" v-html="getCommentHtml(item)"></div>
+                  <div class="comment-content" :class="{ 'is-deleted': isCommentDeleted(item) }"
+                    v-html="getCommentHtml(item)"></div>
                 </div>
 
                 <div class="activity-added-card__right">
@@ -359,22 +374,55 @@
               </div>
             </template>
 
-            <!-- InternalCommentEdited -->
-            <template v-else-if="(item.TagControl || item.tagControl) === 'InternalCommentEdited'">
+            <!-- Internal/Public CommentEdited -->
+            <template v-else-if="
+                (item.TagControl || item.tagControl) === 'InternalCommentEdited' ||
+                (item.TagControl || item.tagControl) === 'PublicCommentEdited'
+              ">
               <div class="activity-added-card">
                 <div class="activity-added-card__left">
                   <div class="activity-added-card__title">{{ item.Title }}</div>
                   <div class="comment-diff">
-                    <div class="comment-bubble old">
+                    <div class="comment-bubble old" :class="{ 'is-deleted': isCommentDeletedSide(item, 'old') }">
                       <div class="bubble-label"></div>
                       <div class="bubble-body" v-html="getSideCommentHtml(item, 'old')"></div>
                     </div>
                     <i class="material-symbols-outlined arrow">arrow_forward</i>
-                    <div class="comment-bubble new">
+                    <div class="comment-bubble new" :class="{ 'is-deleted': isCommentDeletedSide(item, 'new') }">
                       <div class="bubble-label"></div>
                       <div class="bubble-body" v-html="getSideCommentHtml(item, 'new')"></div>
                     </div>
                   </div>
+                </div>
+
+                <div class="activity-added-card__right">
+                  <div class="activity-added-card__created-by">{{ item.CreatedByName }}</div>
+                  <div class="activity-added-card__created-date">{{ formatDateDash(item.CreatedDate) }}</div>
+                </div>
+              </div>
+            </template>
+
+            <!-- PublicCommentDeleted -->
+            <template v-else-if="(item.TagControl || item.tagControl) === 'PublicCommentDeleted'">
+              <div class="activity-added-card comment-card">
+                <div class="activity-added-card__left">
+                  <div class="activity-added-card__title">{{ item.Title }}</div>
+                  <div class="comment-content is-deleted" v-html="getSideCommentHtml(item, 'old')"></div>
+                </div>
+
+                <div class="activity-added-card__right">
+                  <div class="activity-added-card__created-by">{{ item.CreatedByName }}</div>
+                  <div class="activity-added-card__created-date">{{ formatDateDash(item.CreatedDate) }}</div>
+                </div>
+              </div>
+            </template>
+
+            <!-- InternalCommentDeleted -->
+            <template v-else-if="(item.TagControl || item.tagControl) === 'InternalCommentDeleted'">
+              <div class="activity-added-card comment-card">
+                <div class="activity-added-card__left">
+                  <div class="activity-added-card__title">{{ item.Title }}</div>
+                  <div class="comment-content is-deleted" v-html="getSideCommentHtml(item, 'old')"></div>
                 </div>
 
                 <div class="activity-added-card__right">
@@ -457,7 +505,7 @@
               </div>
             </template>
 
-            <!-- AssigneeChanged -->
+            <!-- AssigneeChanged (STACK: grupo atrás + responsável na frente) -->
             <template v-else-if="(item.TagControl || item.tagControl) === 'AssigneeChanged'">
               <div class="activity-added-card">
                 <div class="activity-added-card__left">
@@ -465,69 +513,65 @@
                     <span>{{ item.Title }}</span>
 
                     <span class="assignee-avatars">
-                      <!-- avatar antigo -->
-                      <span class="avatar-wrapper" :aria-label="getAssigneeName(item, 'old')" tabindex="0">
-                        <span class="avatar-badge" :title="getAssigneeName(item, 'old')">
-                          <img
-                            v-if="getAssigneeAvatar(item, 'old')"
-                            :src="getAssigneeAvatar(item, 'old')"
-                            :alt="getAssigneeName(item, 'old')"
-                          />
-                          <span v-else>{{ getInitials(getAssigneeName(item, 'old')) }}</span>
-                        </span>
+<!-- OLD side -->
+<span class="avatar-stack" :aria-label="getAssigneeTooltip(item, 'old')" tabindex="0">
+  <!-- group (atrás) -->
+  <span
+    v-if="hasGroup(item, 'old')"
+    class="avatar-badge avatar-badge--group"
+    :title="getGroupName(item, 'old')"
+  >
+    <i class="material-symbols-outlined avatar-icon">groups</i>
+  </span>
 
-                        <!-- hint -->
-                        <span class="avatar-hint" role="tooltip">
-                          <div class="user-popcard">
-                            <span class="user-popcard__photo">
-                              <img
-                                v-if="getAssigneeAvatar(item, 'old')"
-                                :src="getAssigneeAvatar(item, 'old')"
-                                :alt="getAssigneeName(item, 'old')"
-                              />
-                              <span v-else class="user-popcard__initials">
-                                {{ getInitials(getAssigneeName(item, 'old')) }}
-                              </span>
-                            </span>
-                            <div class="user-popcard__meta">
-                              <div class="user-popcard__name">{{ getAssigneeName(item, 'old') }}</div>
-                            </div>
-                          </div>
-                        </span>
-                      </span>
+                    <!-- user (na frente) -->
+                    <span
+    v-if="hasUser(item, 'old')"
+    class="avatar-badge avatar-badge--user"
+    :title="getAssigneeName(item, 'old')"
+  >
+    <img
+      v-if="getAssigneeAvatar(item, 'old')"
+      :src="getAssigneeAvatar(item, 'old')"
+      :alt="getAssigneeName(item, 'old')"
+    />
+    <span v-else class="avatar-initial">
+      {{ getFirstInitial(getAssigneeName(item, 'old')) }}
+    </span>
+                    </span>
+                    </span>
 
-                      <i class="material-symbols-outlined arrow">arrow_forward</i>
+                    <i class="material-symbols-outlined arrow">arrow_forward</i>
 
-                      <!-- avatar novo -->
-                      <span class="avatar-wrapper" :aria-label="getAssigneeName(item, 'new')" tabindex="0">
-                        <span class="avatar-badge" :title="getAssigneeName(item, 'new')">
-                          <img
-                            v-if="getAssigneeAvatar(item, 'new')"
-                            :src="getAssigneeAvatar(item, 'new')"
-                            :alt="getAssigneeName(item, 'new')"
-                          />
-                          <span v-else>{{ getInitials(getAssigneeName(item, 'new')) }}</span>
-                        </span>
+                    <!-- NEW side -->
+                    <span class="avatar-stack" :aria-label="getAssigneeTooltip(item, 'new')" tabindex="0">
+  <!-- group (atrás) -->
+  <span
+    v-if="hasGroup(item, 'new')"
+    class="avatar-badge avatar-badge--group"
+    :title="getGroupName(item, 'new')"
+  >
+    <i class="material-symbols-outlined avatar-icon">groups</i>
+  </span>
 
-                        <!-- hint -->
-                        <span class="avatar-hint" role="tooltip">
-                          <div class="user-popcard">
-                            <span class="user-popcard__photo">
-                              <img
-                                v-if="getAssigneeAvatar(item, 'new')"
-                                :src="getAssigneeAvatar(item, 'new')"
-                                :alt="getAssigneeName(item, 'new')"
-                              />
-                              <span v-else class="user-popcard__initials">
-                                {{ getInitials(getAssigneeName(item, 'new')) }}
-                              </span>
-                            </span>
-                            <div class="user-popcard__meta">
-                              <div class="user-popcard__name">{{ getAssigneeName(item, 'new') }}</div>
-                            </div>
-                          </div>
-                        </span>
-                      </span>
+                    <!-- user (na frente) -->
+                    <span
+    v-if="hasUser(item, 'new')"
+    class="avatar-badge avatar-badge--user"
+    :title="getAssigneeName(item, 'new')"
+  >
+    <img
+      v-if="getAssigneeAvatar(item, 'new')"
+      :src="getAssigneeAvatar(item, 'new')"
+      :alt="getAssigneeName(item, 'new')"
+    />
+    <span v-else class="avatar-initial">
+      {{ getFirstInitial(getAssigneeName(item, 'new')) }}
+    </span>
+                    </span>
+                    </span>
+
+
                     </span>
                   </div>
                 </div>
@@ -615,6 +659,25 @@
               </div>
             </template>
 
+            <!-- TicketClosed -->
+            <template v-else-if="(item.TagControl || item.tagControl) === 'TicketClosed'">
+              <div class="activity-added-card">
+                <div class="activity-added-card__left">
+                  <div class="activity-added-card__title">{{ item.Title }}</div>
+                  <div
+                    v-if="getTicketClosedSolution(item)"
+                    class="comment-content ticket-closed-solution"
+                    v-html="getTicketClosedSolution(item)"
+                  ></div>
+                </div>
+
+                <div class="activity-added-card__right">
+                  <div class="activity-added-card__created-by">{{ item.CreatedByName }}</div>
+                  <div class="activity-added-card__created-date">{{ formatDateDash(item.CreatedDate) }}</div>
+                </div>
+              </div>
+            </template>
+
             <!-- MessageSent -->
             <template v-else-if="(item.TagControl || item.tagControl) === 'MessageSent'">
               <div class="activity-added-card">
@@ -654,38 +717,62 @@
         </wwLayoutItemContext>
       </div>
     </div>
-
-    <!-- Modal FieldUpdated FORMATED_TEXT (mantido como está) -->
-    <div v-if="ftModalOpen" class="ft-modal-overlay" @click.self="closeFtModal">
-      <div class="ft-modal">
-        <div class="ft-modal__header">
-          <div class="ft-modal__title">
-            {{ ftModalItem?.NameFieldModified || 'Details' }}
-          </div>
-          <button class="ft-modal__close" @click="closeFtModal">
-            <i class="material-symbols-outlined">close</i>
-          </button>
+    <!-- CONFIRM: Delete activity -->
+    <div v-if="actConfirmOpen" class="dlg-overlay" @click.self="cancelActDelete" role="dialog" aria-modal="true"
+      aria-labelledby="dlg-delete-activity-title">
+      <div class="dlg">
+        <div class="dlg-header">
+          <i class="material-symbols-outlined dlg-header-icon danger">close</i>
+          <div id="dlg-delete-activity-title" class="dlg-title">Delete activity</div>
+          <button class="dlg-close" @click="cancelActDelete" aria-label="Close">
+        <i class="material-symbols-outlined">close</i>
+      </button>
         </div>
 
-        <div class="ft-modal__body">
-          <div class="ft-col">
-            <div class="ft-col__label"></div>
-            <div class="ft-col__content" v-html="getFormattedHtml(ftModalItem, 'old')"></div>
-          </div>
+        <div class="dlg-body">
+          Do you want to delete this activity?
+          <div v-if="actError" class="dlg-error">{{ actError }}</div>
+        </div>
 
-          <div class="ft-arrow">
-            <i class="material-symbols-outlined">arrow_forward</i>
-          </div>
-
-          <div class="ft-col">
-            <div class="ft-col__label"></div>
-            <div class="ft-col__content" v-html="getFormattedHtml(ftModalItem, 'new')"></div>
-          </div>
+        <div class="dlg-actions">
+          <button class="dlg-btn ghost" :disabled="actLoading" @click="cancelActDelete">Cancel</button>
+          <button class="dlg-btn primary" :disabled="actLoading" @click="confirmActDelete">
+        <span v-if="actLoading" class="spinner"></span>Ok
+      </button>
         </div>
       </div>
     </div>
+  <!-- Modal FieldUpdated FORMATED_TEXT -->
+  <div v-if="ftModalOpen" class="ft-modal-overlay" @click.self="closeFtModal">
+    <div class="ft-modal">
+      <div class="ft-modal__header">
+        <div class="ft-modal__title">
+          {{ ftModalItem?.NameFieldModified || 'Details' }}
+        </div>
+        <button class="ft-modal__close" @click="closeFtModal">
+          <i class="material-symbols-outlined">close</i>
+        </button>
+      </div>
+  
+      <div class="ft-modal__body ft-vertical">
+        <div class="ft-col">
+          <div class="ft-col__label"></div>
+          <div class="ft-col__content" v-html="getFormattedHtml(ftModalItem, 'old')"></div>
+        </div>
+  
+        <div class="ft-arrow vertical">
+          <i class="material-symbols-outlined">arrow_downward</i>
+        </div>
+  
+        <div class="ft-col">
+          <div class="ft-col__label"></div>
+          <div class="ft-col__content" v-html="getFormattedHtml(ftModalItem, 'new')"></div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    <!-- Modal AttachmentAdded (viewer – mantido) -->
+    <!-- Modal AttachmentAdded (viewer) -->
     <div v-if="attModalOpen" class="tl-modal-overlay" @click.self="closeAttModal">
       <div class="tl-modal-content" :class="{ 'pdf-viewer': attModalFile && attModalFile.isPdf }">
         <div class="tl-modal-top-actions">
@@ -740,15 +827,9 @@
       </div>
     </div>
 
-    <!-- CONFIRM: Delete attachment (padronizado) -->
-    <div
-      v-if="confirmOpen"
-      class="dlg-overlay"
-      @click.self="cancelDelete"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="dlg-delete-attach-title"
-    >
+    <!-- CONFIRM: Delete attachment -->
+    <div v-if="confirmOpen" class="dlg-overlay" @click.self="cancelDelete" role="dialog" aria-modal="true"
+      aria-labelledby="dlg-delete-attach-title">
       <div class="dlg">
         <div class="dlg-header">
           <i class="material-symbols-outlined dlg-header-icon danger">close</i>
@@ -767,15 +848,9 @@
       </div>
     </div>
 
-    <!-- CONFIRM: Delete comment (padronizado) -->
-    <div
-      v-if="cmtConfirmOpen"
-      class="dlg-overlay"
-      @click.self="cancelCmtDelete"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="dlg-delete-comment-title"
-    >
+    <!-- CONFIRM: Delete comment -->
+    <div v-if="cmtConfirmOpen" class="dlg-overlay" @click.self="cancelCmtDelete" role="dialog" aria-modal="true"
+      aria-labelledby="dlg-delete-comment-title">
       <div class="dlg">
         <div class="dlg-header">
           <i class="material-symbols-outlined dlg-header-icon danger">close</i>
@@ -802,7 +877,7 @@
 </template>
 
 <script>
-import { computed, ref, watch, onMounted, onBeforeUnmount } from "vue";
+  import { computed, ref, watch, onMounted, onBeforeUnmount } from "vue";
 import { useElementSize } from "@vueuse/core";
 
 export default {
@@ -830,19 +905,17 @@ export default {
 
     /* ========= TicketCloned ========= */
     const getTicketClonedObj = (item) => {
-    if (item?.FieldNewValue && typeof item.FieldNewValue === "object") return item.FieldNewValue;
-    const parsed = parseMaybeJSON(item?.NewValueTitle);
-    return parsed || {};
+      if (item?.FieldNewValue && typeof item.FieldNewValue === "object") return item.FieldNewValue;
+      const parsed = parseMaybeJSON(item?.NewValueTitle);
+      return parsed || {};
     };
-    
+
     const getTicketClonedLabel = (item) => {
-    const o = getTicketClonedObj(item);
-    const type =
-    o?.Type ?? o?.type ?? o?.TicketType ?? o?.ticketType ?? "";
-    const number =
-    o?.TicketNumber ?? o?.ticketNumber ?? o?.Number ?? o?.number ?? "";
-    if (!type && !number) return "";
-    return `${type}${number ? ` #${number}` : ""}`;
+      const o = getTicketClonedObj(item);
+      const type = o?.Type ?? o?.type ?? o?.TicketType ?? o?.ticketType ?? "";
+      const number = o?.TicketNumber ?? o?.ticketNumber ?? o?.Number ?? o?.number ?? "";
+      if (!type && !number) return "";
+      return `${type}${number ? ` #${number}` : ""}`;
     };
 
     /* ========= TicketLinked ========= */
@@ -879,6 +952,13 @@ export default {
     const getTicketCreatedTitle = (item) => {
       const o = getTicketCreatedObj(item);
       return o?.Title ?? o?.title ?? "";
+    };
+
+    /* ========= TicketClosed ========= */
+    const getTicketClosedObj = (item) => {
+      if (item?.FieldNewValue && typeof item.FieldNewValue === "object") return item.FieldNewValue;
+      const parsed = parseMaybeJSON(item?.NewValueTitle);
+      return parsed || {};
     };
 
     // --- FORMATED_TEXT
@@ -946,16 +1026,114 @@ export default {
       return obj?.ResponsibleUser?.Username || "";
     };
 
+
+    // ===== Activity delete (RPC) =====
+const actConfirmOpen = ref(false);
+const actPendingItem = ref(null);
+const actLoading = ref(false);
+const actError = ref("");
+
+// tenta extrair o ID da atividade de diversos lugares/campos
+const getActivityId = (item) => {
+  // 1) do objeto já parseado da atividade (ActivityAdded/Updated)
+  const objNew =
+    (item?.FieldNewValue && typeof item.FieldNewValue === "object")
+      ? item.FieldNewValue
+      : parseMaybeJSON(item?.NewValueTitle) || {};
+
+  const objOld =
+    (item?.FieldOldValue && typeof item.FieldOldValue === "object")
+      ? item.FieldOldValue
+      : parseMaybeJSON(item?.OldValueTitle) || {};
+
+  const candidates = [
+    // no payload NEW
+    objNew?.TicketActivityID, objNew?.TicketActivityId, objNew?.ticketActivityId,
+    objNew?.ActivityID, objNew?.ActivityId, objNew?.activityId,
+    objNew?.ID, objNew?.Id, objNew?.id,
+    // no payload OLD
+    objOld?.TicketActivityID, objOld?.TicketActivityId, objOld?.ticketActivityId,
+    objOld?.ActivityID, objOld?.ActivityId, objOld?.activityId,
+    objOld?.ID, objOld?.Id, objOld?.id,
+    // em campos “flat” do item
+    item?.PKTableModified, item?.TicketActivityID, item?.TicketActivityId, item?.ticketActivityId,
+  ];
+
+  return candidates.find(Boolean) || null;
+};
+
+function requestActivityDelete(item) {
+  actPendingItem.value = item;
+  actError.value = "";
+  actConfirmOpen.value = true;
+}
+function cancelActDelete() {
+  actConfirmOpen.value = false;
+  actPendingItem.value = null;
+  actLoading.value = false;
+  actError.value = "";
+}
+
+async function confirmActDelete() {
+  if (!actPendingItem.value) return;
+  actLoading.value = true;
+  actError.value = "";
+
+  try {
+    if (!sb?.callPostgresFunction) throw new Error("Supabase plugin unavailable.");
+
+    const TicketActivityID = getActivityId(actPendingItem.value);
+    const LoggedUserID = getVar(loggedUserVarId);
+    const language = getVar(languageVarId) || "en-US";
+
+    if (!TicketActivityID) throw new Error("Missing TicketActivityID.");
+    if (!LoggedUserID) throw new Error("Missing LoggedUserID.");
+
+    const { error } = await sb.callPostgresFunction({
+      functionName: "deleteTicketActivity",
+      params: {
+        p_ticketactivityid: TicketActivityID,
+        p_loggeduserid: LoggedUserID,
+        p_language: language,
+      },
+    });
+    if (error) console.log(error);
+
+    // remove localmente
+    const idx = events.value.findIndex((e) => e === actPendingItem.value);
+    if (idx !== -1) events.value.splice(idx, 1);
+
+    // 1) Notifica o pai que precisa executar o RPC/remoção
+    emit("trigger-event", {
+      name: "timeline:activityDeleteRequested",
+      event: { value: { TicketActivityID, item: actPendingItem.value } },
+    });
+
+    // 2) Notifica que houve exclusão no timeline (uniforme com comments/attachments)
+    emit("trigger-event", {
+      name: "timeline:deleted",
+      event: { value: { type: "activity", id: TicketActivityID } },
+    });
+
+    cancelActDelete();
+  } catch (e) {
+    actError.value = e?.message || String(e);
+  } finally {
+    actLoading.value = false;
+  }
+}
+
+
     /* ========= Updated / Status ========= */
     const toDisplay = (v) =>
       v === null || v === undefined ? "" : typeof v === "object" ? JSON.stringify(v) : String(v);
     const getOldValue = (item) => {
-      const raw = item.FieldOldValue ?? item.OldValueTitle ?? null;
+      const raw = item.OldValueTitle ?? item.FieldOldValue ??  null;
       const parsed = parseMaybeJSON(raw);
       return toDisplay(parsed ?? raw);
     };
     const getNewValue = (item) => {
-      const raw = item.FieldNewValue ?? item.NewValueTitle ?? null;
+      const raw = item.NewValueTitle ?? item.FieldNewValue ??  null;
       const parsed = parseMaybeJSON(raw);
       return toDisplay(parsed ?? raw);
     };
@@ -988,6 +1166,13 @@ export default {
       out = out.replace(/href\s*=\s*'(javascript:[^']*)'/gi, "href='#'");
       return out;
     };
+
+    const getTicketClosedSolution = (item) => {
+      const obj = getTicketClosedObj(item);
+      const html =
+        obj?.Solution ?? obj?.solution ?? obj?.Resolution ?? obj?.resolution ?? obj?.NewValueTitle ?? "";
+      return sanitizeHtml(html);
+    };
     const getCommentHtml = (item) => {
       const obj = getActivityObj(item);
       const raw = obj?.Comment ?? obj?.comment ?? "";
@@ -1016,59 +1201,141 @@ export default {
       return sanitizeHtml(obj?.Comment ?? obj?.comment ?? "");
     };
 
-    /* ========= Assignee ========= */
-    const getAssigneeRaw = (item, side) =>
-      side === "new" ? item.FieldNewValue ?? item.NewValueTitle ?? null : item.FieldOldValue ?? item.OldValueTitle ?? null;
+    // ===== NOVO: helpers para "deleted" nos comentários =====
+    const isDeletedFlag = (obj) => obj?.Deleted === true || obj?.deleted === true;
 
-    const getAssigneeName = (item, side) => {
-      const raw = getAssigneeRaw(item, side);
-      const parsed = parseMaybeJSON(raw);
-      if (parsed && typeof parsed === "object") {
-        return parsed.Username || parsed.AssigneeName || parsed.UserName || parsed.FullName || parsed.DisplayName || parsed.name || "";
-      }
-      return toDisplay(raw);
-    };
+    function isCommentDeleted(item) {
+      const base = getActivityObj(item);
+      if (isDeletedFlag(base)) return true;
+      const oldObj = getSideObj(item, "old");
+      if (isDeletedFlag(oldObj)) return true;
+      const newObj = getSideObj(item, "new");
+      if (isDeletedFlag(newObj)) return true;
+      return false;
+    }
 
-    const getAssigneeAvatar = (item, side) => {
-      const raw = getAssigneeRaw(item, side);
-      const parsed = parseMaybeJSON(raw);
-      if (parsed && typeof parsed === "object") return parsed.Photo || parsed.AvatarUrl || parsed.avatar || parsed.PhotoUrl || "";
-      return "";
-    };
+    function isCommentDeletedSide(item, side) {
+      const obj = getSideObj(item, side);
+      return isDeletedFlag(obj);
+    }
 
-    const getInitials = (name) => {
-      if (!name) return "?";
-      const parts = String(name).trim().split(/\s+/).filter(Boolean);
-      const first = parts[0]?.[0] || "";
-      const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
-      return (first + last).toUpperCase() || first.toUpperCase() || "?";
-    };
+    // ===== AssigneeChanged (grupo + responsável) =====
+// Em AssigneeChanged, OLD e NEW costumam vir DENTRO do mesmo objeto (FieldNewValue/NewValueTitle).
+// Então: se o lado "old" não tiver FieldOldValue, caímos para o mesmo root do "new".
+
+// há usuário nesse lado?
+const hasUser = (item, side) => {
+  const u = getUserObj(item, side);
+  return Boolean(u && (u.Username || u.UserName || u.FullName || u.DisplayName || u.name));
+};
+
+// inicial do primeiro nome (1 letra)
+const getFirstInitial = (name) => {
+  if (!name) return "";
+  const first = String(name).trim().split(/\s+/)[0] || "";
+  return first.charAt(0).toUpperCase();
+};
+
+// Substitua o getParsedSideRoot atual por este
+const getParsedSideRoot = (item, side) => {
+  // new sempre existe em AssigneeChanged (obj ou JSON string)
+  const rootNew =
+    (item?.FieldNewValue && typeof item.FieldNewValue === "object")
+      ? item.FieldNewValue
+      : (parseMaybeJSON(item?.NewValueTitle) || {});
+
+  // old pode vir null -> forçamos parse, mas caímos para rootNew se continuar vazio
+  const rootOld =
+    (item?.FieldOldValue && typeof item.FieldOldValue === "object")
+      ? item.FieldOldValue
+      : (parseMaybeJSON(item?.OldValueTitle) || null);
+
+  const root = side === "new" ? rootNew : (rootOld && Object.keys(rootOld).length ? rootOld : rootNew);
+  return (root && typeof root === "object") ? root : {};
+};
+
+// Usuário (responsável)
+const getUserObj = (item, side) => {
+  const root = getParsedSideRoot(item, side);
+  return side === "new" ? (root.ResponsibleUserID_NEW || {}) : (root.ResponsibleUserID_OLD || {});
+};
+
+// Grupo
+const getGroupObj = (item, side) => {
+  const root = getParsedSideRoot(item, side);
+  return side === "new" ? (root.AssignedGroupID_NEW || {}) : (root.AssignedGroupID_OLD || {});
+};
+
+const hasGroup = (item, side) => {
+  const g = getGroupObj(item, side);
+  return !!(g.GroupName || g.groupName || g.Name || g.name || g.ID || g.Id);
+};
+
+const getGroupName = (item, side) => {
+  const g = getGroupObj(item, side);
+  return g.GroupName || g.groupName || g.Name || g.name || "";
+};
+
+// Caso você tenha foto de grupo no futuro
+const getGroupAvatar = (_item, _side) => {
+  // Sem avatar de grupo no JSON atual; mantenho aqui para evoluir depois
+  return "";
+};
+
+// Mantemos estes nomes/avatares centralizados
+const getAssigneeName = (item, side) => {
+  const u = getUserObj(item, side);
+  return (
+    u.Username ||
+    u.UserName ||
+    u.FullName ||
+    u.DisplayName ||
+    u.name ||
+    ""
+  );
+};
+
+const getAssigneeAvatar = (item, side) => {
+  const u = getUserObj(item, side);
+  return u.Photo || u.AvatarUrl || u.PhotoUrl || "";
+};
+
+// Tooltip com ambos os nomes
+const getAssigneeTooltip = (item, side) => {
+  const g = getGroupName(item, side);
+  const u = getAssigneeName(item, side);
+  return g ? `${g} · ${u || "—"}` : (u || "—");
+};
+
 
     /* ========= Ícones e datas ========= */
     const getItemIcon = (item) => item?.IcoEventType || props.content.markerIcon || "";
     const formatDateUS = (v) => {
       if (!v) return "";
-      const d = new Date(v);
-      if (isNaN(d.getTime())) return String(v);
-      return d.toLocaleString("en-US", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      });
+
+      return v;
+      // const d = new Date(v);
+      // if (isNaN(d.getTime())) return String(v);
+      // return d.toLocaleString("en-US", {
+      //   year: "numeric",
+      //   month: "2-digit",
+      //   day: "2-digit",
+      //   hour: "2-digit",
+      //   minute: "2-digit",
+      //   hour12: true,
+      // });
     };
     const formatDateDash = (v) => {
       if (!v) return "";
-      const d = new Date(v);
-      if (isNaN(d.getTime())) return String(v);
-      const dd = String(d.getDate()).padStart(2, "0");
-      const mm = String(d.getMonth() + 1).padStart(2, "0");
-      const yyyy = d.getFullYear();
-      const HH = String(d.getHours()).padStart(2, "0");
-      const MM = String(d.getMinutes()).padStart(2, "0");
-      return `${dd}-${mm}-${yyyy} ${HH}:${MM}`;
+      return v;
+      // const d = new Date(v);
+      // if (isNaN(d.getTime())) return String(v);
+      // const dd = String(d.getDate()).padStart(2, "0");
+      // const mm = String(d.getMonth() + 1).padStart(2, "0");
+      // const yyyy = d.getFullYear();
+      // const HH = String(d.getHours()).padStart(2, "0");
+      // const MM = String(d.getMinutes()).padStart(2, "0");
+      // return `${dd}-${mm}-${yyyy} ${HH}:${MM}`;
     };
     const formatDuration = (min) => {
       const t = parseInt(min, 10);
@@ -1095,7 +1362,7 @@ export default {
       const list = normalizeEmails(found);
       return list.join(", ");
     };
-    
+
     const getToEmails = (item) => {
       const o = getActivityObj(item) || {};
       const cands = [o.ToUsersMail, o.ToUserEmails, o.ToEmails, o.ToEmail, o.toUsersMail, o.toUserEmails, o.toEmails, o.toEmail];
@@ -1127,7 +1394,6 @@ export default {
       handleDataSource,
       { immediate: true, deep: true }
     );
-
 
     const validAlignment = computed(() => {
       const layout = props.content.timelineLayout;
@@ -1552,6 +1818,12 @@ export default {
       formatDateDash,
       formatDuration,
       // Activity
+      requestActivityDelete,
+      cancelActDelete,
+      confirmActDelete,
+      actConfirmOpen,
+      actLoading,
+      actError,
       getFieldValue,
       getResponsibleText,
       // Updated / Status
@@ -1570,10 +1842,17 @@ export default {
       toggleCommentMenu,
       isMenuOpen,
       getSideCommentHtml,
-      // Assignee
+      isCommentDeleted,
+      isCommentDeletedSide,
+      // Assignee + Group stack
+      hasGroup,
+      getGroupName,
+      getGroupAvatar,
       getAssigneeName,
       getAssigneeAvatar,
-      getInitials,
+      getAssigneeTooltip,
+      getFirstInitial,
+      hasUser,
       // Attachments
       getAttachment,
       openAttachmentModal,
@@ -1606,15 +1885,16 @@ export default {
       getTicketLinkedLabel,
       getTicketClonedLabel,
       getTicketCreatedTitle,
+      getTicketClosedSolution,
       // FT modal
       isFormattedText,
       openFtModal,
       closeFtModal,
-        ftModalOpen,
-        ftModalItem,
-        getFormattedHtml,
-        remount,
-      };
+      ftModalOpen,
+      ftModalItem,
+      getFormattedHtml,
+      remount,
+    };
   },
   methods: {
     onClick(item) {
@@ -1628,475 +1908,507 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600&family=Material+Symbols+Outlined");
-@import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css");
+  @import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600&family=Material+Symbols+Outlined");
+  @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css");
 
-.material-symbols-outlined {
-  font-family: "Material Symbols Outlined";
-  font-weight: normal;
-  font-style: normal;
-  font-size: 16px;
-  line-height: 1;
-  display: inline-block;
-  -webkit-font-feature-settings: "liga";
-  -webkit-font-smoothing: antialiased;
-}
+  .material-symbols-outlined {
+    font-family: "Material Symbols Outlined";
+    font-weight: normal;
+    font-style: normal;
+    font-size: 16px;
+    line-height: 1;
+    display: inline-block;
+    -webkit-font-feature-settings: "liga";
+    -webkit-font-smoothing: antialiased;
+  }
 
-/* ================= Timeline base ================= */
-.ww-timeline {
-  position: relative;
-  width: 100%;
-  font-family: "Roboto", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
-  color: #0f172a;
+  /* ================= Timeline base ================= */
+  .ww-timeline {
+    position: relative;
+    width: 100%;
+    font-family: "Roboto", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+    color: #0f172a;
 
-  &--vertical {
-    .ww-timeline__container {
-      padding: 20px 0;
-      position: relative;
+    &--vertical {
+      .ww-timeline__container {
+        padding: 20px 0;
+        position: relative;
 
-      &::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        left: 15px;
-        width: var(--connector-width);
-        background-color: var(--connector-color);
+        &::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          left: 15px;
+          width: var(--connector-width);
+          background-color: var(--connector-color);
+        }
+      }
+
+      .ww-timeline__event {
+        position: relative;
+        padding: 0 0 16px 48px;
+        min-height: 50px;
+      }
+
+      &.ww-timeline--align-left {
+        .ww-timeline__marker {
+          position: absolute;
+          left: 15px;
+          top: 14px;
+          transform: translate(-50%, 0);
+        }
+
+        .ww-timeline__content {
+          text-align: left;
+          display: flex;
+          justify-content: flex-start;
+          width: 100%;
+          margin-left: 0;
+        }
       }
     }
 
-    .ww-timeline__event {
-      position: relative;
-      padding: 0 0 16px 48px;
-      min-height: 50px;
-    }
+    &--horizontal {
+      .ww-timeline__container {
+        display: flex;
+        position: relative;
+        padding: 40px 20px 20px;
+        overflow-x: auto;
+        width: 100%;
+      }
 
-    &.ww-timeline--align-left {
-      .ww-timeline__marker {
-        position: absolute;
-        left: 15px;
-        top: 14px;
-        transform: translate(-50%, 0);
+      .ww-timeline__event {
+        position: relative;
+        flex: 0 0 auto;
+        margin: 0 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
       }
 
       .ww-timeline__content {
-        text-align: left;
-        display: flex;
-        justify-content: flex-start;
-        width: 100%;
-        margin-left: 0;
+        width: auto;
+        flex: 0 0 auto;
       }
     }
   }
 
-  &--horizontal {
-    .ww-timeline__container {
-      display: flex;
-      position: relative;
-      padding: 40px 20px 20px;
-      overflow-x: auto;
-      width: 100%;
+  /* marcador e ícone */
+  .ww-timeline__marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    background-color: var(--marker-background-color, #d0e7df);
+    z-index: 2;
+    cursor: pointer;
+
+    &--circle {
+      border-radius: 50%;
     }
 
-    .ww-timeline__event {
-      position: relative;
-      flex: 0 0 auto;
-      margin: 0 10px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .ww-timeline__content {
-      width: auto;
-      flex: 0 0 auto;
+    &--square {
+      border-radius: 2px;
     }
   }
-}
 
-/* marcador e ícone */
-.ww-timeline__marker {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  background-color: #d0e7df;
-  z-index: 2;
-  cursor: pointer;
-
-  &--circle {
-    border-radius: 50%;
+  .ww-timeline__marker-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    color: var(--marker-icon-color, #344767);
+    font-size: 16px;
+    line-height: 1;
   }
 
-  &--square {
-    border-radius: 2px;
-  }
-}
-.ww-timeline__marker-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  color: #344767;
-  font-size: 16px;
-  line-height: 1;
-}
-
-.ww-timeline__content {
-  cursor: pointer;
-  display: flex;
-  width: 100%;
-}
-.ww-timeline__content-element {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: inherit;
-  height: inherit;
-}
-
-/* ====== CARD geral ====== */
-.activity-added-card {
-  width: 100%;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  column-gap: 16px;
-  row-gap: 6px;
-  padding: 6px 0;
-
-  &__left {
-    min-width: 0;
-    position: relative;
+  .ww-timeline__content {
+    cursor: pointer;
+    display: flex;
+    width: 100%;
   }
 
-  &__right {
-    text-align: right;
+  .ww-timeline__content-element {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    align-items: flex-end;
-    gap: 2px;
-  }
-
-  &__title {
-    font-weight: 500;
-    font-size: 14px;
-    color: #8c8c8d;
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
     gap: 8px;
+    width: inherit;
+    height: inherit;
   }
 
-  .title-row {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  &__created-by {
-    font-weight: 400;
-    color: #333;
-    font-size: 12px;
-    margin-bottom: 15px;
-  }
-
-  &__created-date {
-    color: #6b7280;
-    font-size: 13px;
-  }
-
-  &__list {
-    margin: 0;
-    padding: 0;
-  }
-
-  .row {
-    display: grid;
-    grid-template-columns: max-content 1fr;
-    column-gap: 6px;
-    align-items: baseline;
-    margin: 4px 0;
-  }
-
-  dt {
-    font-weight: 500;
-    color: #333;
-    font-size: 13.5px;
-  }
-
-  dd {
-    margin: 0;
-    color: #333;
-    word-break: break-word;
-    font-size: 13.5px;
-  }
-
-  .value-change__values {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-    font-size: 13px;
-  }
-
-  .value-chip {
-    padding: 6px;
-    border-radius: 4px;
-    background: transparent;
-    color: #333;
-    line-height: 1.25;
-    font-size: 13px;
-  }
-
-  .value-change .arrow {
-    font-size: 18px;
-    color: #6b7280;
-  }
-
-  .comment-content :deep(p) {
-    margin: 0 0 6px 0;
-    font-size: 13.5px;
-    color: #333;
-  }
-
-  .comment-content :deep(a) {
-    text-decoration: underline;
-  }
-
-  .comment-content :deep(.mention) {
-    background: #e8f0fe;
-    border-radius: 4px;
-    padding: 0 4px;
-    display: inline-block;
-  }
-
-  /* Avatares assignee + hint */
-  .assignee-avatars {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .assignee-avatars .arrow {
-    font-size: 18px;
-    color: #9ca3af;
-  }
-
-  .avatar-wrapper {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    outline: none;
-  }
-
-  .avatar-badge {
-    width: 24px;
-    height: 24px;
-    border-radius: 9999px;
-    background: #4b6287;
-    color: #fff;
-    font-weight: 700;
-    font-size: 12px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 0 0 2px #fff;
-    outline: 1px solid #cbd5e1;
-    overflow: hidden;
-  }
-
-  .avatar-badge img {
+  /* ====== CARD geral ====== */
+  .activity-added-card {
     width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 9999px;
-    display: block;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: 16px;
+    row-gap: 6px;
+    padding: 6px 0;
+    color: var(--card-text-color, #333);
+
+    &__left {
+      min-width: 0;
+      position: relative;
+    }
+
+    &__right {
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-end;
+      gap: 2px;
+    }
+
+    &__title {
+      font-weight: 500;
+      font-size: 14px;
+      color: var(--card-title-color, #8c8c8d);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .title-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    &__created-by {
+      font-weight: 400;
+      color: var(--card-text-color, #333);
+      font-size: 12px;
+      margin-bottom: 15px;
+    }
+
+    &__created-date {
+      color: var(--card-text-color, #333);
+      font-size: 13px;
+    }
+
+    &__list {
+      margin: 0;
+      padding: 0;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      column-gap: 6px;
+      align-items: baseline;
+      margin: 4px 0;
+    }
+
+    dt {
+      font-weight: 500;
+      color: var(--card-text-color, #333);
+      font-size: 13.5px;
+    }
+
+    dd {
+      margin: 0;
+      color: var(--card-text-color, #333);
+      word-break: break-word;
+      font-size: 13.5px;
+    }
+
+    .value-change__values {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      font-size: 13px;
+    }
+
+    .value-chip {
+      padding: 6px;
+      border-radius: 4px;
+      background: transparent;
+      color: var(--card-text-color, #333);
+      line-height: 1.25;
+      font-size: 13px;
+    }
+
+    .value-change .arrow {
+      font-size: 18px;
+      color: var(--card-text-color, #333);
+    }
+
+    .comment-content :deep(p) {
+      margin: 0 0 6px 0;
+      font-size: 13.5px;
+      color: var(--card-text-color, #333);
+    }
+
+    .comment-content :deep(a) {
+      text-decoration: underline;
+    }
+
+    .comment-content :deep(.mention) {
+      background: #e8f0fe;
+      border-radius: 4px;
+      padding: 0 4px;
+      display: inline-block;
+    }
+
+    .ticket-closed-solution {
+      margin-top: 8px;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
+    }
+
+    /* Avatares assignee + hint */
+    .assignee-avatars {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .assignee-avatars .arrow {
+      font-size: 18px;
+      color: #9ca3af;
+    }
+
+    .avatar-wrapper {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      outline: none;
+    }
+
+    .avatar-badge {
+      width: 24px;
+      height: 24px;
+      border-radius: 9999px;
+      background: #4b6287;
+      color: #fff;
+      font-weight: 700;
+      font-size: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 0 2px #fff;
+      outline: 1px solid #cbd5e1;
+      overflow: hidden;
+    }
+
+    .avatar-badge img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 9999px;
+      display: block;
+    }
+
+    /* Popup/hint */
+    .avatar-hint {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 50%;
+      transform: translate(-50%, 6px);
+      opacity: 0;
+      pointer-events: none;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(16, 24, 40, 0.12);
+      padding: 12px;
+      z-index: 10;
+      transition: opacity 0.15s ease, transform 0.15s ease;
+    }
+
+    .avatar-wrapper:hover .avatar-hint,
+    .avatar-wrapper:focus-within .avatar-hint {
+      opacity: 1;
+      transform: translate(-50%, 0);
+      pointer-events: auto;
+    }
+
+    .avatar-hint::before {
+      content: "";
+      position: absolute;
+      top: -6px;
+      left: 50%;
+      transform: translateX(-50%) rotate(45deg);
+      width: 12px;
+      height: 12px;
+      background: #fff;
+      border-left: 1px solid #e5e7eb;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .user-popcard {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      gap: 12px;
+      min-width: 220px;
+    }
+
+    .user-popcard__photo {
+      width: 44px;
+      height: 44px;
+      border-radius: 9999px;
+      background: #4b6287;
+      color: #fff;
+      font-weight: 700;
+      font-size: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 0 2px #fff;
+      outline: 1px solid #cbd5e1;
+      overflow: hidden;
+    }
+
+    .user-popcard__photo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .user-popcard__initials {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    .user-popcard__name {
+      font-size: 15.5px;
+      font-weight: 600;
+      color: #111827;
+      line-height: 1.2;
+    }
   }
 
-  /* Popup/hint */
-  .avatar-hint {
+  /* ===== Menu de comentários ===== */
+  .comment-card {
+    position: relative;
+  }
+
+  .comment-menu-btn {
     position: absolute;
-    top: calc(100% + 8px);
-    left: 50%;
-    transform: translate(-50%, 6px);
+    top: 0;
+    right: 0;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: #9ca3af;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 6px;
     opacity: 0;
-    pointer-events: none;
+    transition: opacity 0.15s ease, background 0.15s ease;
+  }
+
+  .comment-card:hover .comment-menu-btn {
+    opacity: 1;
+  }
+
+  .comment-menu-btn:hover {
+    background: #f3f4f6;
+    color: #6b7280;
+  }
+
+  .comment-menu {
+    position: absolute;
+    top: 30px;
+    right: 0;
     background: #fff;
     border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(16, 24, 40, 0.12);
-    padding: 12px;
-    z-index: 10;
-    transition: opacity 0.15s ease, transform 0.15s ease;
-  }
-  .avatar-wrapper:hover .avatar-hint,
-  .avatar-wrapper:focus-within .avatar-hint {
-    opacity: 1;
-    transform: translate(-50%, 0);
-    pointer-events: auto;
-  }
-  .avatar-hint::before {
-    content: "";
-    position: absolute;
-    top: -6px;
-    left: 50%;
-    transform: translateX(-50%) rotate(45deg);
-    width: 12px;
-    height: 12px;
-    background: #fff;
-    border-left: 1px solid #e5e7eb;
-    border-top: 1px solid #e5e7eb;
+    border-radius: 10px;
+    box-shadow: 0 8px 28px rgba(16, 24, 40, 0.16);
+    width: 190px;
+    padding: 6px;
+    z-index: 12;
   }
 
-  .user-popcard {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    align-items: center;
-    gap: 12px;
-    min-width: 220px;
-  }
-  .user-popcard__photo {
-    width: 44px;
-    height: 44px;
-    border-radius: 9999px;
-    background: #4b6287;
-    color: #fff;
-    font-weight: 700;
-    font-size: 18px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 0 0 2px #fff;
-    outline: 1px solid #cbd5e1;
-    overflow: hidden;
-  }
-  .user-popcard__photo img {
+  .comment-menu-item {
     width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-  .user-popcard__initials {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-  }
-  .user-popcard__name {
-    font-size: 15.5px;
-    font-weight: 600;
+    gap: 10px;
+    border: none;
+    background: transparent;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
     color: #111827;
-    line-height: 1.2;
+    font-size: 14px;
   }
-}
 
-/* ===== Menu de comentários ===== */
-.comment-card {
-  position: relative;
-}
-.comment-menu-btn {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: transparent;
-  color: #9ca3af;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  border-radius: 6px;
-  opacity: 0;
-  transition: opacity 0.15s ease, background 0.15s ease;
-}
-.comment-card:hover .comment-menu-btn {
-  opacity: 1;
-}
-.comment-menu-btn:hover {
-  background: #f3f4f6;
-  color: #6b7280;
-}
-.comment-menu {
-  position: absolute;
-  top: 30px;
-  right: 0;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  box-shadow: 0 8px 28px rgba(16, 24, 40, 0.16);
-  width: 190px;
-  padding: 6px;
-  z-index: 12;
-}
-.comment-menu-item {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border: none;
-  background: transparent;
-  padding: 8px 10px;
-  border-radius: 8px;
-  cursor: pointer;
-  color: #111827;
-  font-size: 14px;
-}
-.comment-menu-item i.material-symbols-outlined {
-  font-size: 18px;
-  color: #6b7280;
-}
-.comment-menu-item:hover {
-  background: #f3f4f6;
-}
-.comment-menu-item.danger {
-  color: #b91c1c;
-}
-.comment-menu-item.danger i.material-symbols-outlined {
-  color: #b91c1c;
-}
+  .comment-menu-item i.material-symbols-outlined {
+    font-size: 18px;
+    color: #6b7280;
+  }
 
-/* ===== InternalCommentEdited diff ===== */
-.comment-diff {
-  display: inline-flex;
-  align-items: flex-start;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.comment-diff .arrow {
-  font-size: 18px;
-  color: #9ca3af;
-  align-self: center;
-}
-.comment-bubble {
-  max-width: min(560px, 90%);
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 8px 10px;
-  background: #fff;
-}
-.comment-bubble.old {
-  background: #fafafa;
-}
-.comment-bubble .bubble-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: #6b7280;
-  margin-bottom: 4px;
-}
-.comment-bubble .bubble-body :deep(p) {
-  margin: 0 0 6px 0;
-  font-size: 13.5px;
-  color: #111827;
-}
-.comment-bubble .bubble-body :deep(a) {
-  text-decoration: underline;
-}
+  .comment-menu-item:hover {
+    background: #f3f4f6;
+  }
+
+  .comment-menu-item.danger {
+    color: #b91c1c;
+  }
+
+  .comment-menu-item.danger i.material-symbols-outlined {
+    color: #b91c1c;
+  }
+
+  /* ===== InternalCommentEdited/PublicCommentEdited diff ===== */
+  .comment-diff {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .comment-diff .arrow {
+    font-size: 18px;
+    color: #9ca3af;
+    align-self: center;
+  }
+
+  .comment-bubble {
+    max-width: min(560px, 90%);
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 8px 10px;
+    background: #fff;
+  }
+
+  .comment-bubble.old {
+    background: #fafafa;
+  }
+
+  .comment-bubble .bubble-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #6b7280;
+    margin-bottom: 4px;
+  }
+
+  .comment-bubble .bubble-body :deep(p) {
+    margin: 0 0 6px 0;
+    font-size: 13.5px;
+    color: #111827;
+  }
+
+  .comment-bubble .bubble-body :deep(a) {
+    text-decoration: underline;
+  }
 
 /* ===== Attachment (thumb + ações) ===== */
 .attachment-box {
@@ -2209,7 +2521,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 99999;
 }
 .tl-modal-content {
   background: transparent;
@@ -2539,6 +2851,7 @@ export default {
   align-items: center;
   margin-bottom: 8px;
   margin-top: 5px;
+  margin-right: 20px;
 }
 
 /* Chip link (TicketLinked) */
@@ -2553,5 +2866,105 @@ export default {
   font-weight: 500;
   line-height: 1.2;
   white-space: nowrap;
+}
+
+.avatar-stack { position: relative; display: inline-flex; align-items: center; }
+
+.avatar-badge {
+  width: 28px; height: 28px; border-radius: 9999px;
+  background: #4b6cb7; color: #fff; display: inline-flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 3px #333; /* anel branco + borda #333 */
+}
+
+.avatar-badge--group { z-index: 1; margin-right: -6px; } /* menos escondido */
+.avatar-badge--user  { z-index: 2; }
+
+.avatar-icon { font-size: 18px; line-height: 1; color: #fff; }
+.avatar-badge img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.avatar-initial { font-weight: 700; font-size: 14px; line-height: 1; }
+
+
+
+
+
+
+
+/* acessibilidade do stack com teclado */
+.avatar-stack:focus-within .avatar-hint,
+.avatar-stack:hover .avatar-hint {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+}
+
+.activity-added-card__left {
+  position: relative; /* necessário para ancorar o botão */
+}
+
+.activity-trash-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 6px;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.activity-added-card__left:hover .activity-trash-btn {
+  opacity: 1;
+}
+
+.activity-trash-btn:hover {
+  background: #f3f4f6;
+  color: #b91c1c;
+}
+
+.activity-trash-btn i.material-symbols-outlined {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.comment-content.is-deleted :deep(*) {
+text-decoration: line-through;
+opacity: 0.7;
+}
+.comment-bubble.is-deleted :deep(*) {
+text-decoration: line-through;
+opacity: 0.7;
+}
+
+
+/* Layout vertical para o modal de FORMATED_TEXT */
+.ft-modal__body.ft-vertical {
+display: flex;
+flex-direction: column;
+align-items: stretch;
+gap: 12px;
+padding: 6px;
+min-height: 0;
+overflow: auto;
+-webkit-overflow-scrolling: touch;
+}
+
+/* Seta centralizada e com espaçamento confortável */
+.ft-arrow.vertical {
+display: flex;
+align-items: center;
+justify-content: center;
+}
+
+.ft-arrow.vertical i.material-symbols-outlined {
+font-size: 22px;
+color: #9ca3af;
 }
 </style>

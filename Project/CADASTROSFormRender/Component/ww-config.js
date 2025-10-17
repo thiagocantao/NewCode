@@ -289,6 +289,46 @@ export default {
                 tooltip: 'Disable to require manual saving of field values'
             }
             /* wwEditor:end */
+        },
+        isReadonly: {
+            label: { en: 'Read-only form' },
+            type: 'OnOff',
+            section: 'settings',
+            bindable: true,
+            defaultValue: false,
+            /* wwEditor:start */
+            bindingValidation: {
+                type: 'boolean',
+                tooltip: 'Toggle to make the entire form read-only'
+            },
+            propertyHelp: {
+                tooltip: 'Enable to prevent editing while keeping the existing field appearance'
+            }
+            /* wwEditor:end */
+        },
+        isMobile: {
+            label: { en: 'Mobile layout' },
+            type: 'Responsive',
+            section: 'settings',
+            bindable: true,
+            defaultValue: {
+                value: false
+            },
+            options: {
+                property: {
+                    type: 'OnOff',
+                    defaultValue: false
+                }
+            },
+            /* wwEditor:start */
+            bindingValidation: {
+                type: 'boolean',
+                tooltip: 'Toggle mobile layout with single-column fields'
+            },
+            propertyHelp: {
+                tooltip: 'Enable to display each field on its own row for mobile layouts'
+            }
+            /* wwEditor:end */
         }
     },
     triggerEvents: [

@@ -62,6 +62,19 @@ v-for="field in sectionFields"
 import { computed, ref, onMounted, watch, nextTick } from 'vue';
 import Sortable from 'sortablejs';
 import DraggableField from './DraggableField.vue';
+import dataSourceUtils, {
+  LIST_FIELD_TYPES,
+  normalizeFieldDataSource,
+  fetchDataSourceOptions,
+  hasFetchableDataSource as rawHasFetchableDataSource
+} from '../utils/dataSource';
+
+const hasFetchableDataSource =
+  typeof rawHasFetchableDataSource === 'function'
+    ? rawHasFetchableDataSource
+    : typeof (dataSourceUtils && dataSourceUtils.hasFetchableDataSource) === 'function'
+      ? dataSourceUtils.hasFetchableDataSource.bind(dataSourceUtils)
+      : () => false;
 
 export default {
 name: 'FormSection',
@@ -93,6 +106,31 @@ emits: [
   'field-value-change'
 ],
 setup(props, { emit }) {
+
+function normalizeOptions(raw) {
+  const toOpt = (o) => {
+    if (o && typeof o === 'object') {
+      const value = o.value ?? o.id ?? o.ID ?? o.key ?? o.Key ?? o.name ?? o.Name ?? null;
+      const label = o.label ?? o.Label ?? o.name ?? o.Name ?? (value != null ? String(value) : '');
+      const v = value != null ? value : label;
+      return v != null ? { value: v, label: String(label ?? v) } : null;
+    }
+    if (o == null) return null;
+    return { value: o, label: String(o) };
+  };
+  if (raw == null) return [];
+  if (Array.isArray(raw)) return raw.map(toOpt).filter(Boolean);
+  if (typeof raw === 'string') {
+    const s = raw.trim();
+    if (!s) return [];
+    try { const parsed = JSON.parse(s); if (Array.isArray(parsed)) return parsed.map(toOpt).filter(Boolean); } catch {}
+    return s.split(',').map(x => x.trim()).filter(Boolean).map(x => ({ value: x, label: x }));
+  }
+  if (typeof raw === 'object') return Object.values(raw).map(toOpt).filter(Boolean);
+  return [];
+}
+
+
     const sectionRef = ref(null);
     const dragHandle = ref(null);
     const isExpanded = ref(true);
@@ -102,6 +140,303 @@ setup(props, { emit }) {
     const toggleFields = () => {
       isExpanded.value = !isExpanded.value;
     };
+
+    const fieldOptionSignatureMap = new Map();
+    const pendingDataSourceLoads = new Map();
+
+    const normalizeFieldType = type => String(type ?? '').trim().toUpperCase();
+    const getFieldTypeValue = field =>
+      field?.fieldType ?? field?.FieldType ?? field?.type ?? null;
+    const isListFieldType = candidate =>
+      LIST_FIELD_TYPES.includes(
+        normalizeFieldType(
+          typeof candidate === 'object' ? getFieldTypeValue(candidate) : candidate
+        )
+      );
+
+    const getFieldKey = field => field?.id || field?.field_id || field?.ID || null;
+
+    const getRawListOptionsCandidate = source => {
+      if (!source || typeof source !== 'object') {
+        return null;
+      }
+
+      if ('list_options' in source || 'listOptions' in source || 'ListOptions' in source) {
+        return source.list_options ?? source.listOptions ?? source.ListOptions ?? null;
+      }
+
+      return null;
+    };
+
+    const convertRawOptionsToArray = rawOptions => {
+      if (rawOptions === null || rawOptions === undefined) {
+        return [];
+      }
+
+      if (Array.isArray(rawOptions)) {
+        return rawOptions;
+      }
+
+      if (typeof rawOptions === 'string') {
+        const trimmed = rawOptions.trim();
+        if (!trimmed) {
+          return [];
+        }
+
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (Array.isArray(parsed)) {
+            return parsed;
+          }
+        } catch (error) {
+          // Ignore JSON parse errors and fallback to comma separated parsing
+        }
+
+        return trimmed
+          .split(',')
+          .map(option => option.trim())
+          .filter(option => option.length > 0);
+      }
+
+      if (typeof rawOptions === 'object') {
+        if (
+          rawOptions.value !== undefined ||
+          rawOptions.Value !== undefined ||
+          rawOptions.label !== undefined ||
+          rawOptions.Label !== undefined
+        ) {
+          return [rawOptions];
+        }
+
+        const values = Object.values(rawOptions);
+        return Array.isArray(values) ? values : [values];
+      }
+
+      return [];
+    };
+
+    const cloneOptionLikeArray = options => {
+      if (!Array.isArray(options)) {
+        return options;
+      }
+
+      return options.map(option =>
+        option && typeof option === 'object' ? { ...option } : option
+      );
+    };
+
+    const toComparableOption = option => {
+      if (option === null || option === undefined) {
+        return null;
+      }
+
+      if (typeof option !== 'object') {
+        const normalizedLabel = String(option);
+        return { value: option, label: normalizedLabel };
+      }
+
+      let value =
+        option.value ?? option.Value ?? option.id ?? option.ID ?? option.key ?? option.Key ?? null;
+      let label = option.label ?? option.Label ?? option.name ?? option.Name ?? null;
+
+      if (value === null && label === null) {
+        return null;
+      }
+
+      if (value === null) {
+        value = label;
+      }
+
+      if (label === null) {
+        label = value;
+      }
+
+      const normalizedValue = value;
+      const normalizedLabel = typeof label === 'string' ? label : String(label);
+
+      return { value: normalizedValue, label: normalizedLabel };
+    };
+
+    const normalizeOptionList = optionsArray => {
+      if (!Array.isArray(optionsArray)) {
+        return [];
+      }
+      return optionsArray
+        .map(toComparableOption)
+        .filter(option => option !== null)
+        .map(option => ({ ...option }));
+    };
+
+    const optionsListsAreEqual = (left, right) => {
+      if (!Array.isArray(left) || !Array.isArray(right)) {
+        return false;
+      }
+
+      if (left.length !== right.length) {
+        return false;
+      }
+
+      for (let index = 0; index < left.length; index += 1) {
+        const current = left[index];
+        const next = right[index];
+        if (current?.value !== next?.value || current?.label !== next?.label) {
+          return false;
+        }
+      }
+
+      return true;
+    };
+
+    const applyOptionsToField = (fieldKey, optionsArray) => {
+      const normalized = normalizeOptionList(optionsArray);
+
+      if (!fieldKey || !normalized) {
+        return false;
+      }
+
+      const targetField = (props.section.fields || []).find(
+        candidate => getFieldKey(candidate) === fieldKey
+      );
+
+      if (!targetField) {
+        return false;
+      }
+
+      const currentOptionsRaw = Array.isArray(targetField.options)
+        ? targetField.options
+        : Array.isArray(targetField.list_options)
+          ? targetField.list_options
+          : Array.isArray(targetField.listOptions)
+            ? targetField.listOptions
+            : [];
+
+      const currentNormalized = normalizeOptionList(currentOptionsRaw);
+
+      if (optionsListsAreEqual(currentNormalized, normalized)) {
+        return false;
+      }
+
+      const clonedOptions = normalized.map(option => ({ ...option }));
+      targetField.options = clonedOptions;
+      targetField.list_options = clonedOptions;
+      targetField.listOptions = clonedOptions;
+      return true;
+    };
+
+    const preloadOptionsForField = async (field, { force = false, normalizedDataSource = null } = {}) => {
+      const fieldKey = getFieldKey(field);
+      if (!fieldKey) {
+        return undefined;
+      }
+
+      const resolvedDataSource = normalizedDataSource || normalizeFieldDataSource(field);
+      const normalizedFieldType = getFieldTypeValue(field);
+
+      if (!resolvedDataSource || !isListFieldType(normalizedFieldType)) {
+        fieldOptionSignatureMap.delete(fieldKey);
+        pendingDataSourceLoads.delete(fieldKey);
+        return undefined;
+      }
+
+      const staticOptionsArray = convertRawOptionsToArray(
+        getRawListOptionsCandidate(resolvedDataSource)
+      );
+
+      if (staticOptionsArray.length > 0) {
+        const changed = applyOptionsToField(fieldKey, staticOptionsArray);
+        if (changed) {
+          emit('update-section');
+        }
+      }
+
+      if (!hasFetchableDataSource(resolvedDataSource)) {
+        fieldOptionSignatureMap.delete(fieldKey);
+        pendingDataSourceLoads.delete(fieldKey);
+        return undefined;
+      }
+
+      const signature = JSON.stringify(resolvedDataSource);
+      const previousSignature = fieldOptionSignatureMap.get(fieldKey);
+      const pendingLoad = pendingDataSourceLoads.get(fieldKey);
+
+      if (!force && previousSignature === signature) {
+        return pendingLoad;
+      }
+
+      fieldOptionSignatureMap.set(fieldKey, signature);
+
+      const loadPromise = (async () => {
+        try {
+          const options = await fetchDataSourceOptions(resolvedDataSource);
+          const changed = applyOptionsToField(fieldKey, Array.isArray(options) ? options : []);
+          if (changed) {
+            emit('update-section');
+          }
+        } catch (error) {
+          console.error('Failed to preload data source options', error);
+        }
+      })();
+
+      pendingDataSourceLoads.set(fieldKey, loadPromise);
+
+      try {
+        await loadPromise;
+      } finally {
+        if (pendingDataSourceLoads.get(fieldKey) === loadPromise) {
+          pendingDataSourceLoads.delete(fieldKey);
+        }
+      }
+
+      return loadPromise;
+    };
+
+    watch(
+      () => (props.section.fields || []).map(field => ({
+        key: getFieldKey(field),
+        dataSource: normalizeFieldDataSource(field),
+        fieldType: normalizeFieldType(getFieldTypeValue(field))
+      })),
+      descriptors => {
+        const activeKeys = new Set();
+
+        descriptors.forEach((descriptor, index) => {
+          const { key, dataSource, fieldType } = descriptor;
+          if (!key) {
+            return;
+          }
+
+          activeKeys.add(key);
+
+          const currentField = props.section.fields?.[index];
+          if (!currentField) {
+            return;
+          }
+
+          if (!dataSource || !isListFieldType(fieldType)) {
+            fieldOptionSignatureMap.delete(key);
+            pendingDataSourceLoads.delete(key);
+            return;
+          }
+
+          preloadOptionsForField(currentField, {
+            normalizedDataSource: dataSource
+          });
+        });
+
+        for (const storedKey of Array.from(fieldOptionSignatureMap.keys())) {
+          if (!activeKeys.has(storedKey)) {
+            fieldOptionSignatureMap.delete(storedKey);
+          }
+        }
+
+        for (const storedKey of Array.from(pendingDataSourceLoads.keys())) {
+          if (!activeKeys.has(storedKey)) {
+            pendingDataSourceLoads.delete(storedKey);
+          }
+        }
+      },
+      { immediate: true, deep: true }
+    );
 
     const sectionTitle = computed(() => {
       if (typeof props.section.title === 'object') {
@@ -244,6 +579,11 @@ setup(props, { emit }) {
       // Remove do array da section
       props.section.fields = props.section.fields.filter(f => normalize(f) !== fieldIdToRemove);
 
+      if (fieldIdToRemove) {
+        fieldOptionSignatureMap.delete(fieldIdToRemove);
+        pendingDataSourceLoads.delete(fieldIdToRemove);
+      }
+
       // Emite evento para o pai atualizar o campo disponível, usando o id original
       if (removedField) {
         emit('update-field-in-use', { fieldId: removedField.id || removedField.ID || removedField.field_id, inUse: false });
@@ -303,8 +643,24 @@ setup(props, { emit }) {
               emit('update-section');
             }
           },
-          onAdd: (evt) => {
-            if (!evt || !evt.to) return;
+          onAdd: async (evt) => {
+            
+      // DND dataset vars
+      let listOptionsFromDataset = null;
+      let dataSourceFromDataset  = null;
+      try {
+        const ds = (evt.item && evt.item.dataset) ? evt.item.dataset : {};
+        if (ds.listOptionsJson && ds.listOptionsJson !== 'undefined') {
+          try { listOptionsFromDataset = JSON.parse(ds.listOptionsJson); } catch {}
+        }
+        if (ds.dataSourceJson && ds.dataSourceJson !== 'undefined') {
+          try { dataSourceFromDataset = JSON.parse(ds.dataSourceJson); } catch {}
+        }
+        
+      } catch (e) {
+        console.warn('[FB-LIST][onAdd] dataset parse failed', e);
+      }
+if (!evt || !evt.to) return;
 
             // Get the section ID - use a fallback for null IDs
             const sectionId = evt.to.dataset.sectionId || `temp-${Date.now()}`;
@@ -318,18 +674,33 @@ setup(props, { emit }) {
             if (evt.item && evt.item.__draggableField__) {
               fieldData = evt.item.__draggableField__;
             } else if (fieldId) {
-              const fieldType = evt.item?.dataset?.fieldType || 'text';
-              const fieldName = evt.item?.dataset?.fieldName || 'Unnamed Field';
+              const catalogField = (props.allFields || []).find(candidate => {
+                const candidateId =
+                  candidate?.ID ?? candidate?.id ?? candidate?.field_id ?? null;
+                return candidateId && String(candidateId) === String(fieldId);
+              });
 
-              fieldData = {
-                ID: fieldId,
-                name: fieldName,
-                fieldType: fieldType,
-                columns: parseInt(evt.item?.dataset?.columns || '1'),
-                is_mandatory: false,
-                is_readonly: false,
-                is_hide_legend: false
-              };
+              if (catalogField) {
+                try {
+                  fieldData = JSON.parse(JSON.stringify(catalogField));
+                } catch (error) {
+                  console.warn('Failed to clone catalog field data', error);
+                  fieldData = { ...catalogField };
+                }
+              } else {
+                const fieldType = evt.item?.dataset?.fieldType || 'text';
+                const fieldName = evt.item?.dataset?.fieldName || 'Unnamed Field';
+
+                fieldData = {
+                  ID: fieldId,
+                  name: fieldName,
+                  fieldType: fieldType,
+                  columns: parseInt(evt.item?.dataset?.columns || '1'),
+                  is_mandatory: false,
+                  is_readonly: false,
+                  is_hide_legend: false
+                };
+              }
             }
 
             if (fieldId && fieldData) {
@@ -341,32 +712,113 @@ setup(props, { emit }) {
                 return;
               }
 
+              let clonedFieldData;
+              try {
+                clonedFieldData = JSON.parse(JSON.stringify(fieldData));
+              } catch (error) {
+                console.warn('Failed to clone dragged field data', error);
+                clonedFieldData = { ...fieldData };
+              }
+              const normalizedDataSource = normalizeFieldDataSource(clonedFieldData);
+              const rawListOptionsValue =
+                clonedFieldData.list_options !== undefined
+                  ? clonedFieldData.list_options
+                  : clonedFieldData.listOptions !== undefined
+                    ? clonedFieldData.listOptions
+                    : clonedFieldData.ListOptions !== undefined
+                      ? clonedFieldData.ListOptions
+                      : null;
+              const fieldListOptionsArray = convertRawOptionsToArray(rawListOptionsValue);
+              const dataSourceListOptionsArray = convertRawOptionsToArray(
+                getRawListOptionsCandidate(normalizedDataSource)
+              );
+              const resolvedListOptionsArray =
+                fieldListOptionsArray.length > 0
+                  ? fieldListOptionsArray
+                  : dataSourceListOptionsArray;
+              const normalizedListOptions = normalizeOptionList(resolvedListOptionsArray);
+              const normalizedOptions = Array.isArray(clonedFieldData.options)
+                ? normalizeOptionList(clonedFieldData.options)
+                : Array.isArray(clonedFieldData.Options)
+                  ? normalizeOptionList(clonedFieldData.Options)
+                  : null;
+              const normalizedFieldTypeValue = normalizeFieldType(
+                getFieldTypeValue(clonedFieldData) || 'text'
+              );
+              const resolvedDefaultValue = clonedFieldData.default_value !== undefined
+                ? clonedFieldData.default_value
+                : clonedFieldData.defaultValue !== undefined
+                  ? clonedFieldData.defaultValue
+                  : clonedFieldData.value ?? null;
+
               // Create a new field for the form section
               const newField = {
-                id: fieldData.id || fieldData.ID || fieldData.field_id,
-                field_id: fieldData.ID,
+                ...clonedFieldData,
+                id: clonedFieldData.id || clonedFieldData.ID || clonedFieldData.field_id,
+                field_id: clonedFieldData.field_id || clonedFieldData.ID || clonedFieldData.id,
                 position: evt.newIndex + 1,
-                columns: parseInt(fieldData.columns) || 1,
-                is_mandatory: Boolean(fieldData.is_mandatory),
-                is_readonly: Boolean(fieldData.is_readonly),
-                is_hide_legend: Boolean(fieldData.is_hide_legend),
-                tip_translations: fieldData.tip_translations || { [currentLang.value]: fieldData.tip || '' },
+                columns: parseInt(clonedFieldData.columns) || parseInt(clonedFieldData.Columns) || 1,
+                is_mandatory: Boolean(
+                  clonedFieldData.is_mandatory !== undefined
+                    ? clonedFieldData.is_mandatory
+                    : clonedFieldData.IsMandatory
+                ),
+                is_readonly: Boolean(
+                  clonedFieldData.is_readonly !== undefined
+                    ? clonedFieldData.is_readonly
+                    : clonedFieldData.IsReadOnly
+                ),
+                is_hide_legend: Boolean(
+                  clonedFieldData.is_hide_legend !== undefined
+                    ? clonedFieldData.is_hide_legend
+                    : clonedFieldData.IsHideLegend
+                ),
+                tip_translations: clonedFieldData.tip_translations || { [currentLang.value]: clonedFieldData.tip || '' },
                 deleted: false,
-                name: fieldData.name,
-                fieldType: fieldData.fieldType || 'text',
-                default_value:
-                  fieldData.default_value !== undefined
-                    ? fieldData.default_value
-                    : fieldData.defaultValue !== undefined
-                      ? fieldData.defaultValue
-                      : fieldData.value ?? null,
-                value:
-                  fieldData.value !== undefined
-                    ? fieldData.value
-                    : fieldData.default_value ?? fieldData.defaultValue ?? null
+                name: clonedFieldData.name || clonedFieldData.Name,
+                fieldType: normalizedFieldTypeValue,
+                FieldType: normalizedFieldTypeValue,
+                type: normalizedFieldTypeValue,
+                default_value: resolvedDefaultValue,
+                defaultValue: resolvedDefaultValue,
+                value: clonedFieldData.value !== undefined ? clonedFieldData.value : resolvedDefaultValue,
+                dataSource: normalizedDataSource,
+                DataSource: normalizedDataSource,
+                FieldInUseOnForm: true,
+                ...(normalizedListOptions.length
+                  ? {
+                      list_options: Array.isArray(rawListOptionsValue)
+                        ? cloneOptionLikeArray(rawListOptionsValue)
+                        : rawListOptionsValue ?? normalizedListOptions,
+                      listOptions: Array.isArray(rawListOptionsValue)
+                        ? cloneOptionLikeArray(rawListOptionsValue)
+                        : rawListOptionsValue ?? normalizedListOptions,
+                      ...(normalizedOptions === null
+                        ? { options: normalizedListOptions.map(option => ({ ...option })) }
+                        : {})
+                    }
+                  : {}),
+                ...(normalizedOptions !== null
+                  ? { options: normalizedOptions.map(option => ({ ...option })) }
+                  : {})
               };
 
-              // Add the field to the section at the correct position
+              
+      try {
+        if (Array.isArray(listOptionsFromDataset) && listOptionsFromDataset.length) {
+          const opts0 = normalizeOptions(listOptionsFromDataset);
+          if (opts0.length) { newField.list_options = opts0; newField.listOptions = opts0; newField.options = opts0; }
+        }
+        if (!Array.isArray(newField.options) || newField.options.length === 0) {
+          const raw = newField.list_options ?? newField.listOptions ?? newField.ListOptions ?? newField?.dataSource?.list_options ?? null;
+          const opts1 = normalizeOptions(raw);
+          if (opts1.length) { newField.list_options = opts1; newField.listOptions = opts1; newField.options = opts1; }
+        }
+        
+      } catch (e) {
+        console.warn('[FB-LIST] apply options error', e);
+      }
+// Add the field to the section at the correct position
               if (!props.section.fields) {
                 props.section.fields = [];
               }
@@ -378,8 +830,15 @@ setup(props, { emit }) {
                 field.position = idx + 1;
               });
 
+              emit('update-field-in-use', { fieldId: newField.field_id, inUse: true });
+
               // Notify parent component
               emit('update-section');
+
+              await preloadOptionsForField(newField, {
+                force: true,
+                normalizedDataSource
+              });
             }
 
             // Remove the dragged element
