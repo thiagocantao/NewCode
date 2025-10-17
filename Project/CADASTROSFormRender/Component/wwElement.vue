@@ -20,7 +20,7 @@
               ref="sectionComponents"
               :all-fields="allAvailableFields" :is-editing="isEditing" :api-url="apiUrl" :api-key="apiKey"
               :api-authorization="apiAuthorization" :ticket-id="ticketId" :company-id="companyId" :language="language"
-              :is-mobile="isMobile"
+              :is-mobile="isMobile" :is-read-only="isFormReadonly"
               @update-section="updateFormState" @edit-section="editSection" @edit-field="editFormField"
               @remove-field="removeFormField" @select-field="selectFieldForProperties"
               @remove-section="handleRemoveSection" @update:value="updateFieldValue" />
@@ -73,6 +73,10 @@ export default {
       type: Boolean,
       default: true
     },
+    readonly: {
+      type: [Boolean, String, Number],
+      default: undefined
+    },
     isMobile: {
       type: [Boolean, Object],
       default: undefined
@@ -83,6 +87,17 @@ export default {
     const isEditing = computed(() => {
       return props.wwEditorState?.isEditing || false;
     });
+
+    const coerceBoolean = (value) => {
+      if (typeof value === 'boolean') return value;
+      if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+        if (['true', '1', 'yes', 'sim', 's', 'y', 'on'].includes(normalized)) return true;
+        if (['false', '0', 'no', 'nao', 'não', 'n', 'off'].includes(normalized)) return false;
+      }
+      if (typeof value === 'number') return value !== 0;
+      return Boolean(value);
+    };
 
     const { value: formData, setValue: setFormData } = wwLib.wwVariable.useComponentVariable({
       uid: props.uid,
@@ -153,6 +168,17 @@ export default {
       if (typeof props.autoSave === 'boolean') return props.autoSave;
       if (typeof props.content.autoSave === 'boolean') return props.content.autoSave;
       return true;
+    });
+
+    const isFormReadonly = computed(() => {
+      if (props.readonly !== undefined && props.readonly !== null) {
+        return coerceBoolean(props.readonly);
+      }
+      const contentValue = props.content?.isReadonly;
+      if (contentValue !== undefined && contentValue !== null) {
+        return coerceBoolean(contentValue);
+      }
+      return false;
     });
 
     const componentFontFamily = ref('');
@@ -458,7 +484,8 @@ export default {
       formHeightStyle,
       hasCustomFormHeight,
       sectionComponents,
-      validateRequiredFields
+      validateRequiredFields,
+      isFormReadonly
     };
   }
 };
