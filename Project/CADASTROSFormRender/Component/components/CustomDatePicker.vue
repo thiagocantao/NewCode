@@ -435,31 +435,32 @@ export default {
 .dp-action { border: 1px solid #ccc; background: #f7f7f7; border-radius: 6px; padding: 4px 8px; cursor: pointer; }
 
 .datepicker-pop.is-mobile {
-  padding: 6px;
+  padding: 6px 5px;
   border-radius: 6px;
   box-shadow: 0 6px 16px rgba(0,0,0,0.12);
 }
 .datepicker-pop.is-mobile .dp-header {
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 .datepicker-pop.is-mobile .dp-title {
   font-size: 13px;
 }
 .datepicker-pop.is-mobile .dp-weekday {
   font-size: 11px;
-  padding: 3px 0;
+  padding: 2px 0;
 }
 .datepicker-pop.is-mobile .dp-cell {
-  padding: 5px 0;
+  padding: 4px 0;
   font-size: 13px;
 }
 .datepicker-pop.is-mobile .dp-actions {
   gap: 6px;
+  margin-top: 4px;
 }
 .datepicker-pop.is-mobile .dp-action {
   flex: 1;
   font-size: 12px;
-  padding: 4px 6px;
+  padding: 3px 6px;
 }
 .datepicker-pop.is-mobile .dp-time input[type='time'] {
   font-size: 13px;
