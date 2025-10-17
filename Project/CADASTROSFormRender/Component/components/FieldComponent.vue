@@ -264,7 +264,7 @@ export default {
       return this.parseBoolean(this.isFormReadonly) || this.parseBoolean(this.field?.is_readonly);
     },
     shouldApplyReadonlyStyle() {
-      return !this.parseBoolean(this.isFormReadonly) && this.parseBoolean(this.field?.is_readonly);
+      return this.isFieldReadonly;
     },
     themeTokens() {
       if (typeof window !== 'undefined' && window.wwLib?.wwVariable?.getValue) {
