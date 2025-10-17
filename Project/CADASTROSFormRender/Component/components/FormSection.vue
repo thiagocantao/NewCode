@@ -18,6 +18,7 @@
             :options="getFieldOptions(field.id)"
             :user-id="userId"
             :is-form-readonly="isReadOnly"
+            :is-mobile="isMobile"
             @update:value="value => updateFieldValue(field.id, value)"
           />
         </div>
