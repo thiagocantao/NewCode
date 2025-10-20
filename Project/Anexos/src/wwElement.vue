@@ -195,6 +195,11 @@ export default {
     const popup = ref({ visible: false, type: "", details: "" });
     const detailsOpen = ref(false);
 
+    const autoSaveToPostticketattachment = computed(() => {
+      const flag = props.content?.autoSaveToPostticketattachment;
+      return flag === false ? false : true;
+    });
+
     // --- Confirm dialog state ---
     const confirm = ref({ visible: false, index: null, loading: false });
     function requestDelete(index) {
@@ -227,6 +232,8 @@ export default {
     // ---- Component Variable ----
     const attachmentsInfo = ref([]);
     let setAttachmentsInfo;
+    const pendingAttachmentsBodies = ref([]);
+    let setPendingAttachmentsBodies;
     if (
       typeof wwLib !== "undefined" &&
       wwLib.wwVariable &&
@@ -240,6 +247,45 @@ export default {
       });
       attachmentsInfo.value = value.value;
       setAttachmentsInfo = setValue;
+
+      const { value: pendingValue, setValue: setPendingValue } =
+        wwLib.wwVariable.useComponentVariable({
+          uid: props.uid,
+          name: "pendingAttachmentsBodies",
+          type: "array",
+          defaultValue: [],
+        });
+      pendingAttachmentsBodies.value = pendingValue.value || [];
+      setPendingAttachmentsBodies = setPendingValue;
+    }
+
+    function syncPendingAttachmentsBodies(next) {
+      const normalized = Array.isArray(next) ? next : [];
+      pendingAttachmentsBodies.value = normalized;
+      if (setPendingAttachmentsBodies) setPendingAttachmentsBodies(normalized);
+    }
+
+    function pushPendingAttachmentBody(body) {
+      const current = Array.isArray(pendingAttachmentsBodies.value)
+        ? [...pendingAttachmentsBodies.value]
+        : [];
+      current.push(body);
+      syncPendingAttachmentsBodies(current);
+    }
+
+    function removePendingAttachmentBodyByPath(path) {
+      if (!path) return;
+      const current = Array.isArray(pendingAttachmentsBodies.value)
+        ? pendingAttachmentsBodies.value
+        : [];
+      const filtered = current.filter((item) => item?.p_objectpath !== path);
+      if (filtered.length !== current.length) {
+        syncPendingAttachmentsBodies(filtered);
+      }
+    }
+
+    function clearPendingAttachmentBodies() {
+      syncPendingAttachmentsBodies([]);
     }
 
     // ---- Supabase ----
@@ -396,6 +442,7 @@ export default {
       files.value = [];
       attachmentsInfo.value = [];
       if (setAttachmentsInfo) setAttachmentsInfo([]);
+      clearPendingAttachmentBodies();
       currentIndex.value = 0;
       isModalOpen.value = false;
     }
@@ -445,6 +492,7 @@ export default {
       auth = window?.wwLib?.wwPlugins?.supabaseAuth?.publicInstance || null;
 
       dsLoadVersion++;
+      clearPendingAttachmentBodies();
       handleDataSource(props.content?.dataSource);
     }
 
@@ -523,17 +571,21 @@ export default {
             p_attachment_id: null,
           };
 
-          const { data: rpcData, error: rpcError } = sb?.callPostgresFunction
-            ? await sb.callPostgresFunction({ functionName: "postticketattachment", params: rpcBody })
-            : { data: null, error: null };
-
           let attachmentId = null;
-          if (rpcError) {
-            errorMessages.push(`Erro ao chamar postticketattachment: ${rpcError.message || rpcError}`);
+          if (autoSaveToPostticketattachment.value) {
+            const { data: rpcData, error: rpcError } = sb?.callPostgresFunction
+              ? await sb.callPostgresFunction({ functionName: "postticketattachment", params: rpcBody })
+              : { data: null, error: null };
+
+            if (rpcError) {
+              errorMessages.push(`Erro ao chamar postticketattachment: ${rpcError.message || rpcError}`);
+            } else {
+              attachmentId = Array.isArray(rpcData)
+                ? rpcData[0]?.p_attachment_id || rpcData[0]?.attachment_id
+                : rpcData?.p_attachment_id || rpcData?.attachment_id || null;
+            }
           } else {
-            attachmentId = Array.isArray(rpcData)
-              ? rpcData[0]?.p_attachment_id || rpcData[0]?.attachment_id
-              : rpcData?.p_attachment_id || rpcData?.attachment_id || null;
+            pushPendingAttachmentBody({ ...rpcBody });
           }
 
           const signedUrl = await getFreshSignedUrl({ bucket, storagePath: pathObject, isImage: item.isImage }, { transformImage: { width: 1200, resize: "contain" } });
@@ -547,7 +599,16 @@ export default {
 
           emit("trigger-event", {
             name: "onUpload",
-            event: { value: { ...rpcBody, p_attachment_id: attachmentId, language, file, signedUrl } },
+            event: {
+              value: {
+                ...rpcBody,
+                p_attachment_id: attachmentId,
+                language,
+                file,
+                signedUrl,
+                autoSaved: autoSaveToPostticketattachment.value,
+              },
+            },
           });
         } catch (err) {
           errorMessages.push(`Falha geral no upload: ${err.message || err}`);
@@ -569,31 +630,36 @@ export default {
 
       const errorMessages = [];
 
-      if (removed?.attachmentId && (sb || supabase)) {
+      const shouldRemoveFromStorage = !!(removed?.bucket && removed?.storagePath && supabase?.storage);
+      const shouldCallRpcDelete = !!(removed?.attachmentId && sb?.callPostgresFunction);
+
+      if (shouldRemoveFromStorage || shouldCallRpcDelete) {
         const WorkspaceID = getVar(workspaceVarId);
         const LoggedUserID = getVar(loggedUserVarId);
         const TicketID = getVar(ticketVarId);
         try {
-          if (supabase?.storage && removed.bucket && removed.storagePath) {
-            const { error: storageErr } = await supabase.storage.from(removed.bucket).remove([removed.storagePath]);
+          if (shouldRemoveFromStorage) {
+            const { error: storageErr } = await supabase.storage
+              .from(removed.bucket)
+              .remove([removed.storagePath]);
             if (storageErr) errorMessages.push(`Erro ao remover arquivo do storage: ${storageErr.message || storageErr}`);
           }
 
-          const rpcBody = {
-            p_action: "delete",
-            p_workspace_id: WorkspaceID ?? null,
-            p_ticket_id: TicketID ?? null,
-            p_loggeruserid: LoggedUserID ?? null,
-            p_filename: removed.file?.name ?? null,
-            p_fileextension: removed.file?.name?.split(".").pop() ?? null,
-            p_filesize: removed.file?.size ?? null,
-            p_mimetype: "",
-            p_bucket: removed.bucket ?? null,
-            p_objectpath: removed.storagePath ?? null,
-            p_attachment_id: removed.attachmentId ?? null,
-          };
+          if (shouldCallRpcDelete) {
+            const rpcBody = {
+              p_action: "delete",
+              p_workspace_id: WorkspaceID ?? null,
+              p_ticket_id: TicketID ?? null,
+              p_loggeruserid: LoggedUserID ?? null,
+              p_filename: removed.file?.name ?? null,
+              p_fileextension: removed.file?.name?.split(".").pop() ?? null,
+              p_filesize: removed.file?.size ?? null,
+              p_mimetype: "",
+              p_bucket: removed.bucket ?? null,
+              p_objectpath: removed.storagePath ?? null,
+              p_attachment_id: removed.attachmentId ?? null,
+            };
 
-          if (sb?.callPostgresFunction) {
             const { error: rpcError } = await sb.callPostgresFunction({
               functionName: "postticketattachment", params: rpcBody,
             });
@@ -602,6 +668,10 @@ export default {
         } catch (err) {
           errorMessages.push(`Falha ao excluir anexo: ${err.message || err}`);
         }
+      }
+
+      if (!autoSaveToPostticketattachment.value) {
+        removePendingAttachmentBodyByPath(removed?.storagePath);
       }
 
       if (errorMessages.length) showError(errorMessages.join("\n"));
@@ -694,6 +764,7 @@ export default {
       getFileIcon,
       attachmentsInfo,
       popup, detailsOpen, closePopup, toggleDetails,
+      pendingAttachmentsBodies,
       remount,
     };
   },
