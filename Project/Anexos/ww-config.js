@@ -70,6 +70,15 @@ export default {
             },
             /* wwEditor:end */
         },
+        autoSaveToPostticketattachment: {
+            label: {
+                en: 'Auto save using postticketattachment',
+                pt: 'Salvar automaticamente via postticketattachment',
+            },
+            type: 'OnOff',
+            bindable: true,
+            defaultValue: true,
+        },
     },
     events: {
         onUpload: {
@@ -98,6 +107,7 @@ export default {
                     p_objectpath: '',
                     p_attachment_id: '',
                     file: null,
+                    autoSaved: true,
                 },
             },
         },
