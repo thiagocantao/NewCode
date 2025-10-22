@@ -5,9 +5,10 @@
       :selection-column-def="{ pinned: true }" :theme="theme" :getRowId="getRowId" :pagination="content.pagination"
       :paginationPageSize="content.paginationPageSize || 10" :paginationPageSizeSelector="false"
       :suppressMovableColumns="!content.movableColumns" :columnHoverHighlight="content.columnHoverHighlight"
-      :locale-text="localeText" @grid-ready="onGridReady" @row-selected="onRowSelected"
-      @selection-changed="onSelectionChanged" @cell-value-changed="onCellValueChanged" @filter-changed="onFilterChanged"
-      @sort-changed="onSortChanged" @row-clicked="onRowClicked">
+      :singleClickEdit="content.oneClickEdit" :locale-text="localeText" @grid-ready="onGridReady"
+      @row-selected="onRowSelected" @selection-changed="onSelectionChanged"
+      @cell-value-changed="onCellValueChanged" @filter-changed="onFilterChanged" @sort-changed="onSortChanged"
+      @row-clicked="onRowClicked" @cell-key-down="onCellKeyDown" @cell-editing-stopped="onCellEditingStopped">
     </ag-grid-vue>
   </div>
 </template>
@@ -236,6 +237,11 @@ export default {
       createElement,
       /* wwEditor:end */
       gridKey,
+    };
+  },
+  data() {
+    return {
+      pendingEnterEdit: null,
     };
   },
   computed: {
@@ -566,6 +572,46 @@ export default {
           columnId: event.column.getColId(),
           row: event.data,
         },
+      });
+    },
+    onCellKeyDown(event) {
+      if (!this.content.enterNextRow || !event?.event) return;
+      this.pendingEnterEdit = null;
+      if (event.event.key !== "Enter") return;
+      const editingCells = event.api?.getEditingCells?.() || [];
+      const isEditingCurrentCell = editingCells.some(
+        (cell) =>
+          cell.rowIndex === event.rowIndex &&
+          cell.column?.getColId?.() === event.column?.getColId?.()
+      );
+      if (!isEditingCurrentCell) return;
+      this.pendingEnterEdit = {
+        columnId: event.column.getColId(),
+        rowIndex: event.rowIndex,
+      };
+    },
+    onCellEditingStopped(event) {
+      if (!this.content.enterNextRow || !this.pendingEnterEdit) return;
+      const { columnId, rowIndex } = this.pendingEnterEdit;
+      this.pendingEnterEdit = null;
+      if (event.column.getColId() !== columnId || event.rowIndex !== rowIndex) {
+        return;
+      }
+      const nextRowIndex = rowIndex + 1;
+      if (!event.api || nextRowIndex >= event.api.getDisplayedRowCount()) {
+        return;
+      }
+      const nextRowNode = event.api.getDisplayedRowAtIndex(nextRowIndex);
+      if (!nextRowNode) return;
+      if (!event.column.isCellEditable(nextRowNode)) return;
+      const colKey = columnId;
+      requestAnimationFrame(() => {
+        event.api.ensureIndexVisible(nextRowIndex);
+        event.api.setFocusedCell(nextRowIndex, colKey);
+        event.api.startEditingCell({
+          rowIndex: nextRowIndex,
+          colKey,
+        });
       });
     },
     onRowClicked(event) {

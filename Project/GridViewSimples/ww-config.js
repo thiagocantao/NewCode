@@ -58,6 +58,7 @@ export default {
       "idFormula",
       "generateColumns",
       "columns",
+      ["oneClickEdit", "enterNextRow"],
       ["pagination", "paginationPageSize"],
       [
         "rowSelection",
@@ -1141,6 +1142,36 @@ export default {
       defaultValue: [],
       section: "settings",
       bindable: true,
+    },
+    oneClickEdit: {
+      label: { en: "One Click To Edit" },
+      type: "OnOff",
+      section: "settings",
+      bindable: true,
+      defaultValue: false,
+      propertyHelp: {
+        tooltip:
+          "Enable to start editing an editable cell with a single click instead of a double click.",
+      },
+      bindingValidation: {
+        type: "boolean",
+        tooltip: "True to enable single click editing on editable cells",
+      },
+    },
+    enterNextRow: {
+      label: { en: "Enter Edits Next Row" },
+      type: "OnOff",
+      section: "settings",
+      bindable: true,
+      defaultValue: false,
+      propertyHelp: {
+        tooltip:
+          "When enabled, pressing Enter while editing moves to and starts editing the cell directly below.",
+      },
+      bindingValidation: {
+        type: "boolean",
+        tooltip: "True to finish the current edit and begin editing the cell in the next row",
+      },
     },
     pagination: {
       label: { en: "Pagination" },
