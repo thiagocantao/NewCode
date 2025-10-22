@@ -5,9 +5,10 @@
       :selection-column-def="{ pinned: true }" :theme="theme" :getRowId="getRowId" :pagination="content.pagination"
       :paginationPageSize="content.paginationPageSize || 10" :paginationPageSizeSelector="false"
       :suppressMovableColumns="!content.movableColumns" :columnHoverHighlight="content.columnHoverHighlight"
-      :locale-text="localeText" @grid-ready="onGridReady" @row-selected="onRowSelected"
-      @selection-changed="onSelectionChanged" @cell-value-changed="onCellValueChanged" @filter-changed="onFilterChanged"
-      @sort-changed="onSortChanged" @row-clicked="onRowClicked">
+      :singleClickEdit="content.oneClickEdit" :locale-text="localeText" @grid-ready="onGridReady"
+      @row-selected="onRowSelected" @selection-changed="onSelectionChanged"
+      @cell-value-changed="onCellValueChanged" @filter-changed="onFilterChanged" @sort-changed="onSortChanged"
+      @row-clicked="onRowClicked" @cell-key-down="onCellKeyDown" @cell-editing-stopped="onCellEditingStopped">
     </ag-grid-vue>
   </div>
 </template>
@@ -236,6 +237,11 @@ export default {
       createElement,
       /* wwEditor:end */
       gridKey,
+    };
+  },
+  data() {
+    return {
+      pendingEnterEdit: null,
     };
   },
   computed: {
@@ -566,6 +572,57 @@ export default {
           columnId: event.column.getColId(),
           row: event.data,
         },
+      });
+    },
+    onCellKeyDown(event) {
+      if (!this.content.enterNextRow || !event?.event) return;
+      const keyEvent = event.event;
+      if (keyEvent.key !== "Enter" || keyEvent.shiftKey) {
+        this.pendingEnterEdit = null;
+        return;
+      }
+      const editingCells = event.api?.getEditingCells?.() || [];
+      const isEditingCurrentCell = editingCells.some(
+        (cell) =>
+          cell.rowIndex === event.rowIndex &&
+          cell.column?.getColId?.() === event.column?.getColId?.()
+      );
+      if (!isEditingCurrentCell) return;
+      keyEvent.preventDefault?.();
+      keyEvent.stopPropagation?.();
+      this.pendingEnterEdit = {
+        columnId: event.column.getColId(),
+        rowIndex: event.rowIndex,
+        pinned: event.column?.getPinned?.() || null,
+      };
+      event.api?.stopEditing?.();
+    },
+    onCellEditingStopped(event) {
+      if (!this.content.enterNextRow || !this.pendingEnterEdit) return;
+      const { columnId, rowIndex, pinned } = this.pendingEnterEdit;
+      this.pendingEnterEdit = null;
+      if (event.column.getColId() !== columnId || event.rowIndex !== rowIndex) {
+        return;
+      }
+      const nextRowIndex = rowIndex + 1;
+      if (!event.api || nextRowIndex >= event.api.getDisplayedRowCount()) {
+        return;
+      }
+      const nextRowNode = event.api.getDisplayedRowAtIndex(nextRowIndex);
+      if (!nextRowNode) return;
+      const targetColumn = event.api.getColumn(columnId);
+      if (!targetColumn || !targetColumn.isCellEditable(nextRowNode)) return;
+      const startEditParams = {
+        rowIndex: nextRowIndex,
+        colKey: targetColumn,
+      };
+      if (pinned) {
+        startEditParams.columnPinned = pinned;
+      }
+      requestAnimationFrame(() => {
+        event.api.ensureIndexVisible(nextRowIndex);
+        event.api.setFocusedCell(nextRowIndex, targetColumn);
+        event.api.startEditingCell(startEditParams);
       });
     },
     onRowClicked(event) {
