@@ -61,6 +61,11 @@ export default {
         { name: 'blur', label: { en: 'On blur' }, event: null },
         { name: 'keydown', label: { en: 'On key down' }, event: null },
         { name: 'keyup', label: { en: 'On key up' }, event: null },
+        { name: 'click', label: { en: 'On click' }, event: null },
+        { name: 'export-success', label: { en: 'On export success' }, event: null },
+        { name: 'export-error', label: { en: 'On export error' }, event: null },
+        { name: 'import-success', label: { en: 'On import success' }, event: null },
+        { name: 'import-error', label: { en: 'On import error' }, event: null },
     ],
     properties: {
         backgroundColor: {
@@ -103,6 +108,39 @@ export default {
             bindingValidation: {
                 type: 'string',
                 tooltip: 'A string that defines the button type: `"button" | "submit"`',
+            },
+        },
+        transferMode: {
+            label: {
+                en: 'Transfer mode',
+                fr: 'Mode de transfert',
+            },
+            type: 'TextSelect',
+            section: 'settings',
+            options: {
+                options: [
+                    { value: 'export', label: { en: 'Export', fr: 'Exporter' } },
+                    { value: 'import', label: { en: 'Import', fr: 'Importer' } },
+                ],
+            },
+            defaultValue: 'export',
+            bindable: true,
+            bindingValidation: {
+                type: 'string',
+                tooltip: 'Define if the button handles export or import: `"export" | "import"`',
+            },
+        },
+        jsonData: {
+            label: {
+                en: 'JSON data',
+                fr: 'Données JSON',
+            },
+            type: 'Object',
+            section: 'settings',
+            bindable: true,
+            bindingValidation: {
+                type: 'object',
+                tooltip: 'Provide the JSON data to export or validate imports with.',
             },
         },
         disabled: {
