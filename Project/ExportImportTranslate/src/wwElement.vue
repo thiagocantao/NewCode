@@ -370,6 +370,7 @@ export default {
             this.$emit('trigger-event', { name: 'import-success', event: { data: jsonData } });
         },
         parseCsv(content) {
+            const delimiter = this.resolveImportDelimiter(content);
             const rows = [];
             let current = '';
             let insideQuotes = false;
@@ -399,7 +400,7 @@ export default {
                     } else {
                         insideQuotes = !insideQuotes;
                     }
-                } else if (char === ',' && !insideQuotes) {
+                } else if (char === delimiter && !insideQuotes) {
                     pushValue();
                 } else if ((char === '\n' || char === '\r') && !insideQuotes) {
                     if (char === '\r' && content[i + 1] === '\n') {
@@ -428,7 +429,16 @@ export default {
             }
 
             const [headersRaw, ...dataRows] = rows;
-            const headers = headersRaw.map(header => header.trim());
+            if (headersRaw.length && headersRaw[0]?.charCodeAt?.(0) === 0xfeff) {
+                headersRaw[0] = headersRaw[0].slice(1);
+            }
+            const headers = headersRaw.map((header, index) => {
+                let value = header ?? '';
+                if (index === 0 && value.charCodeAt && value.charCodeAt(0) === 0xfeff) {
+                    value = value.slice(1);
+                }
+                return value.trim();
+            });
             const filteredRows = dataRows.filter(currentRow => currentRow.some(value => value !== ''));
             return { headers, rows: filteredRows };
         },
@@ -515,23 +525,114 @@ export default {
             return Array.from(headerSet);
         },
         buildCsv(headers, dataArray) {
+            const delimiter = this.getCsvDelimiterForExport();
             const csvRows = [];
-            csvRows.push(headers.join(','));
+            csvRows.push(headers.map(header => this.escapeCsvValue(header, delimiter)).join(delimiter));
             dataArray.forEach(item => {
-                const row = headers.map(header => this.escapeCsvValue(item?.[header]));
-                csvRows.push(row.join(','));
+                const row = headers.map(header => this.escapeCsvValue(item?.[header], delimiter));
+                csvRows.push(row.join(delimiter));
             });
-            return csvRows.join('\n');
+            return '\ufeff' + csvRows.join('\r\n');
         },
-        escapeCsvValue(value) {
+        escapeCsvValue(value, delimiter = ',') {
             if (value === null || value === undefined) {
                 return '';
             }
             const stringValue = String(value);
-            if (/[",\n\r]/.test(stringValue)) {
+            const needsQuotes =
+                stringValue.includes('"') ||
+                stringValue.includes('\r') ||
+                stringValue.includes('\n') ||
+                (delimiter && stringValue.includes(delimiter));
+            if (needsQuotes) {
                 return '"' + stringValue.replace(/"/g, '""') + '"';
             }
             return stringValue;
+        },
+        getCsvDelimiterSetting() {
+            return this.wwElementState?.props?.csvDelimiter ?? this.content?.csvDelimiter ?? 'auto';
+        },
+        getConfiguredDelimiter() {
+            const setting = this.getCsvDelimiterSetting();
+            if (!setting || setting === 'auto') {
+                return null;
+            }
+            if (setting === 'comma') {
+                return ',';
+            }
+            if (setting === 'semicolon') {
+                return ';';
+            }
+            if (setting === 'tab' || setting === '\\t') {
+                return '\t';
+            }
+            if (typeof setting === 'string' && setting.length) {
+                return setting[0];
+            }
+            return null;
+        },
+        getCsvDelimiterForExport() {
+            const configured = this.getConfiguredDelimiter();
+            if (configured) {
+                return configured;
+            }
+
+            const language = typeof navigator !== 'undefined' ? navigator.language || navigator.userLanguage : '';
+            if (language && this.usesDecimalCommaLocale(language)) {
+                return ';';
+            }
+
+            return ',';
+        },
+        resolveImportDelimiter(content) {
+            const configured = this.getConfiguredDelimiter();
+            if (configured) {
+                return configured;
+            }
+
+            const firstLine = content.split(/\r?\n/, 1)[0] || '';
+            const candidates = [';', ','];
+            let bestDelimiter = ',';
+            let bestScore = -1;
+            candidates.forEach(candidate => {
+                const score = firstLine.split(candidate).length - 1;
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestDelimiter = candidate;
+                }
+            });
+
+            if (bestScore > 0) {
+                return bestDelimiter;
+            }
+
+            return this.getCsvDelimiterForExport();
+        },
+        usesDecimalCommaLocale(language) {
+            if (!language) {
+                return false;
+            }
+            const normalized = language.toLowerCase();
+            const base = normalized.split('-')[0];
+            const decimalCommaLocales = new Set([
+                'pt',
+                'es',
+                'fr',
+                'de',
+                'it',
+                'ru',
+                'pl',
+                'tr',
+                'nl',
+                'fi',
+                'sv',
+                'da',
+                'no',
+                'cs',
+                'sk',
+                'hu',
+            ]);
+            return decimalCommaLocales.has(base);
         },
         downloadCsv(content, filename) {
             const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });

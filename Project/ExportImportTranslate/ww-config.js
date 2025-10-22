@@ -143,6 +143,27 @@ export default {
                 tooltip: 'Provide the JSON data to export or validate imports with.',
             },
         },
+        csvDelimiter: {
+            label: {
+                en: 'CSV delimiter',
+                fr: 'Délimiteur CSV',
+            },
+            type: 'TextSelect',
+            section: 'settings',
+            options: {
+                options: [
+                    { value: 'auto', label: { en: 'Auto', fr: 'Auto' } },
+                    { value: ',', label: { en: 'Comma (,)', fr: 'Virgule (,)' } },
+                    { value: ';', label: { en: 'Semicolon (;)', fr: 'Point-virgule (;)' } },
+                ],
+            },
+            defaultValue: 'auto',
+            bindable: true,
+            bindingValidation: {
+                type: 'string',
+                tooltip: 'Choose the delimiter used for CSV import/export: `"auto" | "," | ";"`',
+            },
+        },
         disabled: {
             label: { en: 'Disabled' },
             type: 'OnOff',
