@@ -539,15 +539,16 @@ export default {
                 return '';
             }
             const stringValue = String(value);
+            const sanitizedValue = stringValue.startsWith('=') ? `'${stringValue}` : stringValue;
             const needsQuotes =
-                stringValue.includes('"') ||
-                stringValue.includes('\r') ||
-                stringValue.includes('\n') ||
-                (delimiter && stringValue.includes(delimiter));
+                sanitizedValue.includes('"') ||
+                sanitizedValue.includes('\r') ||
+                sanitizedValue.includes('\n') ||
+                (delimiter && sanitizedValue.includes(delimiter));
             if (needsQuotes) {
-                return '"' + stringValue.replace(/"/g, '""') + '"';
+                return '"' + sanitizedValue.replace(/"/g, '""') + '"';
             }
-            return stringValue;
+            return sanitizedValue;
         },
         getCsvDelimiterSetting() {
             return this.wwElementState?.props?.csvDelimiter ?? this.content?.csvDelimiter ?? 'auto';
