@@ -576,8 +576,11 @@ export default {
     },
     onCellKeyDown(event) {
       if (!this.content.enterNextRow || !event?.event) return;
-      this.pendingEnterEdit = null;
-      if (event.event.key !== "Enter") return;
+      const keyEvent = event.event;
+      if (keyEvent.key !== "Enter" || keyEvent.shiftKey) {
+        this.pendingEnterEdit = null;
+        return;
+      }
       const editingCells = event.api?.getEditingCells?.() || [];
       const isEditingCurrentCell = editingCells.some(
         (cell) =>
@@ -585,14 +588,18 @@ export default {
           cell.column?.getColId?.() === event.column?.getColId?.()
       );
       if (!isEditingCurrentCell) return;
+      keyEvent.preventDefault?.();
+      keyEvent.stopPropagation?.();
       this.pendingEnterEdit = {
         columnId: event.column.getColId(),
         rowIndex: event.rowIndex,
+        pinned: event.column?.getPinned?.() || null,
       };
+      event.api?.stopEditing?.();
     },
     onCellEditingStopped(event) {
       if (!this.content.enterNextRow || !this.pendingEnterEdit) return;
-      const { columnId, rowIndex } = this.pendingEnterEdit;
+      const { columnId, rowIndex, pinned } = this.pendingEnterEdit;
       this.pendingEnterEdit = null;
       if (event.column.getColId() !== columnId || event.rowIndex !== rowIndex) {
         return;
@@ -603,15 +610,19 @@ export default {
       }
       const nextRowNode = event.api.getDisplayedRowAtIndex(nextRowIndex);
       if (!nextRowNode) return;
-      if (!event.column.isCellEditable(nextRowNode)) return;
-      const colKey = columnId;
+      const targetColumn = event.api.getColumn(columnId);
+      if (!targetColumn || !targetColumn.isCellEditable(nextRowNode)) return;
+      const startEditParams = {
+        rowIndex: nextRowIndex,
+        colKey: targetColumn,
+      };
+      if (pinned) {
+        startEditParams.columnPinned = pinned;
+      }
       requestAnimationFrame(() => {
         event.api.ensureIndexVisible(nextRowIndex);
-        event.api.setFocusedCell(nextRowIndex, colKey);
-        event.api.startEditingCell({
-          rowIndex: nextRowIndex,
-          colKey,
-        });
+        event.api.setFocusedCell(nextRowIndex, targetColumn);
+        event.api.startEditingCell(startEditParams);
       });
     },
     onRowClicked(event) {
