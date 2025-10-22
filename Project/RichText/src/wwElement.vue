@@ -472,6 +472,7 @@ import { computed, inject } from 'vue';
 import suggestion from './suggestion.js';
 import { Markdown } from 'tiptap-markdown';
 import TableIcon from './icons/table-icon.vue';
+import { SUPABASE_IMAGE_BUCKET } from '../../supabaseBuckets';
 
 const AlignableImage = Image.extend({
     addAttributes() {
@@ -559,7 +560,8 @@ const TAGS_MAP = {
 const WORKSPACE_VAR_ID = '744511f1-3309-41da-a9fd-0721e7dd2f99';
 
 const TICKET_VAR_ID = '7bebd888-f31e-49e7-bef2-4052c8cb6cf5';
-const IMAGE_BUCKET = 'ticket';
+
+const IMAGE_BUCKET = SUPABASE_IMAGE_BUCKET;
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
