@@ -114,7 +114,9 @@ export default {
             };
         },
         isImportMode() {
-            return (this.wwElementState?.props?.transferMode || 'export') === 'import';
+            const mode =
+                this.wwElementState?.props?.transferMode ?? this.content?.transferMode ?? 'export';
+            return mode === 'import';
         },
         isEditing() {
             /* wwEditor:start */
@@ -448,7 +450,7 @@ export default {
             });
         },
         getJsonData({ notifyOnError = false } = {}) {
-            const rawData = this.wwElementState?.props?.jsonData;
+            const rawData = this.wwElementState?.props?.jsonData ?? this.content?.jsonData;
             if (typeof rawData === 'string') {
                 if (!rawData.trim()) {
                     return null;
