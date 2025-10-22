@@ -40,6 +40,7 @@
 
 <script>
 import { ref, computed, watch, onBeforeUnmount } from "vue";
+import { SUPABASE_IMAGE_BUCKET } from "../../supabaseBuckets";
 
 export default {
   name: "Banner",
@@ -149,6 +150,18 @@ export default {
       await ensureAuthReady();
       const ready = await waitForStorage(1500);
       if (!ready || !supabase?.storage) return null;
+
+      const preferPublicUrl = bucket === SUPABASE_IMAGE_BUCKET;
+
+      if (preferPublicUrl) {
+        try {
+          const { data } = supabase.storage.from(bucket).getPublicUrl(storagePath);
+          if (data?.publicUrl) return data.publicUrl;
+        } catch (e) {
+          console.warn("[Banner] Falha ao obter URL pública:", e);
+        }
+      }
+
       try {
         const { data, error } = await supabase.storage
           .from(bucket)
@@ -157,18 +170,23 @@ export default {
           });
         if (error) {
           console.warn("[Banner] Falha ao criar URL assinada:", error);
-          return null;
+        } else if (data?.signedUrl) {
+          return data.signedUrl;
         }
-        if (data?.signedUrl) return data.signedUrl;
       } catch (e) {
         console.warn(e);
       }
-      try {
-        const { data } = supabase.storage.from(bucket).getPublicUrl(storagePath);
-        return data?.publicUrl || null;
-      } catch (_) {
-        return null;
+
+      if (!preferPublicUrl) {
+        try {
+          const { data } = supabase.storage.from(bucket).getPublicUrl(storagePath);
+          return data?.publicUrl || null;
+        } catch (_) {
+          return null;
+        }
       }
+
+      return null;
     }
 
     let loadToken = 0;
@@ -191,7 +209,7 @@ export default {
         if (/^(https?:|data:|blob:)/i.test(trimmed)) {
           resolvedUrl = trimmed;
         } else {
-          const bucket = "ticket";
+          const bucket = SUPABASE_IMAGE_BUCKET;
           const signed = await getSignedUrl(bucket, trimmed);
           if (token !== loadToken) return;
           if (signed) {
@@ -202,7 +220,7 @@ export default {
           }
         }
       } else if (typeof rawValue === "object") {
-        const bucket = rawValue?.bucket || rawValue?.storageBucket || "ticket";
+        const bucket = rawValue?.bucket || rawValue?.storageBucket || SUPABASE_IMAGE_BUCKET;
         const storagePath = rawValue?.storagePath || rawValue?.objectPath || rawValue?.path || null;
         const hintedUrl = rawValue?.url || rawValue?.signedUrl || "";
         if (hintedUrl) {
@@ -301,7 +319,7 @@ export default {
 
         const workspace = getVar(workspaceVarId) || "no-workspace";
         const ticket = getVar(ticketVarId) || "no-ticket";
-        const bucket = "ticket";
+        const bucket = SUPABASE_IMAGE_BUCKET;
 
         const extension = extOf(file.name);
         const uniqueId = window.crypto?.randomUUID
