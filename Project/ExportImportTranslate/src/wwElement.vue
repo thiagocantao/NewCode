@@ -539,7 +539,7 @@ export default {
                 return '';
             }
             const stringValue = String(value);
-            const sanitizedValue = stringValue.startsWith('=') ? `'${stringValue}` : stringValue;
+            const sanitizedValue = this.sanitizeForSpreadsheet(stringValue);
             const needsQuotes =
                 sanitizedValue.includes('"') ||
                 sanitizedValue.includes('\r') ||
@@ -549,6 +549,35 @@ export default {
                 return '"' + sanitizedValue.replace(/"/g, '""') + '"';
             }
             return sanitizedValue;
+        },
+        sanitizeForSpreadsheet(rawValue) {
+            if (!rawValue) {
+                return rawValue;
+            }
+
+            const DANGEROUS_PREFIXES = ['=', '+', '-', '@'];
+            const leadingWhitespaceMatch = rawValue.match(/^\s*/);
+            const leadingWhitespace = leadingWhitespaceMatch ? leadingWhitespaceMatch[0] : '';
+            const trimmedValue = rawValue.slice(leadingWhitespace.length);
+
+            if (!trimmedValue) {
+                return rawValue;
+            }
+
+            const firstChar = trimmedValue[0];
+            const isDangerous =
+                DANGEROUS_PREFIXES.includes(firstChar) ||
+                firstChar === '\t';
+
+            if (!isDangerous) {
+                return rawValue;
+            }
+
+            if (trimmedValue.startsWith("'")) {
+                return rawValue;
+            }
+
+            return `${leadingWhitespace}'${trimmedValue}`;
         },
         getCsvDelimiterSetting() {
             return this.wwElementState?.props?.csvDelimiter ?? this.content?.csvDelimiter ?? 'auto';
