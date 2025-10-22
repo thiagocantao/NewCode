@@ -20,14 +20,14 @@
     >
       <img :src="displayUrl" alt="" class="banner__image" />
       <div class="banner__overlay">
-        <span v-if="isUploading">Enviando imagem…</span>
-        <span v-else>Clique para alterar</span>
+        <span v-if="isUploading">Send image…</span>
+        <span v-else>Click to change</span>
       </div>
     </div>
 
     <div v-else class="banner__empty" @click="triggerFileInput">
       <span class="banner__empty-icon">+</span>
-      <span class="banner__empty-text">Adicionar imagem</span>
+      <span class="banner__empty-text">Add image</span>
     </div>
 
     <transition name="banner-popup">
@@ -265,7 +265,7 @@ export default {
       if (!file) return;
 
       if (!file.type?.startsWith("image/") && !/\.(png|jpg|jpeg|gif|webp|bmp|svg)$/i.test(file.name)) {
-        showError("Selecione um arquivo de imagem válido.");
+        showError("Please select a valid image file.");
         return;
       }
 
@@ -337,7 +337,7 @@ export default {
 
         const signedUrl = await getSignedUrl(bucket, objectPath);
         if (!signedUrl) {
-          throw new Error("Não foi possível obter a URL da imagem enviada.");
+          throw new Error("Unable to get URL for uploaded image.");
         }
 
         storageInfo.value = { bucket, storagePath: objectPath };
@@ -357,7 +357,7 @@ export default {
           },
         });
 
-        showSuccess("Imagem carregada com sucesso.");
+        showSuccess("Image loaded successfully.");
       } catch (error) {
         console.warn("[Banner] Falha no upload:", error);
         storageInfo.value = previousStorage;
@@ -421,7 +421,7 @@ export default {
 .banner__empty {
   width: 100%;
   height: 100%;
-  border-radius: 12px;
+  border-radius: 1px;
   overflow: hidden;
   position: relative;
   cursor: pointer;
@@ -489,7 +489,7 @@ export default {
   bottom: 12px;
   transform: translateX(-50%);
   padding: 10px 16px;
-  border-radius: 8px;
+  border-radius: 1px;
   font-size: 13px;
   font-weight: 500;
   color: #0f172a;
