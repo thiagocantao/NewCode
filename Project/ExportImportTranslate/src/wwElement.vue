@@ -46,6 +46,8 @@ const TEXT_ALIGN_TO_JUSTIFY = {
     left: 'flex-start',
     justify: 'center',
 };
+const TERM_KEY = 'term';
+const HIDDEN_FIELDS = ['source', 'ContentID', 'FieldName', 'TableName'];
 export default {
     props: {
         content: { type: Object, required: true },
@@ -364,10 +366,11 @@ export default {
             }
 
             const jsonData = this.rowsToObjects(parsed.headers, parsed.rows);
+            const enrichedData = this.applyHiddenFieldValues(jsonData);
             if (typeof this.setImportedData === 'function') {
-                this.setImportedData(jsonData);
+                this.setImportedData(enrichedData);
             }
-            this.$emit('trigger-event', { name: 'import-success', event: { data: jsonData } });
+            this.$emit('trigger-event', { name: 'import-success', event: { data: enrichedData } });
         },
         parseCsv(content) {
             const delimiter = this.resolveImportDelimiter(content);
@@ -459,6 +462,68 @@ export default {
                 return entry;
             });
         },
+        applyHiddenFieldValues(rows) {
+            if (!Array.isArray(rows) || !rows.length) {
+                return rows;
+            }
+            const originalData = this.getJsonData();
+            const sourceArray = Array.isArray(originalData)
+                ? originalData
+                : originalData && typeof originalData === 'object' && !Array.isArray(originalData)
+                ? [originalData]
+                : [];
+            if (!sourceArray.length) {
+                return rows;
+            }
+            const metadataMap = new Map();
+            sourceArray.forEach(item => {
+                if (!item || typeof item !== 'object' || Array.isArray(item)) {
+                    return;
+                }
+                const normalizedTerm = this.normalizeTerm(item[TERM_KEY]);
+                if (!normalizedTerm) {
+                    return;
+                }
+                const metadata = {};
+                HIDDEN_FIELDS.forEach(field => {
+                    if (!Object.prototype.hasOwnProperty.call(item, field)) {
+                        return;
+                    }
+                    const value = item[field];
+                    if (value === undefined || value === null || value === '') {
+                        return;
+                    }
+                    metadata[field] = value;
+                });
+                if (Object.keys(metadata).length) {
+                    metadataMap.set(normalizedTerm, metadata);
+                }
+            });
+            if (!metadataMap.size) {
+                return rows;
+            }
+            return rows.map(entry => {
+                if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+                    return entry;
+                }
+                const normalizedTerm = this.normalizeTerm(entry[TERM_KEY]);
+                if (!normalizedTerm) {
+                    return entry;
+                }
+                const metadata = metadataMap.get(normalizedTerm);
+                if (!metadata) {
+                    return entry;
+                }
+                return { ...entry, ...metadata };
+            });
+        },
+        normalizeTerm(term) {
+            if (term === undefined || term === null) {
+                return null;
+            }
+            const normalized = typeof term === 'string' ? term.trim() : String(term).trim();
+            return normalized ? normalized : null;
+        },
         getJsonData({ notifyOnError = false } = {}) {
             const rawData = this.wwElementState?.props?.jsonData ?? this.content?.jsonData;
             if (typeof rawData === 'string') {
@@ -491,7 +556,7 @@ export default {
                 return this.collectHeaders(data);
             }
             if (data && typeof data === 'object' && !Array.isArray(data)) {
-                return Object.keys(data);
+                return this.collectHeaders([data]);
             }
             return [];
         },
@@ -516,13 +581,27 @@ export default {
             this.$emit('trigger-event', { name: 'export-success', event: { headers, count: arrayData.length } });
         },
         collectHeaders(dataArray) {
-            const headerSet = new Set();
-            dataArray.forEach(item => {
-                if (item && typeof item === 'object' && !Array.isArray(item)) {
-                    Object.keys(item).forEach(key => headerSet.add(key));
+            const languageHeaders = [];
+            const addLanguageHeader = header => {
+                if (!languageHeaders.includes(header)) {
+                    languageHeaders.push(header);
                 }
+            };
+            dataArray.forEach(item => {
+                if (!item || typeof item !== 'object' || Array.isArray(item)) {
+                    return;
+                }
+                Object.keys(item).forEach(key => {
+                    if (key === TERM_KEY) {
+                        return;
+                    }
+                    if (HIDDEN_FIELDS.includes(key)) {
+                        return;
+                    }
+                    addLanguageHeader(key);
+                });
             });
-            return Array.from(headerSet);
+            return [TERM_KEY, ...languageHeaders];
         },
         buildCsv(headers, dataArray) {
             const delimiter = this.getCsvDelimiterForExport();
