@@ -152,7 +152,7 @@ export default {
             'initValueSingle',
             'initValueSingleId',
             'initValueMulti',
-            'initValueMultiIds',
+            'initValueIdentifiers',
             'allowScrollingWhenOpen',
             [
                 'triggerTitle',
@@ -395,35 +395,6 @@ export default {
             section: 'settings',
             hidden: content => content.selectType !== 'single',
         },
-        initValueSingleId: {
-            type: 'Text',
-            label: 'Initial identifier (single)',
-            bindable: true,
-            defaultValue: '',
-            /* wwEditor:start */
-            bindingValidation: {
-                validations: [
-                    {
-                        type: 'string',
-                    },
-                    {
-                        type: 'number',
-                    },
-                    {
-                        type: 'object',
-                    },
-                ],
-                tooltip:
-                    'A string, number or object identifier matching one of the options: \n\n`"myId"`, `42`, `{ "id": "myId" }`',
-            },
-            propertyHelp: {
-                tooltip:
-                    'Identifier used to preselect an option. It can match the option id, value or the resolved value from the mapping.',
-            },
-            /* wwEditor:end */
-            section: 'settings',
-            hidden: content => content.selectType !== 'single',
-        },
         initValueMulti: {
             type: 'Array',
             label: 'Initial value (Multi)',
@@ -449,31 +420,36 @@ export default {
             /* wwEditor:end */
             hidden: content => content.selectType !== 'multiple',
         },
-        initValueMultiIds: {
+        initValueIdentifiers: {
             type: 'Text',
-            label: 'Initial identifiers (multi)',
+            label: 'Initial identifier(s)',
             bindable: true,
             defaultValue: '',
             /* wwEditor:start */
             bindingValidation: {
                 validations: [
                     {
-                        type: 'array',
+                        type: 'string',
                     },
                     {
-                        type: 'string',
+                        type: 'number',
+                    },
+                    {
+                        type: 'object',
+                    },
+                    {
+                        type: 'array',
                     },
                 ],
                 tooltip:
-                    'An array or JSON string of identifiers matching the options: \n\n`["id1", "id2"]` or `myArrayOfIds`',
+                    'Identifier(s) used to preselect options. Provide a value or JSON matching the option ids or values: \n\n`"myId"`, `42`, `{ "id": "myId" }`, `["id1", "id2"]`',
             },
             propertyHelp: {
                 tooltip:
-                    'Provide identifiers (as JSON or array) to preselect multiple options. Identifiers can match option ids, values or resolved values.',
+                    'Accepts either a single identifier or multiple identifiers (as JSON or array) to preselect options. Identifiers can match option ids, values or resolved values.',
             },
             /* wwEditor:end */
             section: 'settings',
-            hidden: content => content.selectType !== 'multiple',
         },
         selectType: {
             label: 'Type',

@@ -138,20 +138,21 @@ export default {
             return identifier;
         };
 
-        const parseIdentifiers = rawIdentifiers => {
-            if (rawIdentifiers === null || rawIdentifiers === undefined) return undefined;
-            if (Array.isArray(rawIdentifiers)) return rawIdentifiers;
-            if (typeof rawIdentifiers === 'string') {
-                const trimmed = rawIdentifiers.trim();
+        const parseIdentifierInput = rawIdentifier => {
+            if (rawIdentifier === null || rawIdentifier === undefined) return undefined;
+            if (typeof rawIdentifier === 'string') {
+                const trimmed = rawIdentifier.trim();
                 if (!trimmed.length) return undefined;
                 try {
                     return JSON.parse(trimmed);
                 } catch (error) {
-                    console.warn('[ComboAgrupador] Invalid JSON for initial identifiers.', error);
-                    return undefined;
+                    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+                        console.warn('[ComboAgrupador] Invalid JSON for initial identifiers.', error);
+                    }
+                    return trimmed;
                 }
             }
-            return rawIdentifiers;
+            return rawIdentifier;
         };
 
         const findValueForIdentifier = identifier => {
@@ -199,8 +200,12 @@ export default {
                 return undefined;
             }
 
+            const parsedInput = parseIdentifierInput(props.content.initValueIdentifiers);
             if (selectType.value === 'single') {
-                const identifier = sanitizeIdentifier(props.content.initValueSingleId);
+                if (parsedInput === undefined) return undefined;
+
+                const identifierCandidate = Array.isArray(parsedInput) ? parsedInput[0] : parsedInput;
+                const identifier = sanitizeIdentifier(identifierCandidate);
                 if (identifier === undefined) return undefined;
 
                 const result = findValueForIdentifier(identifier);
@@ -209,10 +214,9 @@ export default {
                 return null;
             }
 
-            const parsed = parseIdentifiers(props.content.initValueMultiIds);
-            if (parsed === undefined) return undefined;
+            if (parsedInput === undefined) return undefined;
 
-            const identifiers = (Array.isArray(parsed) ? parsed : [parsed])
+            const identifiers = (Array.isArray(parsedInput) ? parsedInput : [parsedInput])
                 .map(sanitizeIdentifier)
                 .filter(identifier => identifier !== undefined);
 
