@@ -802,6 +802,36 @@ export default {
             initialBodyStyle = null;
         };
 
+        const normalizeSingleValue = value => (value === undefined ? null : value);
+        const normalizeMultipleValue = value => {
+            if (Array.isArray(value)) {
+                return value;
+            }
+            if (value === undefined || value === null) {
+                return [];
+            }
+            return [value];
+        };
+
+        const hasDifferentInitValue = (currentValue, nextValue) => {
+            if (selectType.value === 'single') {
+                return !areValuesEqual(normalizeSingleValue(currentValue), normalizeSingleValue(nextValue));
+            }
+
+            const currentArray = normalizeMultipleValue(currentValue);
+            const nextArray = normalizeMultipleValue(nextValue);
+
+            if (!Array.isArray(currentValue)) {
+                return true;
+            }
+
+            if (currentArray.length !== nextArray.length) {
+                return true;
+            }
+
+            return nextArray.some((value, index) => !areValuesEqual(currentArray[index], value));
+        };
+
         watch(
             hasSearch,
             newHasSearch => {
@@ -863,17 +893,24 @@ export default {
         watch(
             [initValue, selectType],
             () => {
-                if (
-                    (initValue.value !== null && initValue.value !== undefined) ||
-                    (Array.isArray(initValue.value) && initValue.value.length)
-                ) {
-                    setValue(initValue.value);
-                    nextTick(debounce(handleInitialFocus, 300));
-                } else {
-                    setValue(null);
+                const normalizedNextValue =
+                    selectType.value === 'single'
+                        ? normalizeSingleValue(initValue.value)
+                        : normalizeMultipleValue(initValue.value);
+
+                if (hasDifferentInitValue(variableValue.value, normalizedNextValue)) {
+                    setValue(normalizedNextValue);
+
+                    const hasValue =
+                        (selectType.value === 'single' && normalizedNextValue !== null && normalizedNextValue !== undefined) ||
+                        (selectType.value === 'multiple' && normalizedNextValue.length);
+
+                    if (hasValue) {
+                        nextTick(debounce(handleInitialFocus, 300));
+                    }
                 }
 
-                emit('trigger-event', { name: 'initValueChange', event: { value: initValue.value } });
+                emit('trigger-event', { name: 'initValueChange', event: { value: normalizedNextValue } });
             },
             { immediate: true },
             { deep: true }
