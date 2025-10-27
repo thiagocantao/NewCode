@@ -195,6 +195,101 @@ export default {
     const popup = ref({ visible: false, type: "", details: "" });
     const detailsOpen = ref(false);
 
+    const isHttpUrl = (value) => typeof value === "string" && /^https?:\/\//i.test(value);
+
+    function sanitizeBucket(value, fallback = null) {
+      const bucket = typeof value === "string" ? value.trim() : "";
+      return bucket || (typeof fallback === "string" && fallback ? fallback : null);
+    }
+
+    function sanitizeStoragePath(value, bucket) {
+      let path = typeof value === "string" ? value.trim() : "";
+      if (!path) return null;
+      path = path.replace(/^\/+/u, "");
+      if (bucket) {
+        const prefix = `${bucket}/`;
+        if (path.startsWith(prefix)) path = path.slice(prefix.length);
+      }
+      return path || null;
+    }
+
+    function extractFromSupabaseUrl(url) {
+      if (!isHttpUrl(url)) return { bucket: null, storagePath: null };
+      try {
+        const parsed = new URL(url);
+        const segments = parsed.pathname.split("/").filter(Boolean);
+        const objectIdx = segments.indexOf("object");
+        if (objectIdx !== -1) {
+          const mode = segments[objectIdx + 1];
+          if (mode === "sign" || mode === "public") {
+            const bucket = segments[objectIdx + 2] || null;
+            const pathSegments = segments.slice(objectIdx + 3);
+            if (bucket && pathSegments.length) {
+              return { bucket, storagePath: pathSegments.join("/") };
+            }
+          }
+        }
+      } catch (e) {}
+      return { bucket: null, storagePath: null };
+    }
+
+    function resolveStorageLocation(source = {}, { fallbackBucket = null } = {}) {
+      const bucketCandidate =
+        sanitizeBucket(source.bucket) ||
+        sanitizeBucket(source.bucketname) ||
+        sanitizeBucket(source.bucket_name) ||
+        sanitizeBucket(source.bucketName) ||
+        sanitizeBucket(source.storageBucket) ||
+        null;
+
+      const urlCandidate =
+        source.url ||
+        source.fileUrl ||
+        source.fileurl ||
+        source.publicUrl ||
+        source.publicurl ||
+        source.signedUrl ||
+        source.signedurl ||
+        null;
+
+      const rawPathCandidate =
+        source.storagePath ??
+        source.storagepath ??
+        source.objectpath ??
+        source.objectPath ??
+        source.path ??
+        source.filepath ??
+        source.filePath ??
+        source.object_key ??
+        (!isHttpUrl(urlCandidate) ? urlCandidate : null);
+
+      let bucket = bucketCandidate || null;
+      let storagePath = sanitizeStoragePath(rawPathCandidate, bucket);
+
+      if (!bucket || !storagePath) {
+        const extracted = extractFromSupabaseUrl(urlCandidate);
+        if (extracted.bucket && !bucket) bucket = extracted.bucket;
+        if (extracted.storagePath && !storagePath) storagePath = extracted.storagePath;
+      }
+
+      if (!bucket && storagePath && storagePath.includes("/")) {
+        const [maybeBucket, ...rest] = storagePath.split("/");
+        if (rest.length) {
+          bucket = maybeBucket;
+          storagePath = rest.join("/");
+        }
+      }
+
+      bucket = sanitizeBucket(bucket, fallbackBucket);
+      storagePath = sanitizeStoragePath(storagePath, bucket);
+
+      return {
+        bucket: bucket || null,
+        storagePath: storagePath || null,
+        directUrl: isHttpUrl(urlCandidate) ? urlCandidate : null,
+      };
+    }
+
     const autoSaveToPostticketattachment = computed(() => {
       const flag = props.content?.autoSaveToPostticketattachment;
       return flag === false ? false : true;
@@ -275,10 +370,14 @@ export default {
 
     function removePendingAttachmentBodyByPath(path) {
       if (!path) return;
+      const normalized = typeof path === "string" ? path.trim() : path;
       const current = Array.isArray(pendingAttachmentsBodies.value)
         ? pendingAttachmentsBodies.value
         : [];
-      const filtered = current.filter((item) => item?.p_objectpath !== path);
+      const filtered = current.filter((item) => {
+        const candidate = typeof item?.p_objectpath === "string" ? item.p_objectpath.trim() : item?.p_objectpath;
+        return candidate !== normalized;
+      });
       if (filtered.length !== current.length) {
         syncPendingAttachmentsBodies(filtered);
       }
@@ -349,20 +448,29 @@ export default {
     }
 
     async function getFreshSignedUrl(file, { forceDownloadName, transformImage } = {}) {
-      if (!file?.bucket || !file?.storagePath || !supabase?.storage) return null;
+      if (!file) return null;
+      const location = resolveStorageLocation(file, { fallbackBucket: "ticket" });
+      const bucket = location.bucket;
+      const storagePath = location.storagePath;
+      if (!supabase?.storage || !bucket || !storagePath) return location.directUrl || null;
       await ensureAuthReady();
       const options = {};
       if (transformImage && file.isImage) options.transform = transformImage;
       if (forceDownloadName) options.download = forceDownloadName;
       const { data, error } = await supabase
         .storage
-        .from(file.bucket)
-        .createSignedUrl(file.storagePath, 60 * 60, options);
+        .from(bucket)
+        .createSignedUrl(storagePath, 60 * 60, options);
       if (error) {
         console.warn("[Anexos] createSignedUrl falhou:", error);
-        return null;
+        return location.directUrl || null;
       }
-      return data?.signedUrl || null;
+      if (file) {
+        file.bucket = bucket;
+        file.storagePath = storagePath;
+        file.signedUrl = data?.signedUrl || file.signedUrl || null;
+      }
+      return data?.signedUrl || location.directUrl || null;
     }
 
     async function loadTxtIfNeeded(file) {
@@ -387,11 +495,19 @@ export default {
     watch(
       files,
       () => {
-        const info = files.value.map((f) => ({
-          name: f.file.name, size: f.file.size, type: f.file.type,
-          url: f.url, storagePath: f.storagePath || null, bucket: f.bucket || null,
-          signedUrl: f.signedUrl || null, attachmentId: f.attachmentId || null,
-        }));
+        const info = files.value.map((f) => {
+          const location = resolveStorageLocation(f);
+          return {
+            name: f.file.name,
+            size: f.file.size,
+            type: f.file.type,
+            url: f.url,
+            storagePath: location.storagePath,
+            bucket: location.bucket,
+            signedUrl: f.signedUrl || null,
+            attachmentId: f.attachmentId || null,
+          };
+        });
         attachmentsInfo.value = info;
         if (setAttachmentsInfo) setAttachmentsInfo(info);
       },
@@ -411,19 +527,35 @@ export default {
       const items = await Promise.all(
         data.map(async (item) => {
           const kind = detectFileKind(item.filename, item.mimetype);
+          const location = resolveStorageLocation(item, { fallbackBucket: "ticket" });
+          const bucket = location.bucket || "ticket";
+          const storagePath = location.storagePath;
+          const directUrl = location.directUrl;
           const info = {
             file: { name: item.filename, size: item.filesizebytes, type: item.mimetype },
-            url: null, isImage: kind.isImage, isPdf: kind.isPdf, isTxt: kind.isTxt,
-            isUploaded: true, bucket: "ticket", storagePath: item.objectpath, signedUrl: null,
-            attachmentId: item.id, createdBy: item.createdby, createdDate: item.createddate, textContent: null,
+            url: null,
+            isImage: kind.isImage,
+            isPdf: kind.isPdf,
+            isTxt: kind.isTxt,
+            isUploaded: true,
+            bucket,
+            storagePath,
+            signedUrl: null,
+            attachmentId: item.id,
+            createdBy: item.createdby,
+            createdDate: item.createddate,
+            textContent: null,
           };
           try {
-            if (storageReady && supabase?.storage) {
+            if (storageReady && supabase?.storage && bucket && storagePath) {
               const options = info.isImage ? { transform: { width: 1200, resize: "contain" } } : undefined;
               const { data: signed, error } = await supabase
-                .storage.from(info.bucket)
-                .createSignedUrl(info.storagePath, 60 * 60, options);
+                .storage.from(bucket)
+                .createSignedUrl(storagePath, 60 * 60, options);
               if (!error) info.url = info.signedUrl = signed?.signedUrl || null;
+              else if (directUrl) info.url = directUrl;
+            } else if (directUrl) {
+              info.url = directUrl;
             }
           } catch (e) { console.warn(e); }
           return info;
@@ -630,7 +762,11 @@ export default {
 
       const errorMessages = [];
 
-      const shouldRemoveFromStorage = !!(removed?.bucket && removed?.storagePath && supabase?.storage);
+      const removalLocation = resolveStorageLocation(removed, { fallbackBucket: "ticket" });
+      const removalBucket = removalLocation.bucket;
+      const removalPath = removalLocation.storagePath;
+
+      const shouldRemoveFromStorage = !!(removalBucket && removalPath && supabase?.storage);
       const shouldCallRpcDelete = !!(removed?.attachmentId && sb?.callPostgresFunction);
 
       if (shouldRemoveFromStorage || shouldCallRpcDelete) {
@@ -640,8 +776,8 @@ export default {
         try {
           if (shouldRemoveFromStorage) {
             const { error: storageErr } = await supabase.storage
-              .from(removed.bucket)
-              .remove([removed.storagePath]);
+              .from(removalBucket)
+              .remove([removalPath]);
             if (storageErr) errorMessages.push(`Erro ao remover arquivo do storage: ${storageErr.message || storageErr}`);
           }
 
@@ -655,8 +791,8 @@ export default {
               p_fileextension: removed.file?.name?.split(".").pop() ?? null,
               p_filesize: removed.file?.size ?? null,
               p_mimetype: "",
-              p_bucket: removed.bucket ?? null,
-              p_objectpath: removed.storagePath ?? null,
+              p_bucket: removalBucket ?? null,
+              p_objectpath: removalPath ?? null,
               p_attachment_id: removed.attachmentId ?? null,
             };
 
@@ -671,7 +807,7 @@ export default {
       }
 
       if (!autoSaveToPostticketattachment.value) {
-        removePendingAttachmentBodyByPath(removed?.storagePath);
+        removePendingAttachmentBodyByPath(removalPath);
       }
 
       if (errorMessages.length) showError(errorMessages.join("\n"));
