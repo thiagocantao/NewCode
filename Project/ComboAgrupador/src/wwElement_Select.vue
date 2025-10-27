@@ -120,17 +120,145 @@ export default {
         const appDivRef = shallowRef(wwLib.getFrontDocument().querySelector('#app'));
 
         const selectType = computed(() => props.content.selectType);
-        const initValue = computed(() =>
+        const rawData = computed(() => props.content.choices || []);
+        const mappingLabel = computed(() => props.content.mappingLabel);
+        const mappingValue = computed(() => props.content.mappingValue);
+        const mappingDisabled = computed(() => props.content.mappingDisabled);
+        const mappingBgColor = computed(() => props.content.optionBgColorField);
+        const mappingFontColor = computed(() => props.content.optionFontColorField);
+
+        const { resolveMappingFormula } = wwLib.wwFormula.useFormula();
+
+        const sanitizeIdentifier = identifier => {
+            if (identifier === null || identifier === undefined) return undefined;
+            if (typeof identifier === 'string') {
+                const trimmed = identifier.trim();
+                return trimmed.length ? trimmed : undefined;
+            }
+            return identifier;
+        };
+
+        const parseIdentifiers = rawIdentifiers => {
+            if (rawIdentifiers === null || rawIdentifiers === undefined) return undefined;
+            if (Array.isArray(rawIdentifiers)) return rawIdentifiers;
+            if (typeof rawIdentifiers === 'string') {
+                const trimmed = rawIdentifiers.trim();
+                if (!trimmed.length) return undefined;
+                try {
+                    return JSON.parse(trimmed);
+                } catch (error) {
+                    console.warn('[ComboAgrupador] Invalid JSON for initial identifiers.', error);
+                    return undefined;
+                }
+            }
+            return rawIdentifiers;
+        };
+
+        const findValueForIdentifier = identifier => {
+            if (!Array.isArray(rawData.value) || rawData.value.length === 0) {
+                return { status: 'pending' };
+            }
+
+            for (const option of rawData.value) {
+                const isPrimitive = typeof option !== 'object' || option === null;
+                const resolvedValue = isPrimitive
+                    ? option
+                    : resolveMappingFormula(toValue(mappingValue), option);
+                const optionValue = isPrimitive ? option : option?.value ?? resolvedValue;
+                const optionId = isPrimitive ? undefined : option?.id;
+
+                const matchesIdentifier = candidate =>
+                    candidate !== undefined && candidate !== null && areValuesEqual(candidate, identifier);
+
+                if (
+                    matchesIdentifier(optionId) ||
+                    matchesIdentifier(optionValue) ||
+                    matchesIdentifier(resolvedValue)
+                ) {
+                    const valueToReturn = isPrimitive
+                        ? option
+                        : resolvedValue !== undefined && resolvedValue !== null
+                        ? resolvedValue
+                        : option?.value !== undefined
+                        ? option.value
+                        : option;
+
+                    return { status: 'found', value: valueToReturn };
+                }
+            }
+
+            return { status: 'not-found' };
+        };
+
+        const fallbackInitValue = computed(() =>
             selectType.value === 'single' ? (props.content.initValueSingle ?? null) : props.content.initValueMulti || []
         );
+
+        const initValueFromIdentifiers = computed(() => {
+            if (!Array.isArray(rawData.value) || rawData.value.length === 0) {
+                return undefined;
+            }
+
+            if (selectType.value === 'single') {
+                const identifier = sanitizeIdentifier(props.content.initValueSingleId);
+                if (identifier === undefined) return undefined;
+
+                const result = findValueForIdentifier(identifier);
+                if (result.status === 'pending') return undefined;
+                if (result.status === 'found') return result.value;
+                return null;
+            }
+
+            const parsed = parseIdentifiers(props.content.initValueMultiIds);
+            if (parsed === undefined) return undefined;
+
+            const identifiers = (Array.isArray(parsed) ? parsed : [parsed])
+                .map(sanitizeIdentifier)
+                .filter(identifier => identifier !== undefined);
+
+            if (!identifiers.length) return undefined;
+
+            const values = [];
+            let matchedCount = 0;
+            let hasPending = false;
+
+            identifiers.forEach(identifier => {
+                const result = findValueForIdentifier(identifier);
+                if (result.status === 'pending') {
+                    hasPending = true;
+                    return;
+                }
+                if (result.status === 'found') {
+                    matchedCount += 1;
+                    values.push(result.value);
+                }
+            });
+
+            if (hasPending && matchedCount === 0) {
+                return undefined;
+            }
+
+            if (matchedCount === 0) {
+                return [];
+            }
+
+            return values;
+        });
+
+        const initValue = computed(() => {
+            const identifierValue = initValueFromIdentifiers.value;
+            if (identifierValue !== undefined) {
+                return identifierValue;
+            }
+            return fallbackInitValue.value;
+        });
+
         const { value: variableValue, setValue } = wwLib.wwVariable.useComponentVariable({
             uid: props.uid,
             name: 'value',
             type: selectType.value === 'single' ? 'any' : 'array',
             defaultValue: initValue,
         });
-
-        const { resolveMappingFormula } = wwLib.wwFormula.useFormula();
 
         const fieldName = computed(() => props.content.fieldName || props.wwElementState.name);
         const validation = computed(() => props.content.validation);
@@ -152,7 +280,6 @@ export default {
         const isReallyFocused = ref(false);
         const isSearchBarFocused = ref(false);
         const isMouseDownOnOption = ref(false);
-        const rawData = computed(() => props.content.choices || []);
 
         const isFocused = computed(() => {
             /* wwEditor:start */
@@ -183,11 +310,6 @@ export default {
         const triggerWidth = ref(0);
         const triggerHeight = ref(0);
         const shouldCloseDropdown = ref(true);
-        const mappingLabel = computed(() => props.content.mappingLabel);
-        const mappingValue = computed(() => props.content.mappingValue);
-        const mappingDisabled = computed(() => props.content.mappingDisabled);
-        const mappingBgColor = computed(() => props.content.optionBgColorField);
-        const mappingFontColor = computed(() => props.content.optionFontColorField);
         const showSearch = computed(() => props.content.showSearch);
         const allowScrollingWhenOpen = computed(() => props.content.allowScrollingWhenOpen);
 
