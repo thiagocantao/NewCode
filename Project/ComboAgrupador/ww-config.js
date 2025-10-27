@@ -150,6 +150,7 @@ export default {
             'optionBgColorField',
             'optionFontColorField',
             'initValueSingle',
+            'initValueSingleId',
             'initValueMulti',
             'initValueIdentifiers',
             'allowScrollingWhenOpen',
