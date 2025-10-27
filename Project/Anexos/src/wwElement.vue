@@ -263,20 +263,35 @@ export default {
         source.object_key ??
         (!isHttpUrl(urlCandidate) ? urlCandidate : null);
 
-      let bucket = bucketCandidate || null;
+      const extracted = extractFromSupabaseUrl(urlCandidate);
+
+      let bucket = bucketCandidate || extracted.bucket || null;
       let storagePath = sanitizeStoragePath(rawPathCandidate, bucket);
 
-      if (!bucket || !storagePath) {
-        const extracted = extractFromSupabaseUrl(urlCandidate);
-        if (extracted.bucket && !bucket) bucket = extracted.bucket;
-        if (extracted.storagePath && !storagePath) storagePath = extracted.storagePath;
+      if (!storagePath && extracted.storagePath) {
+        storagePath = sanitizeStoragePath(extracted.storagePath, bucket);
       }
 
-      if (!bucket && storagePath && storagePath.includes("/")) {
-        const [maybeBucket, ...rest] = storagePath.split("/");
-        if (rest.length) {
-          bucket = maybeBucket;
-          storagePath = rest.join("/");
+      if (storagePath && storagePath.includes("/")) {
+        const [maybeBucketRaw, ...rest] = storagePath.split("/");
+        const restPath = rest.join("/");
+        const maybeBucket = sanitizeBucket(maybeBucketRaw || "");
+        const hasRest = rest.length > 0 && restPath;
+
+        if (hasRest) {
+          const shouldUsePathBucket =
+            (!!bucket && maybeBucket && bucket === maybeBucket) ||
+            (!!bucketCandidate && maybeBucket && bucketCandidate === maybeBucket) ||
+            (!!extracted.bucket && maybeBucket && extracted.bucket === maybeBucket) ||
+            (!bucket && !fallbackBucket);
+
+          if (shouldUsePathBucket) {
+            bucket = maybeBucket || bucket;
+            storagePath = restPath;
+          } else if (!bucket && fallbackBucket && maybeBucket === fallbackBucket) {
+            bucket = maybeBucket;
+            storagePath = restPath;
+          }
         }
       }
 
