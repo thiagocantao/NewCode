@@ -151,6 +151,7 @@ export default {
             'optionFontColorField',
             'initValueSingle',
             'initValueMulti',
+            'initValueIdentifiers',
             'allowScrollingWhenOpen',
             [
                 'triggerTitle',
@@ -417,6 +418,37 @@ export default {
             },
             /* wwEditor:end */
             hidden: content => content.selectType !== 'multiple',
+        },
+        initValueIdentifiers: {
+            type: 'Text',
+            label: 'Initial identifier(s)',
+            bindable: true,
+            defaultValue: '',
+            /* wwEditor:start */
+            bindingValidation: {
+                validations: [
+                    {
+                        type: 'string',
+                    },
+                    {
+                        type: 'number',
+                    },
+                    {
+                        type: 'object',
+                    },
+                    {
+                        type: 'array',
+                    },
+                ],
+                tooltip:
+                    'Identifier(s) used to preselect options. Provide a value or JSON matching the option ids or values: \n\n`"myId"`, `42`, `{ "id": "myId" }`, `["id1", "id2"]`',
+            },
+            propertyHelp: {
+                tooltip:
+                    'Accepts either a single identifier or multiple identifiers (as JSON or array) to preselect options. Identifiers can match option ids, values or resolved values.',
+            },
+            /* wwEditor:end */
+            section: 'settings',
         },
         selectType: {
             label: 'Type',
