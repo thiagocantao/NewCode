@@ -912,8 +912,7 @@ export default {
 
                 emit('trigger-event', { name: 'initValueChange', event: { value: normalizedNextValue } });
             },
-            { immediate: true },
-            { deep: true }
+            { immediate: true, deep: true }
         );
 
         watch(
