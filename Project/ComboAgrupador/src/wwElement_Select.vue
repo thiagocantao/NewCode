@@ -346,14 +346,20 @@ export default {
 
             const openUpwards = shouldOpenUpwards();
 
+            const availableTopSpace = Math.max(0, spaceAbove - offsetY);
+            const availableBottomSpace = Math.max(0, spaceBelow - offsetY);
+            const maxAvailableHeight = openUpwards ? availableTopSpace : availableBottomSpace;
+            const effectiveHeight = Math.min(dropdownHeight, maxAvailableHeight || dropdownHeight);
+
             let top = openUpwards
-                ? triggerRect.top - dropdownHeight - offsetY
+                ? triggerRect.top - offsetY - effectiveHeight
                 : triggerRect.bottom + offsetY;
 
-            if (openUpwards) {
-                if (top < 0) top = 0;
-            } else if (top + dropdownHeight > viewportHeight) {
-                top = Math.max(0, viewportHeight - dropdownHeight);
+            if (openUpwards && top < 0) {
+                top = 0;
+            } else if (!openUpwards && top + dropdownHeight > viewportHeight) {
+                const downwardOverflow = top + dropdownHeight - viewportHeight;
+                top = Math.max(0, top - downwardOverflow);
             }
 
             let left = triggerRect.left + offsetX;
@@ -361,10 +367,20 @@ export default {
                 left = Math.max(0, viewportWidth - dropdownWidth);
             }
 
+            const constrainedHeight = dropdownHeight > maxAvailableHeight && maxAvailableHeight > 0
+                ? maxAvailableHeight
+                : null;
+
             floatingStyles.value = {
                 position: 'absolute',
                 top: `${top + scrollY}px`,
                 left: `${left + scrollX}px`,
+                ...(constrainedHeight !== null
+                    ? {
+                          maxHeight: `${constrainedHeight}px`,
+                          overflowY: 'auto',
+                      }
+                    : {}),
             };
         };
         let floatingStyles = ref({});
