@@ -319,14 +319,82 @@ export default {
 
         // Styles
         const syncFloating = () => {
-            if (!triggerElement?.value) return;
-            const triggerElementBounding = triggerElement.value.getBoundingClientRect();
+            if (!triggerElement?.value || !dropdownElement?.value) return;
+
+            const frontWindow = wwLib.getFrontWindow();
+            const triggerRect = triggerElement.value.getBoundingClientRect();
+            const dropdownRect = dropdownElement.value.getBoundingClientRect();
+
+            const viewportHeight = frontWindow.innerHeight;
+            const viewportWidth = frontWindow.innerWidth;
+            const scrollY = frontWindow.scrollY || 0;
+            const scrollX = frontWindow.scrollX || 0;
+
+            const offsetX = parseInt(props.content.offsetX) || 0;
+            const offsetY = parseInt(props.content.offsetY) || 0;
+
+            const dropdownHeight = dropdownRect.height;
+            const dropdownWidth = dropdownRect.width;
+
+            const availableBelow = Math.max(0, viewportHeight - triggerRect.bottom - offsetY);
+            const availableAbove = Math.max(0, triggerRect.top - offsetY);
+
+            const shouldOpenUpwards = () => {
+                if (availableBelow >= dropdownHeight) return false;
+                if (availableAbove >= dropdownHeight) return true;
+                return availableAbove > availableBelow;
+            };
+
+            const openUpwards = shouldOpenUpwards();
+
+            let computedTop;
+            let constrainedHeight = null;
+
+            if (openUpwards) {
+                const heightToUse = Math.min(dropdownHeight, availableAbove || dropdownHeight);
+                computedTop = triggerRect.top + scrollY - heightToUse - offsetY;
+                constrainedHeight = dropdownHeight > heightToUse ? heightToUse : null;
+
+                const minTop = scrollY;
+                if (computedTop < minTop) {
+                    const delta = minTop - computedTop;
+                    computedTop = minTop;
+                    if (constrainedHeight !== null) {
+                        constrainedHeight = Math.max(0, heightToUse - delta);
+                    }
+                }
+            } else {
+                const heightToUse = Math.min(dropdownHeight, availableBelow || dropdownHeight);
+                computedTop = triggerRect.bottom + scrollY + offsetY;
+                constrainedHeight = dropdownHeight > heightToUse ? heightToUse : null;
+
+                const viewportBottom = scrollY + viewportHeight;
+                const dropdownBottom = computedTop + dropdownHeight;
+                if (dropdownBottom > viewportBottom) {
+                    const overflow = dropdownBottom - viewportBottom;
+                    computedTop = Math.max(scrollY, computedTop - overflow);
+                }
+            }
+
+            let computedLeft = triggerRect.left + scrollX + offsetX;
+            const viewportLeft = scrollX;
+            const viewportRight = scrollX + viewportWidth;
+            const dropdownRight = computedLeft + dropdownWidth;
+
+            if (dropdownRight > viewportRight) {
+                computedLeft = Math.max(viewportLeft, viewportRight - dropdownWidth);
+            }
+
             floatingStyles.value = {
                 position: 'absolute',
-                top: `${
-                    triggerElementBounding.top + triggerElementBounding.height + parseInt(props.content.offsetY)
-                }px`,
-                left: `${triggerElementBounding.left + parseInt(props.content.offsetX)}px`,
+                top: `${computedTop}px`,
+                left: `${computedLeft}px`,
+                ...(constrainedHeight !== null
+                    ? {
+                          maxHeight: `${constrainedHeight}px`,
+                          overflowY: 'auto',
+                      }
+                    : {}),
             };
         };
         let floatingStyles = ref({});
