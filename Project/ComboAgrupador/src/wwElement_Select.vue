@@ -333,48 +333,62 @@ export default {
             const offsetX = parseInt(props.content.offsetX) || 0;
             const offsetY = parseInt(props.content.offsetY) || 0;
 
-            const spaceBelow = viewportHeight - triggerRect.bottom;
-            const spaceAbove = triggerRect.top;
             const dropdownHeight = dropdownRect.height;
             const dropdownWidth = dropdownRect.width;
 
+            const availableBelow = Math.max(0, viewportHeight - triggerRect.bottom - offsetY);
+            const availableAbove = Math.max(0, triggerRect.top - offsetY);
+
             const shouldOpenUpwards = () => {
-                if (spaceBelow >= dropdownHeight) return false;
-                if (spaceAbove >= dropdownHeight) return true;
-                return spaceAbove > spaceBelow;
+                if (availableBelow >= dropdownHeight) return false;
+                if (availableAbove >= dropdownHeight) return true;
+                return availableAbove > availableBelow;
             };
 
             const openUpwards = shouldOpenUpwards();
 
-            const availableTopSpace = Math.max(0, spaceAbove - offsetY);
-            const availableBottomSpace = Math.max(0, spaceBelow - offsetY);
-            const maxAvailableHeight = openUpwards ? availableTopSpace : availableBottomSpace;
-            const effectiveHeight = Math.min(dropdownHeight, maxAvailableHeight || dropdownHeight);
+            let computedTop;
+            let constrainedHeight = null;
 
-            let top = openUpwards
-                ? triggerRect.top - offsetY - effectiveHeight
-                : triggerRect.bottom + offsetY;
+            if (openUpwards) {
+                const heightToUse = Math.min(dropdownHeight, availableAbove || dropdownHeight);
+                computedTop = triggerRect.top + scrollY - heightToUse - offsetY;
+                constrainedHeight = dropdownHeight > heightToUse ? heightToUse : null;
 
-            if (openUpwards && top < 0) {
-                top = 0;
-            } else if (!openUpwards && top + dropdownHeight > viewportHeight) {
-                const downwardOverflow = top + dropdownHeight - viewportHeight;
-                top = Math.max(0, top - downwardOverflow);
+                const minTop = scrollY;
+                if (computedTop < minTop) {
+                    const delta = minTop - computedTop;
+                    computedTop = minTop;
+                    if (constrainedHeight !== null) {
+                        constrainedHeight = Math.max(0, heightToUse - delta);
+                    }
+                }
+            } else {
+                const heightToUse = Math.min(dropdownHeight, availableBelow || dropdownHeight);
+                computedTop = triggerRect.bottom + scrollY + offsetY;
+                constrainedHeight = dropdownHeight > heightToUse ? heightToUse : null;
+
+                const viewportBottom = scrollY + viewportHeight;
+                const dropdownBottom = computedTop + dropdownHeight;
+                if (dropdownBottom > viewportBottom) {
+                    const overflow = dropdownBottom - viewportBottom;
+                    computedTop = Math.max(scrollY, computedTop - overflow);
+                }
             }
 
-            let left = triggerRect.left + offsetX;
-            if (left + dropdownWidth > viewportWidth) {
-                left = Math.max(0, viewportWidth - dropdownWidth);
-            }
+            let computedLeft = triggerRect.left + scrollX + offsetX;
+            const viewportLeft = scrollX;
+            const viewportRight = scrollX + viewportWidth;
+            const dropdownRight = computedLeft + dropdownWidth;
 
-            const constrainedHeight = dropdownHeight > maxAvailableHeight && maxAvailableHeight > 0
-                ? maxAvailableHeight
-                : null;
+            if (dropdownRight > viewportRight) {
+                computedLeft = Math.max(viewportLeft, viewportRight - dropdownWidth);
+            }
 
             floatingStyles.value = {
                 position: 'absolute',
-                top: `${top + scrollY}px`,
-                left: `${left + scrollX}px`,
+                top: `${computedTop}px`,
+                left: `${computedLeft}px`,
                 ...(constrainedHeight !== null
                     ? {
                           maxHeight: `${constrainedHeight}px`,
