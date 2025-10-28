@@ -319,14 +319,52 @@ export default {
 
         // Styles
         const syncFloating = () => {
-            if (!triggerElement?.value) return;
-            const triggerElementBounding = triggerElement.value.getBoundingClientRect();
+            if (!triggerElement?.value || !dropdownElement?.value) return;
+
+            const frontWindow = wwLib.getFrontWindow();
+            const triggerRect = triggerElement.value.getBoundingClientRect();
+            const dropdownRect = dropdownElement.value.getBoundingClientRect();
+
+            const viewportHeight = frontWindow.innerHeight;
+            const viewportWidth = frontWindow.innerWidth;
+            const scrollY = frontWindow.scrollY || 0;
+            const scrollX = frontWindow.scrollX || 0;
+
+            const offsetX = parseInt(props.content.offsetX) || 0;
+            const offsetY = parseInt(props.content.offsetY) || 0;
+
+            const spaceBelow = viewportHeight - triggerRect.bottom;
+            const spaceAbove = triggerRect.top;
+            const dropdownHeight = dropdownRect.height;
+            const dropdownWidth = dropdownRect.width;
+
+            const shouldOpenUpwards = () => {
+                if (spaceBelow >= dropdownHeight) return false;
+                if (spaceAbove >= dropdownHeight) return true;
+                return spaceAbove > spaceBelow;
+            };
+
+            const openUpwards = shouldOpenUpwards();
+
+            let top = openUpwards
+                ? triggerRect.top - dropdownHeight - offsetY
+                : triggerRect.bottom + offsetY;
+
+            if (openUpwards) {
+                if (top < 0) top = 0;
+            } else if (top + dropdownHeight > viewportHeight) {
+                top = Math.max(0, viewportHeight - dropdownHeight);
+            }
+
+            let left = triggerRect.left + offsetX;
+            if (left + dropdownWidth > viewportWidth) {
+                left = Math.max(0, viewportWidth - dropdownWidth);
+            }
+
             floatingStyles.value = {
                 position: 'absolute',
-                top: `${
-                    triggerElementBounding.top + triggerElementBounding.height + parseInt(props.content.offsetY)
-                }px`,
-                left: `${triggerElementBounding.left + parseInt(props.content.offsetX)}px`,
+                top: `${top + scrollY}px`,
+                left: `${left + scrollX}px`,
             };
         };
         let floatingStyles = ref({});
