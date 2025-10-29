@@ -1,57 +1,46 @@
 export default {
-    options: {
-        lazyHydrate: true,
-        displayAllowedValues: (content, wwProps) => wwProps?.overrideDisplayValues ?? [
-            'flex',
-            'block',
-            'grid',
-            'table-cell',
-            'table-row',
-            'table-header-group',
-            'inline-flex',
-            'inline-block',
-            'inline-grid',
-        ],
-        linkable: true,
-    },
-    inherit: [{ type: 'ww-layout' }, { type: 'ww-background-video' }],
     editor: {
         label: {
-            en: 'Flexbox',
+            en: 'Filter Builder',
         },
-        icon: 'border',
+        icon: 'filter',
         bubble: {
-            icon: 'border',
+            icon: 'filter',
         },
-        customStylePropertiesOrder: ['children'],
+        customSettingsPropertiesOrder: ['fields'],
     },
     properties: {
-        children: {
-            label: {
-                en: 'Items',
-                fr: 'Items',
-            },
-            type: 'Repeat',
+        fields: {
+            label: { en: 'Available fields' },
+            type: 'Array',
+            section: 'settings',
+            bindable: true,
+            defaultValue: ['Body', 'Subject', 'To', 'From'],
             options: {
-                text: { en: 'Elements to repeat' },
+                addable: true,
+                removable: true,
+                editable: true,
+                item: {
+                    type: 'Text',
+                    options: {
+                        placeholder: 'Field name',
+                    },
+                },
             },
-            hidden: (content, sidePanelContent, boundProps, wwProps) => !!(wwProps && wwProps.isFixed) || wwProps.noDropzone,
-            bindable: 'repeatable',
-            defaultValue: [],
             /* wwEditor:start */
             bindingValidation: {
-                validations: [
-                    {
-                        type: 'array',
-                    },
-                    {
-                        type: 'object',
-                    },
-                ],
-                tooltip:
-                    'A collection or an array of data: \n\n`myCollection` or `[{}, {}, ...] || ["string1", "string2", ...] || [1, 2, ...]`',
+                type: 'array',
+                tooltip: 'Array of field names (e.g. ["Body", "Subject"])',
+            },
+            propertyHelp: {
+                tooltip: 'List of fields that can be used when defining filter conditions',
             },
             /* wwEditor:end */
+        },
+        rootGroup: {
+            type: 'Object',
+            hidden: true,
+            defaultValue: null,
         },
     },
 };
