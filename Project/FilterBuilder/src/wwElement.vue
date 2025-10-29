@@ -7,6 +7,9 @@
             :operators="operatorOptions"
             :clauses="clauseOptions"
             :is-root="true"
+            :action-button-background-color="actionButtonBackgroundColor"
+            :action-button-text-color="actionButtonTextColor"
+            :remove-button-text-color="removeButtonTextColor"
             @add-condition="handleAddCondition"
             @add-group="handleAddGroup"
             @remove-condition="handleRemoveCondition"
@@ -62,6 +65,15 @@ export default {
         },
         clauseOptions() {
             return CLAUSE_OPTIONS;
+        },
+        actionButtonBackgroundColor() {
+            return (this.content && this.content.actionButtonBackgroundColor) || '#2563eb';
+        },
+        actionButtonTextColor() {
+            return (this.content && this.content.actionButtonTextColor) || '#ffffff';
+        },
+        removeButtonTextColor() {
+            return (this.content && this.content.removeButtonTextColor) || '#ef4444';
         },
     },
     created() {
