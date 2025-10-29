@@ -7,7 +7,12 @@ export default {
         bubble: {
             icon: 'filter',
         },
-        customSettingsPropertiesOrder: ['fields'],
+        customSettingsPropertiesOrder: [
+            'fields',
+            'actionButtonBackgroundColor',
+            'actionButtonTextColor',
+            'removeButtonTextColor',
+        ],
     },
     properties: {
         fields: {
@@ -41,6 +46,48 @@ export default {
             type: 'Object',
             hidden: true,
             defaultValue: null,
+        },
+        actionButtonBackgroundColor: {
+            label: { en: 'Action button background' },
+            type: 'Color',
+            section: 'style',
+            defaultValue: '#2563eb',
+            bindable: true,
+            /* wwEditor:start */
+            bindingValidation: {
+                cssSupports: 'color',
+                type: 'string',
+                tooltip: 'CSS color value applied to the “Add” buttons background.',
+            },
+            /* wwEditor:end */
+        },
+        actionButtonTextColor: {
+            label: { en: 'Action button text' },
+            type: 'Color',
+            section: 'style',
+            defaultValue: '#ffffff',
+            bindable: true,
+            /* wwEditor:start */
+            bindingValidation: {
+                cssSupports: 'color',
+                type: 'string',
+                tooltip: 'CSS color value applied to the “Add” buttons text.',
+            },
+            /* wwEditor:end */
+        },
+        removeButtonTextColor: {
+            label: { en: 'Remove button text' },
+            type: 'Color',
+            section: 'style',
+            defaultValue: '#ef4444',
+            bindable: true,
+            /* wwEditor:start */
+            bindingValidation: {
+                cssSupports: 'color',
+                type: 'string',
+                tooltip: 'CSS color value applied to the “Remove” buttons text.',
+            },
+            /* wwEditor:end */
         },
     },
 };
