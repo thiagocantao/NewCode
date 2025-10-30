@@ -14,6 +14,7 @@
                 v-if="!isRoot"
                 type="button"
                 class="filter-group__remove"
+                :style="removeButtonStyles"
                 @click="$emit('remove-group', { groupId: group.id, parentId })"
             >
                 Remove group
@@ -65,6 +66,7 @@
                     <button
                         type="button"
                         class="filter-condition__remove"
+                        :style="removeButtonStyles"
                         @click="$emit('remove-condition', { groupId: group.id, conditionId: item.id })"
                     >
                         Remove
@@ -78,6 +80,9 @@
                     :clauses="clauses"
                     :is-root="false"
                     :parent-id="group.id"
+                    :action-button-background-color="actionButtonBackgroundColor"
+                    :action-button-text-color="actionButtonTextColor"
+                    :remove-button-text-color="removeButtonTextColor"
                     @add-condition="$emit('add-condition', $event)"
                     @add-group="$emit('add-group', $event)"
                     @remove-condition="$emit('remove-condition', $event)"
@@ -88,10 +93,20 @@
             </div>
         </div>
         <div class="filter-group__actions">
-            <button type="button" class="filter-group__action" @click="$emit('add-condition', { groupId: group.id })">
+            <button
+                type="button"
+                class="filter-group__action"
+                :style="actionButtonStyles"
+                @click="$emit('add-condition', { groupId: group.id })"
+            >
                 + Add condition
             </button>
-            <button type="button" class="filter-group__action" @click="$emit('add-group', { groupId: group.id })">
+            <button
+                type="button"
+                class="filter-group__action"
+                :style="actionButtonStyles"
+                @click="$emit('add-group', { groupId: group.id })"
+            >
                 + Add group
             </button>
         </div>
@@ -108,6 +123,9 @@ export default {
         clauses: { type: Array, required: true },
         isRoot: { type: Boolean, default: false },
         parentId: { type: String, default: null },
+        actionButtonBackgroundColor: { type: String, default: '#2563eb' },
+        actionButtonTextColor: { type: String, default: '#ffffff' },
+        removeButtonTextColor: { type: String, default: '#ef4444' },
     },
     emits: [
         'add-condition',
@@ -117,6 +135,20 @@ export default {
         'update-condition',
         'update-clause',
     ],
+    computed: {
+        actionButtonStyles() {
+            return {
+                backgroundColor: this.actionButtonBackgroundColor,
+                borderColor: this.actionButtonBackgroundColor,
+                color: this.actionButtonTextColor,
+            };
+        },
+        removeButtonStyles() {
+            return {
+                color: this.removeButtonTextColor,
+            };
+        },
+    },
     methods: {
         requiresValue(operatorValue) {
             const operator = this.operators.find((item) => item.value === operatorValue);
@@ -152,10 +184,11 @@ export default {
 
 .filter-group__clause {
     min-width: 80px;
-    padding: 6px 8px;
-    border: 1px solid #d1d5db;
+    padding: 6px 10px 6px 8px;
+    border: 1px solid transparent;
     border-radius: 4px;
     background-color: #f9fafb;
+    outline: 1px solid transparent;
 }
 
 .filter-group__remove {
@@ -189,8 +222,23 @@ export default {
 .filter-condition__value {
     flex: 1 1 160px;
     padding: 6px 8px;
-    border: 1px solid #d1d5db;
+    border: 1px solid transparent;
     border-radius: 4px;
+    outline: 1px solid transparent;
+}
+
+.filter-condition__field,
+.filter-condition__operator {
+    padding-right: 10px;
+}
+
+.filter-group__clause:focus,
+.filter-condition__field:focus,
+.filter-condition__operator:focus,
+.filter-condition__value:focus {
+    border-color: transparent;
+    outline: 1px solid transparent;
+    box-shadow: none;
 }
 
 .filter-condition__value {
