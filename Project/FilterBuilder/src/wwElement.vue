@@ -119,7 +119,10 @@ export default {
         },
     },
     methods: {
-        getInitialQuerySource() {
+        getInitialQuerySource(override) {
+            if (override !== undefined) {
+                return override;
+            }
             if (this.wwElementState?.props && 'initialQueryJson' in this.wwElementState.props) {
                 return this.wwElementState.props.initialQueryJson;
             }
@@ -149,7 +152,7 @@ export default {
             this.syncPublicVariables(normalized);
         },
         onInitialQueryJsonChange(newInitial) {
-            const parsedInitial = this.parseInitialQuery(this.getInitialQuerySource());
+            const parsedInitial = this.parseInitialQuery(this.getInitialQuerySource(newInitial));
             if (parsedInitial === undefined) {
                 return;
             }
