@@ -138,4 +138,10 @@ export default {
             /* wwEditor:end */
         },
     },
+    actions: [
+        {
+            label: { en: 'Reset filters', pt: 'Resetar filtros' },
+            action: 'resetFilters',
+        },
+    ],
 };
