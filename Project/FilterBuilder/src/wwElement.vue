@@ -67,6 +67,21 @@ export default {
             }
             return this.content.fields.filter((field) => typeof field === 'string' && field.trim().length);
         },
+        resolvedInitialQueryInput() {
+            const props = this.wwElementState?.props;
+            const hasStateValue = props && Object.prototype.hasOwnProperty.call(props, 'initialQueryJson');
+            const stateInitialQuery = props ? props.initialQueryJson : undefined;
+            if (hasStateValue) {
+                if (stateInitialQuery !== undefined) {
+                    return stateInitialQuery;
+                }
+                if (this.content?.initialQueryJson !== undefined) {
+                    return this.content.initialQueryJson;
+                }
+                return stateInitialQuery;
+            }
+            return this.content?.initialQueryJson;
+        },
         operatorOptions() {
             return OPERATOR_OPTIONS;
         },
@@ -100,17 +115,11 @@ export default {
             },
             deep: true,
         },
-        'content.initialQueryJson': {
+        resolvedInitialQueryInput: {
             handler(newInitial) {
                 this.onInitialQueryJsonChange(newInitial);
             },
             deep: true,
-        },
-        'wwElementState.props.initialQueryJson': {
-        handler(newInitial) {
-        this.onInitialQueryJsonChange(newInitial);
-        },
-        deep: true,
         },
         availableFields(newFields, oldFields) {
             if (this.fieldsChanged(newFields, oldFields)) {
@@ -119,11 +128,11 @@ export default {
         },
     },
     methods: {
-        getInitialQuerySource() {
-            if (this.wwElementState?.props && 'initialQueryJson' in this.wwElementState.props) {
-                return this.wwElementState.props.initialQueryJson;
+        getInitialQuerySource(override) {
+            if (override !== undefined) {
+                return override;
             }
-            return this.content?.initialQueryJson;
+            return this.resolvedInitialQueryInput;
         },
         initializeRootGroup() {
             const initialGroup = this.resolveInitialRootGroup();
@@ -149,7 +158,7 @@ export default {
             this.syncPublicVariables(normalized);
         },
         onInitialQueryJsonChange(newInitial) {
-            const parsedInitial = this.parseInitialQuery(this.getInitialQuerySource());
+            const parsedInitial = this.parseInitialQuery(this.getInitialQuerySource(newInitial));
             if (parsedInitial === undefined) {
                 return;
             }
@@ -292,14 +301,26 @@ export default {
             this.syncPublicVariables(group);
         },
         resolveInitialRootGroup() {
-            if (this.content?.rootGroup) {
-                return this.content.rootGroup;
-            }
+            const existingGroup = this.content?.rootGroup;
+            const existingHasConditions = Array.isArray(existingGroup?.conditions) && existingGroup.conditions.length > 0;
+
             const parsedInitial = this.parseInitialQuery(this.getInitialQuerySource());
+            if (parsedInitial !== undefined) {
+                const parsedHasConditions = Array.isArray(parsedInitial?.conditions) && parsedInitial.conditions.length > 0;
+                if (parsedHasConditions || !existingHasConditions) {
+                    return parsedInitial || null;
+                }
+            }
+
+            if (existingHasConditions) {
+                return existingGroup;
+            }
+
             if (parsedInitial === undefined) {
                 return null;
             }
-            return parsedInitial || null;
+
+            return parsedInitial || existingGroup || null;
         },
         initializePublicVariables() {
             if (typeof wwLib === 'undefined' || !wwLib?.wwVariable?.useComponentVariable) {
