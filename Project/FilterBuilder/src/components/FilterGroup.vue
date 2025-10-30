@@ -145,10 +145,10 @@ export default {
     computed: {
         actionButtonStyles() {
             return {
-                backgroundColor: this.actionButtonBackgroundColor,
-                borderColor: this.actionButtonBackgroundColor,
-                color: this.actionButtonTextColor,
                 cursor: 'pointer',
+                '--filter-group-action-bg': this.actionButtonBackgroundColor,
+                '--filter-group-action-color': this.actionButtonTextColor,
+                '--filter-group-action-border': this.actionButtonBackgroundColor,
                 '--filter-group-action-hover-bg': this.actionButtonHoverBackgroundColor,
                 '--filter-group-action-hover-color': this.actionButtonHoverTextColor,
             };
@@ -274,11 +274,13 @@ export default {
 
 .filter-group__action {
     padding: 6px 12px;
-    border: 1px solid transparent;
+    border: 1px solid var(--filter-group-action-border, transparent);
     border-radius: 4px;
     cursor: pointer;
     font-size: 13px;
     transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    background-color: var(--filter-group-action-bg, #2563eb);
+    color: var(--filter-group-action-color, #ffffff);
 }
 
 .filter-group__action:hover {
