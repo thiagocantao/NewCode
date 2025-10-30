@@ -9,6 +9,8 @@
             :is-root="true"
             :action-button-background-color="actionButtonBackgroundColor"
             :action-button-text-color="actionButtonTextColor"
+            :action-button-hover-background-color="actionButtonHoverBackgroundColor"
+            :action-button-hover-text-color="actionButtonHoverTextColor"
             :remove-button-text-color="removeButtonTextColor"
             @add-condition="handleAddCondition"
             @add-group="handleAddGroup"
@@ -76,6 +78,12 @@ export default {
         },
         actionButtonTextColor() {
             return (this.content && this.content.actionButtonTextColor) || '#ffffff';
+        },
+        actionButtonHoverBackgroundColor() {
+            return (this.content && this.content.actionButtonHoverBackgroundColor) || '#1d4ed8';
+        },
+        actionButtonHoverTextColor() {
+            return (this.content && this.content.actionButtonHoverTextColor) || '#ffffff';
         },
         removeButtonTextColor() {
             return (this.content && this.content.removeButtonTextColor) || '#ef4444';
