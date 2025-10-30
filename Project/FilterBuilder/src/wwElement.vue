@@ -106,6 +106,12 @@ export default {
             },
             deep: true,
         },
+        'wwElementState.props.initialQueryJson': {
+        handler(newInitial) {
+        this.onInitialQueryJsonChange(newInitial);
+        },
+        deep: true,
+        },
         availableFields(newFields, oldFields) {
             if (this.fieldsChanged(newFields, oldFields)) {
                 this.onFieldsChange(newFields);
@@ -133,7 +139,7 @@ export default {
             this.syncPublicVariables(normalized);
         },
         onInitialQueryJsonChange(newInitial) {
-            const parsedInitial = this.parseInitialQuery(newInitial);
+            const parsedInitial = this.parseInitialQuery(this.getInitialQuerySource());
             if (parsedInitial === undefined) {
                 return;
             }
@@ -276,7 +282,7 @@ export default {
             if (this.content?.rootGroup) {
                 return this.content.rootGroup;
             }
-            const parsedInitial = this.parseInitialQuery(this.content?.initialQueryJson);
+            const parsedInitial = this.parseInitialQuery(this.getInitialQuerySource());
             if (parsedInitial === undefined) {
                 return null;
             }
