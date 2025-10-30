@@ -15,6 +15,7 @@
                 class="filter-group__remove"
                 :style="removeButtonStyles"
                 aria-label="Remover grupo"
+                title="Delete"
                 @click="$emit('remove-group', { groupId: group.id, parentId })"
             >
                 <span class="material-symbols-outlined" aria-hidden="true">delete</span>
@@ -68,6 +69,7 @@
                         class="filter-condition__remove"
                         :style="removeButtonStyles"
                         aria-label="Remover condição"
+                        title="Delete"
                         @click="$emit('remove-condition', { groupId: group.id, conditionId: item.id })"
                     >
                         <span class="material-symbols-outlined" aria-hidden="true">delete</span>
@@ -83,6 +85,8 @@
                     :parent-id="group.id"
                     :action-button-background-color="actionButtonBackgroundColor"
                     :action-button-text-color="actionButtonTextColor"
+                    :action-button-hover-background-color="actionButtonHoverBackgroundColor"
+                    :action-button-hover-text-color="actionButtonHoverTextColor"
                     :remove-button-text-color="removeButtonTextColor"
                     @add-condition="$emit('add-condition', $event)"
                     @add-group="$emit('add-group', $event)"
@@ -126,6 +130,8 @@ export default {
         parentId: { type: String, default: null },
         actionButtonBackgroundColor: { type: String, default: '#2563eb' },
         actionButtonTextColor: { type: String, default: '#ffffff' },
+        actionButtonHoverBackgroundColor: { type: String, default: '#1d4ed8' },
+        actionButtonHoverTextColor: { type: String, default: '#ffffff' },
         removeButtonTextColor: { type: String, default: '#ef4444' },
     },
     emits: [
@@ -142,6 +148,9 @@ export default {
                 backgroundColor: this.actionButtonBackgroundColor,
                 borderColor: this.actionButtonBackgroundColor,
                 color: this.actionButtonTextColor,
+                cursor: 'pointer',
+                '--filter-group-action-hover-bg': this.actionButtonHoverBackgroundColor,
+                '--filter-group-action-hover-color': this.actionButtonHoverTextColor,
             };
         },
         removeButtonStyles() {
@@ -265,16 +274,16 @@ export default {
 
 .filter-group__action {
     padding: 6px 12px;
-    border: 1px solid #2563eb;
+    border: 1px solid transparent;
     border-radius: 4px;
-    background-color: #2563eb;
-    color: #ffffff;
     cursor: pointer;
     font-size: 13px;
-    transition: background-color 0.2s ease;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
 .filter-group__action:hover {
-    background-color: #1d4ed8;
+    background-color: var(--filter-group-action-hover-bg, #1d4ed8);
+    color: var(--filter-group-action-hover-color, #ffffff);
+    border-color: var(--filter-group-action-hover-bg, #1d4ed8);
 }
 </style>
