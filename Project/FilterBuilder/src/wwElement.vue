@@ -112,6 +112,12 @@ export default {
             },
             deep: true,
         },
+        'wwElementState.props.initialQueryJson': {
+            handler(newInitial) {
+                this.onInitialQueryJsonChange(newInitial);
+            },
+            deep: true,
+        },
         availableFields(newFields, oldFields) {
             if (this.fieldsChanged(newFields, oldFields)) {
                 this.onFieldsChange(newFields);
@@ -284,7 +290,7 @@ export default {
             if (this.content?.rootGroup) {
                 return this.content.rootGroup;
             }
-            const parsedInitial = this.parseInitialQuery(this.content?.initialQueryJson);
+            const parsedInitial = this.parseInitialQuery(this.getInitialQuerySource());
             if (parsedInitial === undefined) {
                 return null;
             }
@@ -392,7 +398,7 @@ export default {
             }
         },
         getInitialGroupForReset() {
-            const parsedInitial = this.parseInitialQuery(this.content?.initialQueryJson);
+            const parsedInitial = this.parseInitialQuery(this.getInitialQuerySource());
             if (parsedInitial !== undefined && parsedInitial !== null) {
                 return this.normalizeGroup(parsedInitial);
             }
@@ -400,6 +406,12 @@ export default {
                 return this.cloneGroup(this.initialRootGroupSnapshot);
             }
             return null;
+        },
+        getInitialQuerySource() {
+            if (this.wwElementState?.props && 'initialQueryJson' in this.wwElementState.props) {
+                return this.wwElementState.props.initialQueryJson;
+            }
+            return this.content?.initialQueryJson;
         },
         parseInitialQuery(initialQuery) {
             if (initialQuery === null || initialQuery === undefined || initialQuery === '') {
