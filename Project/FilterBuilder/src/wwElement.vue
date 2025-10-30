@@ -43,6 +43,7 @@ export default {
     props: {
         content: { type: Object, required: true },
         wwElementState: { type: Object, required: true },
+        uid: { type: String, required: true },
         /* wwEditor:start */
         wwEditorState: { type: Object, required: true },
         /* wwEditor:end */
@@ -51,6 +52,10 @@ export default {
     data() {
         return {
             localRootGroup: null,
+            queryJsonVariable: null,
+            queryStringVariable: null,
+            setQueryJson: null,
+            setQueryString: null,
         };
     },
     computed: {
@@ -78,6 +83,7 @@ export default {
     },
     created() {
         this.initializeRootGroup();
+        this.initializePublicVariables();
     },
     watch: {
         'content.rootGroup': {
@@ -99,6 +105,7 @@ export default {
             if (!this.groupsAreEqual(this.content.rootGroup, normalized)) {
                 this.emitRootGroup(normalized);
             }
+            this.syncPublicVariables(normalized);
         },
         onExternalRootGroupChange(newGroup) {
             const normalized = this.normalizeGroup(newGroup);
@@ -108,6 +115,7 @@ export default {
             if (!this.groupsAreEqual(newGroup, normalized)) {
                 this.emitRootGroup(normalized);
             }
+            this.syncPublicVariables(normalized);
         },
         onFieldsChange(fields) {
             if (!this.localRootGroup) {
@@ -234,6 +242,125 @@ export default {
         emitRootGroup(group) {
             this.$emit('update:content', { ...this.content, rootGroup: group });
             this.$emit('update:content:effect', { rootGroup: group });
+            this.syncPublicVariables(group);
+        },
+        initializePublicVariables() {
+            if (typeof wwLib === 'undefined' || !wwLib?.wwVariable?.useComponentVariable) {
+                return;
+            }
+            const uid = this.uid || this.wwElementState?.uid;
+            if (!uid) {
+                return;
+            }
+            const queryJsonVariable = wwLib.wwVariable.useComponentVariable({
+                uid,
+                name: 'queryJson',
+                type: 'object',
+                defaultValue: null,
+                readonly: true,
+            });
+            const queryStringVariable = wwLib.wwVariable.useComponentVariable({
+                uid,
+                name: 'queryString',
+                type: 'string',
+                defaultValue: '',
+                readonly: true,
+            });
+            this.queryJsonVariable = queryJsonVariable.value;
+            this.setQueryJson = queryJsonVariable.setValue;
+            this.queryStringVariable = queryStringVariable.value;
+            this.setQueryString = queryStringVariable.setValue;
+            this.syncPublicVariables(this.localRootGroup);
+        },
+        syncPublicVariables(group) {
+            const setJson = this.setQueryJson;
+            const setString = this.setQueryString;
+            if (!setJson && !setString) {
+                return;
+            }
+            if (!group) {
+                setJson?.(null);
+                setString?.('');
+                return;
+            }
+            const payload = this.buildPublicGroup(group);
+            setJson?.(payload);
+            setString?.(this.buildQueryString(payload));
+        },
+        buildPublicGroup(group) {
+            if (!group || typeof group !== 'object') {
+                return null;
+            }
+            const clause = this.isValidClause(group.clause) ? group.clause : 'AND';
+            const conditions = Array.isArray(group.conditions)
+                ? group.conditions
+                      .map((item) => (item?.type === 'group' ? this.buildPublicGroup(item) : this.buildPublicCondition(item)))
+                      .filter(Boolean)
+                : [];
+            return {
+                type: 'group',
+                clause,
+                conditions,
+            };
+        },
+        buildPublicCondition(condition) {
+            if (!condition || typeof condition !== 'object') {
+                return null;
+            }
+            const operator = this.isValidOperator(condition.operator)
+                ? condition.operator
+                : this.operatorOptions[0].value;
+            const requiresValue = this.operatorRequiresValue(operator);
+            const normalizedField = typeof condition.field === 'string' ? condition.field : '';
+            const payload = {
+                type: 'condition',
+                field: normalizedField,
+                operator,
+            };
+            if (requiresValue) {
+                payload.value = condition.value ?? '';
+            }
+            return payload;
+        },
+        buildQueryString(node) {
+            if (!node) {
+                return '';
+            }
+            if (node.type === 'group') {
+                const clause = this.isValidClause(node.clause) ? node.clause : 'AND';
+                const parts = Array.isArray(node.conditions)
+                    ? node.conditions.map((child) => this.buildQueryString(child)).filter((part) => part && part.length)
+                    : [];
+                if (!parts.length) {
+                    return '';
+                }
+                if (parts.length === 1) {
+                    return parts[0];
+                }
+                return `(${parts.join(` ${clause} `)})`;
+            }
+            if (node.type === 'condition') {
+                const field = node.field || '';
+                const operatorLabel = this.getOperatorLabel(node.operator);
+                if (this.operatorRequiresValue(node.operator)) {
+                    const value = node.value ?? '';
+                    return `${field} ${operatorLabel} ${this.formatValueForQuery(value)}`.trim();
+                }
+                return `${field} ${operatorLabel}`.trim();
+            }
+            return '';
+        },
+        getOperatorLabel(operatorValue) {
+            const operator = this.operatorOptions.find((item) => item.value === operatorValue);
+            return operator ? operator.label : operatorValue || '';
+        },
+        formatValueForQuery(value) {
+            if (value === null || value === undefined) {
+                return '""';
+            }
+            const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
+            const escapedValue = stringValue.replace(/"/g, '\\"');
+            return `"${escapedValue}"`;
         },
         normalizeGroup(group) {
             const clause = this.isValidClause(group?.clause) ? group.clause : 'AND';
