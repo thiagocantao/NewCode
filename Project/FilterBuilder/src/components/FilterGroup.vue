@@ -185,7 +185,7 @@ export default {
 .filter-group__clause {
     min-width: 80px;
     padding: 6px 10px 6px 8px;
-    border: 1px solid transparent;
+    border: 1px solid #e0e0e0;
     border-radius: 4px;
     background-color: #f9fafb;
     outline: 1px solid transparent;
@@ -222,7 +222,7 @@ export default {
 .filter-condition__value {
     flex: 1 1 160px;
     padding: 6px 8px;
-    border: 1px solid transparent;
+    border: 1px solid #e0e0e0;
     border-radius: 4px;
     outline: 1px solid transparent;
 }
@@ -236,7 +236,7 @@ export default {
 .filter-condition__field:focus,
 .filter-condition__operator:focus,
 .filter-condition__value:focus {
-    border-color: transparent;
+    border-color: #e0e0e0;
     outline: 1px solid transparent;
     box-shadow: none;
 }
