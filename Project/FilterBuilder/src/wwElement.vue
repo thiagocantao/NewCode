@@ -54,8 +54,8 @@ export default {
     data() {
         return {
             localRootGroup: null,
-            queryJsonVariable: null,
-            queryStringVariable: null,
+            publicQueryJsonValue: null,
+            publicQueryStringValue: null,
             setQueryJson: null,
             setQueryString: null,
             initialRootGroupSnapshot: null,
@@ -318,9 +318,9 @@ export default {
                 defaultValue: '',
                 readonly: true,
             });
-            this.queryJsonVariable = queryJsonVariable.value?.value ?? queryJsonVariable.value;
+            this.publicQueryJsonValue = queryJsonVariable.value?.value ?? queryJsonVariable.value;
             this.setQueryJson = queryJsonVariable.setValue;
-            this.queryStringVariable = queryStringVariable.value?.value ?? queryStringVariable.value;
+            this.publicQueryStringValue = queryStringVariable.value?.value ?? queryStringVariable.value;
             this.setQueryString = queryStringVariable.setValue;
             this.syncPublicVariables(this.localRootGroup);
         },
@@ -331,8 +331,8 @@ export default {
                 payload = this.buildPublicGroup(group);
                 queryString = this.buildQueryString(payload);
             }
-            this.queryJsonVariable = payload;
-            this.queryStringVariable = queryString;
+            this.publicQueryJsonValue = payload;
+            this.publicQueryStringValue = queryString;
             this.setQueryJson?.(payload);
             this.setQueryString?.(queryString);
         },
