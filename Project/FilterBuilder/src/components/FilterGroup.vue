@@ -184,10 +184,11 @@ export default {
 
 .filter-group__clause {
     min-width: 80px;
-    padding: 6px 8px;
-    border: 1px solid #d1d5db;
+    padding: 6px 10px 6px 8px;
+    border: 1px solid transparent;
     border-radius: 4px;
     background-color: #f9fafb;
+    outline: 1px solid transparent;
 }
 
 .filter-group__remove {
@@ -221,8 +222,23 @@ export default {
 .filter-condition__value {
     flex: 1 1 160px;
     padding: 6px 8px;
-    border: 1px solid #d1d5db;
+    border: 1px solid transparent;
     border-radius: 4px;
+    outline: 1px solid transparent;
+}
+
+.filter-condition__field,
+.filter-condition__operator {
+    padding-right: 10px;
+}
+
+.filter-group__clause:focus,
+.filter-condition__field:focus,
+.filter-condition__operator:focus,
+.filter-condition__value:focus {
+    border-color: transparent;
+    outline: 1px solid transparent;
+    box-shadow: none;
 }
 
 .filter-condition__value {
