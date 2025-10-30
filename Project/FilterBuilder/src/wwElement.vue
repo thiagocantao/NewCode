@@ -92,6 +92,12 @@ export default {
             },
             deep: true,
         },
+        'content.initialQueryJson': {
+            handler(newInitial) {
+                this.onInitialQueryJsonChange(newInitial);
+            },
+            deep: true,
+        },
         availableFields(newFields, oldFields) {
             if (this.fieldsChanged(newFields, oldFields)) {
                 this.onFieldsChange(newFields);
@@ -100,7 +106,8 @@ export default {
     },
     methods: {
         initializeRootGroup() {
-            const normalized = this.normalizeGroup(this.content.rootGroup);
+            const initialGroup = this.resolveInitialRootGroup();
+            const normalized = this.normalizeGroup(initialGroup);
             this.localRootGroup = normalized;
             if (!this.groupsAreEqual(this.content.rootGroup, normalized)) {
                 this.emitRootGroup(normalized);
@@ -116,6 +123,19 @@ export default {
                 this.emitRootGroup(normalized);
             }
             this.syncPublicVariables(normalized);
+        },
+        onInitialQueryJsonChange(newInitial) {
+            const parsedInitial = this.parseInitialQuery(newInitial);
+            if (parsedInitial === undefined) {
+                return;
+            }
+            const normalized = this.normalizeGroup(parsedInitial);
+            const nextPublicGroup = this.buildPublicGroup(normalized);
+            const currentPublicGroup = this.buildPublicGroup(this.localRootGroup);
+            if (this.groupsAreEqual(nextPublicGroup, currentPublicGroup)) {
+                return;
+            }
+            this.updateRootGroup(normalized);
         },
         onFieldsChange(fields) {
             if (!this.localRootGroup) {
@@ -244,6 +264,16 @@ export default {
             this.$emit('update:content:effect', { rootGroup: group });
             this.syncPublicVariables(group);
         },
+        resolveInitialRootGroup() {
+            if (this.content?.rootGroup) {
+                return this.content.rootGroup;
+            }
+            const parsedInitial = this.parseInitialQuery(this.content?.initialQueryJson);
+            if (parsedInitial === undefined) {
+                return null;
+            }
+            return parsedInitial || null;
+        },
         initializePublicVariables() {
             if (typeof wwLib === 'undefined' || !wwLib?.wwVariable?.useComponentVariable) {
                 return;
@@ -286,6 +316,33 @@ export default {
             const payload = this.buildPublicGroup(group);
             setJson?.(payload);
             setString?.(this.buildQueryString(payload));
+        },
+        parseInitialQuery(initialQuery) {
+            if (initialQuery === null || initialQuery === undefined || initialQuery === '') {
+                return null;
+            }
+            let parsed = initialQuery;
+            if (typeof initialQuery === 'string') {
+                try {
+                    parsed = JSON.parse(initialQuery);
+                } catch (error) {
+                    return undefined;
+                }
+            }
+            if (!parsed || typeof parsed !== 'object') {
+                return undefined;
+            }
+            const cloned = JSON.parse(JSON.stringify(parsed));
+            if (cloned.type && cloned.type !== 'group') {
+                return undefined;
+            }
+            if (!cloned.type) {
+                cloned.type = 'group';
+            }
+            if (!Array.isArray(cloned.conditions)) {
+                cloned.conditions = [];
+            }
+            return cloned;
         },
         buildPublicGroup(group) {
             if (!group || typeof group !== 'object') {
