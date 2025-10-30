@@ -9,6 +9,7 @@ export default {
         },
         customSettingsPropertiesOrder: [
             'fields',
+            'initialQueryJson',
             'actionButtonBackgroundColor',
             'actionButtonTextColor',
             'removeButtonTextColor',
@@ -46,6 +47,23 @@ export default {
             type: 'Object',
             hidden: true,
             defaultValue: null,
+        },
+        initialQueryJson: {
+            label: { en: 'Initial query JSON' },
+            type: 'Object',
+            section: 'settings',
+            bindable: true,
+            defaultValue: null,
+            /* wwEditor:start */
+            bindingValidation: {
+                type: ['string', 'object'],
+                tooltip: 'JSON structure matching the public queryJson variable used to seed the builder.',
+            },
+            propertyHelp: {
+                tooltip:
+                    'Optional JSON payload mirroring the queryJson variable. Accepts either an object or JSON string.',
+            },
+            /* wwEditor:end */
         },
         actionButtonBackgroundColor: {
             label: { en: 'Action button background' },
