@@ -301,14 +301,26 @@ export default {
             this.syncPublicVariables(group);
         },
         resolveInitialRootGroup() {
-            if (this.content?.rootGroup) {
-                return this.content.rootGroup;
-            }
+            const existingGroup = this.content?.rootGroup;
+            const existingHasConditions = Array.isArray(existingGroup?.conditions) && existingGroup.conditions.length > 0;
+
             const parsedInitial = this.parseInitialQuery(this.getInitialQuerySource());
+            if (parsedInitial !== undefined) {
+                const parsedHasConditions = Array.isArray(parsedInitial?.conditions) && parsedInitial.conditions.length > 0;
+                if (parsedHasConditions || !existingHasConditions) {
+                    return parsedInitial || null;
+                }
+            }
+
+            if (existingHasConditions) {
+                return existingGroup;
+            }
+
             if (parsedInitial === undefined) {
                 return null;
             }
-            return parsedInitial || null;
+
+            return parsedInitial || existingGroup || null;
         },
         initializePublicVariables() {
             if (typeof wwLib === 'undefined' || !wwLib?.wwVariable?.useComponentVariable) {
