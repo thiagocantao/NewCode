@@ -67,6 +67,21 @@ export default {
             }
             return this.content.fields.filter((field) => typeof field === 'string' && field.trim().length);
         },
+        resolvedInitialQueryInput() {
+            const props = this.wwElementState?.props;
+            const hasStateValue = props && Object.prototype.hasOwnProperty.call(props, 'initialQueryJson');
+            const stateInitialQuery = props ? props.initialQueryJson : undefined;
+            if (hasStateValue) {
+                if (stateInitialQuery !== undefined) {
+                    return stateInitialQuery;
+                }
+                if (this.content?.initialQueryJson !== undefined) {
+                    return this.content.initialQueryJson;
+                }
+                return stateInitialQuery;
+            }
+            return this.content?.initialQueryJson;
+        },
         operatorOptions() {
             return OPERATOR_OPTIONS;
         },
@@ -100,17 +115,11 @@ export default {
             },
             deep: true,
         },
-        'content.initialQueryJson': {
+        resolvedInitialQueryInput: {
             handler(newInitial) {
                 this.onInitialQueryJsonChange(newInitial);
             },
             deep: true,
-        },
-        'wwElementState.props.initialQueryJson': {
-        handler(newInitial) {
-        this.onInitialQueryJsonChange(newInitial);
-        },
-        deep: true,
         },
         availableFields(newFields, oldFields) {
             if (this.fieldsChanged(newFields, oldFields)) {
@@ -123,10 +132,7 @@ export default {
             if (override !== undefined) {
                 return override;
             }
-            if (this.wwElementState?.props && 'initialQueryJson' in this.wwElementState.props) {
-                return this.wwElementState.props.initialQueryJson;
-            }
-            return this.content?.initialQueryJson;
+            return this.resolvedInitialQueryInput;
         },
         initializeRootGroup() {
             const initialGroup = this.resolveInitialRootGroup();
