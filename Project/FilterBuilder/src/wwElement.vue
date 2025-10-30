@@ -54,10 +54,14 @@ export default {
     data() {
         return {
             localRootGroup: null,
-            queryJsonVariable: null,
-            queryStringVariable: null,
-            setQueryJson: null,
-            setQueryString: null,
+            publicVariableValues: {
+                queryJson: null,
+                queryString: '',
+            },
+            publicVariableSetters: {
+                queryJson: null,
+                queryString: null,
+            },
             initialRootGroupSnapshot: null,
             unregisterResetAction: null,
         };
@@ -318,10 +322,12 @@ export default {
                 defaultValue: '',
                 readonly: true,
             });
-            this.queryJsonVariable = queryJsonVariable.value?.value ?? queryJsonVariable.value;
-            this.setQueryJson = queryJsonVariable.setValue;
-            this.queryStringVariable = queryStringVariable.value?.value ?? queryStringVariable.value;
-            this.setQueryString = queryStringVariable.setValue;
+            this.publicVariableValues.queryJson =
+                queryJsonVariable.value?.value ?? queryJsonVariable.value ?? null;
+            this.publicVariableValues.queryString =
+                queryStringVariable.value?.value ?? queryStringVariable.value ?? '';
+            this.publicVariableSetters.queryJson = queryJsonVariable.setValue;
+            this.publicVariableSetters.queryString = queryStringVariable.setValue;
             this.syncPublicVariables(this.localRootGroup);
         },
         syncPublicVariables(group) {
@@ -331,10 +337,16 @@ export default {
                 payload = this.buildPublicGroup(group);
                 queryString = this.buildQueryString(payload);
             }
-            this.queryJsonVariable = payload;
-            this.queryStringVariable = queryString;
-            this.setQueryJson?.(payload);
-            this.setQueryString?.(queryString);
+            this.publicVariableValues.queryJson = payload;
+            this.publicVariableValues.queryString = queryString;
+            const setQueryJson = this.publicVariableSetters.queryJson;
+            const setQueryString = this.publicVariableSetters.queryString;
+            if (typeof setQueryJson === 'function') {
+                setQueryJson(payload);
+            }
+            if (typeof setQueryString === 'function') {
+                setQueryString(queryString);
+            }
         },
         registerComponentActions() {
             const uid = this.uid || this.wwElementState?.uid;
