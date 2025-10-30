@@ -385,6 +385,7 @@ export default {
             }
             if (node.type === 'group') {
                 const clause = this.isValidClause(node.clause) ? node.clause : 'AND';
+                const clauseLabel = this.escapeHtml(clause);
                 const parts = Array.isArray(node.conditions)
                     ? node.conditions.map((child) => this.buildQueryString(child)).filter((part) => part && part.length)
                     : [];
@@ -394,16 +395,16 @@ export default {
                 if (parts.length === 1) {
                     return parts[0];
                 }
-                return `(${parts.join(` ${clause} `)})`;
+                return `(${parts.join(` ${clauseLabel} `)})`;
             }
             if (node.type === 'condition') {
-                const field = node.field || '';
-                const operatorLabel = this.getOperatorLabel(node.operator);
+                const fieldHtml = this.formatFieldForQuery(node.field);
+                const operatorLabel = this.escapeHtml(this.getOperatorLabel(node.operator));
                 if (this.operatorRequiresValue(node.operator)) {
-                    const value = node.value ?? '';
-                    return `${field} ${operatorLabel} ${this.formatValueForQuery(value)}`.trim();
+                    const valueHtml = this.formatValueForQuery(node.value);
+                    return [fieldHtml, operatorLabel, valueHtml].filter(Boolean).join(' ');
                 }
-                return `${field} ${operatorLabel}`.trim();
+                return [fieldHtml, operatorLabel].filter(Boolean).join(' ');
             }
             return '';
         },
@@ -411,13 +412,46 @@ export default {
             const operator = this.operatorOptions.find((item) => item.value === operatorValue);
             return operator ? operator.label : operatorValue || '';
         },
+        formatFieldForQuery(field) {
+            if (typeof field !== 'string') {
+                return '';
+            }
+            const normalizedField = field.trim();
+            if (!normalizedField.length) {
+                return '';
+            }
+            const escapedField = this.escapeHtml(normalizedField);
+            return `<span style="color: blue;">${escapedField}</span>`;
+        },
         formatValueForQuery(value) {
             if (value === null || value === undefined) {
-                return '""';
+                return '<span style="color: green;">""</span>';
             }
             const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
-            const escapedValue = stringValue.replace(/"/g, '\\"');
-            return `"${escapedValue}"`;
+            const displayValue = stringValue.replace(/"/g, '\\"');
+            const escapedValue = this.escapeHtml(displayValue);
+            return `<span style="color: green;">"${escapedValue}"</span>`;
+        },
+        escapeHtml(value) {
+            if (value === null || value === undefined) {
+                return '';
+            }
+            return String(value).replace(/[&<>"']/g, (char) => {
+                switch (char) {
+                    case '&':
+                        return '&amp;';
+                    case '<':
+                        return '&lt;';
+                    case '>':
+                        return '&gt;';
+                    case '"':
+                        return '&quot;';
+                    case "'":
+                        return '&#39;';
+                    default:
+                        return char;
+                }
+            });
         },
         normalizeGroup(group) {
             const clause = this.isValidClause(group?.clause) ? group.clause : 'AND';
