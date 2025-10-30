@@ -54,16 +54,10 @@ export default {
     data() {
         return {
             localRootGroup: null,
-            publicVariableValues: {
-                queryJson: null,
-                queryString: '',
-            },
-            publicVariableSetters: {
-                queryJson: null,
-                queryString: null,
-            },
-            initialRootGroupSnapshot: null,
-            unregisterResetAction: null,
+            queryJsonVariable: null,
+            queryStringVariable: null,
+            setQueryJson: null,
+            setQueryString: null,
         };
     },
     computed: {
@@ -98,10 +92,6 @@ export default {
     created() {
         this.initializeRootGroup();
         this.initializePublicVariables();
-        this.registerComponentActions();
-    },
-    beforeUnmount() {
-        this.cleanupComponentActions();
     },
     watch: {
         'content.rootGroup': {
@@ -111,12 +101,6 @@ export default {
             deep: true,
         },
         'content.initialQueryJson': {
-            handler(newInitial) {
-                this.onInitialQueryJsonChange(newInitial);
-            },
-            deep: true,
-        },
-        'wwElementState.props.initialQueryJson': {
             handler(newInitial) {
                 this.onInitialQueryJsonChange(newInitial);
             },
@@ -133,7 +117,6 @@ export default {
             const initialGroup = this.resolveInitialRootGroup();
             const normalized = this.normalizeGroup(initialGroup);
             this.localRootGroup = normalized;
-            this.initialRootGroupSnapshot = this.cloneGroup(normalized);
             if (!this.groupsAreEqual(this.content.rootGroup, normalized)) {
                 this.emitRootGroup(normalized);
             }
@@ -155,7 +138,6 @@ export default {
                 return;
             }
             const normalized = this.normalizeGroup(parsedInitial);
-            this.initialRootGroupSnapshot = this.cloneGroup(normalized);
             const nextPublicGroup = this.buildPublicGroup(normalized);
             const currentPublicGroup = this.buildPublicGroup(this.localRootGroup);
             if (this.groupsAreEqual(nextPublicGroup, currentPublicGroup)) {
@@ -294,7 +276,7 @@ export default {
             if (this.content?.rootGroup) {
                 return this.content.rootGroup;
             }
-            const parsedInitial = this.parseInitialQuery(this.getInitialQuerySource());
+            const parsedInitial = this.parseInitialQuery(this.content?.initialQueryJson);
             if (parsedInitial === undefined) {
                 return null;
             }
@@ -322,108 +304,26 @@ export default {
                 defaultValue: '',
                 readonly: true,
             });
-            this.publicVariableValues.queryJson =
-                queryJsonVariable.value?.value ?? queryJsonVariable.value ?? null;
-            this.publicVariableValues.queryString =
-                queryStringVariable.value?.value ?? queryStringVariable.value ?? '';
-            this.publicVariableSetters.queryJson = queryJsonVariable.setValue;
-            this.publicVariableSetters.queryString = queryStringVariable.setValue;
+            this.queryJsonVariable = queryJsonVariable.value;
+            this.setQueryJson = queryJsonVariable.setValue;
+            this.queryStringVariable = queryStringVariable.value;
+            this.setQueryString = queryStringVariable.setValue;
             this.syncPublicVariables(this.localRootGroup);
         },
         syncPublicVariables(group) {
-            let payload = null;
-            let queryString = '';
-            if (group) {
-                payload = this.buildPublicGroup(group);
-                queryString = this.buildQueryString(payload);
+            const setJson = this.setQueryJson;
+            const setString = this.setQueryString;
+            if (!setJson && !setString) {
+                return;
             }
-            this.publicVariableValues.queryJson = payload;
-            this.publicVariableValues.queryString = queryString;
-            const setQueryJson = this.publicVariableSetters.queryJson;
-            const setQueryString = this.publicVariableSetters.queryString;
-            if (typeof setQueryJson === 'function') {
-                setQueryJson(payload);
+            if (!group) {
+                setJson?.(null);
+                setString?.('');
+                return;
             }
-            if (typeof setQueryString === 'function') {
-                setQueryString(queryString);
-            }
-        },
-        registerComponentActions() {
-            const uid = this.uid || this.wwElementState?.uid;
-            const handler = () => {
-                this.resetFilterBuilder();
-            };
-            this.cleanupComponentActions();
-            if (typeof wwLib !== 'undefined') {
-                const useComponentAction =
-                    wwLib?.wwElement?.useComponentAction || wwLib?.wwComponent?.useComponentAction;
-                if (typeof useComponentAction === 'function' && uid) {
-                    const actionPayload = {
-                        uid,
-                        name: 'resetFilterBuilder',
-                        label: { en: 'Reset filter builder' },
-                        onTrigger: handler,
-                        handler,
-                        action: handler,
-                        icon: 'refresh',
-                    };
-                    const unregister = useComponentAction(actionPayload);
-                    if (typeof unregister === 'function') {
-                        this.unregisterResetAction = unregister;
-                    } else if (unregister && typeof unregister.unsubscribe === 'function') {
-                        this.unregisterResetAction = unregister.unsubscribe;
-                    } else if (unregister && typeof unregister.remove === 'function') {
-                        this.unregisterResetAction = unregister.remove;
-                    } else if (unregister && typeof unregister.destroy === 'function') {
-                        this.unregisterResetAction = unregister.destroy;
-                    }
-                }
-            }
-            this.$emit('element-event', {
-                event: 'register-component-action',
-                value: {
-                    name: 'resetFilterBuilder',
-                    label: { en: 'Reset filter builder' },
-                    type: 'component',
-                    onTrigger: handler,
-                    handler,
-                    action: handler,
-                    icon: 'refresh',
-                },
-            });
-        },
-        cleanupComponentActions() {
-            if (typeof this.unregisterResetAction === 'function') {
-                this.unregisterResetAction();
-            }
-            this.unregisterResetAction = null;
-        },
-        resetFilterBuilder() {
-            const targetGroup = this.getInitialGroupForReset();
-            const normalizedTarget = targetGroup ? this.cloneGroup(targetGroup) : this.normalizeGroup(null);
-            this.initialRootGroupSnapshot = this.cloneGroup(normalizedTarget);
-            if (!this.groupsAreEqual(normalizedTarget, this.localRootGroup)) {
-                this.updateRootGroup(normalizedTarget);
-            } else {
-                this.localRootGroup = normalizedTarget;
-                this.emitRootGroup(normalizedTarget);
-            }
-        },
-        getInitialGroupForReset() {
-            const parsedInitial = this.parseInitialQuery(this.getInitialQuerySource());
-            if (parsedInitial !== undefined && parsedInitial !== null) {
-                return this.normalizeGroup(parsedInitial);
-            }
-            if (this.initialRootGroupSnapshot) {
-                return this.cloneGroup(this.initialRootGroupSnapshot);
-            }
-            return null;
-        },
-        getInitialQuerySource() {
-            if (this.wwElementState?.props && 'initialQueryJson' in this.wwElementState.props) {
-                return this.wwElementState.props.initialQueryJson;
-            }
-            return this.content?.initialQueryJson;
+            const payload = this.buildPublicGroup(group);
+            setJson?.(payload);
+            setString?.(this.buildQueryString(payload));
         },
         parseInitialQuery(initialQuery) {
             if (initialQuery === null || initialQuery === undefined || initialQuery === '') {
