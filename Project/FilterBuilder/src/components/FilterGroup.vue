@@ -15,9 +15,10 @@
                 type="button"
                 class="filter-group__remove"
                 :style="removeButtonStyles"
+                aria-label="Remover grupo"
                 @click="$emit('remove-group', { groupId: group.id, parentId })"
             >
-                Remove group
+                <span class="material-symbols-outlined" aria-hidden="true">delete</span>
             </button>
         </div>
         <div class="filter-group__items">
@@ -67,9 +68,10 @@
                         type="button"
                         class="filter-condition__remove"
                         :style="removeButtonStyles"
+                        aria-label="Remover condição"
                         @click="$emit('remove-condition', { groupId: group.id, conditionId: item.id })"
                     >
-                        Remove
+                        <span class="material-symbols-outlined" aria-hidden="true">delete</span>
                     </button>
                 </div>
                 <FilterGroup
