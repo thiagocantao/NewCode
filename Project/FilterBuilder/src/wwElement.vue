@@ -127,7 +127,9 @@ export default {
         },
         initializeRootGroup() {
             const initialGroup = this.resolveInitialRootGroup();
-            const normalized = this.normalizeGroup(initialGroup);
+            const normalized = this.normalizeGroup(initialGroup, {
+                allowEmpty: !initialGroup || !Array.isArray(initialGroup?.conditions) || !initialGroup.conditions.length,
+            });
             this.localRootGroup = normalized;
             if (!this.groupsAreEqual(this.content.rootGroup, normalized)) {
                 this.emitRootGroup(normalized);
@@ -135,7 +137,9 @@ export default {
             this.syncPublicVariables(normalized);
         },
         onExternalRootGroupChange(newGroup) {
-            const normalized = this.normalizeGroup(newGroup);
+            const normalized = this.normalizeGroup(newGroup, {
+                allowEmpty: !newGroup || !Array.isArray(newGroup?.conditions) || !newGroup.conditions.length,
+            });
             if (!this.groupsAreEqual(normalized, this.localRootGroup)) {
                 this.localRootGroup = normalized;
             }
@@ -149,7 +153,10 @@ export default {
             if (parsedInitial === undefined) {
                 return;
             }
-            const normalized = this.normalizeGroup(parsedInitial);
+            const normalized = this.normalizeGroup(parsedInitial, {
+                allowEmpty:
+                    parsedInitial === null || !Array.isArray(parsedInitial?.conditions) || !parsedInitial.conditions.length,
+            });
             const nextPublicGroup = this.buildPublicGroup(normalized);
             const currentPublicGroup = this.buildPublicGroup(this.localRootGroup);
             if (this.groupsAreEqual(nextPublicGroup, currentPublicGroup)) {
@@ -333,7 +340,17 @@ export default {
                 setString?.('');
                 return;
             }
+            if (!this.hasActiveConditions(group)) {
+                setJson?.(null);
+                setString?.('');
+                return;
+            }
             const payload = this.buildPublicGroup(group);
+            if (!payload) {
+                setJson?.(null);
+                setString?.('');
+                return;
+            }
             setJson?.(payload);
             setString?.(this.buildQueryString(payload));
         },
@@ -374,6 +391,9 @@ export default {
                       .map((item) => (item?.type === 'group' ? this.buildPublicGroup(item) : this.buildPublicCondition(item)))
                       .filter(Boolean)
                 : [];
+            if (!conditions.length) {
+                return null;
+            }
             return {
                 type: 'group',
                 clause,
@@ -473,7 +493,8 @@ export default {
                 }
             });
         },
-        normalizeGroup(group) {
+        normalizeGroup(group, options = {}) {
+            const allowEmpty = Boolean(options.allowEmpty);
             const clause = this.isValidClause(group?.clause) ? group.clause : 'AND';
             const normalizedGroup = {
                 id: typeof group?.id === 'string' && group.id ? group.id : this.createId(),
@@ -489,7 +510,7 @@ export default {
                     normalizedGroup.conditions.push(this.normalizeCondition(item));
                 }
             });
-            if (!normalizedGroup.conditions.length) {
+            if (!normalizedGroup.conditions.length && !allowEmpty) {
                 normalizedGroup.conditions.push(this.createCondition());
             }
             return normalizedGroup;
@@ -596,8 +617,25 @@ export default {
         resetFilters() {
             const initialSource = this.getInitialQuerySource();
             const parsedInitial = this.parseInitialQuery(initialSource);
-            const normalized = this.normalizeGroup(parsedInitial === undefined ? null : parsedInitial);
+            const allowEmpty =
+                parsedInitial === undefined ||
+                parsedInitial === null ||
+                !Array.isArray(parsedInitial?.conditions) ||
+                !parsedInitial.conditions.length;
+            const normalized = this.normalizeGroup(parsedInitial === undefined ? null : parsedInitial, { allowEmpty });
             this.updateRootGroup(normalized);
+        },
+        hasActiveConditions(node) {
+            if (!node || typeof node !== 'object') {
+                return false;
+            }
+            if (node.type === 'condition') {
+                return true;
+            }
+            if (node.type === 'group' && Array.isArray(node.conditions)) {
+                return node.conditions.some((child) => this.hasActiveConditions(child));
+            }
+            return false;
         },
     },
 };
