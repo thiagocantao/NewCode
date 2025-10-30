@@ -12,6 +12,8 @@ export default {
             'initialQueryJson',
             'actionButtonBackgroundColor',
             'actionButtonTextColor',
+            'actionButtonHoverBackgroundColor',
+            'actionButtonHoverTextColor',
             'removeButtonTextColor',
         ],
     },
@@ -90,6 +92,34 @@ export default {
                 cssSupports: 'color',
                 type: 'string',
                 tooltip: 'CSS color value applied to the “Add” buttons text.',
+            },
+            /* wwEditor:end */
+        },
+        actionButtonHoverBackgroundColor: {
+            label: { en: 'Action button hover background' },
+            type: 'Color',
+            section: 'style',
+            defaultValue: '#1d4ed8',
+            bindable: true,
+            /* wwEditor:start */
+            bindingValidation: {
+                cssSupports: 'color',
+                type: 'string',
+                tooltip: 'CSS color value applied to the “Add” buttons background when hovered.',
+            },
+            /* wwEditor:end */
+        },
+        actionButtonHoverTextColor: {
+            label: { en: 'Action button hover text' },
+            type: 'Color',
+            section: 'style',
+            defaultValue: '#ffffff',
+            bindable: true,
+            /* wwEditor:start */
+            bindingValidation: {
+                cssSupports: 'color',
+                type: 'string',
+                tooltip: 'CSS color value applied to the “Add” buttons text when hovered.',
             },
             /* wwEditor:end */
         },
