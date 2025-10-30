@@ -119,6 +119,12 @@ export default {
         },
     },
     methods: {
+        getInitialQuerySource() {
+            if (this.wwElementState?.props && 'initialQueryJson' in this.wwElementState.props) {
+                return this.wwElementState.props.initialQueryJson;
+            }
+            return this.content?.initialQueryJson;
+        },
         initializeRootGroup() {
             const initialGroup = this.resolveInitialRootGroup();
             const normalized = this.normalizeGroup(initialGroup);
@@ -586,6 +592,12 @@ export default {
         },
         fieldsChanged(newFields, oldFields) {
             return JSON.stringify(newFields) !== JSON.stringify(oldFields);
+        },
+        resetFilters() {
+            const initialSource = this.getInitialQuerySource();
+            const parsedInitial = this.parseInitialQuery(initialSource);
+            const normalized = this.normalizeGroup(parsedInitial === undefined ? null : parsedInitial);
+            this.updateRootGroup(normalized);
         },
     },
 };
