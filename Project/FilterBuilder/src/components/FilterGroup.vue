@@ -1,7 +1,6 @@
 <template>
     <div class="filter-group">
         <div class="filter-group__header">
-            <label class="filter-group__label" :for="`clause-select-${group.id}`">Clause</label>
             <select
                 class="filter-group__clause"
                 :id="`clause-select-${group.id}`"
