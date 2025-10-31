@@ -1421,6 +1421,55 @@ const remountComponent = () => {
     return [];
   };
 
+  const STATUS_COLLECTION_ID = '95233031-3746-48c8-8c3c-8722b0075d61';
+  const STATUS_VALUE_FIELD = 'id';
+  const STATUS_LABEL_FIELD = 'status';
+  let statusFilterOptionsCache = null;
+
+  const normalizeStatusFilterOption = item => {
+    if (!item || typeof item !== 'object') return null;
+    const value = item?.[STATUS_VALUE_FIELD];
+    const label = item?.[STATUS_LABEL_FIELD];
+    if (value == null || label == null) return null;
+    return {
+      value,
+      label: String(label),
+    };
+  };
+
+  const readStatusCollectionEntries = () => {
+    try {
+      const collection = wwLib?.wwCollection?.getCollection?.(STATUS_COLLECTION_ID);
+      const raw = collection?.data;
+      const candidates = Array.isArray(raw)
+        ? raw
+        : Array.isArray(raw?.data)
+        ? raw.data
+        : Array.isArray(raw?.result)
+        ? raw.result
+        : Array.isArray(raw?.results)
+        ? raw.results
+        : [];
+
+      return candidates
+        .map(normalizeStatusFilterOption)
+        .filter(Boolean)
+        .sort((a, b) => String(a.label).localeCompare(String(b.label), undefined, { sensitivity: 'base' }));
+    } catch (error) {
+      console.warn('[GridViewDinamica] Failed to read status filter options from collection', error);
+      return [];
+    }
+  };
+
+  const getStatusFilterOptions = ({ forceReload = false } = {}) => {
+    if (!forceReload && Array.isArray(statusFilterOptionsCache)) {
+      return statusFilterOptionsCache.map(opt => ({ ...opt }));
+    }
+    const options = readStatusCollectionEntries();
+    statusFilterOptionsCache = options;
+    return options.map(opt => ({ ...opt }));
+  };
+
   const loadApiOptions = async (col, ticketId) => {
     try {
       const lang = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
@@ -1500,7 +1549,19 @@ const remountComponent = () => {
     const lazyStatus = shouldLazyLoadStatus(col);
 
     if (lazyStatus && !force) {
+      const cachedStatusOptions = getStatusFilterOptions();
+      if (cachedStatusOptions.length) {
+        return cachedStatusOptions;
+      }
       return [];
+    }
+
+    if (lazyStatus) {
+      const refreshedStatusOptions = getStatusFilterOptions({ forceReload: true });
+      if (refreshedStatusOptions.length) {
+        return refreshedStatusOptions;
+      }
+      return buildLazyStatusFallbackOptions(col);
     }
 
     if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
@@ -2208,6 +2269,7 @@ setTimeout(() => {
       refreshRowFromSource,
       refreshRowListOptions,
       shouldLazyLoadStatus,
+      getStatusFilterOptions,
       buildLazyStatusFallbackOptions,
       getRowMetadataHash,
       waitForRowHydration,
@@ -2344,6 +2406,8 @@ setTimeout(() => {
         const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
         const identifier = (colCopy.FieldDB || '').toUpperCase();
 
+        const lazyStatus = this.shouldLazyLoadStatus(colCopy);
+
         // Se o filtro for agListColumnFilter, usar o filtro customizado
         if (colCopy.filter === 'agListColumnFilter') {
           const isResponsible = tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
@@ -2362,9 +2426,29 @@ setTimeout(() => {
               // options will be added below when available
             }
           };
+          if (!isResponsible) {
+            const filterRendererConfig = {
+              useCustomFormatter: !!colCopy.useCustomFormatter,
+              formatter: colCopy.formatter,
+            };
+            if (colCopy.useStyleArray && Array.isArray(this.content?.cellStyleArray)) {
+              filterRendererConfig.useStyleArray = true;
+              filterRendererConfig.styleArray = this.content.cellStyleArray;
+            }
+            const filterParams = { rendererConfig: filterRendererConfig };
+            if (lazyStatus) {
+              filterParams.getFilterOptions = () => {
+                const options = this.getStatusFilterOptions({ forceReload: true });
+                if (options.length) {
+                  return options;
+                }
+                return this.buildLazyStatusFallbackOptions(colCopy);
+              };
+            }
+            result.filterParams = filterParams;
+          }
           const fieldKey = colCopy.id || colCopy.field;
           const useTicket = this.usesTicketId(colCopy);
-          const lazyStatus = this.shouldLazyLoadStatus(colCopy);
           const getDsOptionsSync = params => {
             const ticketId = params.data?.TicketID;
             const key = this.getOptionsCacheKey(colCopy, ticketId);
@@ -2656,6 +2740,28 @@ setTimeout(() => {
               result.filter = (tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID')
                 ? ResponsibleUserFilterRenderer
                 : ListFilterRenderer;
+              if (result.filter === ListFilterRenderer) {
+                const lazyStatus = this.shouldLazyLoadStatus(colCopy);
+                const filterRendererConfig = {
+                  useCustomFormatter: !!colCopy.useCustomFormatter,
+                  formatter: colCopy.formatter,
+                };
+                if (colCopy.useStyleArray && Array.isArray(this.content?.cellStyleArray)) {
+                  filterRendererConfig.useStyleArray = true;
+                  filterRendererConfig.styleArray = this.content.cellStyleArray;
+                }
+                const filterParams = { rendererConfig: filterRendererConfig };
+                if (lazyStatus) {
+                  filterParams.getFilterOptions = () => {
+                    const options = this.getStatusFilterOptions({ forceReload: true });
+                    if (options.length) {
+                      return options;
+                    }
+                    return this.buildLazyStatusFallbackOptions(colCopy);
+                  };
+                }
+                result.filterParams = filterParams;
+              }
             }
             // Apply custom formatter if enabled
             if (colCopy.useCustomFormatter) {
