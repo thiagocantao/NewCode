@@ -169,6 +169,7 @@ export default {
                 'required',
                 'readonly',
                 'limit',
+                'includeNoneOption',
                 'unselectOnClick',
                 'closeOnSelect',
                 'closeOnClickOutside',
@@ -331,6 +332,12 @@ export default {
             },
             /* wwEditor:end */
             section: 'settings',
+        },
+        includeNoneOption: {
+            label: { en: 'Include "None" option', pt: 'Incluir opção "None"' },
+            section: 'settings',
+            type: 'OnOff',
+            defaultValue: false,
         },
         groupBy: {
             label: 'Group by',
