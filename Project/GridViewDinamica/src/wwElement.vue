@@ -2406,6 +2406,8 @@ setTimeout(() => {
         const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
         const identifier = (colCopy.FieldDB || '').toUpperCase();
 
+        const lazyStatus = this.shouldLazyLoadStatus(colCopy);
+
         // Se o filtro for agListColumnFilter, usar o filtro customizado
         if (colCopy.filter === 'agListColumnFilter') {
           const isResponsible = tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
@@ -2447,7 +2449,6 @@ setTimeout(() => {
           }
           const fieldKey = colCopy.id || colCopy.field;
           const useTicket = this.usesTicketId(colCopy);
-          const lazyStatus = this.shouldLazyLoadStatus(colCopy);
           const getDsOptionsSync = params => {
             const ticketId = params.data?.TicketID;
             const key = this.getOptionsCacheKey(colCopy, ticketId);
