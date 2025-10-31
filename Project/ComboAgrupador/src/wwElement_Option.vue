@@ -184,52 +184,75 @@ export default {
 
         const label = computed(() => {
             // Check if this is a wrapped primitive from OptionsList (has only 'value' and 'id' properties)
-            const isWrappedPrimitive = props.localData && 
-                                     typeof props.localData === 'object' && 
-                                     'value' in props.localData && 
-                                     'id' in props.localData &&
-                                     Object.keys(props.localData).length === 2;
-            
+            const isWrappedPrimitive =
+                props.localData &&
+                typeof props.localData === 'object' &&
+                'value' in props.localData &&
+                'id' in props.localData &&
+                Object.keys(props.localData).length === 2;
+
             if (isWrappedPrimitive) {
                 // For wrapped primitives, use the inner value as the label
                 return props.localData.value;
             }
-            
+
             // Handle true primitive values (strings, numbers) vs objects
             const isPrimitive = typeof props.localData !== 'object' || props.localData === null;
 
             if (isPrimitive) {
                 // For primitive values, use the value as the label
                 return props.localData;
-            } else {
-                // For objects, use the mapping formula
-                return resolveMappingFormula(toValue(mappingLabel), props.localData) ?? props.content.label ?? props.localData;
             }
+
+            // For objects, prefer explicit label/value properties before falling back to mappings
+            const mappedLabel = resolveMappingFormula(toValue(mappingLabel), props.localData);
+            if (mappedLabel !== undefined && mappedLabel !== null && mappedLabel !== '') {
+                return mappedLabel;
+            }
+
+            if (props.localData?.label !== undefined && props.localData?.label !== null) {
+                return props.localData.label;
+            }
+
+            if (props.localData?.value !== undefined && props.localData?.value !== null) {
+                return props.localData.value;
+            }
+
+            return props.content.label ?? props.localData;
         });
 
         const value = computed(() => {
             // Check if this is a wrapped primitive from OptionsList (has only 'value' and 'id' properties)
-            const isWrappedPrimitive = props.localData && 
-                                     typeof props.localData === 'object' && 
-                                     'value' in props.localData && 
-                                     'id' in props.localData &&
-                                     Object.keys(props.localData).length === 2;
-            
+            const isWrappedPrimitive =
+                props.localData &&
+                typeof props.localData === 'object' &&
+                'value' in props.localData &&
+                'id' in props.localData &&
+                Object.keys(props.localData).length === 2;
+
             if (isWrappedPrimitive) {
                 // For wrapped primitives, use the inner value
                 return props.localData.value;
             }
-            
+
             // Handle true primitive values (strings, numbers) vs objects
             const isPrimitive = typeof props.localData !== 'object' || props.localData === null;
 
             if (isPrimitive) {
                 // For primitive values, use the value itself
                 return props.localData;
-            } else {
-                // For objects, use the mapping formula
-                return resolveMappingFormula(toValue(mappingValue), props.localData) ?? props.content.value ?? props.localData;
             }
+
+            const mappedValue = resolveMappingFormula(toValue(mappingValue), props.localData);
+            if (mappedValue !== undefined && mappedValue !== null && mappedValue !== '') {
+                return mappedValue;
+            }
+
+            if (props.localData?.value !== undefined && props.localData?.value !== null) {
+                return props.localData.value;
+            }
+
+            return props.content.value ?? props.localData;
         });
         const isOptionDisabled = computed(() => resolveMappingFormula(toValue(mappingDisabled), props.localData));
 
