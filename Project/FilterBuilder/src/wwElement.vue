@@ -58,6 +58,8 @@ export default {
             queryStringVariable: null,
             setQueryJson: null,
             setQueryString: null,
+            globalInitialQuery: undefined,
+            globalQueryUnsubscribe: null,
         };
     },
     computed: {
@@ -68,19 +70,7 @@ export default {
             return this.content.fields.filter((field) => typeof field === 'string' && field.trim().length);
         },
         resolvedInitialQueryInput() {
-            const props = this.wwElementState?.props;
-            const hasStateValue = props && Object.prototype.hasOwnProperty.call(props, 'initialQueryJson');
-            const stateInitialQuery = props ? props.initialQueryJson : undefined;
-            if (hasStateValue) {
-                if (stateInitialQuery !== undefined) {
-                    return stateInitialQuery;
-                }
-                if (this.content?.initialQueryJson !== undefined) {
-                    return this.content.initialQueryJson;
-                }
-                return stateInitialQuery;
-            }
-            return this.content?.initialQueryJson;
+            return this.globalInitialQuery;
         },
         operatorOptions() {
             return OPERATOR_OPTIONS;
@@ -105,8 +95,15 @@ export default {
         },
     },
     created() {
+        this.initializeGlobalInitialQuery();
         this.initializeRootGroup();
         this.initializePublicVariables();
+    },
+    beforeDestroy() {
+        this.teardownGlobalInitialQuery();
+    },
+    beforeUnmount() {
+        this.teardownGlobalInitialQuery();
     },
     watch: {
         'content.rootGroup': {
@@ -144,6 +141,65 @@ export default {
                 this.emitRootGroup(normalized);
             }
             this.syncPublicVariables(normalized);
+        },
+        initializeGlobalInitialQuery() {
+            this.updateGlobalInitialQuery();
+            this.subscribeToGlobalInitialQuery();
+        },
+        updateGlobalInitialQuery() {
+            const wwVariable = typeof window !== 'undefined' ? window?.wwLib?.wwVariable : undefined;
+            if (!wwVariable) {
+                this.globalInitialQuery = undefined;
+                return;
+            }
+            try {
+                let value;
+                if (typeof wwVariable.getValue === 'function') {
+                    value = wwVariable.getValue('JsonQueryBuilder');
+                } else if (typeof wwVariable.getComponentValue === 'function') {
+                    value = wwVariable.getComponentValue('JsonQueryBuilder');
+                } else if (typeof wwVariable.get === 'function') {
+                    value = wwVariable.get('JsonQueryBuilder');
+                }
+                if (value && typeof value === 'object') {
+                    try {
+                        this.globalInitialQuery = JSON.parse(JSON.stringify(value));
+                    } catch (error) {
+                        this.globalInitialQuery = value;
+                    }
+                } else if (value === undefined) {
+                    this.globalInitialQuery = null;
+                } else {
+                    this.globalInitialQuery = value;
+                }
+            } catch (error) {
+                console.warn('[FilterBuilder] Failed to read JsonQueryBuilder variable', error);
+                this.globalInitialQuery = undefined;
+            }
+        },
+        subscribeToGlobalInitialQuery() {
+            const wwVariable = typeof window !== 'undefined' ? window?.wwLib?.wwVariable : undefined;
+            if (!wwVariable || typeof wwVariable.subscribe !== 'function') {
+                return;
+            }
+            try {
+                this.globalQueryUnsubscribe = wwVariable.subscribe('JsonQueryBuilder', () => {
+                    this.updateGlobalInitialQuery();
+                });
+            } catch (error) {
+                console.warn('[FilterBuilder] Failed to subscribe to JsonQueryBuilder variable', error);
+                this.globalQueryUnsubscribe = null;
+            }
+        },
+        teardownGlobalInitialQuery() {
+            if (typeof this.globalQueryUnsubscribe === 'function') {
+                try {
+                    this.globalQueryUnsubscribe();
+                } catch (error) {
+                    console.warn('[FilterBuilder] Failed to unsubscribe JsonQueryBuilder listener', error);
+                }
+            }
+            this.globalQueryUnsubscribe = null;
         },
         onExternalRootGroupChange(newGroup) {
             const normalized = this.normalizeGroup(newGroup, {
