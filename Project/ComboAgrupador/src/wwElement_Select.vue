@@ -120,7 +120,34 @@ export default {
         const appDivRef = shallowRef(wwLib.getFrontDocument().querySelector('#app'));
 
         const selectType = computed(() => props.content.selectType);
-        const rawData = computed(() => props.content.choices || []);
+        const rawData = computed(() => {
+            const sourceChoices = props.content.choices;
+            if (!Array.isArray(sourceChoices)) {
+                return sourceChoices || [];
+            }
+
+            const baseChoices = [...sourceChoices];
+
+            if (props.content.includeNoneOption) {
+                const noneValue = '-1';
+                const hasNoneOption = baseChoices.some(option => {
+                    if (typeof option === 'object' && option !== null) {
+                        const candidateValue = option.value ?? option.id ?? null;
+                        return candidateValue !== undefined && candidateValue !== null
+                            ? String(candidateValue) === noneValue
+                            : false;
+                    }
+
+                    return option !== undefined && option !== null ? String(option) === noneValue : false;
+                });
+
+                if (!hasNoneOption) {
+                    baseChoices.unshift({ label: 'None', value: noneValue });
+                }
+            }
+
+            return baseChoices;
+        });
         const mappingLabel = computed(() => props.content.mappingLabel);
         const mappingValue = computed(() => props.content.mappingValue);
         const mappingDisabled = computed(() => props.content.mappingDisabled);
