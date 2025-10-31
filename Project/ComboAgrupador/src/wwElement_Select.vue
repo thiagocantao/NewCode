@@ -123,6 +123,10 @@ export default {
         const rawData = computed(() => {
             const sourceChoices = props.content.choices;
             if (!Array.isArray(sourceChoices)) {
+                if (props.content.includeNoneOption && (sourceChoices === null || sourceChoices === undefined)) {
+                    return [{ label: 'None', value: '-1' }];
+                }
+
                 return sourceChoices || [];
             }
 
