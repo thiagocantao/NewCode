@@ -26,6 +26,8 @@
 <script>
 import FilterGroup from './components/FilterGroup.vue';
 
+const INITIAL_QUERY_VARIABLE_ID = '4b4cff47-4599-44d2-a788-0e31ef09ed9f';
+
 const CLAUSE_OPTIONS = [
     { value: 'AND', label: 'AND' },
     { value: 'OR', label: 'OR' },
@@ -153,14 +155,17 @@ export default {
                 return;
             }
             try {
-                let value;
-                if (typeof wwVariable.getValue === 'function') {
-                    value = wwVariable.getValue('JsonQueryBuilder');
-                } else if (typeof wwVariable.getComponentValue === 'function') {
-                    value = wwVariable.getComponentValue('JsonQueryBuilder');
-                } else if (typeof wwVariable.get === 'function') {
-                    value = wwVariable.get('JsonQueryBuilder');
-                }
+                const getValue = wwVariable?.getValue;
+                const getComponentValue = wwVariable?.getComponentValue;
+                const getFallback = wwVariable?.get;
+                const value =
+                    typeof getValue === 'function'
+                        ? getValue.call(wwVariable, INITIAL_QUERY_VARIABLE_ID)
+                        : typeof getComponentValue === 'function'
+                        ? getComponentValue.call(wwVariable, INITIAL_QUERY_VARIABLE_ID)
+                        : typeof getFallback === 'function'
+                        ? getFallback.call(wwVariable, INITIAL_QUERY_VARIABLE_ID)
+                        : undefined;
                 if (value && typeof value === 'object') {
                     try {
                         this.globalInitialQuery = JSON.parse(JSON.stringify(value));
@@ -173,7 +178,7 @@ export default {
                     this.globalInitialQuery = value;
                 }
             } catch (error) {
-                console.warn('[FilterBuilder] Failed to read JsonQueryBuilder variable', error);
+                console.warn('[FilterBuilder] Failed to read initial query variable', error);
                 this.globalInitialQuery = undefined;
             }
         },
@@ -183,11 +188,11 @@ export default {
                 return;
             }
             try {
-                this.globalQueryUnsubscribe = wwVariable.subscribe('JsonQueryBuilder', () => {
+                this.globalQueryUnsubscribe = wwVariable.subscribe(INITIAL_QUERY_VARIABLE_ID, () => {
                     this.updateGlobalInitialQuery();
                 });
             } catch (error) {
-                console.warn('[FilterBuilder] Failed to subscribe to JsonQueryBuilder variable', error);
+                console.warn('[FilterBuilder] Failed to subscribe to initial query variable', error);
                 this.globalQueryUnsubscribe = null;
             }
         },
@@ -196,7 +201,7 @@ export default {
                 try {
                     this.globalQueryUnsubscribe();
                 } catch (error) {
-                    console.warn('[FilterBuilder] Failed to unsubscribe JsonQueryBuilder listener', error);
+                    console.warn('[FilterBuilder] Failed to unsubscribe initial query listener', error);
                 }
             }
             this.globalQueryUnsubscribe = null;
