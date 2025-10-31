@@ -2614,14 +2614,15 @@ setTimeout(() => {
                 const ticketId = params.data?.TicketID;
                 const key = this.getOptionsCacheKey(colCopy, ticketId);
                 if (lazyStatus) {
+                  const statusOptions = this.getStatusFilterOptions();
+                  if (statusOptions.length) {
+                    return statusOptions;
+                  }
                   return this.buildLazyStatusFallbackOptions(colCopy);
                 }
                 const colOpts = this.columnOptions[fieldKey] || {};
                 const cached = colOpts[key];
                 if (cached) return cached;
-                if (lazyStatus) {
-                  return this.buildLazyStatusFallbackOptions(colCopy);
-                }
                 this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
                   if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
                   this.columnOptions[fieldKey][key] = opts;
@@ -2656,10 +2657,13 @@ setTimeout(() => {
                 });
               };
 
-              const staticOptions = Array.isArray(colCopy.options)
+              const staticOptionsRaw = Array.isArray(colCopy.options)
                 ? colCopy.options
                 : Array.isArray(colCopy.listOptions)
                 ? colCopy.listOptions
+                : null;
+              const staticOptions = staticOptionsRaw
+                ? parseStaticOptions(staticOptionsRaw)
                 : null;
 
               const isResponsible = tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
@@ -2679,6 +2683,29 @@ setTimeout(() => {
                 editable: false,
                 cellEditor: staticOptions && staticOptions.length ? ListCellEditor : (tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor : FixedListCellEditor),
               };
+              if (!isResponsible) {
+                const filterRendererConfig = {
+                  useCustomFormatter: !!colCopy.useCustomFormatter,
+                  formatter: colCopy.formatter,
+                };
+                if (colCopy.useStyleArray && Array.isArray(this.content?.cellStyleArray)) {
+                  filterRendererConfig.useStyleArray = true;
+                  filterRendererConfig.styleArray = this.content.cellStyleArray;
+                }
+                const filterParams = { rendererConfig: filterRendererConfig };
+                if (lazyStatus) {
+                  filterParams.getFilterOptions = () => {
+                    const options = this.getStatusFilterOptions({ forceReload: true });
+                    if (options.length) {
+                      return options;
+                    }
+                    return this.buildLazyStatusFallbackOptions(colCopy);
+                  };
+                } else if (staticOptions && staticOptions.length) {
+                  filterParams.options = staticOptions;
+                }
+                result.filterParams = filterParams;
+              }
               if (staticOptions && staticOptions.length) {
                 result.options = staticOptions;
                 result.cellEditorParams = { options: staticOptions };
