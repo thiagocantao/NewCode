@@ -1066,12 +1066,15 @@ function defer(fn, delay = 0) {
   const runWithSuppressedReveal = (operation, { recaptureDelay = 50 } = {}) => {
     suppressRevealUntilCapture = true;
     const finalize = () => {
+      const pristine = isGridStatePristine();
+
       if (typeof recaptureDelay === "number") {
         scheduleCaptureInitialGridState(recaptureDelay);
       } else {
         suppressRevealUntilCapture = false;
       }
-         updateHideSaveButtonVisibility(pristine);
+
+      updateHideSaveButtonVisibility(pristine);
     };
 
 
