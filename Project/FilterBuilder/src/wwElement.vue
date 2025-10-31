@@ -26,6 +26,8 @@
 <script>
 import FilterGroup from './components/FilterGroup.vue';
 
+const INITIAL_QUERY_VARIABLE_ID = '4b4cff47-4599-44d2-a788-0e31ef09ed9f';
+
 const CLAUSE_OPTIONS = [
     { value: 'AND', label: 'AND' },
     { value: 'OR', label: 'OR' },
@@ -58,6 +60,8 @@ export default {
             queryStringVariable: null,
             setQueryJson: null,
             setQueryString: null,
+            globalInitialQuery: undefined,
+            globalQueryUnsubscribe: null,
         };
     },
     computed: {
@@ -68,19 +72,7 @@ export default {
             return this.content.fields.filter((field) => typeof field === 'string' && field.trim().length);
         },
         resolvedInitialQueryInput() {
-            const props = this.wwElementState?.props;
-            const hasStateValue = props && Object.prototype.hasOwnProperty.call(props, 'initialQueryJson');
-            const stateInitialQuery = props ? props.initialQueryJson : undefined;
-            if (hasStateValue) {
-                if (stateInitialQuery !== undefined) {
-                    return stateInitialQuery;
-                }
-                if (this.content?.initialQueryJson !== undefined) {
-                    return this.content.initialQueryJson;
-                }
-                return stateInitialQuery;
-            }
-            return this.content?.initialQueryJson;
+            return this.globalInitialQuery;
         },
         operatorOptions() {
             return OPERATOR_OPTIONS;
@@ -105,8 +97,15 @@ export default {
         },
     },
     created() {
+        this.initializeGlobalInitialQuery();
         this.initializeRootGroup();
         this.initializePublicVariables();
+    },
+    beforeDestroy() {
+        this.teardownGlobalInitialQuery();
+    },
+    beforeUnmount() {
+        this.teardownGlobalInitialQuery();
     },
     watch: {
         'content.rootGroup': {
@@ -144,6 +143,68 @@ export default {
                 this.emitRootGroup(normalized);
             }
             this.syncPublicVariables(normalized);
+        },
+        initializeGlobalInitialQuery() {
+            this.updateGlobalInitialQuery();
+            this.subscribeToGlobalInitialQuery();
+        },
+        updateGlobalInitialQuery() {
+            const wwVariable = typeof window !== 'undefined' ? window?.wwLib?.wwVariable : undefined;
+            if (!wwVariable) {
+                this.globalInitialQuery = undefined;
+                return;
+            }
+            try {
+                const getValue = wwVariable?.getValue;
+                const getComponentValue = wwVariable?.getComponentValue;
+                const getFallback = wwVariable?.get;
+                const value =
+                    typeof getValue === 'function'
+                        ? getValue.call(wwVariable, INITIAL_QUERY_VARIABLE_ID)
+                        : typeof getComponentValue === 'function'
+                        ? getComponentValue.call(wwVariable, INITIAL_QUERY_VARIABLE_ID)
+                        : typeof getFallback === 'function'
+                        ? getFallback.call(wwVariable, INITIAL_QUERY_VARIABLE_ID)
+                        : undefined;
+                if (value && typeof value === 'object') {
+                    try {
+                        this.globalInitialQuery = JSON.parse(JSON.stringify(value));
+                    } catch (error) {
+                        this.globalInitialQuery = value;
+                    }
+                } else if (value === undefined) {
+                    this.globalInitialQuery = null;
+                } else {
+                    this.globalInitialQuery = value;
+                }
+            } catch (error) {
+                console.warn('[FilterBuilder] Failed to read initial query variable', error);
+                this.globalInitialQuery = undefined;
+            }
+        },
+        subscribeToGlobalInitialQuery() {
+            const wwVariable = typeof window !== 'undefined' ? window?.wwLib?.wwVariable : undefined;
+            if (!wwVariable || typeof wwVariable.subscribe !== 'function') {
+                return;
+            }
+            try {
+                this.globalQueryUnsubscribe = wwVariable.subscribe(INITIAL_QUERY_VARIABLE_ID, () => {
+                    this.updateGlobalInitialQuery();
+                });
+            } catch (error) {
+                console.warn('[FilterBuilder] Failed to subscribe to initial query variable', error);
+                this.globalQueryUnsubscribe = null;
+            }
+        },
+        teardownGlobalInitialQuery() {
+            if (typeof this.globalQueryUnsubscribe === 'function') {
+                try {
+                    this.globalQueryUnsubscribe();
+                } catch (error) {
+                    console.warn('[FilterBuilder] Failed to unsubscribe initial query listener', error);
+                }
+            }
+            this.globalQueryUnsubscribe = null;
         },
         onExternalRootGroupChange(newGroup) {
             const normalized = this.normalizeGroup(newGroup, {
