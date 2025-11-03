@@ -201,8 +201,23 @@ export default {
     const DEFAULT_ICON_SIZE = 85;
     const DEFAULT_UPLOAD_ICON_SIZE = 55;
 
+    function toPositiveNumber(value) {
+      if (typeof value === "number") {
+        return Number.isFinite(value) ? value : null;
+      }
+      if (typeof value === "string") {
+        const numeric = Number(value);
+        if (Number.isFinite(numeric)) {
+          return numeric;
+        }
+        const parsed = parseFloat(value);
+        return Number.isFinite(parsed) ? parsed : null;
+      }
+      return null;
+    }
+
     const thumbnailHeight = computed(() => {
-      const raw = Number(props.content?.thumbnailHeight);
+      const raw = toPositiveNumber(props.content?.thumbnailHeight);
       return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_THUMB_HEIGHT;
     });
     const thumbnailWidth = computed(
