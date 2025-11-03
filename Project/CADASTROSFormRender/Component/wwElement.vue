@@ -326,7 +326,8 @@ export default {
       allAvailableFields.value = [...fields];
     };
 
-    const updateFormState = () => {
+    const updateFormState = (options) => {
+      const { forceRerender = true } = options || {};
       try {
         const normalizedFormReadonly = coerceBoolean(formReadOnly.value ?? isFormReadonly.value);
         const formState = {
@@ -348,15 +349,17 @@ export default {
           }))
         };
         setFormData(formState);
-        
+
         // Forçar reatividade após setFormData
-        setTimeout(() => {
-          // Forçar re-renderização do formSections
-          formSections.value = [...formSections.value];
-          // Incrementar renderKey para forçar re-renderização dos componentes
-          renderKey.value++;
-        }, 50);
-        
+        if (forceRerender) {
+          setTimeout(() => {
+            // Forçar re-renderização do formSections
+            formSections.value = [...formSections.value];
+            // Incrementar renderKey para forçar re-renderização dos componentes
+            renderKey.value++;
+          }, 50);
+        }
+
       } catch (error) {
       }
     };
@@ -416,7 +419,7 @@ export default {
         if (field) {
           field.value = value;
           if (autoSave.value) {
-            updateFormState();
+            updateFormState({ forceRerender: false });
           }
         }
       }
