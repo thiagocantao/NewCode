@@ -79,6 +79,26 @@ export default {
             bindable: true,
             defaultValue: true,
         },
+        thumbnailHeight: {
+            label: {
+                en: 'Thumbnail height (px)',
+                pt: 'Altura das miniaturas (px)',
+            },
+            type: 'Number',
+            options: {
+                min: 40,
+                max: 400,
+                step: 5,
+            },
+            bindable: true,
+            defaultValue: 130,
+            /* wwEditor:start */
+            bindingValidation: {
+                validations: [{ type: 'number' }],
+                tooltip: 'Altura das miniaturas, aplicada também ao botão de adicionar.',
+            },
+            /* wwEditor:end */
+        },
     },
     events: {
         onUpload: {
