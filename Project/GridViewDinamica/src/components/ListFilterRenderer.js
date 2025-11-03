@@ -836,7 +836,8 @@ export default class ListFilterRenderer {
     if (this.selectedValues.length === 0) return true;
     const field = this.params.column.getColDef().field || this.params.column.getColId();
     const value = this.getNestedValue(params.data, field);
-    return this.selectedValues.includes(value);
+    const resolvedValue = this.resolveRawValue(value);
+    return this.selectedValues.includes(resolvedValue);
   }
 
   getModel() {
