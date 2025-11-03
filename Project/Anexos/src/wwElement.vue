@@ -1,5 +1,5 @@
 <template>
-  <div class="attachments">
+  <div class="attachments" :style="thumbnailStyles">
     <div class="add-section">
       <button type="button" class="upload-button" @click="triggerFileInput">
         <span class="upload-icon">+</span>
@@ -194,6 +194,37 @@ export default {
     const zoom = ref(1);
     const popup = ref({ visible: false, type: "", details: "" });
     const detailsOpen = ref(false);
+
+    const DEFAULT_THUMB_HEIGHT = 130;
+    const DEFAULT_THUMB_WIDTH = 140;
+    const DEFAULT_PREVIEW_HEIGHT = 85;
+    const DEFAULT_ICON_SIZE = 85;
+    const DEFAULT_UPLOAD_ICON_SIZE = 55;
+
+    const thumbnailHeight = computed(() => {
+      const raw = Number(props.content?.thumbnailHeight);
+      return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_THUMB_HEIGHT;
+    });
+    const thumbnailWidth = computed(
+      () => (thumbnailHeight.value * DEFAULT_THUMB_WIDTH) / DEFAULT_THUMB_HEIGHT
+    );
+    const thumbnailPreviewHeight = computed(
+      () => (thumbnailHeight.value * DEFAULT_PREVIEW_HEIGHT) / DEFAULT_THUMB_HEIGHT
+    );
+    const fileIconSize = computed(
+      () => (thumbnailHeight.value * DEFAULT_ICON_SIZE) / DEFAULT_THUMB_HEIGHT
+    );
+    const uploadIconSize = computed(
+      () => (thumbnailHeight.value * DEFAULT_UPLOAD_ICON_SIZE) / DEFAULT_THUMB_HEIGHT
+    );
+
+    const thumbnailStyles = computed(() => ({
+      "--thumbnail-height": `${thumbnailHeight.value}px`,
+      "--thumbnail-width": `${thumbnailWidth.value}px`,
+      "--thumbnail-preview-height": `${thumbnailPreviewHeight.value}px`,
+      "--file-icon-size": `${fileIconSize.value}px`,
+      "--upload-icon-size": `${uploadIconSize.value}px`,
+    }));
 
     const isHttpUrl = (value) => typeof value === "string" && /^https?:\/\//i.test(value);
 
@@ -917,6 +948,7 @@ export default {
       popup, detailsOpen, closePopup, toggleDetails,
       pendingAttachmentsBodies,
       remount,
+      thumbnailStyles,
     };
   },
 };
@@ -927,24 +959,33 @@ export default {
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css");
 
 /* ---------- Attachments grid ---------- */
-.attachments { display: flex; flex-wrap: wrap; gap: 12px; }
+.attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  --thumbnail-width: 140px;
+  --thumbnail-height: 130px;
+  --thumbnail-preview-height: 85px;
+  --file-icon-size: 85px;
+  --upload-icon-size: 55px;
+}
 .upload-button {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  width: 140px; height: 130px; padding: 12px; border: 2px dashed #ccc; border-radius: 6px;
+  width: var(--thumbnail-width); height: var(--thumbnail-height); padding: 12px; border: 2px dashed #ccc; border-radius: 6px;
   background: #ffffff; color: #555; cursor: pointer; gap: 8px;
 }
-.upload-icon { font-size: 55px; line-height: 1; font-weight: 300; }
+.upload-icon { font-size: var(--upload-icon-size); line-height: 1; font-weight: 300; }
 .hidden-input { display: none; }
 
 .file-item {
-  position: relative; width: 140px; height: 130px; border: 1px solid #ddd; border-radius: 4px;
+  position: relative; width: var(--thumbnail-width); height: var(--thumbnail-height); border: 1px solid #ddd; border-radius: 4px;
   padding: 10px; text-align: center; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 8px; font-size: 12px; background: #fff;
 }
-.file-icon { font-size: 85px; cursor: pointer; }
+.file-icon { font-size: var(--file-icon-size); cursor: pointer; }
 .fa-file-pdf { color: #e53935; } .fa-file-word { color: #3b73b9; } .fa-file-excel { color: #2e7d32; }
 .fa-file-powerpoint { color: #d84315; } .fa-file-lines { color: #546e7a; }
-.file-preview { width: 100%; height: 85px; object-fit: contain; background: #f5f6fa; border-radius: 6px; cursor: pointer; }
+.file-preview { width: 100%; height: var(--thumbnail-preview-height); object-fit: contain; background: #f5f6fa; border-radius: 6px; cursor: pointer; }
 .file-name { width: 100%; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .file-actions { position: absolute; top: 4px; right: 4px; display: flex; gap: 4px; opacity: 0; transition: opacity .2s; }
 .file-item:hover .file-actions { opacity: 1; }
