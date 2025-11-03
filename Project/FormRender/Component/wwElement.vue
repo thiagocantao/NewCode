@@ -245,7 +245,8 @@ export default {
       allAvailableFields.value = [...fields];
     };
 
-    const updateFormState = () => {
+    const updateFormState = (options) => {
+      const { forceRerender = true } = options || {};
       try {
         const formState = {
           sections: formSections.value.map(section => ({
@@ -279,12 +280,14 @@ export default {
         });
 
         // Forçar reatividade após setFormData
-        setTimeout(() => {
-          // Forçar re-renderização do formSections
-          formSections.value = [...formSections.value];
-          // Incrementar renderKey para forçar re-renderização dos componentes
-          renderKey.value++;
-        }, 50);
+        if (forceRerender) {
+          setTimeout(() => {
+            // Forçar re-renderização do formSections
+            formSections.value = [...formSections.value];
+            // Incrementar renderKey para forçar re-renderização dos componentes
+            renderKey.value++;
+          }, 50);
+        }
 
       } catch (error) {
       }
@@ -344,7 +347,7 @@ export default {
         const field = section.fields.find(f => f.id === fieldId || f.field_id === fieldId || f.ID === fieldId);
         if (field) {
           field.value = value;
-          updateFormState();
+          updateFormState({ forceRerender: false });
         }
       }
     };
