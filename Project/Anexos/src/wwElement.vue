@@ -986,22 +986,29 @@ export default {
 }
 .upload-button {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  width: var(--thumbnail-width); height: var(--thumbnail-height); padding: 12px; border: 2px dashed #ccc; border-radius: 6px;
-  background: #ffffff; color: #555; cursor: pointer; gap: 8px;
+  width: var(--thumbnail-width); height: var(--thumbnail-height);
+  padding: clamp(6px, calc(var(--thumbnail-height) * 0.085), 14px);
+  border: 2px dashed #ccc; border-radius: 6px; background: #ffffff; color: #555; cursor: pointer;
+  gap: clamp(4px, calc(var(--thumbnail-height) * 0.06), 10px);
 }
 .upload-icon { font-size: var(--upload-icon-size); line-height: 1; font-weight: 300; }
 .hidden-input { display: none; }
 
 .file-item {
   position: relative; width: var(--thumbnail-width); height: var(--thumbnail-height); border: 1px solid #ddd; border-radius: 4px;
-  padding: 10px; text-align: center; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 8px; font-size: 12px; background: #fff;
+  padding: clamp(6px, calc(var(--thumbnail-height) * 0.077), 12px); text-align: center; display: flex; flex-direction: column;
+  align-items: center; justify-content: flex-start; gap: clamp(4px, calc(var(--thumbnail-height) * 0.06), 10px); font-size: 12px; background: #fff;
 }
 .file-icon { font-size: var(--file-icon-size); cursor: pointer; }
 .fa-file-pdf { color: #e53935; } .fa-file-word { color: #3b73b9; } .fa-file-excel { color: #2e7d32; }
 .fa-file-powerpoint { color: #d84315; } .fa-file-lines { color: #546e7a; }
 .file-preview { width: 100%; height: var(--thumbnail-preview-height); object-fit: contain; background: #f5f6fa; border-radius: 6px; cursor: pointer; }
-.file-name { width: 100%; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-name {
+  width: 100%; text-align: center; overflow: hidden;
+  font-size: clamp(9px, calc(var(--thumbnail-height) * 0.092), 12px); line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  white-space: normal; word-break: break-word; margin-top: auto;
+}
 .file-actions { position: absolute; top: 4px; right: 4px; display: flex; gap: 4px; opacity: 0; transition: opacity .2s; }
 .file-item:hover .file-actions { opacity: 1; }
 .action-button {
