@@ -2966,7 +2966,12 @@ setTimeout(() => {
                       if (typeof v === 'string' && v.length > 0) lang = v;
                     }
                   } catch (e) {}
-                  return deadline.toLocaleString(lang);
+                  const opts = { day: '2-digit', month: '2-digit', year: 'numeric' };
+                  try {
+                    return deadline.toLocaleDateString(lang, opts);
+                  } catch (err) {
+                    return deadline.toLocaleDateString(lang);
+                  }
                 }
                 const val = params.value;
                 if (!val) {
@@ -4118,7 +4123,7 @@ forceClearSelection() {
   }
 
   :deep(.deadline-closed) {
-    background: #424242 !important;
+    background: #666666 !important;
     color: #fff !important;
   }
 
