@@ -124,9 +124,17 @@ export default class ListFilterRenderer {
     const categoryTags = ['CATEGORYID','SUBCATEGORYID','CATEGORYLEVEL3ID'];
     this.isCategoryField = categoryTags.includes(tag) || categoryTags.includes(identifier);
 
-    this.rendererConfig = this.params.filterParams?.rendererConfig || {};
+    this.rendererConfig = this.buildRendererConfig(colDef);
 
-    const optionsSource = this.resolveFilterOptions();
+    let optionsSource = null;
+
+    if (identifier === 'STATUSID') {
+      optionsSource = this.resolveStatusCollectionOptions(colDef);
+    }
+
+    if (optionsSource == null) {
+      optionsSource = this.resolveFilterOptions();
+    }
 
     if (optionsSource && typeof optionsSource.then === 'function') {
       return optionsSource
@@ -163,6 +171,109 @@ export default class ListFilterRenderer {
       return filterParams.options;
     }
     return null;
+  }
+
+  buildRendererConfig(colDef) {
+    const rendererParams = this.getRendererParams(colDef);
+
+    const derivedConfig = {};
+    if (rendererParams.useCustomFormatter && typeof rendererParams.formatter === 'string') {
+      derivedConfig.useCustomFormatter = true;
+      derivedConfig.formatter = rendererParams.formatter;
+    }
+    if (rendererParams.useStyleArray && Array.isArray(rendererParams.styleArray)) {
+      derivedConfig.useStyleArray = true;
+      derivedConfig.styleArray = rendererParams.styleArray;
+    }
+
+    const filterConfig = this.params.filterParams?.rendererConfig || {};
+
+    return {
+      ...derivedConfig,
+      ...filterConfig,
+    };
+  }
+
+  getRendererParams(colDef) {
+    try {
+      if (typeof colDef.cellRendererParams === 'function') {
+        return colDef.cellRendererParams({ data: {}, value: undefined, colDef }) || {};
+      }
+      return colDef.cellRendererParams || {};
+    } catch (error) {
+      return {};
+    }
+  }
+
+  resolveStatusCollectionOptions(colDef) {
+    const COLLECTION_ID = '95233031-3746-48c8-8c3c-8722b0075d61';
+
+    try {
+      const collection = window?.wwLib?.wwCollection?.getCollection?.(COLLECTION_ID);
+      const data = collection?.data;
+
+      if (!Array.isArray(data)) {
+        return null;
+      }
+
+      const sampleValue = this.findSampleValue(colDef);
+      const normalizeValueType = (value) => {
+        if (sampleValue === undefined || sampleValue === null) return value;
+
+        const sampleType = typeof sampleValue;
+        if (sampleType === 'number') {
+          const numeric = Number(value);
+          return Number.isNaN(numeric) ? value : numeric;
+        }
+
+        if (sampleType === 'boolean') {
+          if (typeof value === 'boolean') return value;
+          if (typeof value === 'string') {
+            const lowered = value.toLowerCase();
+            if (lowered === 'true') return true;
+            if (lowered === 'false') return false;
+          }
+          return value;
+        }
+
+        if (sampleType === 'string') {
+          return value != null ? String(value) : value;
+        }
+
+        return value;
+      };
+
+      const mapped = data
+        .map(item => ({
+          value: normalizeValueType(item?.id),
+          label: item?.status ?? item?.id,
+        }))
+        .filter(option => option.value !== undefined && option.value !== null);
+
+      return mapped;
+    } catch (error) {
+      console.warn('[GridViewDinamica] Failed to resolve StatusID filter options from collection', error);
+      return null;
+    }
+  }
+
+  findSampleValue(colDef) {
+    const api = this.params?.api;
+    if (!api) return undefined;
+
+    const field = colDef.field || this.params.column.getColId();
+    let sample = undefined;
+
+    api.forEachNode(node => {
+      if (sample !== undefined) return;
+      if (!node?.data) return;
+      const candidate = this.getNestedValue(node.data, field);
+      if (candidate !== undefined && candidate !== null) {
+        sample = candidate;
+      }
+    });
+
+    return sample;
   }
 
   populateFromExplicitOptions(optionsInput, colDef) {
@@ -725,7 +836,8 @@ export default class ListFilterRenderer {
     if (this.selectedValues.length === 0) return true;
     const field = this.params.column.getColDef().field || this.params.column.getColId();
     const value = this.getNestedValue(params.data, field);
-    return this.selectedValues.includes(value);
+    const resolvedValue = this.resolveRawValue(value);
+    return this.selectedValues.includes(resolvedValue);
   }
 
   getModel() {
