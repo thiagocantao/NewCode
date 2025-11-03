@@ -126,7 +126,15 @@ export default class ListFilterRenderer {
 
     this.rendererConfig = this.params.filterParams?.rendererConfig || {};
 
-    const optionsSource = this.resolveFilterOptions();
+    let optionsSource = null;
+
+    if (identifier === 'STATUSID') {
+      optionsSource = this.resolveStatusCollectionOptions();
+    }
+
+    if (optionsSource == null) {
+      optionsSource = this.resolveFilterOptions();
+    }
 
     if (optionsSource && typeof optionsSource.then === 'function') {
       return optionsSource
@@ -163,6 +171,31 @@ export default class ListFilterRenderer {
       return filterParams.options;
     }
     return null;
+  }
+
+  resolveStatusCollectionOptions() {
+    const COLLECTION_ID = '95233031-3746-48c8-8c3c-8722b0075d61';
+
+    try {
+      const collection = window?.wwLib?.wwCollection?.getCollection?.(COLLECTION_ID);
+      const data = collection?.data;
+
+      if (!Array.isArray(data)) {
+        return null;
+      }
+
+      const mapped = data
+        .map(item => ({
+          value: item?.id,
+          label: item?.status ?? item?.id,
+        }))
+        .filter(option => option.value !== undefined && option.value !== null);
+
+      return mapped;
+    } catch (error) {
+      console.warn('[GridViewDinamica] Failed to resolve StatusID filter options from collection', error);
+      return null;
+    }
   }
 
   populateFromExplicitOptions(optionsInput, colDef) {
