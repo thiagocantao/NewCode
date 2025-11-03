@@ -148,6 +148,20 @@ if (
         // DEADLINE: barra proporcional
         if (this.params.colDef?.TagControl === 'DEADLINE' || this.params.colDef?.tagControl === 'DEADLINE') {
           const value = this.params.value;
+          const isClosedRaw = this.params.data?.IsClosed;
+          const isClosed =
+            typeof isClosedRaw === 'string'
+              ? isClosedRaw.toLowerCase() === 'true'
+              : Boolean(isClosedRaw);
+
+          if (isClosed && value) {
+            const formattedDate = dateTimeFormater(value, '') || value;
+            return `
+              <span style="display:inline-flex;align-items:center;justify-content:center;gap:6px;height:26px;min-width:100px;padding:0 12px;border:1px solid #424242;border-radius:12px;background:#424242;color:#ffffff;font-size:12px;font-weight:500;font-family:${fontFamily};text-transform:none;box-sizing:border-box;">
+                ${formattedDate}
+              </span>
+            `;
+          }
           if (!value) {
             return `<span style="display:inline-flex;align-items:center;justify-content:center;gap:6px;height:26px;min-width:100px;padding:0 12px;border:1px solid #bdbdbd;border-radius:12px;background:#ffffff;color:#9e9e9e;font-size:12px;font-weight:500;font-family:${fontFamily};text-transform:none;box-sizing:border-box;">
               <span class="material-symbols-outlined" style="font-size:16px;line-height:1;font-variation-settings:'OPSZ' 24;">calendar_today</span>
