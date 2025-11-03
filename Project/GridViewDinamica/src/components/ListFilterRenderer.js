@@ -7,6 +7,8 @@ export default class ListFilterRenderer {
     this.selectAll = false;
     this.formattedValues = [];
     this.rendererConfig = {};
+    this.statusLookupMap = null;
+    this.isStatusField = false;
   
     // Ensure methods keep the correct 'this' even inside async/promises
     this.loadValues = this.loadValues.bind(this);
@@ -121,6 +123,8 @@ export default class ListFilterRenderer {
 
     const tag = (colDef.TagControl || colDef.tagControl || colDef.tagcontrol || '').toString().toUpperCase();
     const identifier = (colDef.FieldDB || '').toString().toUpperCase();
+    this.isStatusField = identifier === 'STATUSID';
+    this.statusLookupMap = this.isStatusField ? new Map() : null;
     const categoryTags = ['CATEGORYID','SUBCATEGORYID','CATEGORYLEVEL3ID'];
     this.isCategoryField = categoryTags.includes(tag) || categoryTags.includes(identifier);
 
@@ -244,17 +248,93 @@ export default class ListFilterRenderer {
       };
 
       const mapped = data
-        .map(item => ({
-          value: normalizeValueType(item?.id),
-          label: item?.status ?? item?.id,
-        }))
-        .filter(option => option.value !== undefined && option.value !== null);
+        .map(item => {
+          const hasStatusLabel = item?.status != null && item.status !== '';
+          const baseValue = hasStatusLabel ? item.status : item?.id;
+          if (baseValue === undefined || baseValue === null || baseValue === '') {
+            return null;
+          }
+
+          const displayText = this.ensureDisplayText(baseValue);
+          const normalizedValue = hasStatusLabel
+            ? this.ensureDisplayText(item.status)
+            : normalizeValueType(baseValue);
+
+          if (this.statusLookupMap) {
+            this.registerStatusLookupKey(normalizedValue, normalizedValue);
+            if (hasStatusLabel) {
+              this.registerStatusLookupKey(item.status, normalizedValue);
+            }
+            if (item?.id !== undefined && item?.id !== null && item.id !== '') {
+              this.registerStatusLookupKey(item.id, normalizedValue);
+            }
+          }
+
+          return {
+            value: normalizedValue,
+            label: displayText,
+          };
+        })
+        .filter(option => option && option.value !== undefined && option.value !== null);
 
       return mapped;
     } catch (error) {
       console.warn('[GridViewDinamica] Failed to resolve StatusID filter options from collection', error);
       return null;
     }
+  }
+
+  registerStatusLookupKey(rawValue, canonicalValue) {
+    if (!this.statusLookupMap || rawValue === undefined || rawValue === null) return;
+    if (canonicalValue === undefined || canonicalValue === null) return;
+
+    const variations = new Set();
+    variations.add(rawValue);
+
+    if (typeof rawValue === 'string') {
+      variations.add(rawValue.trim());
+      variations.add(rawValue.trim().toLowerCase());
+    } else {
+      const stringValue = String(rawValue);
+      variations.add(stringValue);
+      variations.add(stringValue.trim());
+      variations.add(stringValue.trim().toLowerCase());
+    }
+
+    variations.forEach(variation => {
+      if (variation !== undefined && variation !== null && variation !== '') {
+        this.statusLookupMap.set(variation, canonicalValue);
+      }
+    });
+  }
+
+  resolveStatusCanonicalValue(value) {
+    if (!this.statusLookupMap) return value;
+    if (value === undefined || value === null) return value;
+
+    const attempts = [];
+    attempts.push(value);
+
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (trimmed !== value) attempts.push(trimmed);
+      attempts.push(trimmed.toLowerCase());
+    } else {
+      const stringValue = String(value);
+      attempts.push(stringValue);
+      const trimmed = stringValue.trim();
+      if (trimmed !== stringValue) attempts.push(trimmed);
+      attempts.push(trimmed.toLowerCase());
+    }
+
+    for (const attempt of attempts) {
+      if (attempt === undefined || attempt === null) continue;
+      if (this.statusLookupMap.has(attempt)) {
+        return this.statusLookupMap.get(attempt);
+      }
+    }
+
+    return value;
   }
 
   findSampleValue(colDef) {
@@ -718,6 +798,17 @@ export default class ListFilterRenderer {
   }
 
   resolveRawValue(value) {
+    if (this.isStatusField && this.statusLookupMap) {
+      const canonical = this.resolveStatusCanonicalValue(value);
+      if (canonical !== value) {
+        const canonicalIndex = this.allValues.indexOf(canonical);
+        if (canonicalIndex !== -1) {
+          return this.allValues[canonicalIndex];
+        }
+        return canonical;
+      }
+    }
+
     const directIndex = this.allValues.indexOf(value);
     if (directIndex !== -1) return this.allValues[directIndex];
 
