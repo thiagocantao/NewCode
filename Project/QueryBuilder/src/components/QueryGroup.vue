@@ -484,11 +484,14 @@ export default {
 
 .query-group__clause {
     min-width: 80px;
-    padding: 6px 10px 6px 8px;
+    height: 36px;
+    min-height: 36px;
+    padding: 0 10px 0 8px;
     border: 1px solid #e0e0e0;
     border-radius: 4px;
     background-color: #f9fafb;
     outline: 1px solid transparent;
+    box-sizing: border-box;
 }
 
 .query-group__remove {
@@ -520,16 +523,29 @@ export default {
 .query-condition__field,
 .query-condition__operator,
 .query-condition__value {
-    flex: 1 1 160px;
-    padding: 6px 8px;
+    padding: 0 8px;
+    height: 36px;
+    min-height: 36px;
+    box-sizing: border-box;
     border: 1px solid #e0e0e0;
     border-radius: 4px;
     outline: 1px solid transparent;
 }
 
-.query-condition__field,
-.query-condition__operator {
+.query-condition__field {
+    flex: 0 1 auto;
+    min-width: 140px;
     padding-right: 10px;
+}
+
+.query-condition__operator {
+    flex: 0 1 auto;
+    min-width: 120px;
+    padding-right: 10px;
+}
+
+.query-condition__value {
+    flex: 1 1 160px;
 }
 
 .query-group__clause:focus,
