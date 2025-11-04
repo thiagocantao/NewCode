@@ -58,20 +58,22 @@ const OPERATOR_METADATA = {
     '>=': { label: 'Greater or equal', requiresValue: true },
     '<': { label: 'Less than', requiresValue: true },
     '<=': { label: 'Less or equal', requiresValue: true },
+    BETWEEN: { label: 'Between', requiresValue: true, valueShape: 'range' },
 };
 
 const DEFAULT_OPERATORS_BY_TYPE = {
     CONTROLLED_LIST: ['=', '<>', 'IN', 'NOT_IN', 'IS_NULL', 'IS_NOT_NULL'],
     LIST: ['=', '<>', 'IN', 'NOT_IN', 'IS_NULL', 'IS_NOT_NULL'],
     SIMPLE_LIST: ['=', '<>', 'IN', 'NOT_IN', 'IS_NULL', 'IS_NOT_NULL'],
+    MULTISELECTION: ['IN', 'NOT_IN', 'IS_NULL', 'IS_NOT_NULL'],
     TEXT: ['=', '<>', 'CONTAINS', 'NOT_CONTAINS', 'STARTS_WITH', 'ENDS_WITH', 'IS_NULL', 'IS_NOT_NULL'],
     STRING: ['=', '<>', 'CONTAINS', 'NOT_CONTAINS', 'STARTS_WITH', 'ENDS_WITH', 'IS_NULL', 'IS_NOT_NULL'],
-    NUMBER: ['=', '<>', '>', '>=', '<', '<=', 'IS_NULL', 'IS_NOT_NULL'],
-    NUMERIC: ['=', '<>', '>', '>=', '<', '<=', 'IS_NULL', 'IS_NOT_NULL'],
-    DATE: ['=', '<>', '>', '>=', '<', '<=', 'IS_NULL', 'IS_NOT_NULL'],
-    DATETIME: ['=', '<>', '>', '>=', '<', '<=', 'IS_NULL', 'IS_NOT_NULL'],
-    DATE_TIME: ['=', '<>', '>', '>=', '<', '<=', 'IS_NULL', 'IS_NOT_NULL'],
-    TIME: ['=', '<>', '>', '>=', '<', '<=', 'IS_NULL', 'IS_NOT_NULL'],
+    NUMBER: ['=', '<>', '>', '>=', '<', '<=', 'BETWEEN', 'IS_NULL', 'IS_NOT_NULL'],
+    NUMERIC: ['=', '<>', '>', '>=', '<', '<=', 'BETWEEN', 'IS_NULL', 'IS_NOT_NULL'],
+    DATE: ['=', '<>', '>', '>=', '<', '<=', 'BETWEEN', 'IS_NULL', 'IS_NOT_NULL'],
+    DATETIME: ['=', '<>', '>', '>=', '<', '<=', 'BETWEEN', 'IS_NULL', 'IS_NOT_NULL'],
+    DATE_TIME: ['=', '<>', '>', '>=', '<', '<=', 'BETWEEN', 'IS_NULL', 'IS_NOT_NULL'],
+    TIME: ['=', '<>', '>', '>=', '<', '<=', 'BETWEEN', 'IS_NULL', 'IS_NOT_NULL'],
     BOOLEAN: ['=', '<>', 'IS_NULL', 'IS_NOT_NULL'],
 };
 
@@ -607,18 +609,21 @@ export default {
             if (!group || typeof group !== 'object') {
                 return null;
             }
-            const clause = this.isValidClause(group.clause) ? group.clause : 'AND';
+            const logic = this.isValidClause(group.clause) ? group.clause : 'AND';
             const conditions = Array.isArray(group.conditions)
                 ? group.conditions
-                      .map((item) => (item?.type === 'group' ? this.buildPublicGroup(item) : this.buildPublicCondition(item)))
+                      .map((item) =>
+                          item?.type === 'group'
+                              ? this.buildPublicGroup(item)
+                              : this.buildPublicCondition(item)
+                      )
                       .filter(Boolean)
                 : [];
             if (!conditions.length) {
                 return null;
             }
             return {
-                type: 'group',
-                clause,
+                logic,
                 conditions,
             };
         },
@@ -627,21 +632,30 @@ export default {
                 return null;
             }
             const fieldId = typeof condition.fieldId === 'string' ? condition.fieldId : '';
-            const field = this.getFieldDefinition(fieldId);
             const operator = this.resolveOperator(fieldId, condition.operator);
             const operatorDef = this.getOperatorDefinition(fieldId, operator);
             const payload = {
-                type: 'condition',
-                fieldId,
-                fieldName: field?.label || '',
-                fieldType: field?.type || '',
-                operator,
+                field: fieldId,
+                op: operator,
             };
             if (operatorDef && operatorDef.requiresValue !== false) {
-                const value = Array.isArray(condition.value)
-                    ? condition.value.slice()
-                    : condition.value ?? '';
-                payload.value = value;
+                if (operatorDef.valueShape === 'range' || operatorDef.valueShape === 'array') {
+                    const entries = Array.isArray(condition.value)
+                        ? condition.value.slice()
+                        : condition.value === null || condition.value === undefined
+                        ? []
+                        : [condition.value];
+                    if (operatorDef.valueShape === 'range') {
+                        while (entries.length < 2) {
+                            entries.push('');
+                        }
+                        payload.value = entries.slice(0, 2);
+                    } else {
+                        payload.value = entries;
+                    }
+                } else {
+                    payload.value = condition.value ?? '';
+                }
             }
             return payload;
         },
@@ -649,29 +663,29 @@ export default {
             if (!node) {
                 return '';
             }
-            if (node.type === 'group') {
-                const clause = this.isValidClause(node.clause) ? node.clause : 'AND';
-                const clauseLabel = this.escapeHtml(clause);
-                const parts = Array.isArray(node.conditions)
-                    ? node.conditions.map((child) => this.buildQueryString(child)).filter((part) => part && part.length)
-                    : [];
+            if (node.logic && Array.isArray(node.conditions)) {
+                const clause = this.isValidClause(node.logic) ? node.logic : 'AND';
+                const parts = node.conditions
+                    .map((child) => this.buildQueryString(child))
+                    .filter((part) => part && part.length);
                 if (!parts.length) {
                     return '';
                 }
                 if (parts.length === 1) {
                     return parts[0];
                 }
-                return `(${parts.join(` ${clauseLabel} `)})`;
+                return `(${parts.join(` ${clause} `)})`;
             }
-            if (node.type === 'condition') {
-                const fieldHtml = this.formatFieldForQuery(node.fieldName || node.fieldId);
-                const operatorLabel = this.escapeHtml(this.getOperatorLabel(node.fieldId, node.operator));
-                const operatorDef = this.getOperatorDefinition(node.fieldId, node.operator);
+            if (node.field) {
+                const fieldId = node.field;
+                const fieldLabel = this.formatFieldForQuery(fieldId);
+                const operatorLabel = this.escapeHtml(this.getOperatorLabel(fieldId, node.op));
+                const operatorDef = this.getOperatorDefinition(fieldId, node.op);
                 if (operatorDef && operatorDef.requiresValue === false) {
-                    return [fieldHtml, operatorLabel].filter(Boolean).join(' ');
+                    return [fieldLabel, operatorLabel].filter(Boolean).join(' ');
                 }
-                const valueHtml = this.formatValueForQuery(node.value);
-                return [fieldHtml, operatorLabel, valueHtml].filter(Boolean).join(' ');
+                const valueText = this.formatValueForQuery(node.value, fieldId, node.op);
+                return [fieldLabel, operatorLabel, valueText].filter(Boolean).join(' ');
             }
             return '';
         },
@@ -679,29 +693,71 @@ export default {
             const operator = this.getOperatorDefinition(fieldId, operatorValue);
             return operator ? operator.label : operatorValue || '';
         },
-        formatFieldForQuery(field) {
-            if (typeof field !== 'string') {
-                return '';
-            }
-            const normalizedField = field.trim();
-            if (!normalizedField.length) {
-                return '';
-            }
-            const escapedField = this.escapeHtml(normalizedField);
-            return `<span style="color: blue;">${escapedField}</span>`;
+        formatFieldForQuery(fieldId) {
+            const field = this.getFieldDefinition(fieldId);
+            const label = typeof field?.label === 'string' && field.label.trim().length ? field.label : fieldId;
+            return this.escapeHtml(label || '');
         },
-        formatValueForQuery(value) {
-            if (Array.isArray(value)) {
-                const parts = value.map((item) => this.formatValueForQuery(item)).filter(Boolean);
-                return parts.length ? parts.join(', ') : '<span style="color: green;">""</span>';
+        formatValueForQuery(value, fieldId, operatorValue) {
+            const operator = this.getOperatorDefinition(fieldId, operatorValue);
+            const requiresValue = operator ? operator.requiresValue !== false : true;
+            const valueShape = operator?.valueShape || (Array.isArray(value) ? 'array' : 'scalar');
+            if (!requiresValue) {
+                return '';
             }
+            if (valueShape === 'range') {
+                const entries = Array.isArray(value) ? value : [];
+                const formatted = [entries[0], entries[1]]
+                    .map((entry) => this.formatScalarValue(entry, fieldId))
+                    .filter((entry) => entry !== '');
+                if (!formatted.length) {
+                    return '""';
+                }
+                if (formatted.length === 1) {
+                    return formatted[0];
+                }
+                return `${formatted[0]} AND ${formatted[1]}`;
+            }
+            if (valueShape === 'array') {
+                const entries = Array.isArray(value)
+                    ? value
+                    : value === null || value === undefined
+                    ? []
+                    : [value];
+                const formatted = entries.map((entry) => this.formatScalarValue(entry, fieldId)).filter((entry) => entry !== '');
+                return formatted.length ? formatted.join(', ') : '""';
+            }
+            return this.formatScalarValue(value, fieldId);
+        },
+        formatScalarValue(value, fieldId) {
             if (value === null || value === undefined || value === '') {
-                return '<span style="color: green;">""</span>';
+                return '""';
             }
-            const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
-            const displayValue = stringValue.replace(/"/g, '\\"');
-            const escapedValue = this.escapeHtml(displayValue);
-            return `<span style="color: green;">"${escapedValue}"</span>`;
+            const field = this.getFieldDefinition(fieldId);
+            const type = String(field?.type || '').toUpperCase();
+            if (type === 'BOOLEAN') {
+                if (value === true || value === 'true') {
+                    return 'true';
+                }
+                if (value === false || value === 'false') {
+                    return 'false';
+                }
+            }
+            if (type === 'NUMBER' || type === 'NUMERIC') {
+                const parsed = Number(value);
+                if (!Number.isNaN(parsed)) {
+                    return String(parsed);
+                }
+            }
+            const stringValue = typeof value === 'string' ? value : String(value);
+            const escaped = this.escapeHtml(stringValue);
+            if (type === 'DATE' || type === 'DATETIME' || type === 'DATE_TIME' || type === 'TIME') {
+                return escaped;
+            }
+            if (type === 'BOOLEAN') {
+                return escaped;
+            }
+            return `"${escaped}"`;
         },
         escapeHtml(value) {
             if (value === null || value === undefined) {
@@ -858,45 +914,98 @@ export default {
             }
             const field = this.getFieldDefinition(fieldId);
             const type = String(field?.type || '').toUpperCase();
+            const coerceScalar = (value) => {
+                if (value === undefined || value === null || value === '') {
+                    return '';
+                }
+                if (type === 'BOOLEAN') {
+                    if (value === true || value === 'true') {
+                        return true;
+                    }
+                    if (value === false || value === 'false') {
+                        return false;
+                    }
+                    return '';
+                }
+                if (type === 'NUMBER' || type === 'NUMERIC') {
+                    const parsed = Number(value);
+                    return Number.isNaN(parsed) ? value : parsed;
+                }
+                if (type === 'DATE') {
+                    return this.normalizeDateOnlyValue(value);
+                }
+                if (type === 'DATETIME' || type === 'DATE_TIME') {
+                    return this.normalizeDateTimeValue(value);
+                }
+                return value;
+            };
+            if (operator.valueShape === 'range') {
+                const entries = Array.isArray(rawValue) ? rawValue.slice(0, 2) : [];
+                while (entries.length < 2) {
+                    entries.push('');
+                }
+                return entries.map((entry) => coerceScalar(entry));
+            }
             if (operator.valueShape === 'array') {
                 const entries = Array.isArray(rawValue)
                     ? rawValue.slice()
                     : rawValue === null || rawValue === undefined || rawValue === ''
                     ? []
                     : [rawValue];
-                if (type === 'BOOLEAN') {
-                    return entries.map((entry) => {
-                        if (entry === true || entry === 'true') {
-                            return true;
-                        }
-                        if (entry === false || entry === 'false') {
-                            return false;
-                        }
-                        return entry;
-                    });
-                }
-                if (type === 'NUMBER' || type === 'NUMERIC') {
-                    return entries.map((entry) => {
-                        const parsed = Number(entry);
-                        return Number.isNaN(parsed) ? entry : parsed;
-                    });
-                }
-                return entries;
+                return entries.map((entry) => coerceScalar(entry));
             }
-            if (type === 'BOOLEAN') {
-                if (rawValue === true || rawValue === 'true') {
-                    return true;
-                }
-                if (rawValue === false || rawValue === 'false') {
-                    return false;
-                }
+            const scalar = coerceScalar(rawValue);
+            return scalar === undefined || scalar === null ? '' : scalar;
+        },
+        normalizeDateOnlyValue(value) {
+            if (value === undefined || value === null || value === '') {
                 return '';
             }
-            if ((type === 'NUMBER' || type === 'NUMERIC') && rawValue !== '' && rawValue !== null && rawValue !== undefined) {
-                const parsed = Number(rawValue);
-                return Number.isNaN(parsed) ? rawValue : parsed;
+            if (value instanceof Date && !Number.isNaN(value.getTime())) {
+                return value.toISOString().slice(0, 10);
             }
-            return rawValue ?? '';
+            const str = String(value).trim();
+            if (!str) {
+                return '';
+            }
+            if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+                return str;
+            }
+            if (/^\d{4}-\d{2}-\d{2}T/.test(str)) {
+                return str.slice(0, 10);
+            }
+            const parsed = new Date(str);
+            if (Number.isNaN(parsed.getTime())) {
+                return '';
+            }
+            return parsed.toISOString().slice(0, 10);
+        },
+        normalizeDateTimeValue(value) {
+            if (value === undefined || value === null || value === '') {
+                return '';
+            }
+            if (value instanceof Date && !Number.isNaN(value.getTime())) {
+                return value.toISOString();
+            }
+            const str = String(value).trim();
+            if (!str) {
+                return '';
+            }
+            const match = str.match(/^([0-9]{4}-[0-9]{2}-[0-9]{2})T([0-9]{2}:[0-9]{2})(?::([0-9]{2}))?(Z|[+-][0-9]{2}:[0-9]{2})?$/);
+            if (match) {
+                const [, datePart, timePart, secondsPart, zonePart] = match;
+                const seconds = secondsPart ?? '00';
+                const zone = zonePart ?? 'Z';
+                return `${datePart}T${timePart}:${seconds}${zone}`;
+            }
+            if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+                return `${str}T00:00:00Z`;
+            }
+            const parsed = new Date(str);
+            if (Number.isNaN(parsed.getTime())) {
+                return '';
+            }
+            return parsed.toISOString();
         },
         getOperatorsForField(fieldId) {
             const field = this.getFieldDefinition(fieldId);
