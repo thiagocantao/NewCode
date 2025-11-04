@@ -89,7 +89,7 @@
                             <select
                                 v-if="isControlledList(item)"
                                 class="query-condition__value"
-                                :multiple="isMultiSelectionField(item) || isMultiValueOperator(item)"
+                                :multiple="allowsMultipleSelection(item)"
                                 :value="normalizeListValue(item)"
                                 @change="onListValueChange(item, $event)"
                             >
@@ -100,6 +100,7 @@
                                     v-for="option in getFieldOptions(item.fieldId)"
                                     :key="`${item.fieldId}-${option.value}`"
                                     :value="String(option.value)"
+                                    :selected="isOptionSelected(item, option.value)"
                                 >
                                     {{ option.label }}
                                 </option>
@@ -282,9 +283,7 @@ export default {
             this.onInputValueChange(condition, value);
         },
         onListValueChange(condition, event) {
-            const operator = this.getOperatorDefinition(condition.fieldId, condition.operator);
-            const allowMultiple =
-                this.isMultiSelectionField(condition) || (operator && operator.valueShape === 'array');
+            const allowMultiple = this.allowsMultipleSelection(condition);
             if (allowMultiple) {
                 const selected = Array.from(event.target.selectedOptions || []).map((option) => option.value);
                 this.onInputValueChange(condition, selected);
@@ -294,6 +293,13 @@ export default {
         },
         getOperatorsForCondition(condition) {
             return this.getOperatorsForField(condition.fieldId);
+        },
+        allowsMultipleSelection(condition) {
+            const operator = this.getOperatorDefinition(condition.fieldId, condition.operator);
+            if (this.isMultiSelectionField(condition)) {
+                return true;
+            }
+            return Boolean(operator && operator.valueShape === 'array');
         },
         shouldRenderValue(condition) {
             const operator = this.getOperatorDefinition(condition.fieldId, condition.operator);
@@ -430,8 +436,18 @@ export default {
                 return '';
             }
             const value = condition.value;
+            const allowMultiple = this.allowsMultipleSelection(condition);
+            if (allowMultiple) {
+                if (Array.isArray(value)) {
+                    return value.map((item) => String(item));
+                }
+                if (value === null || value === undefined || value === '') {
+                    return [];
+                }
+                return [String(value)];
+            }
             if (Array.isArray(value)) {
-                return value.map((item) => String(item));
+                return value.length ? String(value[0]) : '';
             }
             if (this.isMultiSelectionField(condition)) {
                 if (value === null || value === undefined || value === '') {
@@ -443,6 +459,14 @@ export default {
                 return this.isMultiValueOperator(condition) ? [] : '';
             }
             return String(value);
+        },
+        isOptionSelected(condition, optionValue) {
+            const normalized = this.normalizeListValue(condition);
+            const stringValue = String(optionValue);
+            if (Array.isArray(normalized)) {
+                return normalized.includes(stringValue);
+            }
+            return normalized === stringValue;
         },
         getFieldOptions(fieldId) {
             const state = this.getFieldOptionsState(fieldId);
