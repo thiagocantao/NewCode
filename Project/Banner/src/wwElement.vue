@@ -62,6 +62,10 @@ export default {
 
     const objectUrls = new Set();
     const storageInfo = ref(null);
+    const SIGNED_URL_TTL_SECONDS = 60 * 60;
+    const SIGNED_URL_REFRESH_LEEWAY_SECONDS = 90;
+    let signedUrlRefreshTimer = null;
+    let signedUrlRefreshKey = null;
 
     const heightMap = {
       small: "150px",
@@ -145,6 +149,56 @@ export default {
       return fallback;
     }
 
+    function clearSignedUrlRefresh() {
+      if (signedUrlRefreshTimer) {
+        window.clearTimeout(signedUrlRefreshTimer);
+        signedUrlRefreshTimer = null;
+      }
+      signedUrlRefreshKey = null;
+    }
+
+    async function scheduleSignedUrlRefresh(bucket, storagePath) {
+      clearSignedUrlRefresh();
+      if (!bucket || !storagePath) return;
+
+      signedUrlRefreshKey = `${bucket}::${storagePath}`;
+      const hasActiveUrl = Boolean(officialUrl.value);
+      const timeout = hasActiveUrl
+        ? Math.max(
+            (SIGNED_URL_TTL_SECONDS - SIGNED_URL_REFRESH_LEEWAY_SECONDS) * 1000,
+            15000
+          )
+        : 15000;
+
+      signedUrlRefreshTimer = window.setTimeout(async () => {
+        signedUrlRefreshTimer = null;
+        const currentStorage = storageInfo.value;
+        if (!currentStorage) return;
+        const currentKey = `${currentStorage.bucket}::${currentStorage.storagePath}`;
+        if (currentKey !== signedUrlRefreshKey) return;
+        try {
+          const refreshedUrl = await getSignedUrl(bucket, storagePath);
+          if (!refreshedUrl) {
+            scheduleSignedUrlRefresh(bucket, storagePath);
+            return;
+          }
+          if (
+            !storageInfo.value ||
+            `${storageInfo.value.bucket}::${storageInfo.value.storagePath}` !== signedUrlRefreshKey
+          ) {
+            return;
+          }
+          officialUrl.value = refreshedUrl;
+          displayUrl.value = refreshedUrl;
+          syncBannerUrl(refreshedUrl);
+          scheduleSignedUrlRefresh(bucket, storagePath);
+        } catch (error) {
+          console.warn("[Banner] Erro ao renovar URL assinada:", error);
+          scheduleSignedUrlRefresh(bucket, storagePath);
+        }
+      }, timeout);
+    }
+
     async function getSignedUrl(bucket, storagePath) {
       if (!bucket || !storagePath) return null;
       await ensureAuthReady();
@@ -165,7 +219,7 @@ export default {
       try {
         const { data, error } = await supabase.storage
           .from(bucket)
-          .createSignedUrl(storagePath, 60 * 60, {
+          .createSignedUrl(storagePath, SIGNED_URL_TTL_SECONDS, {
             transform: { width: 1600, resize: "contain" },
           });
         if (error) {
@@ -198,6 +252,7 @@ export default {
         officialUrl.value = "";
         displayUrl.value = "";
         syncBannerUrl("");
+        clearSignedUrlRefresh();
         return;
       }
 
@@ -241,6 +296,11 @@ export default {
       displayUrl.value = resolvedUrl || "";
       storageInfo.value = resolvedStorage;
       syncBannerUrl(officialUrl.value);
+      if (resolvedStorage) {
+        scheduleSignedUrlRefresh(resolvedStorage.bucket, resolvedStorage.storagePath);
+      } else {
+        clearSignedUrlRefresh();
+      }
     }
 
     watch(
@@ -362,6 +422,7 @@ export default {
         officialUrl.value = signedUrl;
         displayUrl.value = signedUrl;
         syncBannerUrl(signedUrl);
+        scheduleSignedUrlRefresh(bucket, objectPath);
 
         emit("trigger-event", {
           name: "onUpload",
@@ -382,6 +443,11 @@ export default {
         officialUrl.value = previousOfficialUrl;
         displayUrl.value = previousOfficialUrl;
         syncBannerUrl(previousOfficialUrl);
+        if (previousStorage) {
+          scheduleSignedUrlRefresh(previousStorage.bucket, previousStorage.storagePath);
+        } else {
+          clearSignedUrlRefresh();
+        }
         showError(error?.message || String(error));
       } finally {
         isUploading.value = false;
@@ -408,6 +474,7 @@ export default {
         } catch (_) {}
       }
       objectUrls.clear();
+      clearSignedUrlRefresh();
     });
 
     return {
