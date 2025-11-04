@@ -517,7 +517,7 @@ export default {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    align-items: center;
+    align-items: start;
 }
 
 .query-condition__field,
@@ -536,17 +536,16 @@ export default {
     flex: 0 1 auto;
     min-width: 140px;
     padding-right: 10px;
+    outline: 1px solid transparent;
 }
 
 .query-condition__operator {
     flex: 0 1 auto;
     min-width: 120px;
     padding-right: 10px;
+    outline: 1px solid transparent;
 }
 
-.query-condition__value {
-    flex: 1 1 160px;
-}
 
 .query-group__clause:focus,
 .query-condition__field:focus,
@@ -588,6 +587,7 @@ export default {
     color: #ef4444;
     cursor: pointer;
     font-size: 13px;
+    padding-top:5px;
 }
 
 .query-condition__remove:hover {
