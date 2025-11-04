@@ -2,6 +2,7 @@
     <div
         class="query-multi-select"
         :class="{ 'query-multi-select--disabled': disabled }"
+        :style="chipStyles"
         ref="rootRef"
     >
         <button
@@ -73,6 +74,8 @@ export default {
         placeholder: { type: String, default: 'Selecione...' },
         disabled: { type: Boolean, default: false },
         loading: { type: Boolean, default: false },
+        chipBackgroundColor: { type: String, default: '#2563eb' },
+        chipTextColor: { type: String, default: '#ffffff' },
     },
     emits: ['update:modelValue'],
     setup(props, { emit }) {
@@ -103,6 +106,11 @@ export default {
             const entries = props.options.map((option) => [String(option.value), option]);
             return new Map(entries);
         });
+
+        const chipStyles = computed(() => ({
+            '--query-multi-select-chip-bg': props.chipBackgroundColor || '#2563eb',
+            '--query-multi-select-chip-color': props.chipTextColor || '#ffffff',
+        }));
 
         const selectedOptions = computed(() => {
             const seen = new Set();
@@ -312,6 +320,7 @@ export default {
             loading: loadingState,
             options: optionsState,
             disabled: disabledState,
+            chipStyles,
         };
     },
 };
@@ -365,8 +374,8 @@ export default {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    background-color: #2563eb;
-    color: #ffffff;
+    background-color: var(--query-multi-select-chip-bg, #2563eb);
+    color: var(--query-multi-select-chip-color, #ffffff);
     border-radius: 4px;
     padding: 4px 8px;
     font-size: 12px;
@@ -374,7 +383,8 @@ export default {
 }
 
 .query-multi-select__chip--counter {
-    background-color: #374151;
+    background-color: var(--query-multi-select-chip-bg, #2563eb);
+    color: var(--query-multi-select-chip-color, #ffffff);
 }
 
 .query-multi-select__chip--hidden {

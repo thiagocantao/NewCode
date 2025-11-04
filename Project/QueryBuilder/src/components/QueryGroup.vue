@@ -93,6 +93,8 @@
                                 :options="getFieldOptions(item.fieldId)"
                                 :loading="isLoadingFieldOptions(item.fieldId)"
                                 :placeholder="resolveListPlaceholder(item)"
+                                :chip-background-color="actionButtonBackgroundColor"
+                                :chip-text-color="actionButtonTextColor"
                                 @update:modelValue="onMultiSelectValueChange(item, $event)"
                             />
                             <select
