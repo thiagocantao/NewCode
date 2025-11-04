@@ -46,38 +46,90 @@
                         </option>
                     </select>
                     <div v-if="shouldRenderValue(item)" class="query-condition__value-wrapper">
-                        <select
-                            v-if="isControlledList(item)"
-                            class="query-condition__value"
-                            :multiple="isMultiValueOperator(item)"
-                            :value="normalizeListValue(item)"
-                            @change="onListValueChange(item, $event)"
-                        >
-                            <option v-if="isLoadingFieldOptions(item.fieldId)" disabled value="">
-                                Carregando...
-                            </option>
-                            <option v-for="option in getFieldOptions(item.fieldId)" :key="`${item.fieldId}-${option.value}`" :value="String(option.value)">
-                                {{ option.label }}
-                            </option>
-                        </select>
-                        <select
-                            v-else-if="isBooleanField(item)"
-                            class="query-condition__value"
-                            :value="normalizeBooleanValue(item.value)"
-                            @change="onBooleanValueChange(item, $event.target.value)"
-                        >
-                            <option value="">Select value</option>
-                            <option value="true">True</option>
-                            <option value="false">False</option>
-                        </select>
-                        <input
-                            v-else
-                            class="query-condition__value"
-                            :type="resolveInputType(item)"
-                            :value="normalizeInputValue(item)"
-                            :placeholder="resolvePlaceholder(item)"
-                            @input="onInputValueChange(item, $event.target.value)"
-                        />
+                        <template v-if="isRangeOperator(item)">
+                            <div class="query-condition__value-range">
+                                <template v-if="isDateLikeField(item)">
+                                    <CustomDatePicker
+                                        :model-value="getRangeValue(item, 0)"
+                                        :show-time="isDateTimeField(item)"
+                                        class="query-condition__value"
+                                        @update:modelValue="onRangeDateValueChange(item, 0, $event)"
+                                    />
+                                </template>
+                                <template v-else>
+                                    <input
+                                        class="query-condition__value"
+                                        :type="resolveInputType(item)"
+                                        :value="getRangeValue(item, 0)"
+                                        :placeholder="resolvePlaceholder(item)"
+                                        @input="onRangeValueChange(item, 0, $event.target.value)"
+                                    />
+                                </template>
+                                <span class="query-condition__range-separator">e</span>
+                                <template v-if="isDateLikeField(item)">
+                                    <CustomDatePicker
+                                        :model-value="getRangeValue(item, 1)"
+                                        :show-time="isDateTimeField(item)"
+                                        class="query-condition__value"
+                                        @update:modelValue="onRangeDateValueChange(item, 1, $event)"
+                                    />
+                                </template>
+                                <template v-else>
+                                    <input
+                                        class="query-condition__value"
+                                        :type="resolveInputType(item)"
+                                        :value="getRangeValue(item, 1)"
+                                        :placeholder="resolvePlaceholder(item)"
+                                        @input="onRangeValueChange(item, 1, $event.target.value)"
+                                    />
+                                </template>
+                            </div>
+                        </template>
+                        <template v-else>
+                            <select
+                                v-if="isControlledList(item)"
+                                class="query-condition__value"
+                                :multiple="isMultiSelectionField(item) || isMultiValueOperator(item)"
+                                :value="normalizeListValue(item)"
+                                @change="onListValueChange(item, $event)"
+                            >
+                                <option v-if="isLoadingFieldOptions(item.fieldId)" disabled value="">
+                                    Carregando...
+                                </option>
+                                <option
+                                    v-for="option in getFieldOptions(item.fieldId)"
+                                    :key="`${item.fieldId}-${option.value}`"
+                                    :value="String(option.value)"
+                                >
+                                    {{ option.label }}
+                                </option>
+                            </select>
+                            <select
+                                v-else-if="isBooleanField(item)"
+                                class="query-condition__value"
+                                :value="normalizeBooleanValue(item.value)"
+                                @change="onBooleanValueChange(item, $event.target.value)"
+                            >
+                                <option value="">Select value</option>
+                                <option value="true">True</option>
+                                <option value="false">False</option>
+                            </select>
+                            <CustomDatePicker
+                                v-else-if="isDateLikeField(item)"
+                                :model-value="normalizeDateValue(item)"
+                                :show-time="isDateTimeField(item)"
+                                class="query-condition__value"
+                                @update:modelValue="onDateValueChange(item, $event)"
+                            />
+                            <input
+                                v-else
+                                class="query-condition__value"
+                                :type="resolveInputType(item)"
+                                :value="normalizeInputValue(item)"
+                                :placeholder="resolvePlaceholder(item)"
+                                @input="onInputValueChange(item, $event.target.value)"
+                            />
+                        </template>
                         <p v-if="hasFieldOptionsError(item.fieldId)" class="query-condition__error">
                             {{ getFieldOptionsError(item.fieldId) }}
                         </p>
@@ -141,8 +193,13 @@
 </template>
 
 <script>
+import CustomDatePicker from '../../../FormRender/Component/components/CustomDatePicker.vue';
+
 export default {
     name: 'QueryGroup',
+    components: {
+        CustomDatePicker,
+    },
     props: {
         group: { type: Object, required: true },
         fields: { type: Array, required: true },
@@ -226,7 +283,8 @@ export default {
         },
         onListValueChange(condition, event) {
             const operator = this.getOperatorDefinition(condition.fieldId, condition.operator);
-            const allowMultiple = operator && operator.valueShape === 'array';
+            const allowMultiple =
+                this.isMultiSelectionField(condition) || (operator && operator.valueShape === 'array');
             if (allowMultiple) {
                 const selected = Array.from(event.target.selectedOptions || []).map((option) => option.value);
                 this.onInputValueChange(condition, selected);
@@ -250,7 +308,12 @@ export default {
                 return false;
             }
             const normalizedType = String(field.type || '').toUpperCase();
-            if (normalizedType === 'CONTROLLED_LIST' || normalizedType === 'LIST' || normalizedType === 'SIMPLE_LIST') {
+            if (
+                normalizedType === 'CONTROLLED_LIST' ||
+                normalizedType === 'LIST' ||
+                normalizedType === 'SIMPLE_LIST' ||
+                normalizedType === 'MULTISELECTION'
+            ) {
                 if (typeof this.ensureFieldOptionsLoaded === 'function' && field.id) {
                     const state = this.getFieldOptionsState(field.id);
                     if (!state?.loaded && !state?.loading) {
@@ -265,6 +328,44 @@ export default {
             const field = this.getFieldDefinition(condition.fieldId);
             const normalizedType = String(field?.type || '').toUpperCase();
             return normalizedType === 'BOOLEAN';
+        },
+        isDateLikeField(condition) {
+            const field = this.getFieldDefinition(condition.fieldId);
+            const normalizedType = String(field?.type || '').toUpperCase();
+            return normalizedType === 'DATE' || normalizedType === 'DATETIME' || normalizedType === 'DATE_TIME';
+        },
+        isDateTimeField(condition) {
+            const field = this.getFieldDefinition(condition.fieldId);
+            const normalizedType = String(field?.type || '').toUpperCase();
+            return normalizedType === 'DATETIME' || normalizedType === 'DATE_TIME';
+        },
+        isMultiSelectionField(condition) {
+            const field = this.getFieldDefinition(condition.fieldId);
+            return String(field?.type || '').toUpperCase() === 'MULTISELECTION';
+        },
+        isRangeOperator(condition) {
+            const operator = this.getOperatorDefinition(condition.fieldId, condition.operator);
+            return Boolean(operator && operator.valueShape === 'range');
+        },
+        getRangeValue(condition, index) {
+            if (!Array.isArray(condition.value)) {
+                return '';
+            }
+            return condition.value[index] ?? '';
+        },
+        onRangeValueChange(condition, index, value) {
+            const current = Array.isArray(condition.value) ? condition.value.slice() : ['', ''];
+            while (current.length < 2) {
+                current.push('');
+            }
+            current[index] = value;
+            this.onInputValueChange(condition, current);
+        },
+        onRangeDateValueChange(condition, index, value) {
+            this.onRangeValueChange(condition, index, value || '');
+        },
+        onDateValueChange(condition, value) {
+            this.onInputValueChange(condition, value || '');
         },
         resolveInputType(condition) {
             const field = this.getFieldDefinition(condition.fieldId);
@@ -294,6 +395,21 @@ export default {
             if (normalizedType === 'NUMBER' || normalizedType === 'NUMERIC') {
                 return condition.value === null || condition.value === undefined ? '' : condition.value;
             }
+            if (this.isDateLikeField(condition)) {
+                if (Array.isArray(condition.value)) {
+                    return condition.value[0] ?? '';
+                }
+                return condition.value ?? '';
+            }
+            return condition.value ?? '';
+        },
+        normalizeDateValue(condition) {
+            if (!this.isDateLikeField(condition)) {
+                return this.normalizeInputValue(condition);
+            }
+            if (Array.isArray(condition.value)) {
+                return condition.value[0] ?? '';
+            }
             return condition.value ?? '';
         },
         normalizeBooleanValue(value) {
@@ -316,6 +432,12 @@ export default {
             const value = condition.value;
             if (Array.isArray(value)) {
                 return value.map((item) => String(item));
+            }
+            if (this.isMultiSelectionField(condition)) {
+                if (value === null || value === undefined || value === '') {
+                    return [];
+                }
+                return [String(value)];
             }
             if (value === null || value === undefined) {
                 return this.isMultiValueOperator(condition) ? [] : '';
@@ -425,6 +547,17 @@ export default {
     gap: 4px;
     min-width: 200px;
     flex: 1 1 220px;
+}
+
+.query-condition__value-range {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.query-condition__range-separator {
+    font-size: 12px;
+    color: #6b7280;
 }
 
 .query-condition__error {
