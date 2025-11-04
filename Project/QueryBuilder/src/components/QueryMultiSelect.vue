@@ -41,7 +41,7 @@
                 </template>
                 <span v-else class="query-multi-select__placeholder">{{ placeholder }}</span>
             </div>
-            <span class="query-multi-select__icon" aria-hidden="true">▾</span>
+            <span class="query-multi-select__icon material-symbols-outlined" aria-hidden="true">keyboard_arrow_down</span>
         </button>
         <div v-if="isOpen" class="query-multi-select__dropdown" ref="dropdownRef">
             <div v-if="loading" class="query-multi-select__state">Carregando...</div>
@@ -408,8 +408,22 @@ export default {
 }
 
 .query-multi-select__icon {
-    font-size: 18px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 20px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
     color: #6b7280;
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
 }
 
 .query-multi-select__dropdown {
