@@ -22,6 +22,7 @@ class="action-icon-section"
             :options="getFieldOptions(field.id)"
             :user-id="userId"
             :auto-save="autoSave"
+            :ticket-closed="ticketClosed"
             @update:value="value => updateFieldValue(field.id, value)"
           />
         </div>
@@ -83,6 +84,10 @@ export default {
     autoSave: {
       type: [Boolean, String],
       default: undefined
+    },
+    ticketClosed: {
+      type: Boolean,
+      default: false
     }
   },
   emits: ['update:value'],

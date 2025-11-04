@@ -25,7 +25,7 @@
             @click="openDeadlinePicker" @keydown.enter.prevent="openDeadlinePicker"
             @keydown.space.prevent="openDeadlinePicker">
             <template v-if="deadlineHasValue">
-              <span class="deadline-diff-display">{{ deadlineDiff }}</span>
+              <span class="deadline-diff-display">{{ deadlineDisplay }}</span>
             </template>
             <template v-else>
               <span class="material-symbols-outlined deadline-empty-icon">calendar_month</span>
@@ -206,6 +206,10 @@ export default {
     autoSave: {
       type: [Boolean, String],
       default: true
+    },
+    ticketClosed: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
@@ -376,6 +380,14 @@ export default {
       }
       return str;
     },
+    deadlineDisplay() {
+      if (this.field.fieldType !== 'DEADLINE') return '';
+      if (!this.deadlineHasValue) return '';
+      if (this.ticketClosed) {
+        return this.deadlineOriginalFormatted || '';
+      }
+      return this.deadlineDiff;
+    },
     deadlineIsNegative() {
       if (this.field.fieldType !== 'DEADLINE') return false;
       const val = this.localValue || this.field.value;
@@ -395,6 +407,7 @@ export default {
       if (this.field.fieldType !== 'DEADLINE') return '';
       const val = this.localValue || this.field.value;
       if (!val) return '';
+      if (this.ticketClosed) return 'deadline-closed';
       let dateStr = val;
       if (/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(val)) {
         dateStr = val;
@@ -428,33 +441,38 @@ export default {
         window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342') ||
         navigator.language;
 
-      try {
-        // 1) pega o resolver e transforma o ID em mapping
-        const formulaApi = window.wwLib?.wwFormula;
-        const use = formulaApi?.useFormula?.();
-        const resolveMappingFormula = use?.resolveMappingFormula;
+      if (!this.ticketClosed) {
+        try {
+          // 1) pega o resolver e transforma o ID em mapping
+          const formulaApi = window.wwLib?.wwFormula;
+          const use = formulaApi?.useFormula?.();
+          const resolveMappingFormula = use?.resolveMappingFormula;
 
-        const mapping = resolveMappingFormula
-          ? resolveMappingFormula('95a5a105-48b6-48d4-95c5-7179a664451d')
-          : null;
+          const mapping = resolveMappingFormula
+            ? resolveMappingFormula('95a5a105-48b6-48d4-95c5-7179a664451d')
+            : null;
 
-        // 2) se tiver mapping, avalia a fórmula passando os args
-        if (mapping && typeof formulaApi?.getValue === 'function') {
-          const res = formulaApi.getValue(mapping, /* context */ {}, { args: [dateStr, lang] });
+          // 2) se tiver mapping, avalia a fórmula passando os args
+          if (mapping && typeof formulaApi?.getValue === 'function') {
+            const res = formulaApi.getValue(mapping, /* context */ {}, { args: [dateStr, lang] });
 
-          // se a fórmula for síncrona
-          if (!(res instanceof Promise)) {
-            if (res !== undefined && res !== null) return String(res);
+            // se a fórmula for síncrona
+            if (!(res instanceof Promise)) {
+              if (res !== undefined && res !== null) return String(res);
+            }
+            // se for assíncrona, não dá pra await aqui (computed não é async); cai no fallback
           }
-          // se for assíncrona, não dá pra await aqui (computed não é async); cai no fallback
+        } catch (e) {
+          // silencia e usa fallback
         }
-      } catch (e) {
-        // silencia e usa fallback
       }
 
       // Fallback caso fórmula não esteja disponível ou seja assíncrona
       const deadline = new Date(dateStr);
       if (isNaN(deadline.getTime())) return val;
+      if (this.ticketClosed) {
+        return deadline.toLocaleDateString(lang);
+      }
       return deadline.toLocaleString(lang);
     }
   },
@@ -463,6 +481,7 @@ export default {
       handler(newField) {
         this.localValue = newField.value ?? '';
         this.originalValue = newField.value ?? '';
+        this.updateDeadlineTimer();
       },
       deep: true,
       immediate: true
@@ -475,8 +494,36 @@ export default {
         this.$refs.rte.innerHTML = newVal || '';
       }
     },
+    ticketClosed: {
+      immediate: true,
+      handler() {
+        this.updateDeadlineTimer();
+      }
+    }
   },
   methods: {
+    updateDeadlineTimer() {
+      if (this.field.fieldType !== 'DEADLINE') {
+        this.clearDeadlineTimer();
+        return;
+      }
+      if (this.ticketClosed) {
+        this.clearDeadlineTimer();
+        return;
+      }
+      if (!this.deadlineTimer) {
+        this.dataNow = new Date();
+        this.deadlineTimer = setInterval(() => {
+          this.dataNow = new Date();
+        }, 1000);
+      }
+    },
+    clearDeadlineTimer() {
+      if (this.deadlineTimer) {
+        clearInterval(this.deadlineTimer);
+        this.deadlineTimer = null;
+      }
+    },
     onDateChange(value) {
       this.updateValue({ target: { value } });
     },
@@ -838,16 +885,14 @@ export default {
       this.$refs.rte.innerHTML = this.localValue || '';
     }
     if (this.field.fieldType === 'DEADLINE') {
-      this.deadlineTimer = setInterval(() => {
-        this.dataNow = new Date();
-      }, 1000);
+      this.updateDeadlineTimer();
     }
   },
   beforeDestroy() {
-    if (this.deadlineTimer) {
-      clearInterval(this.deadlineTimer);
-      this.deadlineTimer = null;
-    }
+    this.clearDeadlineTimer();
+  },
+  beforeUnmount() {
+    this.clearDeadlineTimer();
   }
 }
 </script>
@@ -1125,6 +1170,13 @@ export default {
     background: #ffdddd !important;
     color: #b71c1c !important;
     border: 1.5px solid #b71c1c !important;
+    font-weight: bold;
+  }
+
+  .deadline-closed {
+    background: #666666 !important;
+    color: #ffffff !important;
+    border: 1.5px solid #666666 !important;
     font-weight: bold;
   }
 
