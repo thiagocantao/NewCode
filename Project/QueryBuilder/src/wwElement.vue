@@ -711,12 +711,12 @@ export default {
                     .map((entry) => this.formatScalarValue(entry, fieldId))
                     .filter((entry) => entry !== '');
                 if (!formatted.length) {
-                    return '""';
+                    return this.wrapMultiValueText(operatorValue, '""');
                 }
                 if (formatted.length === 1) {
-                    return formatted[0];
+                    return this.wrapMultiValueText(operatorValue, formatted[0]);
                 }
-                return `${formatted[0]} AND ${formatted[1]}`;
+                return this.wrapMultiValueText(operatorValue, `${formatted[0]} AND ${formatted[1]}`);
             }
             if (valueShape === 'array') {
                 const entries = Array.isArray(value)
@@ -725,7 +725,8 @@ export default {
                     ? []
                     : [value];
                 const formatted = entries.map((entry) => this.formatScalarValue(entry, fieldId)).filter((entry) => entry !== '');
-                return formatted.length ? formatted.join(', ') : '""';
+                const listText = formatted.length ? formatted.join(', ') : '""';
+                return this.wrapMultiValueText(operatorValue, listText);
             }
             return this.formatScalarValue(value, fieldId);
         },
@@ -735,6 +736,30 @@ export default {
             }
             const field = this.getFieldDefinition(fieldId);
             const type = String(field?.type || '').toUpperCase();
+            if (this.isListFieldType(type)) {
+                const explicitLabel =
+                    value && typeof value === 'object' && value !== null && typeof value.label === 'string'
+                        ? value.label
+                        : null;
+                const optionLabel = this.getFieldOptionLabel(fieldId, value);
+                const fallbackValue =
+                    value && typeof value === 'object' && value !== null && 'value' in value ? value.value : value;
+                const displayValue =
+                    explicitLabel && explicitLabel.length
+                        ? explicitLabel
+                        : optionLabel && optionLabel.length
+                        ? optionLabel
+                        : fallbackValue;
+                if (displayValue === null || displayValue === undefined || displayValue === '') {
+                    return '""';
+                }
+                const stringDisplay = typeof displayValue === 'string' ? displayValue : String(displayValue);
+                if (!stringDisplay.length) {
+                    return '""';
+                }
+                const escapedListValue = this.escapeHtml(stringDisplay);
+                return `"${escapedListValue}"`;
+            }
             if (type === 'BOOLEAN') {
                 if (value === true || value === 'true') {
                     return 'true';
@@ -758,6 +783,64 @@ export default {
                 return escaped;
             }
             return `"${escaped}"`;
+        },
+        shouldWrapMultiValueOperator(operatorValue) {
+            const normalized = typeof operatorValue === 'string' ? operatorValue.toUpperCase() : '';
+            return normalized === 'IN' || normalized === 'NOT_IN' || normalized === 'BETWEEN';
+        },
+        wrapMultiValueText(operatorValue, content) {
+            if (!content || !this.shouldWrapMultiValueOperator(operatorValue)) {
+                return content;
+            }
+            return `(${content})`;
+        },
+        isListFieldType(type) {
+            switch (type) {
+                case 'CONTROLLED_LIST':
+                case 'LIST':
+                case 'SIMPLE_LIST':
+                case 'MULTISELECTION':
+                    return true;
+                default:
+                    return false;
+            }
+        },
+        getFieldOptionLabel(fieldId, rawValue) {
+            if (rawValue === null || rawValue === undefined) {
+                return '';
+            }
+            const candidateValue =
+                rawValue && typeof rawValue === 'object' && rawValue !== null && 'value' in rawValue
+                    ? rawValue.value
+                    : rawValue;
+            const normalizedValue = String(candidateValue);
+            if (!normalizedValue.length) {
+                return '';
+            }
+            const field = this.getFieldDefinition(fieldId);
+            const sources = [];
+            if (Array.isArray(field?.staticOptions)) {
+                sources.push(...field.staticOptions);
+            }
+            const state = this.getFieldOptionsState(fieldId);
+            if (Array.isArray(state?.options)) {
+                sources.push(...state.options);
+            }
+            for (const option of sources) {
+                if (!option) {
+                    continue;
+                }
+                const optionValue = option.value;
+                if (String(optionValue) === normalizedValue) {
+                    const label = option.label ?? option.Label ?? option.name ?? option.Name;
+                    if (label === null || label === undefined) {
+                        return normalizedValue;
+                    }
+                    const stringLabel = typeof label === 'string' ? label : String(label);
+                    return stringLabel;
+                }
+            }
+            return '';
         },
         escapeHtml(value) {
             if (value === null || value === undefined) {
