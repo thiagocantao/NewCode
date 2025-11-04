@@ -193,7 +193,7 @@
 </template>
 
 <script>
-import CustomDatePicker from '../../../FormRender/Component/components/CustomDatePicker.vue';
+import CustomDatePicker from './CustomDatePicker.vue';
 
 export default {
     name: 'QueryGroup',
