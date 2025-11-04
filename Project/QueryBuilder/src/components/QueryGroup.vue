@@ -65,7 +65,7 @@
                                         @input="onRangeValueChange(item, 0, $event.target.value)"
                                     />
                                 </template>
-                                <span class="query-condition__range-separator">e</span>
+                                <span class="query-condition__range-separator">AND</span>
                                 <template v-if="isDateLikeField(item)">
                                     <CustomDatePicker
                                         :model-value="getRangeValue(item, 1)"
@@ -568,7 +568,7 @@ export default {
 .query-condition__field,
 .query-condition__operator,
 .query-condition__value {
-    padding: 0 8px;
+    padding: 0px;
     height: 36px;
     min-height: 36px;
     box-sizing: border-box;
