@@ -954,7 +954,8 @@ export default {
                     : [rawValue];
                 return entries.map((entry) => coerceScalar(entry));
             }
-            const scalar = coerceScalar(rawValue);
+            const scalarSource = Array.isArray(rawValue) ? rawValue[0] : rawValue;
+            const scalar = coerceScalar(scalarSource);
             return scalar === undefined || scalar === null ? '' : scalar;
         },
         normalizeDateOnlyValue(value) {
