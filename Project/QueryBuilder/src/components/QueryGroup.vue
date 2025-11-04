@@ -100,6 +100,7 @@
                                     v-for="option in getFieldOptions(item.fieldId)"
                                     :key="`${item.fieldId}-${option.value}`"
                                     :value="String(option.value)"
+                                    :selected="isOptionSelected(item, option.value)"
                                 >
                                     {{ option.label }}
                                 </option>
@@ -436,10 +437,16 @@ export default {
             }
             const value = condition.value;
             const allowMultiple = this.allowsMultipleSelection(condition);
-            if (Array.isArray(value)) {
-                if (allowMultiple) {
+            if (allowMultiple) {
+                if (Array.isArray(value)) {
                     return value.map((item) => String(item));
                 }
+                if (value === null || value === undefined || value === '') {
+                    return [];
+                }
+                return [String(value)];
+            }
+            if (Array.isArray(value)) {
                 return value.length ? String(value[0]) : '';
             }
             if (this.isMultiSelectionField(condition)) {
@@ -452,6 +459,14 @@ export default {
                 return this.isMultiValueOperator(condition) ? [] : '';
             }
             return String(value);
+        },
+        isOptionSelected(condition, optionValue) {
+            const normalized = this.normalizeListValue(condition);
+            const stringValue = String(optionValue);
+            if (Array.isArray(normalized)) {
+                return normalized.includes(stringValue);
+            }
+            return normalized === stringValue;
         },
         getFieldOptions(fieldId) {
             const state = this.getFieldOptionsState(fieldId);
