@@ -678,13 +678,15 @@ export default {
             }
             if (node.field) {
                 const fieldId = node.field;
-                const fieldLabel = this.formatFieldForQuery(fieldId);
+                const fieldLabel = this.decorateFieldLabel(this.formatFieldForQuery(fieldId));
                 const operatorLabel = this.escapeHtml(this.getOperatorLabel(fieldId, node.op));
                 const operatorDef = this.getOperatorDefinition(fieldId, node.op);
                 if (operatorDef && operatorDef.requiresValue === false) {
                     return [fieldLabel, operatorLabel].filter(Boolean).join(' ');
                 }
-                const valueText = this.formatValueForQuery(node.value, fieldId, node.op);
+                const valueText = this.decorateValueText(
+                    this.formatValueForQuery(node.value, fieldId, node.op)
+                );
                 return [fieldLabel, operatorLabel, valueText].filter(Boolean).join(' ');
             }
             return '';
@@ -793,6 +795,18 @@ export default {
                 return content;
             }
             return `(${content})`;
+        },
+        decorateFieldLabel(label) {
+            if (!label) {
+                return '';
+            }
+            return `<span class="qb-query-field" style="color: #007bff;">${label}</span>`;
+        },
+        decorateValueText(value) {
+            if (!value) {
+                return '';
+            }
+            return `<span class="qb-query-value" style="color: #28a745;">${value}</span>`;
         },
         isListFieldType(type) {
             switch (type) {
