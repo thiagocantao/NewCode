@@ -367,8 +367,8 @@ export default {
     gap: 4px;
     background-color: #2563eb;
     color: #ffffff;
-    border-radius: 8px;
-    padding: 2px 8px;
+    border-radius: 4px;
+    padding: 4px 8px;
     font-size: 12px;
     white-space: nowrap;
 }
@@ -414,6 +414,7 @@ export default {
     box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.1);
     max-height: 240px;
     overflow: auto;
+    
 }
 
 .query-multi-select__state {
@@ -429,7 +430,7 @@ export default {
 }
 
 .query-multi-select__option {
-    padding: 4px 12px;
+    padding: 8px 12px;
 }
 
 .query-multi-select__option label {
