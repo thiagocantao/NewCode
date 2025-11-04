@@ -1156,7 +1156,10 @@ export default {
         },
         setFieldOptionsState(fieldId, patch) {
             const current = this.fieldOptionsState[fieldId] || {};
-            this.$set(this.fieldOptionsState, fieldId, { ...current, ...patch });
+            this.fieldOptionsState = {
+                ...this.fieldOptionsState,
+                [fieldId]: { ...current, ...patch },
+            };
         },
         getFieldOptionsState(fieldId) {
             return this.fieldOptionsState[fieldId] || { options: [], loading: false, error: null, loaded: false };
