@@ -114,6 +114,10 @@ function normalizeFieldDefinition(field, index) {
         (typeof field.ID === 'string' && field.ID.trim().length && field.ID) ||
         (typeof field.id === 'string' && field.id.trim().length && field.id) ||
         `field_${index}`;
+    const fieldTagControl =
+        (typeof field.FieldTagControl === 'string' && field.FieldTagControl.trim().length && field.FieldTagControl) ||
+        (typeof field.fieldTagControl === 'string' && field.fieldTagControl.trim().length && field.fieldTagControl) ||
+        null;
     const label =
         (typeof field.Name === 'string' && field.Name.trim().length && field.Name) ||
         (typeof field.name === 'string' && field.name.trim().length && field.name) ||
@@ -129,6 +133,7 @@ function normalizeFieldDefinition(field, index) {
     const staticOptions = extractStaticOptions(field);
     return {
         id,
+        fieldTagControl,
         label,
         type,
         operators,
@@ -176,6 +181,14 @@ export default {
         fieldsMap() {
             return this.normalizedFields.reduce((map, field) => {
                 map[field.id] = field;
+                return map;
+            }, {});
+        },
+        fieldsByTag() {
+            return this.normalizedFields.reduce((map, field) => {
+                if (typeof field.fieldTagControl === 'string' && field.fieldTagControl.trim().length) {
+                    map[field.fieldTagControl] = field;
+                }
                 return map;
             }, {});
         },
@@ -634,8 +647,13 @@ export default {
             const fieldId = typeof condition.fieldId === 'string' ? condition.fieldId : '';
             const operator = this.resolveOperator(fieldId, condition.operator);
             const operatorDef = this.getOperatorDefinition(fieldId, operator);
+            const fieldDefinition = this.getFieldDefinition(fieldId);
+            const publicFieldIdentifier =
+                typeof fieldDefinition?.fieldTagControl === 'string' && fieldDefinition.fieldTagControl.trim().length
+                    ? fieldDefinition.fieldTagControl
+                    : fieldId;
             const payload = {
-                field: fieldId,
+                field: publicFieldIdentifier,
                 op: operator,
             };
             if (operatorDef && operatorDef.requiresValue !== false) {
@@ -677,7 +695,8 @@ export default {
                 return `(${parts.join(` ${clause} `)})`;
             }
             if (node.field) {
-                const fieldId = node.field;
+                const fieldDefinition = this.getFieldDefinition(node.field);
+                const fieldId = fieldDefinition?.id || node.field;
                 const fieldLabel = this.decorateFieldLabel(this.formatFieldForQuery(fieldId));
                 const operatorLabel = this.escapeHtml(this.getOperatorLabel(fieldId, node.op));
                 const operatorDef = this.getOperatorDefinition(fieldId, node.op);
@@ -990,6 +1009,9 @@ export default {
             if (candidate && this.fieldsMap[candidate]) {
                 return candidate;
             }
+            if (candidate && this.fieldsByTag[candidate]) {
+                return this.fieldsByTag[candidate].id;
+            }
             const firstField = this.normalizedFields[0];
             return firstField ? firstField.id : '';
         },
@@ -1127,7 +1149,7 @@ export default {
             return operators.find((item) => item.value === operatorValue) || null;
         },
         getFieldDefinition(fieldId) {
-            return this.fieldsMap[fieldId] || null;
+            return this.fieldsMap[fieldId] || this.fieldsByTag[fieldId] || null;
         },
         isValidClause(value) {
             return this.clauseOptions.some((clause) => clause.value === value);
