@@ -86,8 +86,17 @@
                             </div>
                         </template>
                         <template v-else>
+                            <QueryMultiSelect
+                                v-if="shouldUseCustomListSelect(item)"
+                                class="query-condition__value"
+                                :model-value="normalizeListValue(item)"
+                                :options="getFieldOptions(item.fieldId)"
+                                :loading="isLoadingFieldOptions(item.fieldId)"
+                                :placeholder="resolveListPlaceholder(item)"
+                                @update:modelValue="onMultiSelectValueChange(item, $event)"
+                            />
                             <select
-                                v-if="isControlledList(item)"
+                                v-else-if="isControlledList(item)"
                                 class="query-condition__value"
                                 :multiple="allowsMultipleSelection(item)"
                                 :value="normalizeListValue(item)"
@@ -195,11 +204,13 @@
 
 <script>
 import CustomDatePicker from './CustomDatePicker.vue';
+import QueryMultiSelect from './QueryMultiSelect.vue';
 
 export default {
     name: 'QueryGroup',
     components: {
         CustomDatePicker,
+        QueryMultiSelect,
     },
     props: {
         group: { type: Object, required: true },
@@ -290,6 +301,9 @@ export default {
             } else {
                 this.onInputValueChange(condition, event.target.value);
             }
+        },
+        onMultiSelectValueChange(condition, values) {
+            this.onInputValueChange(condition, values);
         },
         getOperatorsForCondition(condition) {
             return this.getOperatorsForField(condition.fieldId);
@@ -430,6 +444,13 @@ export default {
         isMultiValueOperator(condition) {
             const operator = this.getOperatorDefinition(condition.fieldId, condition.operator);
             return operator && operator.valueShape === 'array';
+        },
+        shouldUseCustomListSelect(condition) {
+            return this.isControlledList(condition) && this.isMultiValueOperator(condition);
+        },
+        resolveListPlaceholder(condition) {
+            const field = this.getFieldDefinition(condition.fieldId);
+            return field?.placeholder || 'Selecione...';
         },
         normalizeListValue(condition) {
             if (!condition) {
