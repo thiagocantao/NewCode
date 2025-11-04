@@ -210,6 +210,22 @@ export default {
             }
             /* wwEditor:end */
         },
+        ticketClosed: {
+            label: { en: 'Ticket Closed' },
+            type: 'boolean',
+            section: 'settings',
+            bindable: true,
+            defaultValue: false,
+            /* wwEditor:start */
+            bindingValidation: {
+                type: 'boolean',
+                tooltip: 'Define se o ticket está fechado'
+            },
+            propertyHelp: {
+                tooltip: 'Marque como verdadeiro para aplicar o estilo de ticket fechado ao campo DEADLINE'
+            }
+            /* wwEditor:end */
+        },
         language: {
             label: { en: 'Language' },
             type: 'Text',

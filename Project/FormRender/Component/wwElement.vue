@@ -31,6 +31,7 @@
               :language="language"
               :read-only="formReadOnly"
               :auto-save="autoSave"
+              :ticket-closed="ticketIsClosed"
               @update-section="updateFormState"
               @edit-section="editSection"
               @edit-field="editFormField"
@@ -92,6 +93,10 @@ export default {
     autoSave: {
       type: [Boolean, String],
       default: undefined
+    },
+    ticketClosed: {
+      type: [Boolean, String],
+      default: undefined
     }
   },
   setup(props, { emit }) {
@@ -138,6 +143,16 @@ export default {
       if (contentVal !== undefined) return contentVal;
 
       return true;
+    });
+
+    const ticketIsClosed = computed(() => {
+      const propVal = parseAutoSave(props.ticketClosed);
+      if (propVal !== undefined) return propVal;
+
+      const contentVal = parseAutoSave(props.content.ticketClosed);
+      if (contentVal !== undefined) return contentVal;
+
+      return false;
     });
 
     const loadFormData = () => {
@@ -457,6 +472,7 @@ export default {
       renderKey,
       onFieldValueChange,
       autoSave,
+      ticketIsClosed,
       sectionComponents,
       validateRequiredFields
     };

@@ -2899,6 +2899,15 @@ setTimeout(() => {
                   }
                   return dateStr;
                 }
+                function escapeHtml(str) {
+                  if (str == null) return '';
+                  return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+                }
                 function getDeadlineDiff(val) {
                   if (!val) return '';
                   const dateStr = normalizeDeadline(val);
@@ -2957,19 +2966,37 @@ setTimeout(() => {
                       if (typeof v === 'string' && v.length > 0) lang = v;
                     }
                   } catch (e) {}
-                  return deadline.toLocaleString(lang);
+                  const opts = { day: '2-digit', month: '2-digit', year: 'numeric' };
+                  try {
+                    return deadline.toLocaleDateString(lang, opts);
+                  } catch (err) {
+                    return deadline.toLocaleDateString(lang);
+                  }
                 }
                 const val = params.value;
                 if (!val) {
                   return '<span class="deadline-visual deadline-empty"><span class="material-symbols-outlined deadline-empty-icon">calendar_month</span><span class="deadline-empty-text">Select</span></span>';
                 }
+                const formattedDate = getDeadlineOriginalFormatted(val);
+                const tooltip = formattedDate || val || '';
+                const safeTooltip = escapeHtml(tooltip);
+                const tooltipAttr = safeTooltip ? ` title="${safeTooltip}"` : '';
+                const isClosedRaw = params.data?.IsClosed;
+                const isClosed =
+                  typeof isClosedRaw === 'string'
+                    ? isClosedRaw.toLowerCase() === 'true'
+                    : Boolean(isClosedRaw);
+                if (isClosed) {
+                  const label = formattedDate || val || '';
+                  const safeLabel = escapeHtml(label);
+                  return `<span class="deadline-visual deadline-closed"${tooltipAttr}>${safeLabel}</span>`;
+                }
                 const diff = getDeadlineDiff(val);
                 const colorClass = getDeadlineColorClass(val);
-                const tooltip = getDeadlineOriginalFormatted(val);
                 if (!diff) {
-                  return `<span class="deadline-visual deadline-empty" title="${tooltip}"><span class="material-symbols-outlined deadline-empty-icon">calendar_month</span><span class="deadline-empty-text">Select</span></span>`;
+                  return `<span class="deadline-visual deadline-empty"${tooltipAttr}><span class="material-symbols-outlined deadline-empty-icon">calendar_month</span><span class="deadline-empty-text">Select</span></span>`;
                 }
-                return `<span class="deadline-visual ${colorClass}" title="${tooltip}">${diff}</span>`;
+                return `<span class="deadline-visual ${colorClass}"${tooltipAttr}>${diff}</span>`;
               };
             }
             const fieldKey = colCopy.id || colCopy.field;
@@ -4092,6 +4119,11 @@ forceClearSelection() {
 
   :deep(.deadline-red) {
     background: #ff6f6f !important;
+    color: #fff !important;
+  }
+
+  :deep(.deadline-closed) {
+    background: #666666 !important;
     color: #fff !important;
   }
 
