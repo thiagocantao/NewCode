@@ -28,7 +28,7 @@
                             :aria-label="`Remover ${option.label}`"
                             @click.stop="removeValue(option.value)"
                         >
-                            ×
+                            X
                         </button>
                     </span>
                     <span
@@ -329,7 +329,7 @@ export default {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border: 1px solid #e0e0e0;
+    border-bottom: 1px solid #e0e0e0;
     border-radius: 4px;
     background-color: #ffffff;
     cursor: pointer;
@@ -367,7 +367,7 @@ export default {
     gap: 4px;
     background-color: #2563eb;
     color: #ffffff;
-    border-radius: 999px;
+    border-radius: 8px;
     padding: 2px 8px;
     font-size: 12px;
     white-space: nowrap;
@@ -398,7 +398,7 @@ export default {
 }
 
 .query-multi-select__icon {
-    font-size: 12px;
+    font-size: 18px;
     color: #6b7280;
 }
 
