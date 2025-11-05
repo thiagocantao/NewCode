@@ -1275,14 +1275,44 @@ export default {
                 });
         },
         setFieldOptionsState(fieldId, patch) {
-            const current = this.fieldOptionsState[fieldId] || {};
+            const previousState = this.fieldOptionsState[fieldId] || {};
+            const nextState = { ...previousState, ...patch };
+            const optionsChanged = !this.areFieldOptionsEqual(previousState.options, nextState.options);
             this.fieldOptionsState = {
                 ...this.fieldOptionsState,
-                [fieldId]: { ...current, ...patch },
+                [fieldId]: nextState,
             };
+            if (!optionsChanged) {
+                return;
+            }
+            if (!this.localRootGroup || !this.hasActiveConditions(this.localRootGroup)) {
+                return;
+            }
+            this.syncPublicVariables(this.localRootGroup);
         },
         getFieldOptionsState(fieldId) {
             return this.fieldOptionsState[fieldId] || { options: [], loading: false, error: null, loaded: false };
+        },
+        areFieldOptionsEqual(previousOptions, nextOptions) {
+            const prev = Array.isArray(previousOptions) ? previousOptions : [];
+            const next = Array.isArray(nextOptions) ? nextOptions : [];
+            if (prev === next) {
+                return true;
+            }
+            if (prev.length !== next.length) {
+                return false;
+            }
+            for (let index = 0; index < prev.length; index += 1) {
+                const prevOption = prev[index] || {};
+                const nextOption = next[index] || {};
+                if (prevOption.value !== nextOption.value) {
+                    return false;
+                }
+                if (prevOption.label !== nextOption.label) {
+                    return false;
+                }
+            }
+            return true;
         },
     },
 };
