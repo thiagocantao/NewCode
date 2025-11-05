@@ -907,7 +907,12 @@ export default {
             };
             const items = Array.isArray(group?.conditions) ? group.conditions : [];
             items.forEach((item) => {
-                if (item && item.type === 'group') {
+                const isGroupLike =
+                    item &&
+                    typeof item === 'object' &&
+                    ((typeof item.type === 'string' && item.type.toLowerCase() === 'group') ||
+                        (this.isValidClause(item.logic) && Array.isArray(item.conditions)));
+                if (isGroupLike) {
                     normalizedGroup.conditions.push(this.normalizeGroup(item));
                 } else {
                     normalizedGroup.conditions.push(this.normalizeCondition(item));
