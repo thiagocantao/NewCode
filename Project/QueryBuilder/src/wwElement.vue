@@ -932,7 +932,13 @@ export default {
                     ? safeCondition.field
                     : '';
             const fieldId = this.resolveFieldId(candidateFieldId);
-            const operator = this.resolveOperator(fieldId, safeCondition.operator);
+            const operatorCandidate =
+                typeof safeCondition.operator === 'string'
+                    ? safeCondition.operator
+                    : typeof safeCondition.op === 'string'
+                    ? safeCondition.op
+                    : '';
+            const operator = this.resolveOperator(fieldId, operatorCandidate);
             const value = this.normalizeInputValue(fieldId, operator, safeCondition.value);
             return {
                 id:
