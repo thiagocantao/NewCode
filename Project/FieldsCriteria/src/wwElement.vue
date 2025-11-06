@@ -119,6 +119,7 @@ export default {
             setQueryChanged: null,
             globalInitialQuery: undefined,
             globalQueryUnsubscribe: null,
+            fieldOptionsState: {},
             initialPublicQuerySnapshot: null,
             localQueryChanged: false,
         };
@@ -593,12 +594,19 @@ export default {
                 typeof fieldDefinition?.fieldTagControl === 'string' && fieldDefinition.fieldTagControl.trim().length
                     ? fieldDefinition.fieldTagControl
                     : condition.fieldId || '';
+            const fieldTagControl =
+                typeof fieldDefinition?.fieldTagControl === 'string' && fieldDefinition.fieldTagControl.trim().length
+                    ? fieldDefinition.fieldTagControl
+                    : '';
             const payload = {
                 type: 'condition',
                 field: publicFieldIdentifier,
                 fieldId: condition.fieldId || publicFieldIdentifier || '',
                 operator: DEFAULT_OPERATOR,
             };
+            if (fieldTagControl) {
+                payload.fieldTagControl = fieldTagControl;
+            }
             if (Array.isArray(condition.value)) {
                 payload.value = condition.value.slice();
             } else if (condition.value !== undefined && condition.value !== null) {
@@ -624,7 +632,7 @@ export default {
             if (node.type === 'condition') {
                 const fieldHtml = this.formatFieldForQuery(node.fieldId || node.field);
                 const operatorLabel = this.escapeHtml(DEFAULT_OPERATOR_LABEL);
-                const valueHtml = this.formatValueForQuery(node.value);
+                const valueHtml = this.formatValueForQuery(node.value, node.fieldId || node.field);
                 return [fieldHtml, operatorLabel, valueHtml].filter(Boolean).join(' ');
             }
             return '';
@@ -642,25 +650,107 @@ export default {
             const escapedField = this.escapeHtml(normalizedLabel);
             return `<span style="color: blue;">${escapedField}</span>`;
         },
-        formatValueForQuery(value) {
+        formatValueForQuery(value, fieldIdOrIdentifier) {
+            const fieldDefinition = this.getFieldDefinition(fieldIdOrIdentifier);
+            const fieldId = fieldDefinition?.id || (typeof fieldIdOrIdentifier === 'string' ? fieldIdOrIdentifier : '');
+            const fieldType = String(fieldDefinition?.type || '').toUpperCase();
             if (Array.isArray(value)) {
                 if (!value.length) {
                     return '<span style="color: green;">[]</span>';
                 }
-                const formatted = value.map((entry) =>
-                    this.escapeHtml(entry === null || entry === undefined ? '' : String(entry))
-                );
+                const formatted = value
+                    .map((entry) => this.resolveDisplayValue(entry, fieldId, fieldType))
+                    .map((entry) => (entry === null || entry === undefined ? '' : String(entry)))
+                    .map((entry) => this.escapeHtml(entry));
                 return `<span style="color: green;">[${formatted.join(', ')}]</span>`;
             }
             if (value === true || value === false) {
                 return `<span style="color: green;">${value ? 'true' : 'false'}</span>`;
             }
-            if (value === null || value === undefined || value === '') {
+            const displayValue = this.resolveDisplayValue(value, fieldId, fieldType);
+            if (displayValue === true || displayValue === false) {
+                return `<span style="color: green;">${displayValue ? 'true' : 'false'}</span>`;
+            }
+            if (displayValue === null || displayValue === undefined || displayValue === '') {
                 return '<span style="color: green;">""</span>';
             }
-            const stringValue = typeof value === 'string' ? value : String(value);
+            let stringValue = typeof displayValue === 'string' ? displayValue : String(displayValue);
+            if (fieldType === 'BOOLEAN') {
+                if (stringValue === 'true' || stringValue === 'false') {
+                    return `<span style="color: green;">${stringValue}</span>`;
+                }
+            }
+            if (fieldType === 'NUMBER' || fieldType === 'NUMERIC') {
+                const parsed = Number(stringValue);
+                if (!Number.isNaN(parsed)) {
+                    return `<span style="color: green;">${parsed}</span>`;
+                }
+            }
+            if (fieldType === 'DATE' || fieldType === 'DATETIME' || fieldType === 'DATE_TIME' || fieldType === 'TIME') {
+                return `<span style="color: green;">${this.escapeHtml(stringValue)}</span>`;
+            }
             const escapedValue = this.escapeHtml(stringValue.replace(/"/g, '\\"'));
             return `<span style="color: green;">"${escapedValue}"</span>`;
+        },
+        resolveDisplayValue(rawValue, fieldId, fieldType) {
+            if (this.isListFieldType(fieldType)) {
+                const label = this.getFieldOptionLabel(fieldId, rawValue);
+                if (label && label.length) {
+                    return label;
+                }
+                if (rawValue && typeof rawValue === 'object' && rawValue !== null && typeof rawValue.label === 'string') {
+                    return rawValue.label;
+                }
+            }
+            return rawValue;
+        },
+        isListFieldType(type) {
+            const normalized = String(type || '').toUpperCase();
+            switch (normalized) {
+                case 'CONTROLLED_LIST':
+                case 'LIST':
+                case 'SIMPLE_LIST':
+                case 'MULTISELECTION':
+                    return true;
+                default:
+                    return false;
+            }
+        },
+        getFieldOptionLabel(fieldId, rawValue) {
+            if (!fieldId) {
+                return '';
+            }
+            const candidateValue =
+                rawValue && typeof rawValue === 'object' && rawValue !== null && 'value' in rawValue
+                    ? rawValue.value
+                    : rawValue;
+            const normalizedValue = candidateValue === null || candidateValue === undefined ? '' : String(candidateValue);
+            if (!normalizedValue.length) {
+                return '';
+            }
+            const field = this.getFieldDefinition(fieldId);
+            const optionSources = [];
+            if (Array.isArray(field?.staticOptions)) {
+                optionSources.push(...field.staticOptions);
+            }
+            const state = this.getFieldOptionsState(fieldId);
+            if (Array.isArray(state?.options)) {
+                optionSources.push(...state.options);
+            }
+            for (const option of optionSources) {
+                if (!option) {
+                    continue;
+                }
+                const optionValue = option.value ?? option.Value ?? option.id ?? option.ID;
+                if (String(optionValue) === normalizedValue) {
+                    const optionLabel = option.label ?? option.Label ?? option.name ?? option.Name;
+                    if (optionLabel === null || optionLabel === undefined) {
+                        return normalizedValue;
+                    }
+                    return typeof optionLabel === 'string' ? optionLabel : String(optionLabel);
+                }
+            }
+            return '';
         },
         escapeHtml(value) {
             if (value === null || value === undefined) {
