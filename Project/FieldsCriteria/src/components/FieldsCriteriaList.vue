@@ -98,8 +98,8 @@
 </template>
 
 <script>
-import CustomDatePicker from '../../../QueryBuilder/src/components/CustomDatePicker.vue';
-import QueryMultiSelect from '../../../QueryBuilder/src/components/QueryMultiSelect.vue';
+import CustomDatePicker from './CustomDatePicker.vue';
+import QueryMultiSelect from './QueryMultiSelect.vue';
 
 export default {
     name: 'FieldsCriteriaList',
@@ -392,20 +392,17 @@ export default {
 
 .filter-condition__field,
 .filter-condition__value {
-    flex: 1 1 160px;
     padding: 6px 8px;
     border: 1px solid #e0e0e0;
     border-radius: 4px;
     outline: 1px solid transparent;
+    height:36px;
 }
 
 .filter-condition__field {
     padding-right: 10px;
 }
 
-.filter-condition__value {
-    flex-basis: 220px;
-}
 
 .filter-condition__field:focus,
 .filter-condition__value:focus {
