@@ -28,7 +28,7 @@ import {
     hasFetchableDataSource,
     fetchDataSourceOptions,
     mapOptionsFromData,
-} from '../../QueryBuilder/src/components/dataSource';
+} from './components/dataSource';
 
 const INITIAL_QUERY_VARIABLE_ID = '4b4cff47-4599-44d2-a788-0e31ef09ed9f';
 const DEFAULT_CLAUSE = 'AND';
