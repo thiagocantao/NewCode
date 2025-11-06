@@ -3,12 +3,16 @@
         <FieldsCriteriaList
             v-if="localRootGroup"
             :group="localRootGroup"
-            :fields="availableFields"
+            :fields="normalizedFields"
             :action-button-background-color="actionButtonBackgroundColor"
             :action-button-text-color="actionButtonTextColor"
             :action-button-hover-background-color="actionButtonHoverBackgroundColor"
             :action-button-hover-text-color="actionButtonHoverTextColor"
             :remove-button-text-color="removeButtonTextColor"
+            :get-field-definition="getFieldDefinition"
+            :get-operator-definition="getOperatorDefinition"
+            :get-field-options-state="getFieldOptionsState"
+            :ensure-field-options-loaded="ensureFieldOptionsLoaded"
             @add-condition="handleAddCondition"
             @remove-condition="handleRemoveCondition"
             @update-condition="handleUpdateCondition"
@@ -19,11 +23,78 @@
 
 <script>
 import FieldsCriteriaList from './components/FieldsCriteriaList.vue';
+import {
+    normalizeFieldDataSource,
+    hasFetchableDataSource,
+    fetchDataSourceOptions,
+    mapOptionsFromData,
+} from '../../QueryBuilder/src/components/dataSource';
 
 const INITIAL_QUERY_VARIABLE_ID = '4b4cff47-4599-44d2-a788-0e31ef09ed9f';
 const DEFAULT_CLAUSE = 'AND';
-const DEFAULT_OPERATOR = 'equals';
-const DEFAULT_OPERATOR_LABEL = 'Equals';
+const DEFAULT_OPERATOR = '=';
+const DEFAULT_OPERATOR_LABEL = '=';
+
+function normalizeOption(option) {
+    if (!option) {
+        return null;
+    }
+    if (typeof option !== 'object') {
+        return { value: option, label: String(option) };
+    }
+    const value = option.value ?? option.Value ?? option.id ?? option.ID;
+    const label = option.label ?? option.Label ?? option.name ?? option.Name;
+    if (value === undefined || label === undefined) {
+        return null;
+    }
+    return { value, label };
+}
+
+function extractStaticOptions(field) {
+    const candidates =
+        field?.options ??
+        field?.Options ??
+        field?.list_options ??
+        field?.listOptions ??
+        field?.ListOptions ??
+        [];
+    if (!Array.isArray(candidates)) {
+        return [];
+    }
+    return candidates.map(normalizeOption).filter(Boolean);
+}
+
+function normalizeFieldDefinition(field, index) {
+    if (!field || typeof field !== 'object') {
+        return null;
+    }
+    const id =
+        (typeof field.ID === 'string' && field.ID.trim().length && field.ID) ||
+        (typeof field.id === 'string' && field.id.trim().length && field.id) ||
+        `field_${index}`;
+    const fieldTagControl =
+        (typeof field.FieldTagControl === 'string' && field.FieldTagControl.trim().length && field.FieldTagControl) ||
+        (typeof field.fieldTagControl === 'string' && field.fieldTagControl.trim().length && field.fieldTagControl) ||
+        null;
+    const label =
+        (typeof field.Name === 'string' && field.Name.trim().length && field.Name) ||
+        (typeof field.name === 'string' && field.name.trim().length && field.name) ||
+        id;
+    const typeRaw = field.Type ?? field.type ?? 'TEXT';
+    const type = typeof typeRaw === 'string' ? typeRaw.toUpperCase() : 'TEXT';
+    const staticOptions = extractStaticOptions(field);
+    return {
+        id,
+        fieldTagControl,
+        label,
+        type,
+        dataSource: field.DataSource ?? field.dataSource ?? null,
+        placeholder: field.Placeholder ?? field.placeholder ?? null,
+        format: field.Format ?? field.format ?? null,
+        staticOptions,
+        raw: field,
+    };
+}
 
 export default {
     name: 'FieldsCriteria',
@@ -46,14 +117,31 @@ export default {
             setQueryString: null,
             globalInitialQuery: undefined,
             globalQueryUnsubscribe: null,
+            fieldOptionsState: {},
         };
     },
     computed: {
-        availableFields() {
-            if (!this.content || !Array.isArray(this.content.fields)) {
+        normalizedFields() {
+            if (!Array.isArray(this.content?.fieldsConfig)) {
                 return [];
             }
-            return this.content.fields.filter((field) => typeof field === 'string' && field.trim().length);
+            return this.content.fieldsConfig
+                .map((field, index) => normalizeFieldDefinition(field, index))
+                .filter(Boolean);
+        },
+        fieldsMap() {
+            return this.normalizedFields.reduce((map, field) => {
+                map[field.id] = field;
+                return map;
+            }, {});
+        },
+        fieldsByTag() {
+            return this.normalizedFields.reduce((map, field) => {
+                if (typeof field.fieldTagControl === 'string' && field.fieldTagControl.trim().length) {
+                    map[field.fieldTagControl] = field;
+                }
+                return map;
+            }, {});
         },
         resolvedInitialQueryInput() {
             return this.globalInitialQuery;
@@ -75,6 +163,7 @@ export default {
         },
     },
     created() {
+        this.refreshFieldOptionsState(this.normalizedFields);
         this.initializeGlobalInitialQuery();
         this.initializeRootGroup();
         this.initializePublicVariables();
@@ -98,10 +187,12 @@ export default {
             },
             deep: true,
         },
-        availableFields(newFields, oldFields) {
-            if (this.fieldsChanged(newFields, oldFields)) {
-                this.onFieldsChange(newFields);
-            }
+        normalizedFields: {
+            handler(newFields, oldFields) {
+                this.refreshFieldOptionsState(newFields, oldFields);
+                this.onFieldsChange(newFields, oldFields);
+            },
+            deep: true,
         },
     },
     methods: {
@@ -117,10 +208,12 @@ export default {
                 allowEmpty: !initialGroup || !Array.isArray(initialGroup?.conditions) || !initialGroup.conditions.length,
             });
             this.localRootGroup = normalized;
+            this.primeFieldOptionsForGroup(normalized);
             if (!this.groupsAreEqual(this.content.rootGroup, normalized)) {
                 this.emitRootGroup(normalized);
+            } else {
+                this.syncPublicVariables(normalized);
             }
-            this.syncPublicVariables(normalized);
         },
         initializeGlobalInitialQuery() {
             this.updateGlobalInitialQuery();
@@ -191,10 +284,12 @@ export default {
             if (!this.groupsAreEqual(normalized, this.localRootGroup)) {
                 this.localRootGroup = normalized;
             }
+            this.primeFieldOptionsForGroup(normalized);
             if (!this.groupsAreEqual(newGroup, normalized)) {
                 this.emitRootGroup(normalized);
+            } else {
+                this.syncPublicVariables(normalized);
             }
-            this.syncPublicVariables(normalized);
         },
         onInitialQueryJsonChange(newInitial) {
             const parsedInitial = this.parseInitialQuery(this.getInitialQuerySource(newInitial));
@@ -212,23 +307,46 @@ export default {
             }
             this.updateRootGroup(normalized);
         },
-        onFieldsChange(fields) {
+        onFieldsChange(newFields = [], oldFields = []) {
             if (!this.localRootGroup) {
                 return;
             }
             const updated = this.cloneGroup(this.localRootGroup);
             let changed = false;
+            const availableIds = newFields.map((field) => field.id);
+            const defaultFieldId = availableIds[0] || '';
             this.iterateConditions(updated, (condition) => {
-                if (!fields.length) {
-                    if (condition.field !== '') {
-                        condition.field = '';
+                if (!availableIds.length) {
+                    if (condition.fieldId !== '') {
+                        condition.fieldId = '';
+                        condition.value = '';
                         changed = true;
                     }
-                } else if (!fields.includes(condition.field)) {
-                    condition.field = fields[0];
+                    return;
+                }
+                if (!availableIds.includes(condition.fieldId)) {
+                    condition.fieldId = defaultFieldId;
+                    condition.value = this.normalizeConditionValue(condition.fieldId, null);
+                    if (condition.fieldId) {
+                        this.ensureFieldOptionsLoaded(condition.fieldId);
+                    }
+                    changed = true;
+                    return;
+                }
+                const normalizedValue = this.normalizeConditionValue(condition.fieldId, condition.value);
+                if (!this.valuesAreEqual(condition.value, normalizedValue)) {
+                    condition.value = normalizedValue;
                     changed = true;
                 }
             });
+            if (!updated.conditions.length && availableIds.length) {
+                const condition = this.createCondition();
+                updated.conditions.push(condition);
+                if (condition.fieldId) {
+                    this.ensureFieldOptionsLoaded(condition.fieldId);
+                }
+                changed = true;
+            }
             if (changed) {
                 this.updateRootGroup(updated);
             }
@@ -242,7 +360,11 @@ export default {
             if (!targetGroup) {
                 return;
             }
-            targetGroup.conditions.push(this.createCondition());
+            const condition = this.createCondition();
+            targetGroup.conditions.push(condition);
+            if (condition.fieldId) {
+                this.ensureFieldOptionsLoaded(condition.fieldId);
+            }
             this.updateRootGroup(updated);
         },
         handleRemoveCondition({ groupId, conditionId }) {
@@ -256,12 +378,16 @@ export default {
             }
             targetGroup.conditions = targetGroup.conditions.filter((item) => item.id !== conditionId);
             if (!targetGroup.conditions.length) {
-                targetGroup.conditions.push(this.createCondition());
+                const condition = this.createCondition();
+                targetGroup.conditions.push(condition);
+                if (condition.fieldId) {
+                    this.ensureFieldOptionsLoaded(condition.fieldId);
+                }
             }
             this.updateRootGroup(updated);
         },
         handleUpdateCondition({ groupId, conditionId, key, value }) {
-            if (!['field', 'value'].includes(key)) {
+            if (!['fieldId', 'value'].includes(key)) {
                 return;
             }
             if (!this.localRootGroup) {
@@ -276,10 +402,15 @@ export default {
             if (!condition) {
                 return;
             }
-            if (key === 'field') {
-                condition.field = value;
-            } else {
-                condition.value = value;
+            if (key === 'fieldId') {
+                const resolvedFieldId = this.resolveFieldId(value);
+                condition.fieldId = resolvedFieldId;
+                condition.value = this.normalizeConditionValue(resolvedFieldId, null);
+                if (resolvedFieldId) {
+                    this.ensureFieldOptionsLoaded(resolvedFieldId);
+                }
+            } else if (key === 'value') {
+                condition.value = this.normalizeConditionValue(condition.fieldId, value);
             }
             this.updateRootGroup(updated);
         },
@@ -383,8 +514,20 @@ export default {
                 return undefined;
             }
             const cloned = JSON.parse(JSON.stringify(parsed));
-            if (cloned.type && cloned.type !== 'group') {
-                return undefined;
+            if (cloned.logic && !cloned.type) {
+                const normalizedConditions = Array.isArray(cloned.conditions)
+                    ? cloned.conditions.map((item) => ({
+                          type: 'condition',
+                          fieldId: item.fieldId ?? item.field ?? '',
+                          field: item.field ?? item.fieldId ?? '',
+                          value: item.value ?? '',
+                      }))
+                    : [];
+                return {
+                    type: 'group',
+                    clause: typeof cloned.logic === 'string' ? cloned.logic.toUpperCase() : DEFAULT_CLAUSE,
+                    conditions: normalizedConditions,
+                };
             }
             if (!cloned.type) {
                 cloned.type = 'group';
@@ -417,13 +560,25 @@ export default {
             if (!condition || typeof condition !== 'object') {
                 return null;
             }
-            const normalizedField = typeof condition.field === 'string' ? condition.field : '';
-            return {
+            const fieldDefinition = this.getFieldDefinition(condition.fieldId);
+            const publicFieldIdentifier =
+                typeof fieldDefinition?.fieldTagControl === 'string' && fieldDefinition.fieldTagControl.trim().length
+                    ? fieldDefinition.fieldTagControl
+                    : condition.fieldId || '';
+            const payload = {
                 type: 'condition',
-                field: normalizedField,
+                field: publicFieldIdentifier,
+                fieldId: condition.fieldId || publicFieldIdentifier || '',
                 operator: DEFAULT_OPERATOR,
-                value: condition.value ?? '',
             };
+            if (Array.isArray(condition.value)) {
+                payload.value = condition.value.slice();
+            } else if (condition.value !== undefined && condition.value !== null) {
+                payload.value = condition.value;
+            } else {
+                payload.value = '';
+            }
+            return payload;
         },
         buildQueryString(node) {
             if (!node) {
@@ -439,31 +594,44 @@ export default {
                 return parts.join(` ${this.escapeHtml(DEFAULT_CLAUSE)} `);
             }
             if (node.type === 'condition') {
-                const fieldHtml = this.formatFieldForQuery(node.field);
+                const fieldHtml = this.formatFieldForQuery(node.fieldId || node.field);
                 const operatorLabel = this.escapeHtml(DEFAULT_OPERATOR_LABEL);
                 const valueHtml = this.formatValueForQuery(node.value);
                 return [fieldHtml, operatorLabel, valueHtml].filter(Boolean).join(' ');
             }
             return '';
         },
-        formatFieldForQuery(field) {
-            if (typeof field !== 'string') {
+        formatFieldForQuery(fieldIdOrIdentifier) {
+            let label = '';
+            if (typeof fieldIdOrIdentifier === 'string' && fieldIdOrIdentifier.trim().length) {
+                const field = this.getFieldDefinition(fieldIdOrIdentifier);
+                label = field?.label || fieldIdOrIdentifier;
+            }
+            const normalizedLabel = typeof label === 'string' ? label.trim() : '';
+            if (!normalizedLabel.length) {
                 return '';
             }
-            const normalizedField = field.trim();
-            if (!normalizedField.length) {
-                return '';
-            }
-            const escapedField = this.escapeHtml(normalizedField);
+            const escapedField = this.escapeHtml(normalizedLabel);
             return `<span style="color: blue;">${escapedField}</span>`;
         },
         formatValueForQuery(value) {
-            if (value === null || value === undefined) {
+            if (Array.isArray(value)) {
+                if (!value.length) {
+                    return '<span style="color: green;">[]</span>';
+                }
+                const formatted = value.map((entry) =>
+                    this.escapeHtml(entry === null || entry === undefined ? '' : String(entry))
+                );
+                return `<span style="color: green;">[${formatted.join(', ')}]</span>`;
+            }
+            if (value === true || value === false) {
+                return `<span style="color: green;">${value ? 'true' : 'false'}</span>`;
+            }
+            if (value === null || value === undefined || value === '') {
                 return '<span style="color: green;">""</span>';
             }
-            const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
-            const displayValue = stringValue.replace(/"/g, '\\"');
-            const escapedValue = this.escapeHtml(displayValue);
+            const stringValue = typeof value === 'string' ? value : String(value);
+            const escapedValue = this.escapeHtml(stringValue.replace(/"/g, '\\"'));
             return `<span style="color: green;">"${escapedValue}"</span>`;
         },
         escapeHtml(value) {
@@ -513,30 +681,33 @@ export default {
         },
         normalizeCondition(condition = {}) {
             const safeCondition = condition && typeof condition === 'object' ? condition : {};
-            let field = '';
-            if (typeof safeCondition.field === 'string' && safeCondition.field.trim().length) {
-                field = safeCondition.field;
-            } else if (this.availableFields.length) {
-                field = this.availableFields[0];
-            }
+            const fieldCandidate =
+                typeof safeCondition.fieldId === 'string' && safeCondition.fieldId.trim().length
+                    ? safeCondition.fieldId
+                    : typeof safeCondition.field === 'string' && safeCondition.field.trim().length
+                    ? safeCondition.field
+                    : '';
+            const fieldId = this.resolveFieldId(fieldCandidate);
+            const value = this.normalizeConditionValue(fieldId, safeCondition.value);
             return {
                 id:
                     typeof safeCondition.id === 'string' && safeCondition.id
                         ? safeCondition.id
                         : this.createId(),
                 type: 'condition',
-                field,
-                operator: DEFAULT_OPERATOR,
-                value: safeCondition.value ?? '',
+                fieldId,
+                value,
             };
         },
         createCondition() {
+            const defaultField = this.normalizedFields[0] || null;
+            const fieldId = defaultField ? defaultField.id : '';
+            const value = this.normalizeConditionValue(fieldId, null);
             return {
                 id: this.createId(),
                 type: 'condition',
-                field: this.availableFields[0] || '',
-                operator: DEFAULT_OPERATOR,
-                value: '',
+                fieldId,
+                value,
             };
         },
         createId() {
@@ -555,14 +726,6 @@ export default {
             if (group.id === id) {
                 return group;
             }
-            for (const item of group.conditions || []) {
-                if (item && item.type === 'group') {
-                    const match = this.findGroupById(item, id);
-                    if (match) {
-                        return match;
-                    }
-                }
-            }
             return null;
         },
         iterateConditions(group, callback) {
@@ -580,9 +743,6 @@ export default {
             const normalizedB = groupB === undefined ? null : groupB;
             return JSON.stringify(normalizedA) === JSON.stringify(normalizedB);
         },
-        fieldsChanged(newFields, oldFields) {
-            return JSON.stringify(newFields) !== JSON.stringify(oldFields);
-        },
         resetFilters() {
             const initialSource = this.getInitialQuerySource();
             const parsedInitial = this.parseInitialQuery(initialSource);
@@ -598,13 +758,277 @@ export default {
             if (!node || typeof node !== 'object') {
                 return false;
             }
-            if (node.type === 'group' && Array.isArray(node.conditions)) {
-                return node.conditions.some((child) => child?.type === 'condition');
-            }
             if (node.type === 'condition') {
-                return true;
+                return Boolean(node.fieldId);
+            }
+            if (node.type === 'group' && Array.isArray(node.conditions)) {
+                return node.conditions.some((child) => this.hasActiveConditions(child));
             }
             return false;
+        },
+        resolveFieldId(candidate) {
+            if (candidate && this.fieldsMap[candidate]) {
+                return this.fieldsMap[candidate].id;
+            }
+            if (candidate && this.fieldsByTag[candidate]) {
+                return this.fieldsByTag[candidate].id;
+            }
+            const firstField = this.normalizedFields[0];
+            return firstField ? firstField.id : '';
+        },
+        normalizeConditionValue(fieldId, rawValue) {
+            const operator = this.getOperatorDefinition(fieldId);
+            if (!operator || operator.requiresValue === false) {
+                return '';
+            }
+            const field = this.getFieldDefinition(fieldId);
+            const type = field?.type || 'TEXT';
+            if (operator.valueShape === 'array') {
+                const entries = Array.isArray(rawValue)
+                    ? rawValue.slice()
+                    : rawValue === null || rawValue === undefined || rawValue === ''
+                    ? []
+                    : [rawValue];
+                return entries.map((entry) => this.coerceScalarValue(type, entry));
+            }
+            const scalarSource = Array.isArray(rawValue) ? rawValue[0] : rawValue;
+            const scalar = this.coerceScalarValue(type, scalarSource);
+            return scalar === undefined || scalar === null ? '' : scalar;
+        },
+        coerceScalarValue(type, rawValue) {
+            const normalizedType = String(type || '').toUpperCase();
+            if (rawValue === undefined || rawValue === null || rawValue === '') {
+                return '';
+            }
+            if (normalizedType === 'BOOLEAN') {
+                if (rawValue === true || rawValue === 'true') {
+                    return true;
+                }
+                if (rawValue === false || rawValue === 'false') {
+                    return false;
+                }
+                return '';
+            }
+            if (normalizedType === 'NUMBER' || normalizedType === 'NUMERIC') {
+                const parsed = Number(rawValue);
+                return Number.isNaN(parsed) ? rawValue : parsed;
+            }
+            if (normalizedType === 'DATE') {
+                return this.normalizeDateOnlyValue(rawValue);
+            }
+            if (normalizedType === 'DATETIME' || normalizedType === 'DATE_TIME') {
+                return this.normalizeDateTimeValue(rawValue);
+            }
+            if (normalizedType === 'TIME') {
+                return String(rawValue);
+            }
+            if (
+                normalizedType === 'CONTROLLED_LIST' ||
+                normalizedType === 'LIST' ||
+                normalizedType === 'SIMPLE_LIST' ||
+                normalizedType === 'MULTISELECTION'
+            ) {
+                return String(rawValue);
+            }
+            return rawValue;
+        },
+        normalizeDateOnlyValue(value) {
+            if (value === undefined || value === null || value === '') {
+                return '';
+            }
+            if (value instanceof Date && !Number.isNaN(value.getTime())) {
+                return value.toISOString().slice(0, 10);
+            }
+            const str = String(value).trim();
+            if (!str) {
+                return '';
+            }
+            if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+                return str;
+            }
+            if (/^\d{4}-\d{2}-\d{2}T/.test(str)) {
+                return str.slice(0, 10);
+            }
+            const parsed = new Date(str);
+            if (Number.isNaN(parsed.getTime())) {
+                return '';
+            }
+            return parsed.toISOString().slice(0, 10);
+        },
+        normalizeDateTimeValue(value) {
+            if (value === undefined || value === null || value === '') {
+                return '';
+            }
+            if (value instanceof Date && !Number.isNaN(value.getTime())) {
+                return value.toISOString();
+            }
+            const str = String(value).trim();
+            if (!str) {
+                return '';
+            }
+            const match = str.match(/^([0-9]{4}-[0-9]{2}-[0-9]{2})T([0-9]{2}:[0-9]{2})(?::([0-9]{2}))?(Z|[+-][0-9]{2}:[0-9]{2})?$/);
+            if (match) {
+                const [, datePart, timePart, secondsPart, zonePart] = match;
+                const seconds = secondsPart ?? '00';
+                const zone = zonePart ?? 'Z';
+                return `${datePart}T${timePart}:${seconds}${zone}`;
+            }
+            if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+                return `${str}T00:00:00Z`;
+            }
+            const parsed = new Date(str);
+            if (Number.isNaN(parsed.getTime())) {
+                return '';
+            }
+            return parsed.toISOString();
+        },
+        getFieldDefinition(fieldId) {
+            if (!fieldId) {
+                return null;
+            }
+            if (this.fieldsMap[fieldId]) {
+                return this.fieldsMap[fieldId];
+            }
+            if (this.fieldsByTag[fieldId]) {
+                return this.fieldsByTag[fieldId];
+            }
+            return null;
+        },
+        getOperatorDefinition(fieldId) {
+            const field = this.getFieldDefinition(fieldId);
+            const normalizedType = String(field?.type || '').toUpperCase();
+            if (normalizedType === 'MULTISELECTION') {
+                return { value: DEFAULT_OPERATOR, label: DEFAULT_OPERATOR_LABEL, requiresValue: true, valueShape: 'array' };
+            }
+            return { value: DEFAULT_OPERATOR, label: DEFAULT_OPERATOR_LABEL, requiresValue: true, valueShape: 'scalar' };
+        },
+        primeFieldOptionsForGroup(group) {
+            if (!group) {
+                return;
+            }
+            this.iterateConditions(group, (condition) => {
+                if (condition.fieldId) {
+                    this.ensureFieldOptionsLoaded(condition.fieldId);
+                }
+            });
+        },
+        refreshFieldOptionsState(newFields, oldFields = []) {
+            const nextState = {};
+            const oldState = this.fieldOptionsState || {};
+            newFields.forEach((field) => {
+                const previous = oldState[field.id] || {};
+                const staticOptions = Array.isArray(field.staticOptions) ? field.staticOptions : [];
+                const options = staticOptions.length
+                    ? staticOptions
+                    : Array.isArray(previous.options)
+                    ? previous.options
+                    : [];
+                nextState[field.id] = {
+                    options,
+                    loading: staticOptions.length ? false : Boolean(previous.loading),
+                    error: staticOptions.length ? null : previous.error || null,
+                    loaded: staticOptions.length ? true : Boolean(previous.loaded),
+                    hasStaticOptions: staticOptions.length > 0,
+                };
+            });
+            this.fieldOptionsState = nextState;
+        },
+        ensureFieldOptionsLoaded(fieldId) {
+            if (!fieldId) {
+                return;
+            }
+            const field = this.getFieldDefinition(fieldId);
+            if (!field) {
+                return;
+            }
+            const state = this.fieldOptionsState[fieldId] || {};
+            if (Array.isArray(field.staticOptions) && field.staticOptions.length) {
+                this.setFieldOptionsState(fieldId, {
+                    options: field.staticOptions,
+                    loading: false,
+                    error: null,
+                    loaded: true,
+                });
+                return;
+            }
+            const normalizedDataSource = normalizeFieldDataSource(field.dataSource || field.raw);
+            if (!hasFetchableDataSource(normalizedDataSource)) {
+                this.setFieldOptionsState(fieldId, {
+                    options: Array.isArray(state.options) ? state.options : [],
+                    loading: false,
+                    error: null,
+                    loaded: true,
+                });
+                return;
+            }
+            if (state.loading) {
+                return;
+            }
+            this.setFieldOptionsState(fieldId, {
+                ...state,
+                loading: true,
+                error: null,
+            });
+            fetchDataSourceOptions(normalizedDataSource)
+                .then((response) => {
+                    const rawOptions = Array.isArray(response)
+                        ? response
+                        : mapOptionsFromData(response, normalizedDataSource) || [];
+                    const normalizedOptions = Array.isArray(rawOptions)
+                        ? rawOptions.map(normalizeOption).filter(Boolean)
+                        : [];
+                    this.setFieldOptionsState(fieldId, {
+                        options: normalizedOptions,
+                        loading: false,
+                        error: null,
+                        loaded: true,
+                    });
+                })
+                .catch((error) => {
+                    console.warn('[FieldsCriteria] Failed to load options for field', fieldId, error);
+                    this.setFieldOptionsState(fieldId, {
+                        options: Array.isArray(state.options) ? state.options : [],
+                        loading: false,
+                        error: error?.message || 'Failed to load options',
+                        loaded: true,
+                    });
+                });
+        },
+        setFieldOptionsState(fieldId, patch) {
+            const previousState = this.fieldOptionsState[fieldId] || {};
+            const nextState = { ...previousState, ...patch };
+            const optionsChanged = !this.areFieldOptionsEqual(previousState.options, nextState.options);
+            this.fieldOptionsState = {
+                ...this.fieldOptionsState,
+                [fieldId]: nextState,
+            };
+            if (optionsChanged && this.localRootGroup && this.hasActiveConditions(this.localRootGroup)) {
+                this.syncPublicVariables(this.localRootGroup);
+            }
+        },
+        getFieldOptionsState(fieldId) {
+            return this.fieldOptionsState[fieldId] || { options: [], loading: false, error: null, loaded: false };
+        },
+        areFieldOptionsEqual(previousOptions, nextOptions) {
+            const prev = Array.isArray(previousOptions) ? previousOptions : [];
+            const next = Array.isArray(nextOptions) ? nextOptions : [];
+            if (prev.length !== next.length) {
+                return false;
+            }
+            for (let index = 0; index < prev.length; index += 1) {
+                const prevOption = prev[index] || {};
+                const nextOption = next[index] || {};
+                if (prevOption.value !== nextOption.value) {
+                    return false;
+                }
+                if (prevOption.label !== nextOption.label) {
+                    return false;
+                }
+            }
+            return true;
+        },
+        valuesAreEqual(a, b) {
+            return JSON.stringify(a) === JSON.stringify(b);
         },
     },
 };
