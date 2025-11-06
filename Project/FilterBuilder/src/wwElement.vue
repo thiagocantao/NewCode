@@ -60,8 +60,12 @@ export default {
             queryStringVariable: null,
             setQueryJson: null,
             setQueryString: null,
+            queryChangedVariable: null,
+            setQueryChanged: null,
             globalInitialQuery: undefined,
             globalQueryUnsubscribe: null,
+            initialPublicQuerySnapshot: null,
+            localQueryChanged: false,
         };
     },
     computed: {
@@ -139,6 +143,7 @@ export default {
                 allowEmpty: !initialGroup || !Array.isArray(initialGroup?.conditions) || !initialGroup.conditions.length,
             });
             this.localRootGroup = normalized;
+            this.captureInitialPublicQuery(normalized);
             if (!this.groupsAreEqual(this.content.rootGroup, normalized)) {
                 this.emitRootGroup(normalized);
             }
@@ -232,6 +237,7 @@ export default {
             if (this.groupsAreEqual(nextPublicGroup, currentPublicGroup)) {
                 return;
             }
+            this.captureInitialPublicQuery(normalized);
             this.updateRootGroup(normalized);
         },
         onFieldsChange(fields) {
@@ -405,36 +411,34 @@ export default {
                 defaultValue: '',
                 readonly: true,
             });
+            const queryChangedVariable = wwLib.wwVariable.useComponentVariable({
+                uid,
+                name: 'queryChanged',
+                type: 'boolean',
+                defaultValue: false,
+                readonly: true,
+            });
             this.queryJsonVariable = queryJsonVariable.value;
             this.setQueryJson = queryJsonVariable.setValue;
             this.queryStringVariable = queryStringVariable.value;
             this.setQueryString = queryStringVariable.setValue;
+            this.queryChangedVariable = queryChangedVariable.value;
+            this.setQueryChanged = queryChangedVariable.setValue;
             this.syncPublicVariables(this.localRootGroup);
         },
         syncPublicVariables(group) {
             const setJson = this.setQueryJson;
             const setString = this.setQueryString;
-            if (!setJson && !setString) {
-                return;
-            }
-            if (!group) {
-                setJson?.(null);
-                setString?.('');
-                return;
-            }
-            if (!this.hasActiveConditions(group)) {
-                setJson?.(null);
-                setString?.('');
-                return;
-            }
             const payload = this.buildPublicGroup(group);
-            if (!payload) {
+            if (!group || !this.hasActiveConditions(group) || !payload) {
                 setJson?.(null);
                 setString?.('');
+                this.updateQueryChangedVariable(group, payload);
                 return;
             }
             setJson?.(payload);
             setString?.(this.buildQueryString(payload));
+            this.updateQueryChangedVariable(group, payload);
         },
         parseInitialQuery(initialQuery) {
             if (initialQuery === null || initialQuery === undefined || initialQuery === '') {
@@ -500,6 +504,32 @@ export default {
                 payload.value = condition.value ?? '';
             }
             return payload;
+        },
+        captureInitialPublicQuery(group) {
+            const payload = this.buildPublicGroup(group);
+            this.initialPublicQuerySnapshot = this.serializePublicQueryPayload(payload);
+            this.updateQueryChangedVariable(group, payload);
+        },
+        serializePublicQueryPayload(payload) {
+            if (!payload) {
+                return null;
+            }
+            try {
+                return JSON.stringify(payload);
+            } catch (error) {
+                console.warn('[FilterBuilder] Failed to serialize public query payload', error);
+                return null;
+            }
+        },
+        updateQueryChangedVariable(group, payload) {
+            const effectivePayload = payload === undefined ? this.buildPublicGroup(group) : payload;
+            const serialized = this.serializePublicQueryPayload(effectivePayload);
+            const changed = serialized !== this.initialPublicQuerySnapshot;
+            this.localQueryChanged = Boolean(changed);
+            const setQueryChanged = this.setQueryChanged;
+            if (typeof setQueryChanged === 'function') {
+                setQueryChanged(this.localQueryChanged);
+            }
         },
         buildQueryString(node) {
             if (!node) {
