@@ -8,7 +8,7 @@ export default {
             icon: 'filter',
         },
         customSettingsPropertiesOrder: [
-            'fields',
+            'fieldsConfig',
             'initialQueryJson',
             'actionButtonBackgroundColor',
             'actionButtonTextColor',
@@ -18,30 +18,69 @@ export default {
         ],
     },
     properties: {
-        fields: {
-            label: { en: 'Available fields' },
+        fieldsConfig: {
+            label: { en: 'Fields configuration', pt: 'Configuração de campos' },
             type: 'Array',
             section: 'settings',
             bindable: true,
-            defaultValue: ['Body', 'Subject', 'To', 'From'],
+            defaultValue: [
+                {
+                    ID: 'f014ad88-6ab1-4209-bedd-28d7b3f37c07',
+                    Name: 'Assigned To',
+                    Type: 'CONTROLLED_LIST',
+                    DataSource: {
+                        kind: 'controlled_list',
+                        transform: {
+                            label: 'name',
+                            value: 'id',
+                        },
+                        functionName: 'getUsers',
+                    },
+                },
+                {
+                    ID: '0c7db984-e0e7-4caf-b660-35e1e14fcb5a',
+                    Name: 'Category Level 3',
+                    Type: 'CONTROLLED_LIST',
+                    DataSource: {
+                        kind: 'controlled_list',
+                        transform: {
+                            label: 'name',
+                            value: 'id',
+                        },
+                        functionName: 'getCategoryLevel3',
+                    },
+                },
+                {
+                    ID: 'e6a7a0ff-4828-4cd4-adaf-b9e090a15eaa',
+                    Name: 'Status',
+                    Type: 'CONTROLLED_LIST',
+                    DataSource: {
+                        kind: 'controlled_list',
+                        transform: {
+                            label: 'name',
+                            value: 'id',
+                        },
+                        functionName: 'getStatus',
+                    },
+                },
+            ],
             options: {
                 addable: true,
                 removable: true,
                 editable: true,
                 item: {
-                    type: 'Text',
-                    options: {
-                        placeholder: 'Field name',
-                    },
+                    type: 'Object',
                 },
             },
             /* wwEditor:start */
             bindingValidation: {
                 type: 'array',
-                tooltip: 'Array of field names (e.g. ["Body", "Subject"])',
+                tooltip:
+                    'Array of objects describing the available fields, including ID, Name, Type and DataSource details.',
             },
             propertyHelp: {
-                tooltip: 'List of fields that can be used when defining filter conditions',
+                tooltip:
+                    'Defina os campos disponíveis para seleção, seus tipos e como as opções devem ser carregadas.',
             },
             /* wwEditor:end */
         },
