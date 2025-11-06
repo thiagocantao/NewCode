@@ -119,7 +119,6 @@ export default {
             setQueryChanged: null,
             globalInitialQuery: undefined,
             globalQueryUnsubscribe: null,
-            fieldOptionsState: {},
             initialPublicQuerySnapshot: null,
             localQueryChanged: false,
         };
