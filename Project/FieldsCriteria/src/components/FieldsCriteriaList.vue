@@ -9,7 +9,13 @@
                         @change="onFieldChange(item, $event.target.value)"
                     >
                         <option value="">Select field</option>
-                        <option v-for="field in fields" :key="field.id" :value="field.id">{{ field.label }}</option>
+                        <option
+                            v-for="field in getAvailableFieldsForCondition(item)"
+                            :key="field.id"
+                            :value="field.id"
+                        >
+                            {{ field.label }}
+                        </option>
                     </select>
                     <div v-if="shouldRenderValue(item)" class="filter-condition__value-wrapper">
                         <QueryMultiSelect
@@ -145,6 +151,28 @@ export default {
         },
     },
     methods: {
+        getAvailableFieldsForCondition(condition) {
+            if (!Array.isArray(this.fields)) {
+                return [];
+            }
+            const usedFieldIds = new Set(
+                this.conditionItems
+                    .filter((item) => item && item.id !== condition.id && item.fieldId)
+                    .map((item) => item.fieldId),
+            );
+            return this.fields.filter((field) => {
+                if (!field || typeof field !== 'object') {
+                    return false;
+                }
+                if (!field.id) {
+                    return false;
+                }
+                if (condition.fieldId && field.id === condition.fieldId) {
+                    return true;
+                }
+                return !usedFieldIds.has(field.id);
+            });
+        },
         onFieldChange(condition, newFieldId) {
             this.$emit('update-condition', {
                 groupId: this.group.id,
