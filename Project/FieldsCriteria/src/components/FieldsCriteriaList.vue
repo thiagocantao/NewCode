@@ -8,8 +8,13 @@
                         :value="item.fieldId"
                         @change="onFieldChange(item, $event.target.value)"
                     >
-                        <option value="">Select field</option>
-                        <option v-for="field in fields" :key="field.id" :value="field.id">{{ field.label }}</option>
+                        <option
+                            v-for="field in getAvailableFieldsForCondition(item)"
+                            :key="field.id"
+                            :value="field.id"
+                        >
+                            {{ field.label }}
+                        </option>
                     </select>
                     <div v-if="shouldRenderValue(item)" class="filter-condition__value-wrapper">
                         <QueryMultiSelect
@@ -89,6 +94,8 @@
                 type="button"
                 class="filter-group__action"
                 :style="actionButtonStyles"
+                :disabled="isAddButtonDisabled"
+                :aria-disabled="isAddButtonDisabled ? 'true' : 'false'"
                 @click="$emit('add-condition', { groupId: group.id })"
             >
                 + Add new line
@@ -123,13 +130,19 @@ export default {
     emits: ['add-condition', 'remove-condition', 'update-condition'],
     computed: {
         actionButtonStyles() {
+            const disabled = this.isAddButtonDisabled;
             return {
-                cursor: 'pointer',
+                cursor: disabled ? 'not-allowed' : 'pointer',
                 '--filter-group-action-bg': this.actionButtonBackgroundColor,
                 '--filter-group-action-color': this.actionButtonTextColor,
                 '--filter-group-action-border': this.actionButtonBackgroundColor,
                 '--filter-group-action-hover-bg': this.actionButtonHoverBackgroundColor,
                 '--filter-group-action-hover-color': this.actionButtonHoverTextColor,
+                ...(disabled
+                    ? {
+                          opacity: '0.6',
+                      }
+                    : {}),
             };
         },
         removeButtonStyles() {
@@ -143,17 +156,75 @@ export default {
             }
             return this.group.conditions.filter((item) => item && item.type === 'condition');
         },
+        isAddButtonDisabled() {
+            if (!Array.isArray(this.fields) || !this.fields.length) {
+                return true;
+            }
+            const normalize = this.normalizeFieldId;
+            const usedFieldIds = new Set(
+                this.conditionItems
+                    .map((item) => normalize(item?.fieldId))
+                    .filter((fieldId) => Boolean(fieldId)),
+            );
+            const hasUnusedField = this.fields.some((field) => {
+                if (!field || typeof field !== 'object') {
+                    return false;
+                }
+                const normalizedFieldId = normalize(field.id);
+                if (!normalizedFieldId) {
+                    return false;
+                }
+                return !usedFieldIds.has(normalizedFieldId);
+            });
+            return !hasUnusedField;
+        },
     },
     methods: {
+        normalizeFieldId(value) {
+            if (value === null || value === undefined) {
+                return '';
+            }
+            return String(value);
+        },
+        getAvailableFieldsForCondition(condition) {
+            if (!Array.isArray(this.fields)) {
+                return [];
+            }
+            const normalize = this.normalizeFieldId;
+            const usedFieldIds = new Set(
+                this.conditionItems
+                    .filter((item) => item && item.id !== condition.id && item.fieldId)
+                    .map((item) => normalize(item.fieldId)),
+            );
+            return this.fields.filter((field) => {
+                if (!field || typeof field !== 'object') {
+                    return false;
+                }
+                if (!field.id) {
+                    return false;
+                }
+                const normalizedFieldId = normalize(field.id);
+                const normalizedConditionFieldId = normalize(condition.fieldId);
+                if (normalizedConditionFieldId && normalizedFieldId === normalizedConditionFieldId) {
+                    return true;
+                }
+                return !usedFieldIds.has(normalizedFieldId);
+            });
+        },
         onFieldChange(condition, newFieldId) {
+            const normalize = this.normalizeFieldId;
+            const matchedField = this.fields.find(
+                (field) => normalize(field?.id) === normalize(newFieldId),
+            );
+            const valueToEmit = matchedField?.id ?? newFieldId;
             this.$emit('update-condition', {
                 groupId: this.group.id,
                 conditionId: condition.id,
                 key: 'fieldId',
-                value: newFieldId,
+                value: valueToEmit,
             });
-            if (typeof this.ensureFieldOptionsLoaded === 'function' && newFieldId) {
-                this.ensureFieldOptionsLoaded(newFieldId);
+            if (typeof this.ensureFieldOptionsLoaded === 'function' && valueToEmit) {
+                this.ensureFieldOptionsLoaded(valueToEmit);
             }
         },
         onInputValueChange(condition, value) {
@@ -453,9 +524,20 @@ export default {
     color: var(--filter-group-action-color, #ffffff);
 }
 
-.filter-group__action:hover {
+.filter-group__action:not([disabled]):hover {
     background-color: var(--filter-group-action-hover-bg, #1d4ed8);
     color: var(--filter-group-action-hover-color, #ffffff);
     border-color: var(--filter-group-action-hover-bg, #1d4ed8);
+}
+
+.filter-group__action[disabled] {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.filter-group__action[disabled]:hover {
+    background-color: var(--filter-group-action-bg, #2563eb);
+    color: var(--filter-group-action-color, #ffffff);
+    border-color: var(--filter-group-action-border, transparent);
 }
 </style>
