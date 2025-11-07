@@ -16,7 +16,11 @@
                             {{ field.label }}
                         </option>
                     </select>
-                    <div v-if="shouldRenderValue(item)" class="filter-condition__value-wrapper">
+                    <div
+                        v-if="shouldRenderValue(item)"
+                        class="filter-condition__value-wrapper"
+                        :class="{ 'filter-condition__value-wrapper--date': isDateLikeField(item) }"
+                    >
                         <QueryMultiSelect
                             v-if="shouldUseCustomListSelect(item)"
                             class="filter-condition__value"
@@ -488,6 +492,11 @@ export default {
     gap: 4px;
     min-width: 200px;
     flex: 1 1 220px;
+}
+
+.filter-condition__value-wrapper--date {
+    min-width: auto;
+    flex: 0 0 auto;
 }
 
 .filter-condition__error {
