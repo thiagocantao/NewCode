@@ -121,6 +121,7 @@ export default {
             globalQueryUnsubscribe: null,
             initialPublicQuerySnapshot: null,
             localQueryChanged: false,
+            fieldOptionsState: {},
         };
     },
     computed: {
@@ -392,6 +393,9 @@ export default {
                 return;
             }
             const nextFieldId = this.findFirstAvailableFieldId(targetGroup);
+            if (!nextFieldId) {
+                return;
+            }
             const condition = this.createCondition(nextFieldId);
             targetGroup.conditions.push(condition);
             if (condition.fieldId) {
