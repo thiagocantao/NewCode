@@ -318,7 +318,10 @@ export default {
             const updated = this.cloneGroup(this.localRootGroup);
             let changed = false;
             const availableIds = newFields.map((field) => field.id);
-            const defaultFieldId = availableIds[0] || '';
+            const availableNormalizedIds = new Set(
+                availableIds.map((fieldId) => this.normalizeFieldId(fieldId)),
+            );
+            const usedIds = new Set();
             this.iterateConditions(updated, (condition) => {
                 if (!availableIds.length) {
                     if (condition.fieldId !== '') {
@@ -328,23 +331,47 @@ export default {
                     }
                     return;
                 }
-                if (!availableIds.includes(condition.fieldId)) {
-                    condition.fieldId = defaultFieldId;
+                const normalizedCurrentId = this.normalizeFieldId(condition.fieldId);
+                let nextFieldId = '';
+                if (
+                    normalizedCurrentId &&
+                    availableNormalizedIds.has(normalizedCurrentId) &&
+                    !usedIds.has(normalizedCurrentId)
+                ) {
+                    nextFieldId = condition.fieldId;
+                } else {
+                    nextFieldId = this.findFirstAvailableFieldId(updated, {
+                        excludeConditionId: condition.id,
+                        usedIds,
+                    });
+                }
+                const normalizedNextId = this.normalizeFieldId(nextFieldId);
+                if (condition.fieldId !== nextFieldId) {
+                    condition.fieldId = nextFieldId;
                     condition.value = this.normalizeConditionValue(condition.fieldId, null);
                     if (condition.fieldId) {
                         this.ensureFieldOptionsLoaded(condition.fieldId);
                     }
                     changed = true;
-                    return;
+                } else {
+                    const normalizedValue = this.normalizeConditionValue(
+                        condition.fieldId,
+                        condition.value,
+                    );
+                    if (!this.valuesAreEqual(condition.value, normalizedValue)) {
+                        condition.value = normalizedValue;
+                        changed = true;
+                    }
+                    if (condition.fieldId) {
+                        this.ensureFieldOptionsLoaded(condition.fieldId);
+                    }
                 }
-                const normalizedValue = this.normalizeConditionValue(condition.fieldId, condition.value);
-                if (!this.valuesAreEqual(condition.value, normalizedValue)) {
-                    condition.value = normalizedValue;
-                    changed = true;
+                if (normalizedNextId) {
+                    usedIds.add(normalizedNextId);
                 }
             });
             if (!updated.conditions.length && availableIds.length) {
-                const condition = this.createCondition();
+                const condition = this.createCondition(this.findFirstAvailableFieldId(updated));
                 updated.conditions.push(condition);
                 if (condition.fieldId) {
                     this.ensureFieldOptionsLoaded(condition.fieldId);
@@ -364,7 +391,8 @@ export default {
             if (!targetGroup) {
                 return;
             }
-            const condition = this.createCondition();
+            const nextFieldId = this.findFirstAvailableFieldId(targetGroup);
+            const condition = this.createCondition(nextFieldId);
             targetGroup.conditions.push(condition);
             if (condition.fieldId) {
                 this.ensureFieldOptionsLoaded(condition.fieldId);
@@ -382,7 +410,9 @@ export default {
             }
             targetGroup.conditions = targetGroup.conditions.filter((item) => item.id !== conditionId);
             if (!targetGroup.conditions.length) {
-                const condition = this.createCondition();
+                const condition = this.createCondition(
+                    this.findFirstAvailableFieldId(targetGroup),
+                );
                 targetGroup.conditions.push(condition);
                 if (condition.fieldId) {
                     this.ensureFieldOptionsLoaded(condition.fieldId);
@@ -816,9 +846,9 @@ export default {
                 value,
             };
         },
-        createCondition() {
-            const defaultField = this.normalizedFields[0] || null;
-            const fieldId = defaultField ? defaultField.id : '';
+        createCondition(preferredFieldId = undefined) {
+            const fieldId =
+                preferredFieldId === undefined ? this.getDefaultFieldId() : preferredFieldId || '';
             const value = this.normalizeConditionValue(fieldId, null);
             return {
                 id: this.createId(),
@@ -826,6 +856,39 @@ export default {
                 fieldId,
                 value,
             };
+        },
+        getDefaultFieldId() {
+            const defaultField = this.normalizedFields[0] || null;
+            return defaultField ? defaultField.id : '';
+        },
+        normalizeFieldId(fieldId) {
+            if (fieldId === null || fieldId === undefined) {
+                return '';
+            }
+            return String(fieldId);
+        },
+        findFirstAvailableFieldId(group, { excludeConditionId = null, usedIds = null } = {}) {
+            const taken = new Set();
+            if (usedIds) {
+                Array.from(usedIds).forEach((value) => {
+                    taken.add(this.normalizeFieldId(value));
+                });
+            }
+            if (group && Array.isArray(group.conditions)) {
+                group.conditions.forEach((item) => {
+                    if (
+                        item?.type === 'condition' &&
+                        item.id !== excludeConditionId &&
+                        item.fieldId
+                    ) {
+                        taken.add(this.normalizeFieldId(item.fieldId));
+                    }
+                });
+            }
+            const nextField = this.normalizedFields.find(
+                (field) => !taken.has(this.normalizeFieldId(field.id)),
+            );
+            return nextField ? nextField.id : '';
         },
         createId() {
             return `node_${Math.random().toString(36).slice(2, 10)}`;

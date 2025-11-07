@@ -9,7 +9,13 @@
                         @change="onFieldChange(item, $event.target.value)"
                     >
                         <option value="">Select field</option>
-                        <option v-for="field in fields" :key="field.id" :value="field.id">{{ field.label }}</option>
+                        <option
+                            v-for="field in getAvailableFieldsForCondition(item)"
+                            :key="field.id"
+                            :value="field.id"
+                        >
+                            {{ field.label }}
+                        </option>
                     </select>
                     <div v-if="shouldRenderValue(item)" class="filter-condition__value-wrapper">
                         <QueryMultiSelect
@@ -145,15 +151,51 @@ export default {
         },
     },
     methods: {
+        normalizeFieldId(value) {
+            if (value === null || value === undefined) {
+                return '';
+            }
+            return String(value);
+        },
+        getAvailableFieldsForCondition(condition) {
+            if (!Array.isArray(this.fields)) {
+                return [];
+            }
+            const normalize = this.normalizeFieldId;
+            const usedFieldIds = new Set(
+                this.conditionItems
+                    .filter((item) => item && item.id !== condition.id && item.fieldId)
+                    .map((item) => normalize(item.fieldId)),
+            );
+            return this.fields.filter((field) => {
+                if (!field || typeof field !== 'object') {
+                    return false;
+                }
+                if (!field.id) {
+                    return false;
+                }
+                const normalizedFieldId = normalize(field.id);
+                const normalizedConditionFieldId = normalize(condition.fieldId);
+                if (normalizedConditionFieldId && normalizedFieldId === normalizedConditionFieldId) {
+                    return true;
+                }
+                return !usedFieldIds.has(normalizedFieldId);
+            });
+        },
         onFieldChange(condition, newFieldId) {
+            const normalize = this.normalizeFieldId;
+            const matchedField = this.fields.find(
+                (field) => normalize(field?.id) === normalize(newFieldId),
+            );
+            const valueToEmit = matchedField?.id ?? newFieldId;
             this.$emit('update-condition', {
                 groupId: this.group.id,
                 conditionId: condition.id,
                 key: 'fieldId',
-                value: newFieldId,
+                value: valueToEmit,
             });
-            if (typeof this.ensureFieldOptionsLoaded === 'function' && newFieldId) {
-                this.ensureFieldOptionsLoaded(newFieldId);
+            if (typeof this.ensureFieldOptionsLoaded === 'function' && valueToEmit) {
+                this.ensureFieldOptionsLoaded(valueToEmit);
             }
         },
         onInputValueChange(condition, value) {
