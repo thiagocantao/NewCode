@@ -1062,6 +1062,9 @@ export default {
                     return rawValue.label;
                 }
             }
+            if (this.isDateLikeFieldType(fieldType)) {
+                return this.formatDateLikeValueForDisplay(rawValue, fieldType);
+            }
             return rawValue;
         },
         isListFieldType(type) {
@@ -1075,6 +1078,100 @@ export default {
                 default:
                     return false;
             }
+        },
+        isDateLikeFieldType(type) {
+            const normalized = String(type || '').toUpperCase();
+            switch (normalized) {
+                case 'DATE':
+                case 'DATETIME':
+                case 'DATE_TIME':
+                case 'TIME':
+                    return true;
+                default:
+                    return false;
+            }
+        },
+        formatDateLikeValueForDisplay(rawValue, fieldType) {
+            const normalized = String(fieldType || '').toUpperCase();
+            if (normalized === 'DATE') {
+                return this.formatDateOnlyForDisplay(rawValue);
+            }
+            if (normalized === 'DATETIME' || normalized === 'DATE_TIME') {
+                return this.formatDateTimeForDisplay(rawValue);
+            }
+            if (normalized === 'TIME') {
+                return this.formatTimeForDisplay(rawValue);
+            }
+            return rawValue;
+        },
+        formatDateOnlyForDisplay(rawValue) {
+            const normalized = this.normalizeDateOnlyValue(rawValue);
+            if (!normalized) {
+                return '';
+            }
+            return this.formatDateByStyle(normalized);
+        },
+        formatDateTimeForDisplay(rawValue) {
+            const normalized = this.normalizeDateTimeValue(rawValue);
+            if (!normalized) {
+                return '';
+            }
+            const [datePart] = normalized.split('T');
+            const formattedDate = this.formatDateByStyle(datePart);
+            const timePart = this.extractTimeFromDateTime(normalized);
+            return timePart ? `${formattedDate} ${timePart}` : formattedDate;
+        },
+        formatTimeForDisplay(rawValue) {
+            if (rawValue === undefined || rawValue === null) {
+                return '';
+            }
+            const str = String(rawValue).trim();
+            if (!str) {
+                return '';
+            }
+            const match = str.match(/([0-9]{2}:[0-9]{2})/);
+            return match ? match[1] : str;
+        },
+        extractTimeFromDateTime(value) {
+            if (!value) {
+                return '';
+            }
+            const str = String(value);
+            const match = str.match(/T?([0-9]{2}:[0-9]{2})/);
+            return match ? match[1] : '';
+        },
+        formatDateByStyle(yyyyMmDd) {
+            if (!yyyyMmDd) {
+                return '';
+            }
+            const parts = String(yyyyMmDd).split('-');
+            if (parts.length < 3) {
+                return String(yyyyMmDd);
+            }
+            const [year, month, day] = parts;
+            const y = year.padStart(4, '0');
+            const m = month.padStart(2, '0');
+            const d = day.padStart(2, '0');
+            return this.getDateFormatStyle() === 'american' ? `${m}/${d}/${y}` : `${d}/${m}/${y}`;
+        },
+        getDateFormatStyle() {
+            const fallback = 'european';
+            try {
+                if (typeof window === 'undefined') {
+                    return fallback;
+                }
+                const wwVariable = window?.wwLib?.wwVariable;
+                if (!wwVariable || typeof wwVariable.getValue !== 'function') {
+                    return fallback;
+                }
+                const raw = wwVariable.getValue('21a41590-e7d8-46a5-af76-bb3542da1df3');
+                if (typeof raw === 'string' && raw.trim().toLowerCase() === 'american') {
+                    return 'american';
+                }
+            } catch (error) {
+                console.warn('[FieldsCriteria] Failed to read date format style', error);
+            }
+            return fallback;
         },
         getFieldOptionLabel(fieldId, rawValue) {
             if (!fieldId) {
