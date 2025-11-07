@@ -35,6 +35,57 @@ const DEFAULT_CLAUSE = 'AND';
 const DEFAULT_OPERATOR = '=';
 const DEFAULT_OPERATOR_LABEL = '=';
 
+function resolveFieldsConfigArray(rawInput) {
+    if (Array.isArray(rawInput)) {
+        return rawInput;
+    }
+
+    if (rawInput === null || rawInput === undefined) {
+        return [];
+    }
+
+    if (typeof rawInput === 'string') {
+        const trimmed = rawInput.trim();
+        if (!trimmed.length) {
+            return [];
+        }
+        try {
+            const parsed = JSON.parse(trimmed);
+            if (Array.isArray(parsed)) {
+                return parsed;
+            }
+            if (parsed && typeof parsed === 'object') {
+                if (Array.isArray(parsed.fieldsConfig)) {
+                    return parsed.fieldsConfig;
+                }
+                if (Array.isArray(parsed.items)) {
+                    return parsed.items;
+                }
+                if (Array.isArray(parsed.data)) {
+                    return parsed.data;
+                }
+            }
+        } catch (error) {
+            console.warn('[FieldsCriteria] Failed to parse fieldsConfig JSON', error);
+        }
+        return [];
+    }
+
+    if (typeof rawInput === 'object') {
+        if (Array.isArray(rawInput.fieldsConfig)) {
+            return rawInput.fieldsConfig;
+        }
+        if (Array.isArray(rawInput.items)) {
+            return rawInput.items;
+        }
+        if (Array.isArray(rawInput.data)) {
+            return rawInput.data;
+        }
+    }
+
+    return [];
+}
+
 function normalizeOption(option) {
     if (!option) {
         return null;
@@ -198,11 +249,14 @@ export default {
         };
     },
     computed: {
+        resolvedFieldsConfig() {
+            return resolveFieldsConfigArray(this.content?.fieldsConfig);
+        },
         normalizedFields() {
-            if (!Array.isArray(this.content?.fieldsConfig)) {
+            if (!Array.isArray(this.resolvedFieldsConfig)) {
                 return [];
             }
-            return this.content.fieldsConfig
+            return this.resolvedFieldsConfig
                 .map((field, index) => normalizeFieldDefinition(field, index))
                 .filter(Boolean);
         },
