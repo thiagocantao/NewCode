@@ -474,6 +474,7 @@ export default {
     border-bottom: 1px solid #ccc !important;
     border: 0px;
     border-radius: 4px;
+    outline: 1px solid transparent;
 }
 
 .dp-input.error {
