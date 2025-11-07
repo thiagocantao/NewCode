@@ -463,7 +463,7 @@ export default {
 
 .filter-condition__field,
 .filter-condition__value {
-    padding: 6px 8px;
+    padding: 0px 8px;
     border: 1px solid #e0e0e0;
     border-radius: 4px;
     outline: 1px solid transparent;
