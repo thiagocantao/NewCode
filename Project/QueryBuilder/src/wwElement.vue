@@ -37,6 +37,7 @@ import {
 } from './components/dataSource';
 
 const INITIAL_QUERY_VARIABLE_ID = '4b4cff47-4599-44d2-a788-0e31ef09ed9f';
+const FIELDS_CONFIG_VARIABLE_ID = '930ca6b8-38cf-450c-82e2-3be15f15b60a';
 
 const CLAUSE_OPTIONS = [
     { value: 'AND', label: 'AND' },
@@ -76,6 +77,57 @@ const DEFAULT_OPERATORS_BY_TYPE = {
     TIME: ['=', '<>', '>', '>=', '<', '<=', 'BETWEEN', 'IS_NULL', 'IS_NOT_NULL'],
     BOOLEAN: ['=', '<>', 'IS_NULL', 'IS_NOT_NULL'],
 };
+
+function resolveFieldsConfigArray(rawInput) {
+    if (Array.isArray(rawInput)) {
+        return rawInput;
+    }
+
+    if (rawInput === null || rawInput === undefined) {
+        return [];
+    }
+
+    if (typeof rawInput === 'string') {
+        const trimmed = rawInput.trim();
+        if (!trimmed.length) {
+            return [];
+        }
+        try {
+            const parsed = JSON.parse(trimmed);
+            if (Array.isArray(parsed)) {
+                return parsed;
+            }
+            if (parsed && typeof parsed === 'object') {
+                if (Array.isArray(parsed.fieldsConfig)) {
+                    return parsed.fieldsConfig;
+                }
+                if (Array.isArray(parsed.items)) {
+                    return parsed.items;
+                }
+                if (Array.isArray(parsed.data)) {
+                    return parsed.data;
+                }
+            }
+        } catch (error) {
+            console.warn('[QueryBuilder] Failed to parse fieldsConfig JSON', error);
+        }
+        return [];
+    }
+
+    if (typeof rawInput === 'object') {
+        if (Array.isArray(rawInput.fieldsConfig)) {
+            return rawInput.fieldsConfig;
+        }
+        if (Array.isArray(rawInput.items)) {
+            return rawInput.items;
+        }
+        if (Array.isArray(rawInput.data)) {
+            return rawInput.data;
+        }
+    }
+
+    return [];
+}
 
 function normalizeOption(option) {
     if (!option) {
@@ -171,14 +223,29 @@ export default {
             fieldOptionsState: {},
             initialPublicQuerySnapshot: null,
             localQueryChanged: false,
+            fieldsConfigVariableValue: undefined,
+            fieldsConfigVariableUnsubscribe: null,
         };
     },
     computed: {
+        fieldsConfigFromVariable() {
+            if (this.fieldsConfigVariableValue === undefined) {
+                return undefined;
+            }
+            return resolveFieldsConfigArray(this.fieldsConfigVariableValue);
+        },
+        resolvedFieldsConfig() {
+            const fromVariable = this.fieldsConfigFromVariable;
+            if (fromVariable !== undefined) {
+                return fromVariable;
+            }
+            return resolveFieldsConfigArray(this.content?.fieldsConfig);
+        },
         normalizedFields() {
-            if (!Array.isArray(this.content?.fieldsConfig)) {
+            if (!Array.isArray(this.resolvedFieldsConfig)) {
                 return [];
             }
-            return this.content.fieldsConfig
+            return this.resolvedFieldsConfig
                 .map((field, index) => normalizeFieldDefinition(field, index))
                 .filter(Boolean);
         },
@@ -219,6 +286,7 @@ export default {
         },
     },
     created() {
+        this.initializeFieldsConfigVariable();
         this.refreshFieldOptionsState(this.normalizedFields);
         this.initializeGlobalInitialQuery();
         this.initializeRootGroup();
@@ -226,9 +294,11 @@ export default {
     },
     beforeDestroy() {
         this.teardownGlobalInitialQuery();
+        this.teardownFieldsConfigVariable();
     },
     beforeUnmount() {
         this.teardownGlobalInitialQuery();
+        this.teardownFieldsConfigVariable();
     },
     watch: {
         'content.rootGroup': {
@@ -243,6 +313,12 @@ export default {
             },
             deep: true,
         },
+        'wwElementState.props.variables': {
+            handler() {
+                this.updateFieldsConfigVariableValue();
+            },
+            deep: true,
+        },
         normalizedFields: {
             handler(newFields, oldFields) {
                 this.refreshFieldOptionsState(newFields, oldFields);
@@ -252,6 +328,80 @@ export default {
         },
     },
     methods: {
+        initializeFieldsConfigVariable() {
+            this.updateFieldsConfigVariableValue();
+            this.subscribeToFieldsConfigVariable();
+        },
+        updateFieldsConfigVariableValue() {
+            const value = this.readVariableById(FIELDS_CONFIG_VARIABLE_ID);
+            if (value === undefined) {
+                this.fieldsConfigVariableValue = undefined;
+                return;
+            }
+            if (value && typeof value === 'object') {
+                try {
+                    this.fieldsConfigVariableValue = JSON.parse(JSON.stringify(value));
+                    return;
+                } catch (error) {
+                    console.warn('[QueryBuilder] Failed to clone fields configuration variable payload', error);
+                }
+            }
+            this.fieldsConfigVariableValue = value;
+        },
+        subscribeToFieldsConfigVariable() {
+            const wwVariable = typeof window !== 'undefined' ? window?.wwLib?.wwVariable : undefined;
+            if (!wwVariable || typeof wwVariable.subscribe !== 'function') {
+                return;
+            }
+            try {
+                this.fieldsConfigVariableUnsubscribe = wwVariable.subscribe(
+                    FIELDS_CONFIG_VARIABLE_ID,
+                    () => {
+                        this.updateFieldsConfigVariableValue();
+                    },
+                );
+            } catch (error) {
+                console.warn('[QueryBuilder] Failed to subscribe to fields configuration variable', error);
+                this.fieldsConfigVariableUnsubscribe = null;
+            }
+        },
+        teardownFieldsConfigVariable() {
+            if (typeof this.fieldsConfigVariableUnsubscribe === 'function') {
+                try {
+                    this.fieldsConfigVariableUnsubscribe();
+                } catch (error) {
+                    console.warn('[QueryBuilder] Failed to unsubscribe fields configuration variable listener', error);
+                }
+            }
+            this.fieldsConfigVariableUnsubscribe = null;
+        },
+        readVariableById(variableId) {
+            if (!variableId) {
+                return undefined;
+            }
+            const wwVariable = typeof window !== 'undefined' ? window?.wwLib?.wwVariable : undefined;
+            if (wwVariable) {
+                try {
+                    const getValue = wwVariable?.getValue;
+                    const getComponentValue = wwVariable?.getComponentValue;
+                    const getFallback = wwVariable?.get;
+                    return typeof getValue === 'function'
+                        ? getValue.call(wwVariable, variableId)
+                        : typeof getComponentValue === 'function'
+                        ? getComponentValue.call(wwVariable, variableId)
+                        : typeof getFallback === 'function'
+                        ? getFallback.call(wwVariable, variableId)
+                        : undefined;
+                } catch (error) {
+                    console.warn(`[QueryBuilder] Failed to read variable ${variableId}`, error);
+                }
+            }
+            const stateVariables = this.wwElementState?.props?.variables;
+            if (stateVariables && Object.prototype.hasOwnProperty.call(stateVariables, variableId)) {
+                return stateVariables[variableId];
+            }
+            return undefined;
+        },
         getInitialQuerySource(override) {
             if (override !== undefined) {
                 return override;

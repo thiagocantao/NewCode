@@ -31,6 +31,7 @@ import {
 } from './components/dataSource';
 
 const DEFAULT_INITIAL_QUERY_VARIABLE_ID = '4b4cff47-4599-44d2-a788-0e31ef09ed9f';
+const FIELDS_CONFIG_VARIABLE_ID = 'b839531d-663a-4dd8-8cac-51f664c77256';
 const DEFAULT_CLAUSE = 'AND';
 const DEFAULT_OPERATOR = '=';
 const DEFAULT_OPERATOR_LABEL = '=';
@@ -286,12 +287,24 @@ export default {
             localQueryChanged: false,
             fieldOptionsState: {},
             collectionFieldsConfig: null,
+            fieldsConfigVariableValue: undefined,
+            fieldsConfigVariableUnsubscribe: null,
         };
     },
     computed: {
+        fieldsConfigFromVariable() {
+            if (this.fieldsConfigVariableValue === undefined) {
+                return undefined;
+            }
+            return resolveFieldsConfigArray(this.fieldsConfigVariableValue);
+        },
         resolvedFieldsConfig() {
             if (this.collectionFieldsConfig !== null) {
                 return this.collectionFieldsConfig;
+            }
+            const fromVariable = this.fieldsConfigFromVariable;
+            if (fromVariable !== undefined) {
+                return fromVariable;
             }
             return resolveFieldsConfigArray(this.content?.fieldsConfig);
         },
@@ -347,6 +360,7 @@ export default {
         },
     },
     created() {
+        this.initializeFieldsConfigVariable();
         this.loadFieldsConfigFromCollection();
         this.refreshFieldOptionsState(this.normalizedFields);
         this.initializeGlobalInitialQuery();
@@ -355,9 +369,11 @@ export default {
     },
     beforeDestroy() {
         this.teardownGlobalInitialQuery();
+        this.teardownFieldsConfigVariable();
     },
     beforeUnmount() {
         this.teardownGlobalInitialQuery();
+        this.teardownFieldsConfigVariable();
     },
     watch: {
         'content.rootGroup': {
@@ -376,6 +392,12 @@ export default {
             handler() {
                 this.loadFieldsConfigFromCollection();
             },
+        },
+        'wwElementState.props.variables': {
+            handler() {
+                this.updateFieldsConfigVariableValue();
+            },
+            deep: true,
         },
         initialQueryVariableId(newId, oldId) {
             if (newId === oldId) {
@@ -613,6 +635,80 @@ export default {
                 console.warn('[FieldsCriteria] Failed to load fields configuration from collection', error);
                 this.collectionFieldsConfig = [];
             }
+        },
+        initializeFieldsConfigVariable() {
+            this.updateFieldsConfigVariableValue();
+            this.subscribeToFieldsConfigVariable();
+        },
+        updateFieldsConfigVariableValue() {
+            const value = this.readVariableById(FIELDS_CONFIG_VARIABLE_ID);
+            if (value === undefined) {
+                this.fieldsConfigVariableValue = undefined;
+                return;
+            }
+            if (value && typeof value === 'object') {
+                try {
+                    this.fieldsConfigVariableValue = JSON.parse(JSON.stringify(value));
+                    return;
+                } catch (error) {
+                    console.warn('[FieldsCriteria] Failed to clone fields configuration variable payload', error);
+                }
+            }
+            this.fieldsConfigVariableValue = value;
+        },
+        subscribeToFieldsConfigVariable() {
+            const wwVariable = typeof window !== 'undefined' ? window?.wwLib?.wwVariable : undefined;
+            if (!wwVariable || typeof wwVariable.subscribe !== 'function') {
+                return;
+            }
+            try {
+                this.fieldsConfigVariableUnsubscribe = wwVariable.subscribe(
+                    FIELDS_CONFIG_VARIABLE_ID,
+                    () => {
+                        this.updateFieldsConfigVariableValue();
+                    },
+                );
+            } catch (error) {
+                console.warn('[FieldsCriteria] Failed to subscribe to fields configuration variable', error);
+                this.fieldsConfigVariableUnsubscribe = null;
+            }
+        },
+        teardownFieldsConfigVariable() {
+            if (typeof this.fieldsConfigVariableUnsubscribe === 'function') {
+                try {
+                    this.fieldsConfigVariableUnsubscribe();
+                } catch (error) {
+                    console.warn('[FieldsCriteria] Failed to unsubscribe fields configuration variable listener', error);
+                }
+            }
+            this.fieldsConfigVariableUnsubscribe = null;
+        },
+        readVariableById(variableId) {
+            if (!variableId) {
+                return undefined;
+            }
+            const wwVariable = typeof window !== 'undefined' ? window?.wwLib?.wwVariable : undefined;
+            if (wwVariable) {
+                try {
+                    const getValue = wwVariable?.getValue;
+                    const getComponentValue = wwVariable?.getComponentValue;
+                    const getFallback = wwVariable?.get;
+                    return typeof getValue === 'function'
+                        ? getValue.call(wwVariable, variableId)
+                        : typeof getComponentValue === 'function'
+                        ? getComponentValue.call(wwVariable, variableId)
+                        : typeof getFallback === 'function'
+                        ? getFallback.call(wwVariable, variableId)
+                        : undefined;
+                } catch (error) {
+                    console.warn(`[FieldsCriteria] Failed to read variable ${variableId}`, error);
+                }
+            }
+            const stateVariables = this.wwElementState?.props?.variables;
+            if (stateVariables && Object.prototype.hasOwnProperty.call(stateVariables, variableId)) {
+                return stateVariables[variableId];
+            }
+            return undefined;
         },
         handleAddCondition({ groupId }) {
             if (!this.localRootGroup) {
