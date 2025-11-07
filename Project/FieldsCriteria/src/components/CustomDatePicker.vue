@@ -360,22 +360,23 @@ export default {
 
 .dp-wrapper {
   position: relative;
+  max-width: 180px;
   width: 100%;
-  font-family: 'Roboto', sans-serif;
   font-size: 14px;
 }
 
 .dp-input {
-  display: block;
-  width: 100%;
-  padding-left: 5px;
-  padding-right: 30px;
-  height: 35px;
-  cursor: pointer;
-  font-family: 'Roboto', sans-serif;
-  font-size: 13px;
-  border: 1px solid #ccc; /* borda fina e cinza escura */
-  border-radius: 4px;
+    display: flex;
+    width: 100%;
+    padding-left: 5px;
+    padding-right: 30px;
+    height: 35px;
+    cursor: pointer;
+    font-family: "Roboto",sans-serif;
+    font-size: 13px;
+    border-bottom: 1px solid #ccc !important;
+    border: 0px;
+    border-radius: 4px;
 }
 
 .dp-input.error {
