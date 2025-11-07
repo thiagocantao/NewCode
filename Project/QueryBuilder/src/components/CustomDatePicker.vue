@@ -115,18 +115,115 @@ export default {
     const selectedDate = ref('');
     const timePart = ref('00:00');
 
+    const sanitizeDateOnly = (raw) => {
+      if (!raw) return '';
+      if (raw instanceof Date && !Number.isNaN(raw.getTime())) {
+        return toYMD(raw);
+      }
+      const str = String(raw).trim();
+      if (!str) return '';
+      if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+        return str;
+      }
+      if (/^\d{4}-\d{2}-\d{2}T/.test(str)) {
+        return str.slice(0, 10);
+      }
+      const parsed = new Date(str);
+      if (Number.isNaN(parsed.getTime())) {
+        return '';
+      }
+      return toYMD(parsed);
+    };
+
+    const sanitizeTime = (raw) => {
+      if (!raw) return '';
+      if (raw instanceof Date && !Number.isNaN(raw.getTime())) {
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${pad(raw.getHours())}:${pad(raw.getMinutes())}`;
+      }
+      const match = String(raw).match(/([0-9]{1,2}):([0-9]{2})/);
+      if (!match) {
+        return '';
+      }
+      const clamp = (value, min, max) => {
+        const num = Number.parseInt(value, 10);
+        if (Number.isNaN(num)) {
+          return min;
+        }
+        return Math.min(Math.max(num, min), max);
+      };
+      const hours = clamp(match[1], 0, 23);
+      const minutes = clamp(match[2], 0, 59);
+      const pad = (n) => String(n).padStart(2, '0');
+      return `${pad(hours)}:${pad(minutes)}`;
+    };
+
+    const splitModelValue = (raw) => {
+      if (raw === null || raw === undefined || raw === '') {
+        return { date: '', time: '' };
+      }
+      if (raw instanceof Date && !Number.isNaN(raw.getTime())) {
+        return {
+          date: toYMD(raw),
+          time: sanitizeTime(raw),
+        };
+      }
+      const str = String(raw).trim();
+      if (!str) {
+        return { date: '', time: '' };
+      }
+      const [dateCandidate, timeCandidate] = str.split('T');
+      const date = sanitizeDateOnly(dateCandidate || str);
+      const time = sanitizeTime(timeCandidate || '');
+      if (date) {
+        return { date, time };
+      }
+      const parsed = new Date(str);
+      if (Number.isNaN(parsed.getTime())) {
+        return { date: '', time: '' };
+      }
+      return {
+        date: toYMD(parsed),
+        time: sanitizeTime(parsed),
+      };
+    };
+
+    const ensureTime = (value) => (value && value.length ? value : '00:00');
+
     watch(
       () => props.modelValue,
-      v => {
+      (v) => {
+        const { date, time } = splitModelValue(v);
+        selectedDate.value = date;
         if (props.showTime) {
-          const [d, t] = (v || '').split('T');
-          selectedDate.value = d || '';
-          timePart.value = t ? t.slice(0,5) : '00:00';
+          timePart.value = ensureTime(time);
         } else {
-          selectedDate.value = v || '';
+          timePart.value = '00:00';
         }
       },
       { immediate: true }
+    );
+
+    watch(
+      () => props.showTime,
+      (showTime) => {
+        const { date, time } = splitModelValue(props.modelValue);
+        if (!showTime) {
+          selectedDate.value = date;
+          timePart.value = '00:00';
+          const dateOnly = date || '';
+          if (props.modelValue && props.modelValue !== dateOnly) {
+            emit('update:modelValue', dateOnly);
+          }
+          return;
+        }
+        selectedDate.value = date;
+        const normalizedTime = ensureTime(time);
+        timePart.value = normalizedTime;
+        if (date && (!props.modelValue || !time)) {
+          emit('update:modelValue', `${date}T${normalizedTime}`);
+        }
+      }
     );
 
     const dpMonth = ref(0);
@@ -203,7 +300,9 @@ export default {
         emit('update:modelValue', '');
         return;
       }
-      const val = props.showTime ? `${selectedDate.value}T${timePart.value}` : selectedDate.value;
+      const val = props.showTime
+        ? `${selectedDate.value}T${ensureTime(sanitizeTime(timePart.value))}`
+        : selectedDate.value;
       emit('update:modelValue', val);
     }
 
@@ -262,8 +361,7 @@ export default {
       dpMonth.value = base.getMonth();
       dpYear.value = base.getFullYear();
       if(props.showTime && !selectedDate.value){
-        const pad = n => String(n).padStart(2,'0');
-        timePart.value = `${pad(base.getHours())}:${pad(base.getMinutes())}`;
+        timePart.value = ensureTime(sanitizeTime(base));
       }
       dpOpen.value = true;
       nextTick(() => {
@@ -290,8 +388,7 @@ export default {
       const now = new Date();
       selectedDate.value = toYMD(now);
       if(props.showTime){
-        const pad = n => String(n).padStart(2,'0');
-        timePart.value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+        timePart.value = sanitizeTime(now);
       }
       emitValue();
       closeDp();
@@ -304,7 +401,7 @@ export default {
     }
 
     function onTimeInput(e){
-      timePart.value = e.target.value;
+      timePart.value = ensureTime(sanitizeTime(e.target.value));
       emitValue();
     }
 
@@ -323,7 +420,7 @@ export default {
     const displayDate = computed(() => {
       if (!selectedDate.value) return '';
       const base = formatDateByStyle(selectedDate.value, formatStyle);
-      return props.showTime ? `${base} ${timePart.value}` : base;
+      return props.showTime ? `${base} ${ensureTime(timePart.value)}` : base;
     });
 
     return {
@@ -360,22 +457,23 @@ export default {
 
 .dp-wrapper {
   position: relative;
+  max-width: 180px;
   width: 100%;
-  font-family: 'Roboto', sans-serif;
   font-size: 14px;
 }
 
 .dp-input {
-  display: block;
-  width: 100%;
-  padding-left: 5px;
-  padding-right: 30px;
-  height: 35px;
-  cursor: pointer;
-  font-family: 'Roboto', sans-serif;
-  font-size: 13px;
-  border: 1px solid #ccc; /* borda fina e cinza escura */
-  border-radius: 4px;
+    display: flex;
+    width: 100%;
+    padding-left: 5px;
+    padding-right: 30px;
+    height: 35px;
+    cursor: pointer;
+    font-family: "Roboto",sans-serif;
+    font-size: 13px;
+    border-bottom: 1px solid #ccc !important;
+    border: 0px;
+    border-radius: 4px;
 }
 
 .dp-input.error {
