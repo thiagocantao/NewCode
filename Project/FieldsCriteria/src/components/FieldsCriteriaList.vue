@@ -376,11 +376,14 @@ export default {
         normalizeDateValue(condition) {
             const field = this.getFieldDefinition(condition.fieldId);
             const normalizedType = String(field?.type || '').toUpperCase();
-            if (normalizedType === 'DATE' || normalizedType === 'DATETIME' || normalizedType === 'DATE_TIME') {
-                if (Array.isArray(condition.value)) {
-                    return condition.value[0] ?? '';
-                }
-                return condition.value ?? '';
+            const rawValue = Array.isArray(condition.value)
+                ? condition.value[0] ?? ''
+                : condition.value ?? '';
+            if (normalizedType === 'DATE') {
+                return this.coerceDateOnlyValue(rawValue);
+            }
+            if (normalizedType === 'DATETIME' || normalizedType === 'DATE_TIME') {
+                return this.coerceDateTimeValue(rawValue);
             }
             return this.normalizeInputValue(condition);
         },
@@ -420,6 +423,55 @@ export default {
                 return normalized.includes(stringValue);
             }
             return normalized === stringValue;
+        },
+        coerceDateOnlyValue(rawValue) {
+            if (rawValue === null || rawValue === undefined || rawValue === '') {
+                return '';
+            }
+            if (rawValue instanceof Date && !Number.isNaN(rawValue.getTime())) {
+                return rawValue.toISOString().slice(0, 10);
+            }
+            const str = String(rawValue).trim();
+            if (!str) {
+                return '';
+            }
+            if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+                return str;
+            }
+            if (/^\d{4}-\d{2}-\d{2}T/.test(str)) {
+                return str.slice(0, 10);
+            }
+            const parsed = new Date(str);
+            if (Number.isNaN(parsed.getTime())) {
+                return '';
+            }
+            return parsed.toISOString().slice(0, 10);
+        },
+        coerceDateTimeValue(rawValue) {
+            if (rawValue === null || rawValue === undefined || rawValue === '') {
+                return '';
+            }
+            if (rawValue instanceof Date && !Number.isNaN(rawValue.getTime())) {
+                const iso = rawValue.toISOString();
+                return `${iso.slice(0, 10)}T${iso.slice(11, 16)}`;
+            }
+            const str = String(rawValue).trim();
+            if (!str) {
+                return '';
+            }
+            const directMatch = str.match(/^([0-9]{4}-[0-9]{2}-[0-9]{2})T([0-9]{2}:[0-9]{2})/);
+            if (directMatch) {
+                return `${directMatch[1]}T${directMatch[2]}`;
+            }
+            if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+                return `${str}T00:00`;
+            }
+            const parsed = new Date(str);
+            if (Number.isNaN(parsed.getTime())) {
+                return '';
+            }
+            const iso = parsed.toISOString();
+            return `${iso.slice(0, 10)}T${iso.slice(11, 16)}`;
         },
         getFieldOptions(fieldId) {
             const state = this.getFieldOptionsState(fieldId);
