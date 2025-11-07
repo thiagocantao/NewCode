@@ -8,7 +8,8 @@ export default {
             icon: 'filter',
         },
         customSettingsPropertiesOrder: [
-            'fieldsConfig',
+            'fieldsConfigCollectionId',
+            'initialQueryVariableId',
             'initialQueryJson',
             'actionButtonBackgroundColor',
             'actionButtonTextColor',
@@ -18,6 +19,27 @@ export default {
         ],
     },
     properties: {
+        fieldsConfigCollectionId: {
+            label: {
+                en: 'Fields configuration collection',
+                pt: 'Coleção de configuração de campos',
+            },
+            type: 'Text',
+            section: 'settings',
+            bindable: true,
+            defaultValue: '',
+            /* wwEditor:start */
+            bindingValidation: {
+                type: 'string',
+                tooltip:
+                    'ID da coleção responsável por fornecer o JSON de configuração dos campos.',
+            },
+            propertyHelp: {
+                tooltip:
+                    'Informe o ID da coleção que contém o JSON com a configuração dos campos do componente.',
+            },
+            /* wwEditor:end */
+        },
         fieldsConfig: {
             label: { en: 'Fields configuration', pt: 'Configuração de campos' },
             type: 'Array',
@@ -103,6 +125,24 @@ export default {
             propertyHelp: {
                 tooltip:
                     'Optional JSON payload mirroring the queryJson variable. Accepts either an object or JSON string.',
+            },
+            /* wwEditor:end */
+        },
+        initialQueryVariableId: {
+            label: { en: 'Initial query variable ID', pt: 'Variável da query inicial' },
+            type: 'Text',
+            section: 'settings',
+            bindable: true,
+            defaultValue: '4b4cff47-4599-44d2-a788-0e31ef09ed9f',
+            /* wwEditor:start */
+            bindingValidation: {
+                type: 'string',
+                tooltip:
+                    'Identificador da variável pública responsável por fornecer o JSON da query inicial.',
+            },
+            propertyHelp: {
+                tooltip:
+                    'Defina o ID da variável que disponibiliza o JSON inicial do construtor de filtros.',
             },
             /* wwEditor:end */
         },
