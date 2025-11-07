@@ -30,7 +30,7 @@ import {
     mapOptionsFromData,
 } from './components/dataSource';
 
-const INITIAL_QUERY_VARIABLE_ID = '4b4cff47-4599-44d2-a788-0e31ef09ed9f';
+const DEFAULT_INITIAL_QUERY_VARIABLE_ID = '4b4cff47-4599-44d2-a788-0e31ef09ed9f';
 const DEFAULT_CLAUSE = 'AND';
 const DEFAULT_OPERATOR = '=';
 const DEFAULT_OPERATOR_LABEL = '=';
@@ -84,6 +84,45 @@ function resolveFieldsConfigArray(rawInput) {
     }
 
     return [];
+}
+
+function extractFieldsConfigFromCollectionPayload(payload, visited = new WeakSet()) {
+    if (payload === null || payload === undefined) {
+        return null;
+    }
+
+    const resolved = resolveFieldsConfigArray(payload);
+    const looksArrayLike =
+        Array.isArray(payload) ||
+        (typeof payload === 'string' && payload.trim().startsWith('[')) ||
+        (typeof payload === 'object' &&
+            (Array.isArray(payload?.fieldsConfig) ||
+                Array.isArray(payload?.items) ||
+                Array.isArray(payload?.data)));
+
+    if (Array.isArray(resolved) && (resolved.length || looksArrayLike)) {
+        return resolved;
+    }
+
+    if (typeof payload !== 'object') {
+        return null;
+    }
+
+    if (visited.has(payload)) {
+        return null;
+    }
+
+    visited.add(payload);
+
+    const entries = Array.isArray(payload) ? payload : Object.values(payload);
+    for (const entry of entries) {
+        const nested = extractFieldsConfigFromCollectionPayload(entry, visited);
+        if (Array.isArray(nested)) {
+            return nested;
+        }
+    }
+
+    return null;
 }
 
 function normalizeOption(option) {
@@ -246,10 +285,14 @@ export default {
             initialPublicQuerySnapshot: null,
             localQueryChanged: false,
             fieldOptionsState: {},
+            collectionFieldsConfig: null,
         };
     },
     computed: {
         resolvedFieldsConfig() {
+            if (this.collectionFieldsConfig !== null) {
+                return this.collectionFieldsConfig;
+            }
             return resolveFieldsConfigArray(this.content?.fieldsConfig);
         },
         normalizedFields() {
@@ -277,6 +320,16 @@ export default {
         resolvedInitialQueryInput() {
             return this.globalInitialQuery;
         },
+        initialQueryVariableId() {
+            const rawId = this.content?.initialQueryVariableId;
+            if (typeof rawId === 'string') {
+                const trimmed = rawId.trim();
+                if (trimmed.length) {
+                    return trimmed;
+                }
+            }
+            return DEFAULT_INITIAL_QUERY_VARIABLE_ID;
+        },
         actionButtonBackgroundColor() {
             return (this.content && this.content.actionButtonBackgroundColor) || '#2563eb';
         },
@@ -294,6 +347,7 @@ export default {
         },
     },
     created() {
+        this.loadFieldsConfigFromCollection();
         this.refreshFieldOptionsState(this.normalizedFields);
         this.initializeGlobalInitialQuery();
         this.initializeRootGroup();
@@ -317,6 +371,19 @@ export default {
                 this.onInitialQueryJsonChange(newInitial);
             },
             deep: true,
+        },
+        'content.fieldsConfigCollectionId': {
+            handler() {
+                this.loadFieldsConfigFromCollection();
+            },
+        },
+        initialQueryVariableId(newId, oldId) {
+            if (newId === oldId) {
+                return;
+            }
+            this.teardownGlobalInitialQuery();
+            this.globalInitialQuery = undefined;
+            this.initializeGlobalInitialQuery();
         },
         normalizedFields: {
             handler(newFields, oldFields) {
@@ -362,11 +429,11 @@ export default {
                 const getFallback = wwVariable?.get;
                 const value =
                     typeof getValue === 'function'
-                        ? getValue.call(wwVariable, INITIAL_QUERY_VARIABLE_ID)
+                        ? getValue.call(wwVariable, this.initialQueryVariableId)
                         : typeof getComponentValue === 'function'
-                        ? getComponentValue.call(wwVariable, INITIAL_QUERY_VARIABLE_ID)
+                        ? getComponentValue.call(wwVariable, this.initialQueryVariableId)
                         : typeof getFallback === 'function'
-                        ? getFallback.call(wwVariable, INITIAL_QUERY_VARIABLE_ID)
+                        ? getFallback.call(wwVariable, this.initialQueryVariableId)
                         : undefined;
                 if (value && typeof value === 'object') {
                     try {
@@ -390,7 +457,7 @@ export default {
                 return;
             }
             try {
-                this.globalQueryUnsubscribe = wwVariable.subscribe(INITIAL_QUERY_VARIABLE_ID, () => {
+                this.globalQueryUnsubscribe = wwVariable.subscribe(this.initialQueryVariableId, () => {
                     this.updateGlobalInitialQuery();
                 });
             } catch (error) {
@@ -508,6 +575,43 @@ export default {
             }
             if (changed) {
                 this.updateRootGroup(updated);
+            }
+        },
+        loadFieldsConfigFromCollection() {
+            const rawId = this.content?.fieldsConfigCollectionId;
+            const collectionId = typeof rawId === 'string' ? rawId.trim() : '';
+            if (!collectionId) {
+                this.collectionFieldsConfig = null;
+                return;
+            }
+
+            const wwCollection = typeof window !== 'undefined' ? window?.wwLib?.wwCollection : undefined;
+            if (!wwCollection) {
+                this.collectionFieldsConfig = [];
+                return;
+            }
+
+            try {
+                const getCollectionData = wwCollection?.getCollectionData;
+                const getCollection = wwCollection?.getCollection;
+                let payload;
+                if (typeof getCollectionData === 'function') {
+                    payload = getCollectionData.call(wwCollection, collectionId);
+                } else if (typeof getCollection === 'function') {
+                    payload = getCollection.call(wwCollection, collectionId)?.data;
+                } else {
+                    payload = null;
+                }
+
+                const resolved = extractFieldsConfigFromCollectionPayload(payload);
+                if (Array.isArray(resolved)) {
+                    this.collectionFieldsConfig = resolved;
+                } else {
+                    this.collectionFieldsConfig = [];
+                }
+            } catch (error) {
+                console.warn('[FieldsCriteria] Failed to load fields configuration from collection', error);
+                this.collectionFieldsConfig = [];
             }
         },
         handleAddCondition({ groupId }) {
