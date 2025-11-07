@@ -50,7 +50,73 @@ function normalizeOption(option) {
     return { value, label };
 }
 
-function extractStaticOptions(field) {
+function parseOptionsText(raw) {
+    if (raw === null || raw === undefined) {
+        return [];
+    }
+    if (Array.isArray(raw)) {
+        return raw.slice();
+    }
+    if (typeof raw !== 'string') {
+        return [];
+    }
+    const trimmed = raw.trim();
+    if (!trimmed.length) {
+        return [];
+    }
+    try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+            return parsed;
+        }
+    } catch (error) {
+        // Ignore JSON parse errors and fallback to CSV parsing
+    }
+    return trimmed
+        .split(',')
+        .map((entry) => entry.trim())
+        .filter((entry) => entry.length);
+}
+
+function extractDataSourceOptions(field) {
+    const dataSource = field?.DataSource ?? field?.dataSource ?? null;
+    if (!dataSource || typeof dataSource !== 'object') {
+        return [];
+    }
+    const rawOptions =
+        dataSource?.optionsText ??
+        dataSource?.OptionsText ??
+        dataSource?.options_text ??
+        dataSource?.Options_Text ??
+        null;
+    if (rawOptions === null || rawOptions === undefined) {
+        return [];
+    }
+    return parseOptionsText(rawOptions);
+}
+
+function dedupeOptions(options) {
+    const seen = new Set();
+    const result = [];
+    options.forEach((option) => {
+        if (!option || option.value === undefined) {
+            return;
+        }
+        let key;
+        try {
+            key = JSON.stringify(option.value);
+        } catch (error) {
+            key = String(option.value);
+        }
+        if (!seen.has(key)) {
+            seen.add(key);
+            result.push(option);
+        }
+    });
+    return result;
+}
+
+function extractStaticOptions(field, normalizedType = '') {
     const candidates =
         field?.options ??
         field?.Options ??
@@ -58,10 +124,17 @@ function extractStaticOptions(field) {
         field?.listOptions ??
         field?.ListOptions ??
         [];
-    if (!Array.isArray(candidates)) {
-        return [];
+    const normalizedCandidates = Array.isArray(candidates)
+        ? candidates.map(normalizeOption).filter(Boolean)
+        : [];
+    const type = typeof normalizedType === 'string' ? normalizedType.toUpperCase() : '';
+    if (type === 'SIMPLE_LIST') {
+        const dataSourceOptions = extractDataSourceOptions(field)
+            .map(normalizeOption)
+            .filter(Boolean);
+        return dedupeOptions([...normalizedCandidates, ...dataSourceOptions]);
     }
-    return candidates.map(normalizeOption).filter(Boolean);
+    return dedupeOptions(normalizedCandidates);
 }
 
 function normalizeFieldDefinition(field, index) {
@@ -82,7 +155,7 @@ function normalizeFieldDefinition(field, index) {
         id;
     const typeRaw = field.Type ?? field.type ?? 'TEXT';
     const type = typeof typeRaw === 'string' ? typeRaw.toUpperCase() : 'TEXT';
-    const staticOptions = extractStaticOptions(field);
+    const staticOptions = extractStaticOptions(field, type);
     return {
         id,
         fieldTagControl,
