@@ -1045,13 +1045,79 @@ export default {
             }
             const stringValue = typeof value === 'string' ? value : String(value);
             const escaped = this.escapeHtml(stringValue);
-            if (type === 'DATE' || type === 'DATETIME' || type === 'DATE_TIME' || type === 'TIME') {
+            if (type === 'DATE') {
+                const normalizedDate = this.normalizeDateOnlyValue(value);
+                if (!normalizedDate) {
+                    return '""';
+                }
+                const formattedDate = this.formatDateForDisplay(normalizedDate) || normalizedDate;
+                return this.escapeHtml(formattedDate);
+            }
+            if (type === 'DATETIME' || type === 'DATE_TIME') {
+                const normalizedDateTime = this.normalizeDateTimeValue(value);
+                if (!normalizedDateTime) {
+                    return '""';
+                }
+                const formattedDateTime = this.formatDateTimeForDisplay(normalizedDateTime) || normalizedDateTime;
+                return this.escapeHtml(formattedDateTime);
+            }
+            if (type === 'TIME') {
                 return escaped;
             }
             if (type === 'BOOLEAN') {
                 return escaped;
             }
             return `"${escaped}"`;
+        },
+        getDateFormatStyle() {
+            try {
+                const ww = typeof window !== 'undefined' ? window.wwLib?.wwVariable : null;
+                const rawStyle = ww?.getValue?.('21a41590-e7d8-46a5-af76-bb3542da1df3') || 'european';
+                return String(rawStyle).toLowerCase() === 'american' ? 'american' : 'european';
+            } catch (error) {
+                return 'european';
+            }
+        },
+        formatDateForDisplay(isoDate) {
+            if (!isoDate || typeof isoDate !== 'string') {
+                return '';
+            }
+            const match = isoDate.match(/^([0-9]{4})-([0-9]{2})-([0-9]{2})$/);
+            if (!match) {
+                return '';
+            }
+            const [, year, month, day] = match;
+            const style = this.getDateFormatStyle();
+            if (style === 'american') {
+                return `${month}/${day}/${year}`;
+            }
+            return `${day}/${month}/${year}`;
+        },
+        extractTimePartFromIso(raw) {
+            if (!raw) {
+                return '';
+            }
+            const match = String(raw).match(/T([0-9]{2}):([0-9]{2})/);
+            if (!match) {
+                return '';
+            }
+            const [, hours, minutes] = match;
+            return `${hours}:${minutes}`;
+        },
+        formatDateTimeForDisplay(isoDateTime) {
+            if (!isoDateTime || typeof isoDateTime !== 'string') {
+                return '';
+            }
+            const datePart = isoDateTime.slice(0, 10);
+            const formattedDate = this.formatDateForDisplay(datePart);
+            const timePart = this.extractTimePartFromIso(isoDateTime);
+            if (formattedDate && timePart) {
+                return `${formattedDate} ${timePart}`;
+            }
+            if (formattedDate) {
+                return formattedDate;
+            }
+            return timePart || '';
         },
         shouldWrapMultiValueOperator(operatorValue) {
             const normalized = typeof operatorValue === 'string' ? operatorValue.toUpperCase() : '';
