@@ -95,6 +95,7 @@
                                 :placeholder="resolveListPlaceholder(item)"
                                 :chip-background-color="actionButtonBackgroundColor"
                                 :chip-text-color="actionButtonTextColor"
+                                :multiple="allowsMultipleSelection(item)"
                                 @update:modelValue="onMultiSelectValueChange(item, $event)"
                             />
                             <select
@@ -448,7 +449,7 @@ export default {
             return operator && operator.valueShape === 'array';
         },
         shouldUseCustomListSelect(condition) {
-            return this.isControlledList(condition) && this.isMultiValueOperator(condition);
+            return this.isControlledList(condition);
         },
         resolveListPlaceholder(condition) {
             const field = this.getFieldDefinition(condition.fieldId);
