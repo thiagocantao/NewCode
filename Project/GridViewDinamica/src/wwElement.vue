@@ -1825,6 +1825,9 @@ const remountComponent = () => {
     // Impedir mover colunas para posição de pinned
 
     params.api.addEventListener('columnMoved', (event) => {
+      if (isProgrammaticEvent(event)) {
+        return;
+      }
       const api = (params.columnApi && typeof params.columnApi.getAllGridColumns === 'function')
         ? params.columnApi
         : (params.api && typeof params.api.getAllGridColumns === 'function')
