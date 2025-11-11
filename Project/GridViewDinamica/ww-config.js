@@ -156,6 +156,11 @@ export default {
     label: { en: 'Reset Filters' },
     args: []
   },
+  {
+    action: 'resetColumnPositions',
+    label: { en: 'Reset Column Positions' },
+    args: []
+  },
     {
       action: 'setFilters',
       label: { en: 'Set Filters' },

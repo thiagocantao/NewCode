@@ -2263,9 +2263,11 @@ setTimeout(() => {
       onRowSelected,
       onSelectionChanged,
       gridApi,
+      columnApi,
       onFilterChanged,
       onSortChanged,
       onColumnMoved,
+      runWithSuppressedReveal,
       forceSelectionColumnFirst,
       forceSelectionColumnFirstDOM,
       columnOptions,
@@ -2282,6 +2284,7 @@ setTimeout(() => {
       componentKey,
       remountComponent,
       clearSavedGridState,
+      updateColumnsPosition,
       localeText: computed(() => {
         let lang = 'en-US';
         try {
@@ -3207,6 +3210,169 @@ setTimeout(() => {
   resetFilters() {
     if (this.gridApi) {
       this.gridApi.setFilterModel(null);
+    }
+  },
+  resetColumnPositions() {
+    const parseColumnsPayload = payload => {
+      if (!payload) return [];
+
+      let source = payload;
+      try {
+        if (wwLib?.wwUtils?.getDataFromCollection) {
+          const resolved = wwLib.wwUtils.getDataFromCollection(payload);
+          if (resolved != null) {
+            source = resolved;
+          }
+        }
+      } catch (error) {
+        // Ignore collection resolution errors and fall back to raw payload
+      }
+
+      if (Array.isArray(source)) {
+        return source;
+      }
+
+      if (typeof source === "string") {
+        const trimmed = source.trim();
+        if (!trimmed) return [];
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (Array.isArray(parsed)) return parsed;
+          if (Array.isArray(parsed?.columns)) return parsed.columns;
+          if (Array.isArray(parsed?.Columns)) return parsed.Columns;
+          if (Array.isArray(parsed?.data)) return parsed.data;
+          return [];
+        } catch (error) {
+          console.warn("[GridViewDinamica] resetColumnPositions: failed to parse Columns JSON", error);
+          return [];
+        }
+      }
+
+      if (typeof source === "object") {
+        if (Array.isArray(source.columns)) return source.columns;
+        if (Array.isArray(source.Columns)) return source.Columns;
+        if (Array.isArray(source.data)) return source.data;
+      }
+
+      return [];
+    };
+
+    const primaryColumns = parseColumnsPayload(this.content?.Columns);
+    const fallbackColumns = parseColumnsPayload(this.content?.columns);
+    const columnsConfig = primaryColumns.length ? primaryColumns : fallbackColumns;
+
+    if (!columnsConfig.length) {
+      console.warn("[GridViewDinamica] resetColumnPositions: no column definitions found in Columns property");
+      return;
+    }
+
+    const includeSelectionColumn = this.content.rowSelection === 'multiple' && !this.content.disableCheckboxes;
+
+    const normalizedColumns = columnsConfig
+      .map((column, index) => {
+        if (!column || typeof column !== "object") return null;
+
+        const rawId =
+          column.FieldID ??
+          column.FieldId ??
+          column.Field ??
+          column.field ??
+          column.colId ??
+          column.ColId ??
+          column.id ??
+          column.ColumnId ??
+          column.FieldDB ??
+          column.ColumnName ??
+          column.columnId ??
+          null;
+
+        if (rawId == null || rawId === "") {
+          return null;
+        }
+
+        const rawOrder =
+          column.positionInGrid ??
+          column.PositionInGrid ??
+          column.PositionField ??
+          column.positionField ??
+          column.order ??
+          column.Order ??
+          index;
+
+        const numericOrder = Number(rawOrder);
+        const order = Number.isFinite(numericOrder) ? numericOrder : index;
+
+        const pinnedRaw = column.pinned ?? column.Pinned ?? null;
+        const pinned = pinnedRaw === 'left' || pinnedRaw === 'right' ? pinnedRaw : undefined;
+
+        return {
+          colId: String(rawId),
+          order,
+          pinned,
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.order - b.order);
+
+    if (!normalizedColumns.length) {
+      console.warn("[GridViewDinamica] resetColumnPositions: unable to resolve column identifiers from Columns JSON");
+      return;
+    }
+
+    const state = normalizedColumns.map((col, idx) => ({
+      colId: col.colId,
+      order: includeSelectionColumn ? idx + 1 : idx,
+      ...(col.pinned ? { pinned: col.pinned } : {}),
+    }));
+
+    if (includeSelectionColumn) {
+      state.unshift({
+        colId: 'ag-Grid-SelectionColumn',
+        order: 0,
+        pinned: 'left',
+        suppressSizeToFit: true,
+        suppressAutoSize: true,
+      });
+    }
+
+    const candidateApis = [
+      this.columnApi,
+      this.gridApi?.columnApi,
+      this.gridApi,
+    ];
+
+    const targetApi = candidateApis.find(api => api && typeof api.applyColumnState === 'function');
+
+    if (!targetApi) {
+      console.warn("[GridViewDinamica] resetColumnPositions: column API unavailable");
+      return;
+    }
+
+    const applyState = () => {
+      targetApi.applyColumnState({
+        state,
+        applyOrder: true,
+        ...(includeSelectionColumn ? { defaultState: { pinned: null } } : {}),
+      });
+    };
+
+    if (typeof this.runWithSuppressedReveal === 'function') {
+      this.runWithSuppressedReveal(applyState);
+    } else {
+      applyState();
+    }
+
+    if (typeof this.updateColumnsPosition === 'function') {
+      this.updateColumnsPosition();
+    }
+
+    if (includeSelectionColumn) {
+      if (typeof this.forceSelectionColumnFirst === 'function') {
+        this.forceSelectionColumnFirst();
+      }
+      if (typeof this.forceSelectionColumnFirstDOM === 'function') {
+        this.$nextTick?.(() => this.forceSelectionColumnFirstDOM());
+      }
     }
   },
   setFilters(filters) {
