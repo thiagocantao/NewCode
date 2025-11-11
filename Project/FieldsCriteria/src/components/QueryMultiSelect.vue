@@ -45,20 +45,34 @@
         </button>
         <div v-if="isOpen" class="query-multi-select__dropdown" ref="dropdownRef">
             <div v-if="loading" class="query-multi-select__state">Carregando...</div>
-            <div v-else-if="!options.length" class="query-multi-select__state">Sem opções</div>
-            <ul v-else class="query-multi-select__list">
-                <li v-for="option in options" :key="String(option.value)" class="query-multi-select__option">
-                    <label>
-                        <input
-                            type="checkbox"
-                            :value="String(option.value)"
-                            :checked="isSelected(option.value)"
-                            @change="toggleValue(option.value)"
-                        />
-                        <span>{{ option.label }}</span>
-                    </label>
-                </li>
-            </ul>
+            <template v-else>
+                <div class="query-multi-select__search">
+                    <span class="material-symbols-outlined query-multi-select__search-icon" aria-hidden="true">search</span>
+                    <input
+                        ref="searchInputRef"
+                        v-model="searchTerm"
+                        type="text"
+                        class="query-multi-select__search-input"
+                        placeholder="Pesquisar..."
+                        @keydown.stop
+                    />
+                </div>
+                <div v-if="!hasOptions" class="query-multi-select__state">Sem opções</div>
+                <div v-else-if="!filteredOptions.length" class="query-multi-select__state">Nenhum resultado encontrado</div>
+                <ul v-else class="query-multi-select__list">
+                    <li v-for="option in filteredOptions" :key="String(option.value)" class="query-multi-select__option">
+                        <label>
+                            <input
+                                type="checkbox"
+                                :value="String(option.value)"
+                                :checked="isSelected(option.value)"
+                                @change="toggleValue(option.value)"
+                            />
+                            <span>{{ option.label }}</span>
+                        </label>
+                    </li>
+                </ul>
+            </template>
         </div>
     </div>
 </template>
@@ -89,7 +103,9 @@ export default {
         let resizeObserver = null;
         const placeholderText = computed(() => props.placeholder);
         const loadingState = computed(() => props.loading);
-        const optionsState = computed(() => props.options);
+        const optionsState = computed(() => (Array.isArray(props.options) ? props.options : []));
+        const searchTerm = ref('');
+        const searchInputRef = ref(null);
         const disabledState = computed(() => props.disabled);
 
         const normalizedValue = computed(() => {
@@ -103,7 +119,7 @@ export default {
         });
 
         const optionMap = computed(() => {
-            const entries = props.options.map((option) => [String(option.value), option]);
+            const entries = optionsState.value.map((option) => [String(option.value), option]);
             return new Map(entries);
         });
 
@@ -111,6 +127,22 @@ export default {
             '--query-multi-select-chip-bg': props.chipBackgroundColor || '#2563eb',
             '--query-multi-select-chip-color': props.chipTextColor || '#ffffff',
         }));
+
+        const normalizedSearch = computed(() => searchTerm.value.trim().toLowerCase());
+
+        const filteredOptions = computed(() => {
+            const term = normalizedSearch.value;
+            if (!term) {
+                return optionsState.value;
+            }
+            return optionsState.value.filter((option) => {
+                const label = String(option?.label ?? '').toLowerCase();
+                const value = String(option?.value ?? '').toLowerCase();
+                return label.includes(term) || value.includes(term);
+            });
+        });
+
+        const hasOptions = computed(() => optionsState.value.length > 0);
 
         const selectedOptions = computed(() => {
             const seen = new Set();
@@ -261,7 +293,24 @@ export default {
         watch(() => props.options, updateChipVisibility);
         watch(isOpen, (open) => {
             if (open) {
-                nextTick(updateChipVisibility);
+                searchTerm.value = '';
+                nextTick(() => {
+                    updateChipVisibility();
+                    if (!loadingState.value && searchInputRef.value) {
+                        searchInputRef.value.focus();
+                    }
+                });
+            } else {
+                searchTerm.value = '';
+            }
+        });
+        watch(loadingState, (loading) => {
+            if (!loading && isOpen.value) {
+                nextTick(() => {
+                    if (searchInputRef.value) {
+                        searchInputRef.value.focus();
+                    }
+                });
             }
         });
         watch(chipContainer, (element, previous) => {
@@ -318,9 +367,12 @@ export default {
             setChipRef,
             placeholder: placeholderText,
             loading: loadingState,
-            options: optionsState,
+            filteredOptions,
+            hasOptions,
             disabled: disabledState,
             chipStyles,
+            searchTerm,
+            searchInputRef,
         };
     },
 };
@@ -438,7 +490,51 @@ export default {
     box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.1);
     max-height: 240px;
     overflow: auto;
-    
+    padding: 8px;
+}
+
+.query-multi-select__search {
+    position: sticky;
+    top: 0;
+    display: flex;
+    align-items: center;
+    padding-bottom: 12px;
+    background-color: #ffffff;
+    z-index: 1;
+}
+
+.query-multi-select__search-input {
+    width: 100%;
+    border: 1.5px solid #bdbdbd !important;
+    border-radius: 20px;
+    padding: 7px 38px 7px 12px;
+    font-size: 13px;
+    background: #f8f9fa;
+    color: #787878;
+    outline: none !important;
+    transition: border 0.2s, background 0.2s;
+}
+
+.query-multi-select__search-input:focus,
+.query-multi-select__search-input:active,
+.query-multi-select__search-input:hover {
+    border-color: #bdbdbd !important;
+    background: #ffffff;
+}
+
+.query-multi-select__search-input::placeholder {
+    color: #787878;
+    opacity: 1;
+}
+
+.query-multi-select__search-icon {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+    color: #bdbdbd;
+    pointer-events: none;
 }
 
 .query-multi-select__state {
