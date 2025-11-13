@@ -613,8 +613,8 @@ export default {
 
 .query-multi-select__search-icon {
     position: absolute;
-    right: 16px;
-    top: 50%;
+    right: 12px;
+    top: 15px;
     transform: translateY(-50%);
     font-size: 20px;
     color: #bdbdbd;
