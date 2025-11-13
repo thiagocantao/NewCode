@@ -355,22 +355,23 @@ export default {
                 return;
             }
 
-            const expectedHeaders = this.getExpectedHeaders();
-            if (expectedHeaders.length && !this.headersMatch(parsed.headers, expectedHeaders)) {
-                this.notify('O arquivo importado não corresponde ao formato esperado.');
+            const normalizedHeaders = parsed.headers.map(header => (typeof header === 'string' ? header.trim() : header));
+            if (!normalizedHeaders.includes(TERM_KEY)) {
+                this.notify('A coluna "term" é obrigatória no arquivo importado.');
                 this.$emit('trigger-event', {
                     name: 'import-error',
-                    event: { reason: 'header-mismatch', headers: parsed.headers, expected: expectedHeaders },
+                    event: { reason: 'missing-term-column', headers: parsed.headers },
                 });
                 return;
             }
 
             const jsonData = this.rowsToObjects(parsed.headers, parsed.rows);
-            const enrichedData = this.applyHiddenFieldValues(jsonData);
+            const enrichedData = this.mergeWithOriginalEntries(jsonData);
+            const completeData = this.ensureCompleteLanguageStructure(enrichedData, parsed.headers);
             if (typeof this.setImportedData === 'function') {
-                this.setImportedData(enrichedData);
+                this.setImportedData(completeData);
             }
-            this.$emit('trigger-event', { name: 'import-success', event: { data: enrichedData } });
+            this.$emit('trigger-event', { name: 'import-success', event: { data: completeData } });
         },
         parseCsv(content) {
             const delimiter = this.resolveImportDelimiter(content);
@@ -445,14 +446,6 @@ export default {
             const filteredRows = dataRows.filter(currentRow => currentRow.some(value => value !== ''));
             return { headers, rows: filteredRows };
         },
-        headersMatch(headers, expected) {
-            if (headers.length !== expected.length) {
-                return false;
-            }
-            const normalizedHeaders = headers.map(header => header.trim());
-            const expectedHeaders = expected.map(key => key.trim());
-            return expectedHeaders.every(key => normalizedHeaders.includes(key));
-        },
         rowsToObjects(headers, rows) {
             return rows.map(values => {
                 const entry = {};
@@ -462,7 +455,7 @@ export default {
                 return entry;
             });
         },
-        applyHiddenFieldValues(rows) {
+        mergeWithOriginalEntries(rows) {
             if (!Array.isArray(rows) || !rows.length) {
                 return rows;
             }
@@ -475,7 +468,7 @@ export default {
             if (!sourceArray.length) {
                 return rows;
             }
-            const metadataMap = new Map();
+            const originalMap = new Map();
             sourceArray.forEach(item => {
                 if (!item || typeof item !== 'object' || Array.isArray(item)) {
                     return;
@@ -484,24 +477,13 @@ export default {
                 if (!normalizedTerm) {
                     return;
                 }
-                const metadata = {};
-                HIDDEN_FIELDS.forEach(field => {
-                    if (!Object.prototype.hasOwnProperty.call(item, field)) {
-                        return;
-                    }
-                    const value = item[field];
-                    if (value === undefined || value === null || value === '') {
-                        return;
-                    }
-                    metadata[field] = value;
-                });
-                if (Object.keys(metadata).length) {
-                    metadataMap.set(normalizedTerm, metadata);
-                }
+                originalMap.set(normalizedTerm, { ...item });
             });
-            if (!metadataMap.size) {
+
+            if (!originalMap.size) {
                 return rows;
             }
+
             return rows.map(entry => {
                 if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
                     return entry;
@@ -510,11 +492,56 @@ export default {
                 if (!normalizedTerm) {
                     return entry;
                 }
-                const metadata = metadataMap.get(normalizedTerm);
-                if (!metadata) {
+                const originalEntry = originalMap.get(normalizedTerm);
+                if (!originalEntry) {
                     return entry;
                 }
-                return { ...entry, ...metadata };
+                return { ...originalEntry, ...entry };
+            });
+        },
+        ensureCompleteLanguageStructure(rows, headers = []) {
+            if (!Array.isArray(rows) || !rows.length) {
+                return rows;
+            }
+
+            const expectedHeaders = this.getExpectedHeaders()
+                .filter(header => header && header !== TERM_KEY);
+
+            const csvLanguages = Array.isArray(headers)
+                ? headers
+                      .map(header => (typeof header === 'string' ? header.trim() : header))
+                      .filter(
+                          header =>
+                              header &&
+                              header !== TERM_KEY &&
+                              !HIDDEN_FIELDS.includes(header)
+                      )
+                : [];
+
+            const languageKeys = [];
+            const addUnique = key => {
+                if (key && !languageKeys.includes(key)) {
+                    languageKeys.push(key);
+                }
+            };
+            expectedHeaders.forEach(addUnique);
+            csvLanguages.forEach(addUnique);
+
+            if (!languageKeys.length) {
+                return rows;
+            }
+
+            return rows.map(entry => {
+                if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+                    return entry;
+                }
+                const result = { ...entry };
+                languageKeys.forEach(key => {
+                    if (!Object.prototype.hasOwnProperty.call(result, key)) {
+                        result[key] = '';
+                    }
+                });
+                return result;
             });
         },
         normalizeTerm(term) {
@@ -550,15 +577,65 @@ export default {
             }
             return null;
         },
+        getVisibleLanguageKeys() {
+            const raw =
+                this.wwElementState?.props?.visibleLanguagesJson ?? this.content?.visibleLanguagesJson;
+
+            const normalizeList = values => {
+                const result = [];
+                values.forEach(value => {
+                    const normalized = this.normalizeLanguageKey(value);
+                    if (
+                        normalized &&
+                        normalized !== TERM_KEY &&
+                        !HIDDEN_FIELDS.includes(normalized) &&
+                        !result.includes(normalized)
+                    ) {
+                        result.push(normalized);
+                    }
+                });
+                return result;
+            };
+
+            if (Array.isArray(raw)) {
+                return normalizeList(raw);
+            }
+            if (typeof raw === 'string') {
+                const trimmed = raw.trim();
+                if (!trimmed) {
+                    return [];
+                }
+                try {
+                    const parsed = JSON.parse(trimmed);
+                    if (Array.isArray(parsed)) {
+                        return normalizeList(parsed);
+                    }
+                } catch (error) {
+                    console.warn('visibleLanguagesJson inválido. O valor deve ser um array JSON.', error);
+                }
+            }
+            return [];
+        },
+        normalizeLanguageKey(value) {
+            if (value === undefined || value === null) {
+                return null;
+            }
+            if (typeof value === 'string') {
+                const trimmed = value.trim();
+                return trimmed ? trimmed : null;
+            }
+            const stringified = String(value).trim();
+            return stringified ? stringified : null;
+        },
         getExpectedHeaders() {
             const data = this.getJsonData();
             if (Array.isArray(data) && data.length) {
-                return this.collectHeaders(data);
+                return [TERM_KEY, ...this.collectLanguageHeaders(data)];
             }
             if (data && typeof data === 'object' && !Array.isArray(data)) {
-                return this.collectHeaders([data]);
+                return [TERM_KEY, ...this.collectLanguageHeaders([data])];
             }
-            return [];
+            return [TERM_KEY];
         },
         handleExport() {
             const data = this.getJsonData({ notifyOnError: true });
@@ -569,8 +646,8 @@ export default {
             }
 
             const arrayData = Array.isArray(data) ? data : [data];
-            const headers = this.collectHeaders(arrayData);
-            if (!headers.length) {
+            const headers = this.getExportHeaders(arrayData);
+            if (!headers.length || !headers.includes(TERM_KEY)) {
                 this.notify('Não foi possível determinar as colunas para exportação.', 'warning');
                 this.$emit('trigger-event', { name: 'export-error', event: { reason: 'missing-headers' } });
                 return;
@@ -580,7 +657,15 @@ export default {
             this.downloadCsv(csvContent, 'dados-exportados.csv');
             this.$emit('trigger-event', { name: 'export-success', event: { headers, count: arrayData.length } });
         },
-        collectHeaders(dataArray) {
+        getExportHeaders(dataArray) {
+            const visibleLanguages = this.getVisibleLanguageKeys();
+            if (visibleLanguages.length) {
+                return [TERM_KEY, ...visibleLanguages];
+            }
+            const languageHeaders = this.collectLanguageHeaders(dataArray);
+            return [TERM_KEY, ...languageHeaders];
+        },
+        collectLanguageHeaders(dataArray) {
             const languageHeaders = [];
             const addLanguageHeader = header => {
                 if (!languageHeaders.includes(header)) {
@@ -601,7 +686,7 @@ export default {
                     addLanguageHeader(key);
                 });
             });
-            return [TERM_KEY, ...languageHeaders];
+            return languageHeaders;
         },
         buildCsv(headers, dataArray) {
             const delimiter = this.getCsvDelimiterForExport();
