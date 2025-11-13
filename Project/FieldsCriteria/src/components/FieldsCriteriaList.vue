@@ -30,6 +30,7 @@
                             :placeholder="resolveListPlaceholder(item)"
                             :chip-background-color="actionButtonBackgroundColor"
                             :chip-text-color="actionButtonTextColor"
+                            :multiple="allowsMultipleSelection(item)"
                             @update:modelValue="onMultiSelectValueChange(item, $event)"
                         />
                         <select
@@ -321,7 +322,7 @@ export default {
             return String(field?.type || '').toUpperCase() === 'MULTISELECTION';
         },
         shouldUseCustomListSelect(condition) {
-            return this.isControlledList(condition) && this.allowsMultipleSelection(condition);
+            return this.isControlledList(condition);
         },
         resolvePlaceholder(condition) {
             const field = this.getFieldDefinition(condition.fieldId);

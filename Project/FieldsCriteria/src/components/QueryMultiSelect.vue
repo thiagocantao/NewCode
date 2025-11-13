@@ -14,51 +14,90 @@
             @click="toggleDropdown"
         >
             <div class="query-multi-select__chips" ref="chipContainer">
-                <template v-if="selectedOptions.length">
-                    <span
-                        v-for="(option, index) in selectedOptions"
-                        :key="option.value"
-                        class="query-multi-select__chip"
-                        :class="{ 'query-multi-select__chip--hidden': index >= visibleChipCount }"
-                        :ref="setChipRef"
-                    >
-                        <span class="query-multi-select__chip-label">{{ option.label }}</span>
-                        <button
-                            type="button"
-                            class="query-multi-select__chip-remove"
-                            :aria-label="`Remover ${option.label}`"
-                            @click.stop="removeValue(option.value)"
+                <template v-if="isMultiple">
+                    <template v-if="selectedOptions.length">
+                        <span
+                            v-for="(option, index) in selectedOptions"
+                            :key="option.value"
+                            class="query-multi-select__chip"
+                            :class="{ 'query-multi-select__chip--hidden': index >= visibleChipCount }"
+                            :ref="setChipRef"
                         >
-                            X
-                        </button>
-                    </span>
-                    <span
-                        v-if="hiddenChipCount > 0"
-                        class="query-multi-select__chip query-multi-select__chip--counter"
-                    >
-                        +{{ hiddenChipCount }}
-                    </span>
+                            <span class="query-multi-select__chip-label">{{ option.label }}</span>
+                            <button
+                                type="button"
+                                class="query-multi-select__chip-remove"
+                                :aria-label="`Remover ${option.label}`"
+                                @click.stop="removeValue(option.value)"
+                            >
+                                X
+                            </button>
+                        </span>
+                        <span
+                            v-if="hiddenChipCount > 0"
+                            class="query-multi-select__chip query-multi-select__chip--counter"
+                        >
+                            +{{ hiddenChipCount }}
+                        </span>
+                    </template>
+                    <span v-else class="query-multi-select__placeholder">{{ placeholder }}</span>
                 </template>
-                <span v-else class="query-multi-select__placeholder">{{ placeholder }}</span>
+                <template v-else>
+                    <span
+                        v-if="selectedOption"
+                        class="query-multi-select__single-value"
+                        :title="selectedOption.label"
+                    >
+                        {{ selectedOption.label }}
+                    </span>
+                    <span v-else class="query-multi-select__placeholder">{{ placeholder }}</span>
+                </template>
             </div>
             <span class="query-multi-select__icon material-symbols-outlined" aria-hidden="true">keyboard_arrow_down</span>
         </button>
         <div v-if="isOpen" class="query-multi-select__dropdown" ref="dropdownRef">
             <div v-if="loading" class="query-multi-select__state">Carregando...</div>
-            <div v-else-if="!options.length" class="query-multi-select__state">Sem opções</div>
-            <ul v-else class="query-multi-select__list">
-                <li v-for="option in options" :key="String(option.value)" class="query-multi-select__option">
-                    <label>
-                        <input
-                            type="checkbox"
-                            :value="String(option.value)"
-                            :checked="isSelected(option.value)"
-                            @change="toggleValue(option.value)"
-                        />
-                        <span>{{ option.label }}</span>
-                    </label>
-                </li>
-            </ul>
+            <template v-else>
+                <div class="query-multi-select__search">
+                    <span class="material-symbols-outlined query-multi-select__search-icon" aria-hidden="true">search</span>
+                    <input
+                        ref="searchInputRef"
+                        v-model="searchTerm"
+                        type="text"
+                        class="query-multi-select__search-input"
+                        placeholder="Pesquisar..."
+                        @keydown.stop
+                    />
+                </div>
+                <div v-if="!hasOptions" class="query-multi-select__state">Sem opções</div>
+                <div v-else-if="!filteredOptions.length" class="query-multi-select__state">Nenhum resultado encontrado</div>
+                <ul v-else class="query-multi-select__list">
+                    <li
+                        v-for="option in filteredOptions"
+                        :key="String(option.value)"
+                        class="query-multi-select__option"
+                        :class="{ 'query-multi-select__option--selected': isSelected(option.value) }"
+                    >
+                        <label v-if="isMultiple">
+                            <input
+                                type="checkbox"
+                                :value="String(option.value)"
+                                :checked="isSelected(option.value)"
+                                @change="toggleValue(option.value)"
+                            />
+                            <span>{{ option.label }}</span>
+                        </label>
+                        <button
+                            v-else
+                            type="button"
+                            class="query-multi-select__option-button"
+                            @click="selectSingleValue(option.value)"
+                        >
+                            {{ option.label }}
+                        </button>
+                    </li>
+                </ul>
+            </template>
         </div>
     </div>
 </template>
@@ -76,6 +115,7 @@ export default {
         loading: { type: Boolean, default: false },
         chipBackgroundColor: { type: String, default: '#2563eb' },
         chipTextColor: { type: String, default: '#ffffff' },
+        multiple: { type: Boolean, default: true },
     },
     emits: ['update:modelValue'],
     setup(props, { emit }) {
@@ -89,8 +129,11 @@ export default {
         let resizeObserver = null;
         const placeholderText = computed(() => props.placeholder);
         const loadingState = computed(() => props.loading);
-        const optionsState = computed(() => props.options);
+        const optionsState = computed(() => (Array.isArray(props.options) ? props.options : []));
+        const searchTerm = ref('');
+        const searchInputRef = ref(null);
         const disabledState = computed(() => props.disabled);
+        const isMultiple = computed(() => props.multiple !== false);
 
         const normalizedValue = computed(() => {
             if (Array.isArray(props.modelValue)) {
@@ -103,7 +146,7 @@ export default {
         });
 
         const optionMap = computed(() => {
-            const entries = props.options.map((option) => [String(option.value), option]);
+            const entries = optionsState.value.map((option) => [String(option.value), option]);
             return new Map(entries);
         });
 
@@ -111,6 +154,22 @@ export default {
             '--query-multi-select-chip-bg': props.chipBackgroundColor || '#2563eb',
             '--query-multi-select-chip-color': props.chipTextColor || '#ffffff',
         }));
+
+        const normalizedSearch = computed(() => searchTerm.value.trim().toLowerCase());
+
+        const filteredOptions = computed(() => {
+            const term = normalizedSearch.value;
+            if (!term) {
+                return optionsState.value;
+            }
+            return optionsState.value.filter((option) => {
+                const label = String(option?.label ?? '').toLowerCase();
+                const value = String(option?.value ?? '').toLowerCase();
+                return label.includes(term) || value.includes(term);
+            });
+        });
+
+        const hasOptions = computed(() => optionsState.value.length > 0);
 
         const selectedOptions = computed(() => {
             const seen = new Set();
@@ -125,6 +184,8 @@ export default {
             });
             return list;
         });
+
+        const selectedOption = computed(() => (selectedOptions.value.length ? selectedOptions.value[0] : null));
 
         const updateChipVisibility = () => {
             visibleChipCount.value = Number.POSITIVE_INFINITY;
@@ -210,7 +271,7 @@ export default {
                 return;
             }
             isOpen.value = !isOpen.value;
-            if (isOpen.value) {
+            if (isOpen.value && isMultiple.value) {
                 updateChipVisibility();
             }
         };
@@ -232,12 +293,21 @@ export default {
         const isSelected = (value) => normalizedValue.value.includes(String(value));
 
         const emitValue = (values) => {
-            emit('update:modelValue', values);
-            updateChipVisibility();
+            if (isMultiple.value) {
+                emit('update:modelValue', values);
+                updateChipVisibility();
+            } else {
+                const [first] = values;
+                emit('update:modelValue', first ?? '');
+            }
         };
 
         const toggleValue = (value) => {
             if (props.disabled) {
+                return;
+            }
+            if (!isMultiple.value) {
+                selectSingleValue(value);
                 return;
             }
             const stringValue = String(value);
@@ -251,20 +321,66 @@ export default {
             emitValue(values);
         };
 
+        const selectSingleValue = (value) => {
+            if (props.disabled) {
+                return;
+            }
+            const stringValue = String(value);
+            emitValue([stringValue]);
+            closeDropdown();
+        };
+
         const removeValue = (value) => {
             const stringValue = String(value);
             const values = normalizedValue.value.filter((item) => item !== stringValue);
             emitValue(values);
         };
 
-        watch(normalizedValue, updateChipVisibility, { immediate: true });
-        watch(() => props.options, updateChipVisibility);
+        watch(
+            normalizedValue,
+            () => {
+                if (isMultiple.value) {
+                    updateChipVisibility();
+                }
+            },
+            { immediate: true },
+        );
+        watch(
+            () => props.options,
+            () => {
+                if (isMultiple.value) {
+                    updateChipVisibility();
+                }
+            },
+        );
         watch(isOpen, (open) => {
             if (open) {
-                nextTick(updateChipVisibility);
+                searchTerm.value = '';
+                nextTick(() => {
+                    if (isMultiple.value) {
+                        updateChipVisibility();
+                    }
+                    if (!loadingState.value && searchInputRef.value) {
+                        searchInputRef.value.focus();
+                    }
+                });
+            } else {
+                searchTerm.value = '';
+            }
+        });
+        watch(loadingState, (loading) => {
+            if (!loading && isOpen.value) {
+                nextTick(() => {
+                    if (searchInputRef.value) {
+                        searchInputRef.value.focus();
+                    }
+                });
             }
         });
         watch(chipContainer, (element, previous) => {
+            if (!isMultiple.value) {
+                return;
+            }
             if (resizeObserver && previous) {
                 resizeObserver.unobserve(previous);
             }
@@ -275,30 +391,36 @@ export default {
 
         onMounted(() => {
             document.addEventListener('click', handleClickOutside);
-            window.addEventListener('resize', updateChipVisibility);
-            if (window.ResizeObserver) {
-                resizeObserver = new ResizeObserver(updateChipVisibility);
-                if (chipContainer.value) {
-                    resizeObserver.observe(chipContainer.value);
+            if (isMultiple.value) {
+                window.addEventListener('resize', updateChipVisibility);
+                if (window.ResizeObserver) {
+                    resizeObserver = new ResizeObserver(updateChipVisibility);
+                    if (chipContainer.value) {
+                        resizeObserver.observe(chipContainer.value);
+                    }
                 }
+                updateChipVisibility();
             }
-            updateChipVisibility();
         });
 
         onBeforeUnmount(() => {
             document.removeEventListener('click', handleClickOutside);
-            window.removeEventListener('resize', updateChipVisibility);
-            if (resizeObserver) {
-                resizeObserver.disconnect();
+            if (isMultiple.value) {
+                window.removeEventListener('resize', updateChipVisibility);
+                if (resizeObserver) {
+                    resizeObserver.disconnect();
+                }
             }
         });
 
         onBeforeUpdate(() => {
-            chipRefs.value = [];
+            if (isMultiple.value) {
+                chipRefs.value = [];
+            }
         });
 
         const setChipRef = (el) => {
-            if (el) {
+            if (el && isMultiple.value) {
                 chipRefs.value.push(el);
             }
         };
@@ -318,9 +440,15 @@ export default {
             setChipRef,
             placeholder: placeholderText,
             loading: loadingState,
-            options: optionsState,
+            filteredOptions,
+            hasOptions,
             disabled: disabledState,
             chipStyles,
+            searchTerm,
+            searchInputRef,
+            isMultiple,
+            selectSingleValue,
+            selectedOption,
         };
     },
 };
@@ -364,6 +492,14 @@ export default {
 
 .query-multi-select__placeholder {
     color: #6b7280;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.query-multi-select__single-value {
+    color: #111827;
     font-size: 13px;
     white-space: nowrap;
     overflow: hidden;
@@ -438,7 +574,51 @@ export default {
     box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.1);
     max-height: 240px;
     overflow: auto;
-    
+    padding: 8px;
+}
+
+.query-multi-select__search {
+    position: sticky;
+    top: 0;
+    display: flex;
+    align-items: center;
+    padding-bottom: 12px;
+    background-color: #ffffff;
+    z-index: 1;
+}
+
+.query-multi-select__search-input {
+    width: 100%;
+    border: 1.5px solid #bdbdbd !important;
+    border-radius: 20px;
+    padding: 7px 38px 7px 12px;
+    font-size: 13px;
+    background: #f8f9fa;
+    color: #787878;
+    outline: none !important;
+    transition: border 0.2s, background 0.2s;
+}
+
+.query-multi-select__search-input:focus,
+.query-multi-select__search-input:active,
+.query-multi-select__search-input:hover {
+    border-color: #bdbdbd !important;
+    background: #ffffff;
+}
+
+.query-multi-select__search-input::placeholder {
+    color: #787878;
+    opacity: 1;
+}
+
+.query-multi-select__search-icon {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+    color: #bdbdbd;
+    pointer-events: none;
 }
 
 .query-multi-select__state {
@@ -455,6 +635,11 @@ export default {
 
 .query-multi-select__option {
     padding: 8px 12px;
+    border-radius: 4px;
+}
+
+.query-multi-select__option--selected {
+    background-color: #f3f4f6;
 }
 
 .query-multi-select__option label {
@@ -465,7 +650,27 @@ export default {
     cursor: pointer;
 }
 
-.query-multi-select__option input[type='checkbox'] {
+.query-multi-select__option-button {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: inherit;
+    text-align: left;
+}
+
+.query-multi-select__option-button:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+}
+
+.query-multi-select__option input[type='checkbox'],
+.query-multi-select__option input[type='radio'] {
     cursor: pointer;
 }
 
