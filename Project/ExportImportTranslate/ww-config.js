@@ -143,6 +143,21 @@ export default {
                 tooltip: 'Provide the JSON data to export or validate imports with.',
             },
         },
+        visibleLanguagesJson: {
+            label: {
+                en: 'Visible languages',
+                fr: 'Langues visibles',
+                pt: 'Línguas visíveis',
+            },
+            type: 'Object',
+            section: 'settings',
+            bindable: true,
+            bindingValidation: {
+                type: 'array',
+                tooltip:
+                    'JSON array with the language keys to expose during export. Example: ["en-US", "pt-BR"].',
+            },
+        },
         csvDelimiter: {
             label: {
                 en: 'CSV delimiter',
