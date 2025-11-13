@@ -87,16 +87,14 @@
                             />
                             <span>{{ option.label }}</span>
                         </label>
-                        <label v-else>
-                            <input
-                                type="radio"
-                                :name="optionInputName"
-                                :value="String(option.value)"
-                                :checked="isSelected(option.value)"
-                                @change="selectSingleValue(option.value)"
-                            />
-                            <span>{{ option.label }}</span>
-                        </label>
+                        <button
+                            v-else
+                            type="button"
+                            class="query-multi-select__option-button"
+                            @click="selectSingleValue(option.value)"
+                        >
+                            {{ option.label }}
+                        </button>
                     </li>
                 </ul>
             </template>
@@ -136,7 +134,6 @@ export default {
         const searchInputRef = ref(null);
         const disabledState = computed(() => props.disabled);
         const isMultiple = computed(() => props.multiple !== false);
-        const optionInputName = `query-multi-select-${Math.random().toString(36).slice(2)}`;
 
         const normalizedValue = computed(() => {
             if (Array.isArray(props.modelValue)) {
@@ -452,7 +449,6 @@ export default {
             isMultiple,
             selectSingleValue,
             selectedOption,
-            optionInputName,
         };
     },
 };
@@ -652,6 +648,25 @@ export default {
     gap: 8px;
     font-size: 13px;
     cursor: pointer;
+}
+
+.query-multi-select__option-button {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: inherit;
+    text-align: left;
+}
+
+.query-multi-select__option-button:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
 }
 
 .query-multi-select__option input[type='checkbox'],
