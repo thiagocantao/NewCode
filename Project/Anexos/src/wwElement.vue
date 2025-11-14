@@ -182,6 +182,7 @@
 
 <script>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
+import { translatePhrase } from "./translation";
 
 export default {
   name: "Anexos",
@@ -204,31 +205,16 @@ export default {
     const popup = ref({ visible: false, type: "", details: "", title: "" });
     const detailsOpen = ref(false);
 
-    const TRANSLATION_FORMULA_ID = "0ab178d3-4b04-45f1-a5f2-d5db828242a6";
-    let resolveTranslation = null;
-    if (typeof wwLib !== "undefined" && wwLib?.wwFormula?.useFormula) {
-      try {
-        const formulaApi = wwLib.wwFormula.useFormula();
-        if (formulaApi && typeof formulaApi.resolveMappingFormula === "function") {
-          resolveTranslation = formulaApi.resolveMappingFormula.bind(formulaApi);
-        }
-      } catch (error) {
-        console.warn("[Anexos] Unable to initialize translation:", error);
-      }
-    }
-
     function translate(text) {
       if (text == null) return "";
       const value = typeof text === "string" ? text : String(text);
-      if (resolveTranslation) {
-        try {
-          const translated = resolveTranslation(TRANSLATION_FORMULA_ID, value);
-          if (translated !== undefined && translated !== null && translated !== "") {
-            return translated;
-          }
-        } catch (error) {
-          console.warn("[Anexos] Translation error:", error);
+      try {
+        const translated = translatePhrase(value);
+        if (translated !== undefined && translated !== null && translated !== "") {
+          return translated;
         }
+      } catch (error) {
+        console.warn("[Anexos] Translation error:", error);
       }
       return value;
     }
