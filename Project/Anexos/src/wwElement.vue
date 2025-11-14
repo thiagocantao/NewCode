@@ -49,15 +49,20 @@
   <div v-if="popup.visible" class="popup" :class="popup.type">
     <div class="popup-header">
       <span class="popup-title">
-        {{ popup.type === 'error' ? 'Error saving data' : (popup.details || 'Data saved successfully') }}
+        {{
+          popup.title ||
+            (popup.type === 'error'
+              ? t('Error saving data')
+              : t('Data saved successfully'))
+        }}
       </span>
-      <button class="popup-close" @click="closePopup">
+      <button class="popup-close" @click="closePopup" :aria-label="t('Close')">
         <i class="material-symbols-outlined">close</i>
       </button>
     </div>
     <div v-if="popup.type === 'error'" class="popup-details">
       <button class="details-toggle" @click="toggleDetails">
-        Details
+        {{ t('Details') }}
         <i class="material-symbols-outlined">
           {{ detailsOpen ? 'expand_less' : 'expand_more' }}
         </i>
@@ -116,7 +121,7 @@
 
         <!-- TXT preview -->
         <template v-else-if="currentFile && currentFile.isTxt">
-          <pre class="modal-txt">{{ currentFile.textContent || 'Carregando…' }}</pre>
+          <pre class="modal-txt">{{ currentFile.textContent || t('Loading…') }}</pre>
           <div class="modal-file-name">{{ currentFile.file.name }}</div>
         </template>
 
@@ -126,7 +131,7 @@
               v-if="currentFile"
               :class="['modal-file-icon', getFileIcon(currentFile.file.name)]"
             ></i>
-            <p class="no-preview">This file cannot be viewed</p>
+            <p class="no-preview">{{ t('This file cannot be viewed') }}</p>
           </div>
         </template>
       </div>
@@ -147,24 +152,28 @@
       <div class="confirm-card__header">
         <div class="confirm-card__title">
           <i class="material-symbols-outlined confirm-card__icon">close</i>
-          <span>Delete</span>
+          <span>{{ t('Delete') }}</span>
         </div>
-        <button class="confirm-card__close" @click="cancelDelete" aria-label="Close">
+        <button
+          class="confirm-card__close"
+          @click="cancelDelete"
+          :aria-label="t('Close')"
+        >
           <i class="material-symbols-outlined">close</i>
         </button>
       </div>
 
       <div class="confirm-card__body">
-        <p>Do you want to delete this data?</p>
+        <p>{{ t('Do you want to delete this data?') }}</p>
       </div>
 
       <div class="confirm-card__footer">
         <button class="btn btn-text" :disabled="confirm.loading" @click="cancelDelete">
-          Cancel
+          {{ t('Cancel') }}
         </button>
         <button class="btn btn-primary" :disabled="confirm.loading" @click="confirmDelete">
           <span v-if="confirm.loading" class="spinner"></span>
-          Ok
+          {{ t('Ok') }}
         </button>
       </div>
     </div>
@@ -192,8 +201,37 @@ export default {
     const currentIndex = ref(0);
     const currentFile = computed(() => files.value[currentIndex.value]);
     const zoom = ref(1);
-    const popup = ref({ visible: false, type: "", details: "" });
+    const popup = ref({ visible: false, type: "", details: "", title: "" });
     const detailsOpen = ref(false);
+
+    const TRANSLATION_FORMULA_ID = "0ab178d3-4b04-45f1-a5f2-d5db828242a6";
+    let resolveTranslation = null;
+    if (typeof wwLib !== "undefined" && wwLib?.wwFormula?.useFormula) {
+      try {
+        const formulaApi = wwLib.wwFormula.useFormula();
+        if (formulaApi && typeof formulaApi.resolveMappingFormula === "function") {
+          resolveTranslation = formulaApi.resolveMappingFormula.bind(formulaApi);
+        }
+      } catch (error) {
+        console.warn("[Anexos] Unable to initialize translation:", error);
+      }
+    }
+
+    function translate(text) {
+      if (text == null) return "";
+      const value = typeof text === "string" ? text : String(text);
+      if (resolveTranslation) {
+        try {
+          const translated = resolveTranslation(TRANSLATION_FORMULA_ID, value);
+          if (translated !== undefined && translated !== null && translated !== "") {
+            return translated;
+          }
+        } catch (error) {
+          console.warn("[Anexos] Translation error:", error);
+        }
+      }
+      return value;
+    }
 
     const DEFAULT_THUMB_HEIGHT = 130;
     const DEFAULT_THUMB_WIDTH = 140;
@@ -549,7 +587,7 @@ export default {
         file.textContent = await res.text();
       } catch (e) {
         console.warn(e);
-        file.textContent = "(Não foi possível carregar este texto)";
+        file.textContent = translate("(Unable to load this text)");
       }
     }
 
@@ -935,12 +973,19 @@ export default {
     function zoomOut() { zoom.value = Math.max(0.1, zoom.value - 0.1); }
 
     function showSuccess(message = "Data saved successfully") {
-      popup.value = { visible: true, type: "success", details: message };
+      const translatedMessage = translate(message || "Data saved successfully");
+      popup.value = { visible: true, type: "success", details: "", title: translatedMessage };
       detailsOpen.value = false;
       setTimeout(() => { popup.value.visible = false; }, 1000);
     }
     function showError(details) {
-      popup.value = { visible: true, type: "error", details };
+      const translatedDetails = translate(details || "");
+      popup.value = {
+        visible: true,
+        type: "error",
+        details: translatedDetails,
+        title: translate("Error saving data"),
+      };
       detailsOpen.value = false;
     }
     function closePopup() { popup.value.visible = false; }
@@ -964,6 +1009,8 @@ export default {
       pendingAttachmentsBodies,
       remount,
       thumbnailStyles,
+      translate,
+      t: translate,
     };
   },
 };
