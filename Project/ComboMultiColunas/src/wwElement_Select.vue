@@ -35,7 +35,7 @@
                     :id="dropdownId"
                     :role="selectType === 'single' ? 'listbox' : 'group'"
                     :aria-multiselectable="selectType === 'multiple'"
-                    :aria-label="'Select options'"
+                    :aria-label="translateText('Select options')"
                     inherit-component-style
                 >
                     <div :style="[dropdownStyles]">
@@ -70,6 +70,7 @@ import { ref, computed, provide, watch, inject, nextTick, toValue, onMounted, on
 import useAccessibility from './select/useAccessibility';
 import useSearch from './select/useSearch';
 import { debounce, findValueIndex, areValuesEqual } from './utils';
+import { translateText } from './translation';
 
 /* wwEditor:start */
 import useEditorHint from './editor/useEditorHint';
@@ -580,7 +581,7 @@ export default {
                             value,
                             label: value,
                             isInOptions: false,
-                            info: 'This value is not in the defined options',
+                            info: translateText('This value is not in the defined options'),
                         };
                     }
 
@@ -783,7 +784,7 @@ export default {
 
                 if (isReadonly.value) {
                     wwLib.wwNotification.open({
-                        text: `The select can't be forced open because it's readonly.`,
+                        text: translateText("The select can't be forced open because it's readonly."),
                         duration: 3000,
                     });
 
@@ -807,7 +808,7 @@ export default {
                 });
 
                 wwLib.wwNotification.open({
-                    text: `Force open in editor has been disabled because the select is readonly.`,
+                    text: translateText('Force open in editor has been disabled because the select is readonly.'),
                     duration: 3000,
                 });
             }
@@ -866,7 +867,7 @@ export default {
         provide('_wwSelect:isMouseDownOnOption', isMouseDownOnOption);
         provide('_wwSelect:localContext', currentLocalContext);
 
-        const markdown = `### Select local informations
+        const markdown = translateText(`### Select local informations
 
             #### options
             Array of all available options in the dropdown. Each option contains:
@@ -892,7 +893,7 @@ export default {
             Present when search is enabled:
             - \`value\`: Current search input value
             - \`searchBy\`: Fields to search by
-            - \`searchMatches\`: Options matching search criteria`;
+            - \`searchMatches\`: Options matching search criteria`);
 
         registerSelectLocalContext({
             data,
@@ -957,6 +958,7 @@ export default {
             variableValue,
             lastTriggeredComponentAction,
             selectStyles,
+            translateText,
 
             // Methods
             openDropdown,

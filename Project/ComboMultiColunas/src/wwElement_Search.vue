@@ -17,6 +17,7 @@ import { inject, onMounted, onBeforeUnmount, ref, computed, watch, nextTick } fr
 import useEditorHint from './editor/useEditorHint';
 /* wwEditor:end */
 import { debounce } from './utils';
+import { translateText } from './translation';
 
 export default {
     props: {
@@ -92,13 +93,14 @@ export default {
                         return false;
                     }
                 })
-                .map(col => col.header || '')
+                .map(col => translateText(wwLib.wwLang.getText(col.header)))
                 .filter(Boolean);
         });
 
         const searchPlaceholder = computed(() => {
             const headers = searchHeaders.value.join(', ');
-            return headers ? `Search by ${headers}` : 'Search by';
+            const base = translateText('Search by');
+            return headers ? `${base} ${headers}` : base;
         });
 
         // This event come from ww-input-basic => https://github.com/weweb-assets/ww-input-basic

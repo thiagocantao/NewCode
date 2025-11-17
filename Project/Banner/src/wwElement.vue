@@ -20,14 +20,14 @@
     >
       <img :src="displayUrl" alt="" class="banner__image" />
       <div class="banner__overlay">
-        <span v-if="isUploading">Send image…</span>
-        <span v-else>Click to change</span>
+        <span v-if="isUploading">{{ t("Send image…") }}</span>
+        <span v-else>{{ t("Click to change") }}</span>
       </div>
     </div>
 
     <div v-else class="banner__empty" @click="triggerFileInput">
       <span class="banner__empty-icon">+</span>
-      <span class="banner__empty-text">Add image</span>
+      <span class="banner__empty-text">{{ t("Add image") }}</span>
     </div>
 
     <transition name="banner-popup">
@@ -72,14 +72,25 @@ export default {
     function translate(text) {
       if (text == null) return "";
       const value = typeof text === "string" ? text : String(text);
+
       try {
-        const translated = window.translateText(value);
+        const phrase = translatePhrase(value);
+        if (phrase !== undefined && phrase !== null && phrase !== "") {
+          return phrase;
+        }
+      } catch (error) {
+        console.warn("[Banner] translatePhrase error:", error);
+      }
+
+      try {
+        const translated = window.translateText?.(value);
         if (translated !== undefined && translated !== null && translated !== "") {
           return translated;
         }
       } catch (error) {
-        console.warn("[Anexos] Translation error:", error);
+        console.warn("[Banner] Translation error:", error);
       }
+
       return value;
     }
 
@@ -243,7 +254,7 @@ export default {
       if (eventTarget) eventTarget.value = "";
     }
     function showPopup(type, message, { autoClose = true } = {}) {
-      popup.value = { visible: true, type, message };
+      popup.value = { visible: true, type, message: translate(message) };
       if (autoClose) {
         window.setTimeout(() => {
           popup.value.visible = false;
@@ -264,7 +275,7 @@ export default {
       if (!file) return;
 
       if (!file.type?.startsWith("image/") && !/\.(png|jpg|jpeg|gif|webp|bmp|svg)$/i.test(file.name)) {
-        showError("Please select a valid image file.");
+        showError(translate("Please select a valid image file."));
         return;
       }
 
@@ -284,7 +295,7 @@ export default {
         await ensureAuthReady();
         const okStorage = await waitForStorage(4000);
         if (!okStorage || !supabase?.storage) {
-          throw new Error("Supabase Storage não está pronto. Tente novamente.");
+          throw new Error(translate("Supabase Storage não está pronto. Tente novamente."));
         }
 
         const { data: userData, error: authErr } = auth?.auth?.getUser
@@ -293,8 +304,8 @@ export default {
         if (auth && (authErr || !userData?.user)) {
           throw new Error(
             authErr
-              ? `Erro ao obter usuário do Supabase Auth: ${authErr.message || authErr}`
-              : "Usuário não autenticado no Supabase."
+              ? `${translate("Erro ao obter usuário do Supabase Auth:")} ${authErr.message || authErr}`
+              : translate("Usuário não autenticado no Supabase.")
           );
         }
 
@@ -316,7 +327,7 @@ export default {
           if (rpcError) {
             console.warn("[Banner] RLS check falhou:", rpcError);
           } else if (allowed === false) {
-            throw new Error("Você não tem permissão para salvar esta imagem.");
+            throw new Error(translate("Você não tem permissão para salvar esta imagem."));
           }
         } catch (rlsError) {
           if (rlsError instanceof Error) throw rlsError;
@@ -336,7 +347,7 @@ export default {
         // === NOVO: usar URL PÚBLICA (não expira) ===
         const publicUrl = getPublicUrl(bucket, objectPath);
         if (!publicUrl) {
-          throw new Error("Unable to get public URL for uploaded image.");
+          throw new Error(translate("Unable to get public URL for uploaded image."));
         }
 
         storageInfo.value = { bucket, storagePath: objectPath };
@@ -356,7 +367,7 @@ export default {
           },
         });
 
-        showSuccess("Image loaded successfully.");
+        showSuccess(translate("Image loaded successfully."));
       } catch (error) {
         console.warn("[Banner] Falha no upload:", error);
         storageInfo.value = previousStorage;
