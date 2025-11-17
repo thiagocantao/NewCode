@@ -19,12 +19,13 @@
             @update-condition="handleUpdateCondition"
             @update-clause="handleUpdateClause"
         />
-        <div v-else class="filter-builder__empty">No filter configuration available.</div>
+        <div v-else class="filter-builder__empty">{{ t('No filter configuration available.') }}</div>
     </div>
 </template>
 
 <script>
 import FilterGroup from './components/FilterGroup.vue';
+import { translateText } from './translation';
 
 const INITIAL_QUERY_VARIABLE_ID = '4b4cff47-4599-44d2-a788-0e31ef09ed9f';
 
@@ -79,10 +80,16 @@ export default {
             return this.globalInitialQuery;
         },
         operatorOptions() {
-            return OPERATOR_OPTIONS;
+            return OPERATOR_OPTIONS.map((operator) => ({
+                ...operator,
+                label: translateText(operator.label),
+            }));
         },
         clauseOptions() {
-            return CLAUSE_OPTIONS;
+            return CLAUSE_OPTIONS.map((clause) => ({
+                ...clause,
+                label: translateText(clause.label),
+            }));
         },
         actionButtonBackgroundColor() {
             return (this.content && this.content.actionButtonBackgroundColor) || '#2563eb';
@@ -131,6 +138,9 @@ export default {
         },
     },
     methods: {
+        t(value) {
+            return translateText(value);
+        },
         getInitialQuerySource(override) {
             if (override !== undefined) {
                 return override;
