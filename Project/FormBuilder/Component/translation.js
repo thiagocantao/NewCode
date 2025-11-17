@@ -49,7 +49,7 @@ export function translatePhrase(phrase) {
     }
 }
 
-export function translateText(text) {
+export function translateTerm(text) {
     if (text == null) return '';
     const value = typeof text === 'string' ? text : String(text);
 
@@ -59,7 +59,7 @@ export function translateText(text) {
             return translated;
         }
     } catch (error) {
-        console.warn('TranslatePhrase error:', error);
+        console.warn('[ComboAgrupador] translatePhrase error:', error);
     }
 
     try {
@@ -68,7 +68,7 @@ export function translateText(text) {
             return legacy;
         }
     } catch (error) {
-        console.warn('Translation error:', error);
+        console.warn('[ComboAgrupador] Translation error:', error);
     }
 
     return value;
