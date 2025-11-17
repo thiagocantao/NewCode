@@ -9,7 +9,7 @@
       <span v-if="isMandatory" class="required-indicator">*</span>
     </label>
 
-    <div class="field-input-container">
+    <div class="field-input-container" @click="$refs.simpleText && $refs.simpleText.focus()">
       <template v-if="field.fieldType === 'DATE'">
         <CustomDatePicker
           v-model="localValue"
@@ -241,11 +241,10 @@
 
       <template v-else>
         <input
+          ref="simpleText"
           type="text"
           v-model="localValue"
           :disabled="isReadOnly"
-          @mousedown.stop
-          @touchstart.stop
           @blur="updateValue"
           :class="['field-input', 'text-input', { error: !!error && isMandatory }, { 'readonly-field': isReadOnly }]"
         />
@@ -539,12 +538,12 @@ export default {
         if (!val) return '';
         const match = String(val).match(/(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})/);
         if (match) {
-          return `${match[1]}T${match[2]}`;
+          return `\${match[1]}T\${match[2]}`;
         }
         const d = new Date(val);
         if (!isNaN(d.getTime())) {
           const pad = n => String(n).padStart(2, '0');
-          return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+          return `\${d.getFullYear()}-\${pad(d.getMonth() + 1)}-\${pad(d.getDate())}T\${pad(d.getHours())}:\${pad(d.getMinutes())}`;
         }
         return '';
       },
@@ -570,23 +569,23 @@ export default {
       const isPast = diffMs < 0;
       if (abs < 60 * 1000) {
         const s = Math.floor(abs / 1000);
-        return `${isPast ? '-' : ''}${s}s`;
+        return `\${isPast ? '-' : ''}\${s}s`;
       }
       if (abs < 60 * 60 * 1000) {
         const m = Math.floor(abs / (60 * 1000));
-        return `${isPast ? '-' : ''}${m}m`;
+        return `\${isPast ? '-' : ''}\${m}m`;
       }
       if (abs < 24 * 60 * 60 * 1000) {
         const h = Math.floor(abs / (60 * 60 * 1000));
         const m = Math.floor((abs % (60 * 60 * 1000)) / (60 * 1000));
-        return `${isPast ? '-' : ''}${h}h${m > 0 ? ` ${m}m` : ''}`;
+        return `\${isPast ? '-' : ''}\${h}h\${m > 0 ? \` \${m}m\` : ''}`;
       }
       const d = Math.floor(abs / (24 * 60 * 60 * 1000));
       const h = Math.floor((abs % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
       const m = Math.floor((abs % (60 * 60 * 1000)) / (60 * 1000));
-      let str = `${isPast ? '-' : ''}${d}d`;
-      if (h > 0) str += ` ${h}h`;
-      if (m > 0) str += ` ${m}m`;
+      let str = `\${isPast ? '-' : ''}\${d}d`;
+      if (h > 0) str += ` \${h}h`;
+      if (m > 0) str += ` \${m}m`;
       return str;
     },
     deadlineColorClass() {
@@ -702,296 +701,6 @@ export default {
         this.dataNow = new Date();
       }, 1000);
     }
-  },
-  watch: {
-    field: {
-      handler(newField, oldField) {
-        this.localValue = computeInitialValue(newField);
-        if (newField?.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
-          this.$nextTick(() => {
-            if (this.$refs.rte) {
-              this.$refs.rte.innerHTML = this.localValue || '';
-            }
-          });
-        }
-        const newFieldReadonly = normalizeBoolean(
-          newField?.is_readonly ?? newField?.isReadOnly ?? newField?.readonly,
-          false
-        );
-        if (newField?.fieldType === 'DEADLINE' && !newFieldReadonly && !this.deadlineTimer) {
-          this.deadlineTimer = setInterval(() => {
-            this.dataNow = new Date();
-          }, 1000);
-        } else if (
-          this.deadlineTimer &&
-          (
-            (oldField?.fieldType === 'DEADLINE' && newField?.fieldType !== 'DEADLINE') ||
-            (newField?.fieldType === 'DEADLINE' && newFieldReadonly)
-          )
-        ) {
-          clearInterval(this.deadlineTimer);
-          this.deadlineTimer = null;
-        }
-        const newSource = JSON.stringify(normalizeFieldDataSource(newField));
-        const oldSource = JSON.stringify(normalizeFieldDataSource(oldField));
-        if (newSource !== oldSource) {
-          this.loadDataSourceOptions();
-        }
-      },
-      deep: true
-    },
-    localValue(newVal) {
-      if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte && this.$refs.rte.innerHTML !== newVal) {
-        this.$refs.rte.innerHTML = newVal || '';
-      }
-    },
-    dataSourceConfig: {
-      handler() {
-        this.loadDataSourceOptions();
-      },
-      deep: true,
-      immediate: true
-    },
-    dropdownOpen(val) {
-      if (!val) {
-        this.searchTerm = '';
-        document.removeEventListener('click', this.handleClickOutsideDropdown);
-      }
-    }
-  },
-  beforeUnmount() {
-    document.removeEventListener('click', this.handleClickOutsideDropdown);
-    if (this.deadlineTimer) {
-      clearInterval(this.deadlineTimer);
-      this.deadlineTimer = null;
-    }
-  },
-  mounted() {
-    if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
-      this.$refs.rte.innerHTML = this.localValue || '';
-    }
-    if (this.field.fieldType === 'DEADLINE') {
-      this.deadlineTimer = setInterval(() => {
-        this.dataNow = new Date();
-      }, 1000);
-    }
-  },
-  watch: {
-    field: {
-      handler(newField, oldField) {
-        this.localValue = computeInitialValue(newField);
-        if (newField?.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
-          this.$nextTick(() => {
-            if (this.$refs.rte) {
-              this.$refs.rte.innerHTML = this.localValue || '';
-            }
-          });
-        }
-        if (newField?.fieldType === 'DEADLINE' && !this.deadlineTimer) {
-          this.deadlineTimer = setInterval(() => {
-            this.dataNow = new Date();
-          }, 1000);
-        } else if (oldField?.fieldType === 'DEADLINE' && newField?.fieldType !== 'DEADLINE' && this.deadlineTimer) {
-          clearInterval(this.deadlineTimer);
-          this.deadlineTimer = null;
-        }
-        const newSource = JSON.stringify(normalizeFieldDataSource(newField));
-        const oldSource = JSON.stringify(normalizeFieldDataSource(oldField));
-        if (newSource !== oldSource) {
-          this.loadDataSourceOptions();
-        }
-      },
-      deep: true
-    },
-    localValue(newVal) {
-      if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte && this.$refs.rte.innerHTML !== newVal) {
-        this.$refs.rte.innerHTML = newVal || '';
-      }
-    },
-    dataSourceConfig: {
-      handler() {
-        this.loadDataSourceOptions();
-      },
-      deep: true,
-      immediate: true
-    },
-    dropdownOpen(val) {
-      if (!val) {
-        this.searchTerm = '';
-        document.removeEventListener('click', this.handleClickOutsideDropdown);
-      }
-    }
-  },
-  beforeUnmount() {
-    document.removeEventListener('click', this.handleClickOutsideDropdown);
-    if (this.deadlineTimer) {
-      clearInterval(this.deadlineTimer);
-      this.deadlineTimer = null;
-    }
-  },
-  mounted() {
-    if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
-      this.$refs.rte.innerHTML = this.localValue || '';
-    }
-    if (this.field.fieldType === 'DEADLINE') {
-      this.deadlineTimer = setInterval(() => {
-        this.dataNow = new Date();
-      }, 1000);
-    }
-  },
-  mounted() {
-    if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
-      this.$refs.rte.innerHTML = this.localValue || '';
-    }
-    if (this.field.fieldType === 'DEADLINE' && !this.isReadOnly) {
-      this.deadlineTimer = setInterval(() => {
-        this.dataNow = new Date();
-      }, 1000);
-    }
-  },
-  watch: {
-    field: {
-      handler(newField, oldField) {
-        this.localValue = computeInitialValue(newField);
-        if (newField?.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
-          this.$nextTick(() => {
-            if (this.$refs.rte) {
-              this.$refs.rte.innerHTML = this.localValue || '';
-            }
-          });
-        }
-        const newFieldReadonly = normalizeBoolean(
-          newField?.is_readonly ?? newField?.isReadOnly ?? newField?.readonly,
-          false
-        );
-        if (newField?.fieldType === 'DEADLINE' && !newFieldReadonly && !this.deadlineTimer) {
-          this.deadlineTimer = setInterval(() => {
-            this.dataNow = new Date();
-          }, 1000);
-        } else if (
-          this.deadlineTimer &&
-          (
-            (oldField?.fieldType === 'DEADLINE' && newField?.fieldType !== 'DEADLINE') ||
-            (newField?.fieldType === 'DEADLINE' && newFieldReadonly)
-          )
-        ) {
-          clearInterval(this.deadlineTimer);
-          this.deadlineTimer = null;
-        }
-        const newSource = JSON.stringify(normalizeFieldDataSource(newField));
-        const oldSource = JSON.stringify(normalizeFieldDataSource(oldField));
-        if (newSource !== oldSource) {
-          this.loadDataSourceOptions();
-        }
-      },
-      deep: true
-    },
-    localValue(newVal) {
-      if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte && this.$refs.rte.innerHTML !== newVal) {
-        this.$refs.rte.innerHTML = newVal || '';
-      }
-    },
-    dataSourceConfig: {
-      handler() {
-        this.loadDataSourceOptions();
-      },
-      deep: true,
-      immediate: true
-    },
-    dropdownOpen(val) {
-      if (!val) {
-        this.searchTerm = '';
-        document.removeEventListener('click', this.handleClickOutsideDropdown);
-      }
-    }
-  },
-  beforeUnmount() {
-    document.removeEventListener('click', this.handleClickOutsideDropdown);
-    if (this.deadlineTimer) {
-      clearInterval(this.deadlineTimer);
-      this.deadlineTimer = null;
-    }
-  },
-  mounted() {
-    if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
-      this.$refs.rte.innerHTML = this.localValue || '';
-    }
-    if (this.field.fieldType === 'DEADLINE') {
-      this.deadlineTimer = setInterval(() => {
-        this.dataNow = new Date();
-      }, 1000);
-    }
-  },
-  watch: {
-    field: {
-      handler(newField, oldField) {
-        this.localValue = computeInitialValue(newField);
-        if (newField?.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
-          this.$nextTick(() => {
-            if (this.$refs.rte) {
-              this.$refs.rte.innerHTML = this.localValue || '';
-            }
-          });
-        }
-        if (newField?.fieldType === 'DEADLINE' && !this.deadlineTimer) {
-          this.deadlineTimer = setInterval(() => {
-            this.dataNow = new Date();
-          }, 1000);
-        } else if (oldField?.fieldType === 'DEADLINE' && newField?.fieldType !== 'DEADLINE' && this.deadlineTimer) {
-          clearInterval(this.deadlineTimer);
-          this.deadlineTimer = null;
-        }
-        const newSource = JSON.stringify(this.normalizeDataSource(newField));
-        const oldSource = JSON.stringify(this.normalizeDataSource(oldField));
-        if (newSource !== oldSource) {
-          this.loadDataSourceOptions();
-        }
-      },
-      deep: true
-    },
-    localValue(newVal) {
-      if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte && this.$refs.rte.innerHTML !== newVal) {
-        this.$refs.rte.innerHTML = newVal || '';
-      }
-    },
-    dataSourceConfig: {
-      handler() {
-        this.loadDataSourceOptions();
-      },
-      deep: true,
-      immediate: true
-    },
-    dropdownOpen(val) {
-      if (!val) {
-        this.searchTerm = '';
-        document.removeEventListener('click', this.handleClickOutsideDropdown);
-      }
-    }
-  },
-  beforeUnmount() {
-    document.removeEventListener('click', this.handleClickOutsideDropdown);
-    if (this.deadlineTimer) {
-      clearInterval(this.deadlineTimer);
-      this.deadlineTimer = null;
-    }
-  },
-  mounted() {
-    if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
-      this.$refs.rte.innerHTML = this.localValue || '';
-    }
-    if (this.field.fieldType === 'DEADLINE') {
-      this.deadlineTimer = setInterval(() => {
-        this.dataNow = new Date();
-      }, 1000);
-    }
-    if (this.field.fieldType === 'DEADLINE') {
-      this.deadlineTimer = setInterval(() => {
-        this.dataNow = new Date();
-      }, 1000);
-    }
-  },
-  beforeUnmount() {
-    document.removeEventListener('click', this.handleClickOutsideDropdown);
   },
   methods: {
     normalizeDataSource(fieldLike) {
@@ -1568,9 +1277,7 @@ export default {
   .toolbar {
     margin-bottom: 0;
     display: flex;
-    flex-wrap: wrap;
     gap: 6px;
-    row-gap: 6px;
     background: #f8f9fa;
     border: 1px solid #e0e0e0;
     border-radius: 6px 6px 0 0;
@@ -1848,7 +1555,7 @@ export default {
 
   .loading-placeholder {
     height: 34px;
-    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f00f0 75%);
     background-size: 200% 100%;
     animation: loading 1.5s infinite;
     border-radius: 4px;
@@ -1856,12 +1563,33 @@ export default {
   }
 
   @keyframes loading {
-    0% {
-      background-position: 200% 0;
-    }
-
-    100% {
-      background-position: -200% 0;
-    }
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
   }
+
+  /* ==== Patch mínimo e específico para SIMPLE_TEXT ==== */
+  .field-component.field-type-simple_text {
+    position: relative;
+    isolation: isolate;
+  }
+  .field-component.field-type-simple_text .field-input-container {
+    position: relative;
+    z-index: 5;
+  }
+  .field-component.field-type-simple_text .field-input.text-input {
+    position: relative;
+    z-index: 9999;
+    pointer-events: auto;
+  }
+  .field-component.field-type-simple_text::before,
+  .field-component.field-type-simple_text::after {
+    pointer-events: none;
+  }
+
+  /* Remove o outline preto apenas no SIMPLE_TEXT */
+.field-component.field-type-simple_text .field-input.text-input:focus,
+.field-component.field-type-simple_text .field-input.text-input:focus-visible {
+  outline: none;
+}
+
 </style>
