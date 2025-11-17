@@ -14,8 +14,8 @@
                 type="button"
                 class="filter-group__remove"
                 :style="removeButtonStyles"
-                aria-label="Remover grupo"
-                title="Delete"
+                :aria-label="t('Remover grupo')"
+                :title="t('Delete')"
                 @click="$emit('remove-group', { groupId: group.id, parentId })"
             >
                 <span class="material-symbols-outlined" aria-hidden="true">delete</span>
@@ -34,7 +34,7 @@
                             value: $event.target.value,
                         })"
                     >
-                        <option v-if="!fields.length" value="">Select field</option>
+                        <option v-if="!fields.length" value="">{{ t('Select field') }}</option>
                         <option v-for="field in fields" :key="field" :value="field">{{ field }}</option>
                     </select>
                     <select
@@ -56,7 +56,7 @@
                         type="text"
                         class="filter-condition__value"
                         :value="item.value"
-                        placeholder="Enter value"
+                        :placeholder="t('Enter value')"
                         @input="$emit('update-condition', {
                             groupId: group.id,
                             conditionId: item.id,
@@ -68,8 +68,8 @@
                         type="button"
                         class="filter-condition__remove"
                         :style="removeButtonStyles"
-                        aria-label="Remover condição"
-                        title="Delete"
+                        :aria-label="t('Remover condição')"
+                        :title="t('Delete')"
                         @click="$emit('remove-condition', { groupId: group.id, conditionId: item.id })"
                     >
                         <span class="material-symbols-outlined" aria-hidden="true">delete</span>
@@ -104,7 +104,7 @@
                 :style="actionButtonStyles"
                 @click="$emit('add-condition', { groupId: group.id })"
             >
-                + Add condition
+                {{ t('+ Add condition') }}
             </button>
             <button
                 type="button"
@@ -112,13 +112,15 @@
                 :style="actionButtonStyles"
                 @click="$emit('add-group', { groupId: group.id })"
             >
-                + Add group
+                {{ t('+ Add group') }}
             </button>
         </div>
     </div>
 </template>
 
 <script>
+import { translateText } from '../translation';
+
 export default {
     name: 'FilterGroup',
     props: {
@@ -160,6 +162,9 @@ export default {
         },
     },
     methods: {
+        t(value) {
+            return translateText(value);
+        },
         requiresValue(operatorValue) {
             const operator = this.operators.find((item) => item.value === operatorValue);
             return operator ? operator.requiresValue !== false : true;
