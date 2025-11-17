@@ -159,9 +159,9 @@ export default {
 
     const currentLang = computed(() => {
       if (typeof window !== 'undefined' && window.wwLib && window.wwLib.wwVariable) {
-        return window.wwLib.wwVariable.getValue('aa44dc4c-476b-45e9-a094-16687e063342') || 'pt-BR';
+        return window.wwLib.wwVariable.getValue('aa44dc4c-476b-45e9-a094-16687e063342') || 'en-US';
       }
-      return 'pt-BR';
+      return 'en-US';
     });
 
     // Watch for changes in the selected field
@@ -308,14 +308,15 @@ export default {
     color: #333;
   }
 
-  input[type="range"] {
+    input[type="range"] {
     accent-color: rgb(105, 157, 140);
     background: #f5f5f5;
     width: 100%;
-    height: 6px;
+    height: 6px; /* espaço para o polegar */
     border-radius: 3px;
     appearance: none;
     margin: 0;
+  padding: 0;
     background: linear-gradient(to right, rgb(105, 157, 140) 0%, rgb(105, 157, 140) 50%, #f5f5f5 50%, #f5f5f5 100%);
   }
 
