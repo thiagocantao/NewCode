@@ -79,6 +79,7 @@ import { ref, inject, computed, watch, toValue } from 'vue';
 import { DynamicScroller, DynamicScrollerItem } from 'vue-virtual-scroller';
 import { useMemoize } from '@vueuse/core';
 import { areValuesEqual } from './utils';
+import { translateText } from './translation';
 
 /* wwEditor:start */
 import useEditorHint from './editor/useEditorHint';
@@ -146,7 +147,7 @@ export default {
             }
         }
 
-        const emptyStateText = computed(() => wwLib.wwLang.getText(props.content.emptyStateText));
+        const emptyStateText = computed(() => translateText(wwLib.wwLang.getText(props.content.emptyStateText)));
 
         const options = computed(() => {
             const items = rawData.value;

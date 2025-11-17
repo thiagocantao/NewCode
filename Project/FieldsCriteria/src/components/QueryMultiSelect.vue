@@ -27,7 +27,7 @@
                             <button
                                 type="button"
                                 class="query-multi-select__chip-remove"
-                                :aria-label="`Remover ${option.label}`"
+                                :aria-label="`${translateText('Remove')} ${option.label}`"
                                 @click.stop="removeValue(option.value)"
                             >
                                 X
@@ -56,7 +56,7 @@
             <span class="query-multi-select__icon material-symbols-outlined" aria-hidden="true">keyboard_arrow_down</span>
         </button>
         <div v-if="isOpen" class="query-multi-select__dropdown" ref="dropdownRef">
-            <div v-if="loading" class="query-multi-select__state">Carregando...</div>
+            <div v-if="loading" class="query-multi-select__state">{{ translateText('Loading...') }}</div>
             <template v-else>
                 <div class="query-multi-select__search">
                     <span class="material-symbols-outlined query-multi-select__search-icon" aria-hidden="true">search</span>
@@ -65,12 +65,14 @@
                         v-model="searchTerm"
                         type="text"
                         class="query-multi-select__search-input"
-                        placeholder="Pesquisar..."
+                        :placeholder="translateText('Search...')"
                         @keydown.stop
                     />
                 </div>
-                <div v-if="!hasOptions" class="query-multi-select__state">Sem opções</div>
-                <div v-else-if="!filteredOptions.length" class="query-multi-select__state">Nenhum resultado encontrado</div>
+                <div v-if="!hasOptions" class="query-multi-select__state">{{ translateText('No options') }}</div>
+                <div v-else-if="!filteredOptions.length" class="query-multi-select__state">
+                    {{ translateText('No results found') }}
+                </div>
                 <ul v-else class="query-multi-select__list">
                     <li
                         v-for="option in filteredOptions"
@@ -104,13 +106,14 @@
 
 <script>
 import { computed, ref, watch, nextTick, onMounted, onBeforeUnmount, onBeforeUpdate } from 'vue';
+import { translateText } from '../translation';
 
 export default {
     name: 'QueryMultiSelect',
     props: {
         modelValue: { type: [Array, String], default: () => [] },
         options: { type: Array, default: () => [] },
-        placeholder: { type: String, default: 'Selecione...' },
+        placeholder: { type: String, default: () => translateText('Select...') },
         disabled: { type: Boolean, default: false },
         loading: { type: Boolean, default: false },
         chipBackgroundColor: { type: String, default: '#2563eb' },
@@ -449,6 +452,7 @@ export default {
             isMultiple,
             selectSingleValue,
             selectedOption,
+            translateText,
         };
     },
 };

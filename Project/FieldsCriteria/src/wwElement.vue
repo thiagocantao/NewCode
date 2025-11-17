@@ -17,7 +17,9 @@
             @remove-condition="handleRemoveCondition"
             @update-condition="handleUpdateCondition"
         />
-        <div v-else class="filter-builder__empty">No filter configuration available.</div>
+        <div v-else class="filter-builder__empty">
+            {{ translateText('No filter configuration available.') }}
+        </div>
     </div>
 </template>
 
@@ -29,6 +31,7 @@ import {
     fetchDataSourceOptions,
     mapOptionsFromData,
 } from './components/dataSource';
+import { translateText } from './translation';
 
 const DEFAULT_INITIAL_QUERY_VARIABLE_ID = '4b4cff47-4599-44d2-a788-0e31ef09ed9f';
 const FIELDS_CONFIG_VARIABLE_ID = 'b839531d-663a-4dd8-8cac-51f664c77256';
@@ -416,6 +419,7 @@ export default {
         },
     },
     methods: {
+        translateText,
         getInitialQuerySource(override) {
             if (override !== undefined) {
                 return override;

@@ -20,6 +20,7 @@ import { inject, onMounted, onBeforeUnmount, ref, computed, watch, nextTick } fr
 import useEditorHint from './editor/useEditorHint';
 /* wwEditor:end */
 import { debounce } from './utils';
+import { translateText } from './translation';
 
 export default {
     props: {
@@ -84,7 +85,7 @@ export default {
         });
 
         const searchPlaceholder = computed(() => {
-            return wwLib.wwLang.getText(props.content.searchPlaceholder);
+            return translateText(wwLib.wwLang.getText(props.content.searchPlaceholder));
         });
 
         // This event come from ww-input-basic => https://github.com/weweb-assets/ww-input-basic
