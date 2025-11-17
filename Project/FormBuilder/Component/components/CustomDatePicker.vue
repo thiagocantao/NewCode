@@ -363,6 +363,7 @@ export default {
   width: 100%;
   font-family: 'Roboto', sans-serif;
   font-size: 14px;
+  z-index: 9999;
 }
 
 .dp-input {
