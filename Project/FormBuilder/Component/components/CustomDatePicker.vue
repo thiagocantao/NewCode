@@ -58,6 +58,7 @@
 
 <script>
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { translateTerm } from '../translation.js';
 
 export default {
   name: 'CustomDatePicker',
@@ -70,7 +71,7 @@ export default {
   },
   emits: ['update:modelValue'],
   setup(props, { emit }) {
-    const translateText = (t) => t;
+    const translateText = translateTerm;
     const ww = window.wwLib?.wwVariable;
     const lang = ww?.getValue('aa44dc4c-476b-45e9-a094-16687e063342') || navigator.language;
     const formatStyleRaw = ww?.getValue('21a41590-e7d8-46a5-af76-bb3542da1df3') || 'european';
