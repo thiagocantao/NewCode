@@ -41,7 +41,7 @@
                             @change="onListValueChange(item, $event)"
                         >
                             <option v-if="isLoadingFieldOptions(item.fieldId)" disabled value="">
-                                Carregando...
+                                {{ translateText('Loading...') }}
                             </option>
                             <option
                                 v-for="option in getFieldOptions(item.fieldId)"
@@ -58,9 +58,9 @@
                             :value="normalizeBooleanValue(item.value)"
                             @change="onBooleanValueChange(item, $event.target.value)"
                         >
-                            <option value="">Select value</option>
-                            <option value="true">True</option>
-                            <option value="false">False</option>
+                            <option value="">{{ translateText('Select value') }}</option>
+                            <option value="true">{{ translateText('True') }}</option>
+                            <option value="false">{{ translateText('False') }}</option>
                         </select>
                         <CustomDatePicker
                             v-else-if="isDateLikeField(item)"
@@ -85,8 +85,8 @@
                         type="button"
                         class="filter-condition__remove"
                         :style="removeButtonStyles"
-                        aria-label="Remover condição"
-                        title="Delete"
+                        :aria-label="translateText('Remove condition')"
+                        :title="translateText('Delete')"
                         @click="$emit('remove-condition', { groupId: group.id, conditionId: item.id })"
                     >
                         <span class="material-symbols-outlined" aria-hidden="true">delete</span>
@@ -103,7 +103,7 @@
                 :aria-disabled="isAddButtonDisabled ? 'true' : 'false'"
                 @click="$emit('add-condition', { groupId: group.id })"
             >
-                + Add new line
+                {{ translateText('+ Add new line') }}
             </button>
         </div>
     </div>
@@ -112,6 +112,7 @@
 <script>
 import CustomDatePicker from './CustomDatePicker.vue';
 import QueryMultiSelect from './QueryMultiSelect.vue';
+import { translateText } from '../translation';
 
 export default {
     name: 'FieldsCriteriaList',
@@ -185,6 +186,7 @@ export default {
         },
     },
     methods: {
+        translateText,
         normalizeFieldId(value) {
             if (value === null || value === undefined) {
                 return '';
@@ -326,11 +328,11 @@ export default {
         },
         resolvePlaceholder(condition) {
             const field = this.getFieldDefinition(condition.fieldId);
-            return field?.placeholder || 'Enter value';
+            return field?.placeholder || translateText('Enter value');
         },
         resolveListPlaceholder(condition) {
             const field = this.getFieldDefinition(condition.fieldId);
-            return field?.placeholder || 'Selecione...';
+            return field?.placeholder || translateText('Select...');
         },
         resolveInputType(condition) {
             const field = this.getFieldDefinition(condition.fieldId);

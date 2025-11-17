@@ -62,6 +62,7 @@ import { useMemoize } from '@vueuse/core';
 /* wwEditor:start */
 import useEditorHint from './editor/useEditorHint';
 /* wwEditor:end */
+import { translateText } from './translation';
 
 export default {
     components: {
@@ -109,7 +110,7 @@ export default {
         const virtualScrollMinItemSize = computed(() => props.content.virtualScrollMinItemSize || 40);
         const virtualScrollBuffer = computed(() => props.content.virtualScrollBuffer || 400);
 
-        const emptyStateText = computed(() => wwLib.wwLang.getText(props.content.emptyStateText));
+        const emptyStateText = computed(() => translateText(wwLib.wwLang.getText(props.content.emptyStateText)));
 
         const options = computed(() => {
             const items = rawData.value;
@@ -118,7 +119,9 @@ export default {
 
         const columns = computed(() => props.content.columns || []);
         const parsedColumns = computed(() => columns.value.filter(col => col && col.column));
-        const columnsHeaders = computed(() => parsedColumns.value.map(col => col.header || ''));
+        const columnsHeaders = computed(() =>
+            parsedColumns.value.map(col => translateText(wwLib.wwLang.getText(col.header)))
+        );
         const columnsWidths = computed(() => parsedColumns.value.map(col => col.width || '1fr'));
         const hasColumns = computed(() => columnsHeaders.value.length > 0);
         const columnsStyle = computed(() => ({
