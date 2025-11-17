@@ -205,8 +205,7 @@ export function getPlatformContext() {
     companyId: safeGet('5d099f04-cd42-41fd-94ad-22d4de368c3a'),
     apiUrl: safeGet('1195995b-34c3-42a5-b436-693f0f4f8825') || '',
     apiKey: safeGet('d180be98-8926-47a7-b7f1-6375fbb95fa3'),
-    apiAuth: safeGet('dfcde09f-42f3-4b5c-b2e8-4314650655db'),
-    ticketId: null
+    apiAuth: safeGet('dfcde09f-42f3-4b5c-b2e8-4314650655db')
   };
 }
 
@@ -256,8 +255,7 @@ export async function fetchDataSourceOptions(rawDataSource, context) {
   if (method !== 'GET') {
     fetchOptions.body = JSON.stringify({
       ...(companyId ? { p_idcompany: companyId } : {}),
-      ...(lang ? { p_language: lang } : {}),
-      p_ticketid: context?.ticketId ?? null
+      ...(lang ? { p_language: lang } : {})
     });
   }
 
