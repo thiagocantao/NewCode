@@ -20,14 +20,14 @@
     >
       <img :src="displayUrl" alt="" class="banner__image" />
       <div class="banner__overlay">
-        <span v-if="isUploading">Send image…</span>
-        <span v-else>Click to change</span>
+        <span v-if="isUploading">{{ t("Send image…") }}</span>
+        <span v-else>{{ t("Click to change") }}</span>
       </div>
     </div>
 
     <div v-else class="banner__empty" @click="triggerFileInput">
       <span class="banner__empty-icon">+</span>
-      <span class="banner__empty-text">Add image</span>
+      <span class="banner__empty-text">{{ t("Add image") }}</span>
     </div>
 
     <transition name="banner-popup">
@@ -41,6 +41,7 @@
 <script>
 import { ref, computed, watch, onBeforeUnmount } from "vue";
 import { SUPABASE_IMAGE_BUCKET } from "../../supabaseBuckets";
+import { translatePhrase } from "./translation";
 
 export default {
   name: "Banner",
@@ -59,6 +60,20 @@ export default {
     const officialUrl = ref("");
     const isUploading = ref(false);
     const popup = ref({ visible: false, type: "", message: "" });
+
+    function t(text) {
+      if (text == null) return "";
+      const value = typeof text === "string" ? text : String(text);
+      try {
+        const translated = translatePhrase(value);
+        if (translated !== undefined && translated !== null && translated !== "") {
+          return translated;
+        }
+      } catch (error) {
+        console.warn("[Banner] Translation error:", error);
+      }
+      return value;
+    }
 
     const objectUrls = new Set();
     const storageInfo = ref(null);
@@ -283,7 +298,7 @@ export default {
       if (!file) return;
 
       if (!file.type?.startsWith("image/") && !/\.(png|jpg|jpeg|gif|webp|bmp|svg)$/i.test(file.name)) {
-        showError("Please select a valid image file.");
+        showError(t("Please select a valid image file."));
         return;
       }
 
@@ -303,7 +318,7 @@ export default {
         await ensureAuthReady();
         const okStorage = await waitForStorage(4000);
         if (!okStorage || !supabase?.storage) {
-          throw new Error("Supabase Storage não está pronto. Tente novamente.");
+          throw new Error(t("Supabase Storage não está pronto. Tente novamente."));
         }
 
         const { data: userData, error: authErr } = auth?.auth?.getUser
@@ -312,8 +327,8 @@ export default {
         if (auth && (authErr || !userData?.user)) {
           throw new Error(
             authErr
-              ? `Erro ao obter usuário do Supabase Auth: ${authErr.message || authErr}`
-              : "Usuário não autenticado no Supabase."
+              ? `${t("Erro ao obter usuário do Supabase Auth:")} ${authErr.message || authErr}`
+              : t("Usuário não autenticado no Supabase.")
           );
         }
 
@@ -334,7 +349,7 @@ export default {
           if (rpcError) {
             console.warn("[Banner] RLS check falhou:", rpcError);
           } else if (allowed === false) {
-            throw new Error("Você não tem permissão para salvar esta imagem.");
+            throw new Error(t("Você não tem permissão para salvar esta imagem."));
           }
         } catch (rlsError) {
           if (rlsError instanceof Error) {
@@ -355,7 +370,7 @@ export default {
 
         const signedUrl = await getSignedUrl(bucket, objectPath);
         if (!signedUrl) {
-          throw new Error("Unable to get URL for uploaded image.");
+          throw new Error(t("Unable to get URL for uploaded image."));
         }
 
         storageInfo.value = { bucket, storagePath: objectPath };
@@ -375,7 +390,7 @@ export default {
           },
         });
 
-        showSuccess("Image loaded successfully.");
+        showSuccess(t("Image loaded successfully."));
       } catch (error) {
         console.warn("[Banner] Falha no upload:", error);
         storageInfo.value = previousStorage;
@@ -419,6 +434,7 @@ export default {
       triggerFileInput,
       onFileSelected,
       remount,
+      t,
     };
   },
 };
