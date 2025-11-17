@@ -101,7 +101,7 @@
               @touchstart.stop
               @change="onYesNoChange(true)"
             />
-            {{ translateText('Sim') }}
+            {{ translateText('Yes') }}
           </label>
           <label class="radio-label">
             <input
@@ -114,7 +114,7 @@
               @touchstart.stop
               @change="onYesNoChange(false)"
             />
-            {{ translateText('Não') }}
+            {{ translateText('No') }}
           </label>
         </div>
       </template>
@@ -122,17 +122,17 @@
       <template v-else-if="field.fieldType === 'FORMATED_TEXT'">
         <div class="formatted-text-wrapper">
           <div v-if="!isReadOnly" class="toolbar">
-            <button type="button" @click="format('bold')" :title="translateText('Negrito')"><span class="material-symbols-outlined">format_bold</span></button>
-            <button type="button" @click="format('italic')" :title="translateText('Itálico')"><span class="material-symbols-outlined">format_italic</span></button>
-            <button type="button" @click="format('underline')" :title="translateText('Sublinhado')"><span class="material-symbols-outlined">format_underlined</span></button>
-            <button type="button" @click="format('insertUnorderedList')" :title="translateText('Lista')"><span class="material-symbols-outlined">format_list_bulleted</span></button>
-            <button type="button" @click="format('insertOrderedList')" :title="translateText('Lista numerada')"><span class="material-symbols-outlined">format_list_numbered</span></button>
-            <button type="button" @click="format('removeFormat')" :title="translateText('Limpar formatação')"><span class="material-symbols-outlined">format_clear</span></button>
-            <button type="button" @click="insertLink" :title="translateText('Inserir link')"><span class="material-symbols-outlined">link</span></button>
-            <button type="button" @click="insertImage" :title="translateText('Inserir imagem')"><span class="material-symbols-outlined">image</span></button>
-            <button type="button" class="color-btn" :style="{ color: currentColor }" :title="translateText('Cor do texto')">
+            <button type="button" @click="format('bold')" :title="translateText('Bold')"><span class="material-symbols-outlined">format_bold</span></button>
+            <button type="button" @click="format('italic')" :title="translateText('Italic')"><span class="material-symbols-outlined">format_italic</span></button>
+            <button type="button" @click="format('underline')" :title="translateText('Underline')"><span class="material-symbols-outlined">format_underlined</span></button>
+            <button type="button" @click="format('insertUnorderedList')" :title="translateText('Bullet list')"><span class="material-symbols-outlined">format_list_bulleted</span></button>
+            <button type="button" @click="format('insertOrderedList')" :title="translateText('Numbered list')"><span class="material-symbols-outlined">format_list_numbered</span></button>
+            <button type="button" @click="format('removeFormat')" :title="translateText('Clear formatting')"><span class="material-symbols-outlined">format_clear</span></button>
+            <button type="button" @click="insertLink" :title="translateText('Insert link')"><span class="material-symbols-outlined">link</span></button>
+            <button type="button" @click="insertImage" :title="translateText('Insert image')"><span class="material-symbols-outlined">image</span></button>
+            <button type="button" class="color-btn" :style="{ color: currentColor }" :title="translateText('Text color')">
               <span style="font-weight: bold; font-size: 16px;">A</span>
-              <input type="color" @input="setColor($event)" :value="currentColor" class="color-input" :title="translateText('Cor do texto')" />
+              <input type="color" @input="setColor($event)" :value="currentColor" class="color-input" :title="translateText('Text color')" />
             </button>
           </div>
           <div
@@ -198,7 +198,7 @@
               <input
                 type="text"
                 v-model="searchTerm"
-                :placeholder="translateText('Pesquisar...')"
+                :placeholder="translateText('Search...')"
                 class="list-search-input"
                 @keydown.stop
                 @mousedown.stop
@@ -210,7 +210,7 @@
               v-if="filteredListOptions.length === 0"
               class="custom-dropdown-no-options"
             >
-              {{ translateText('Nenhuma opção encontrada') }}
+              {{ translateText('No options found') }}
             </div>
             <div
               v-for="option in filteredListOptions"
@@ -936,55 +936,55 @@ export default {
     },
     validateDate(value) {
       if (!value) {
-        this.error = this.isMandatory ? this.translateText('Campo obrigatório') : null;
+        this.error = this.isMandatory ? this.translateText('Required field') : null;
         return;
       }
       const date = new Date(`${value}T00:00:00`);
-      this.error = isNaN(date.getTime()) ? this.translateText('Data inválida') : null;
+      this.error = isNaN(date.getTime()) ? this.translateText('Invalid date') : null;
     },
     validateDeadline(value) {
       if (!value) {
-        this.error = this.isMandatory ? this.translateText('Campo obrigatório') : null;
+        this.error = this.isMandatory ? this.translateText('Required field') : null;
         return;
       }
       const date = new Date(value);
       if (isNaN(date.getTime())) {
-        this.error = this.translateText('Data e hora inválidas');
+        this.error = this.translateText('Invalid date and time');
       } else {
         this.error = null;
       }
     },
     validateDecimal(value) {
       if (value === null || isNaN(value)) {
-        this.error = this.isMandatory ? this.translateText('Campo obrigatório') : null;
+        this.error = this.isMandatory ? this.translateText('Required field') : null;
         return;
       }
       this.error = null;
     },
     validateInteger(value) {
       if (value === null || isNaN(value)) {
-        this.error = this.isMandatory ? this.translateText('Campo obrigatório') : null;
+        this.error = this.isMandatory ? this.translateText('Required field') : null;
         return;
       }
       this.error = null;
     },
     validateList(value) {
       if (this.isMandatory && !value) {
-        this.error = this.translateText('Campo obrigatório');
+        this.error = this.translateText('Required field');
       } else {
         this.error = null;
       }
     },
     validateMultilineText(value) {
       if (this.isMandatory && !value.trim()) {
-        this.error = this.translateText('Campo obrigatório');
+        this.error = this.translateText('Required field');
       } else {
         this.error = null;
       }
     },
     validateText(value) {
       if (this.isMandatory && !value.trim()) {
-        this.error = this.translateText('Campo obrigatório');
+        this.error = this.translateText('Required field');
       } else {
         this.error = null;
       }
