@@ -211,7 +211,7 @@ export default {
   },
   setup(props) {
     const translateText = (text) => text;
-
+console.log("LIB -->>>", window.wwLib)
     // ===== Configs WeWeb (IDs fornecidos) =====
     const ww = window.wwLib?.wwVariable;
     const lang =
