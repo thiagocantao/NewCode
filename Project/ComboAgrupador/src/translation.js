@@ -3,9 +3,9 @@ export function translatePhrase(phrase) {
         return '';
     }
 
-    const lang = variables['aa44dc4c-476b-45e9-a094-16687e063342'];
-    const jsonArr = variables['4bb37062-2a1b-4cb6-a115-ae6df0c557d2'];
-    const allLangs = variables['5abe8801-7f12-4c9c-b356-900431ab4491'];
+   const lang = window?.wwLib?.wwVariable?.getValue("aa44dc4c-476b-45e9-a094-16687e063342"); // idioma atual (ex: "pt-BR")
+  const jsonArr = window?.wwLib?.wwVariable?.getValue("4bb37062-2a1b-4cb6-a115-ae6df0c557d2"); // array de traduções
+  const allLangs = window?.wwLib?.wwVariable?.getValue("5abe8801-7f12-4c9c-b356-900431ab4491"); // lista de idiomas
 
     if (!Array.isArray(jsonArr) || !Array.isArray(allLangs)) {
         return String(phrase);
