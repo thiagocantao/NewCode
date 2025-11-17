@@ -20,14 +20,14 @@
     >
       <img :src="displayUrl" alt="" class="banner__image" />
       <div class="banner__overlay">
-        <span v-if="isUploading">{{ t("Send image…") }}</span>
-        <span v-else>{{ t("Click to change") }}</span>
+        <span v-if="isUploading">Send image…</span>
+        <span v-else>Click to change</span>
       </div>
     </div>
 
     <div v-else class="banner__empty" @click="triggerFileInput">
       <span class="banner__empty-icon">+</span>
-      <span class="banner__empty-text">{{ t("Add image") }}</span>
+      <span class="banner__empty-text">Add image</span>
     </div>
 
     <transition name="banner-popup">
@@ -40,7 +40,6 @@
 
 <script>
 import { ref, computed, watch, onBeforeUnmount } from "vue";
-import { SUPABASE_IMAGE_BUCKET } from "../../supabaseBuckets";
 import { translatePhrase } from "./translation";
 
 export default {
@@ -61,20 +60,6 @@ export default {
     const isUploading = ref(false);
     const popup = ref({ visible: false, type: "", message: "" });
 
-    function t(text) {
-      if (text == null) return "";
-      const value = typeof text === "string" ? text : String(text);
-      try {
-        const translated = translatePhrase(value);
-        if (translated !== undefined && translated !== null && translated !== "") {
-          return translated;
-        }
-      } catch (error) {
-        console.warn("[Banner] Translation error:", error);
-      }
-      return value;
-    }
-
     const objectUrls = new Set();
     const storageInfo = ref(null);
 
@@ -84,11 +69,26 @@ export default {
       large: "300px",
     };
 
+    function translate(text) {
+      if (text == null) return "";
+      const value = typeof text === "string" ? text : String(text);
+      try {
+        const translated = window.translateText(value);
+        if (translated !== undefined && translated !== null && translated !== "") {
+          return translated;
+        }
+      } catch (error) {
+        console.warn("[Anexos] Translation error:", error);
+      }
+      return value;
+    }
+
     const computedHeight = computed(() => {
       const raw = (props.content?.imageHeight || "medium").toString().toLowerCase();
       return heightMap[raw] || heightMap.medium;
     });
 
+    // expoõe a URL atual via variável do WeWeb (igual estava)
     const bannerImageUrl = ref("");
     let setBannerImageUrl;
     if (
@@ -105,23 +105,25 @@ export default {
       bannerImageUrl.value = value.value || "";
       setBannerImageUrl = setValue;
     }
-
     function syncBannerUrl(nextUrl) {
       const normalized = typeof nextUrl === "string" ? nextUrl : "";
       bannerImageUrl.value = normalized;
       if (setBannerImageUrl) setBannerImageUrl(normalized);
     }
 
+    // variáveis do projeto
     const getVar = (id) => window?.wwLib?.wwVariable?.getValue?.(id);
     const workspaceVarId = "744511f1-3309-41da-a9fd-0721e7dd2f99";
     const ticketVarId = "7bebd888-f31e-49e7-bef2-4052c8cb6cf5";
 
+    // plugins supabase
     let sb = window?.wwLib?.wwPlugins?.supabase;
     let supabase = sb?.instance || null;
     let auth = window?.wwLib?.wwPlugins?.supabaseAuth?.publicInstance || null;
 
     const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+    // Para upload (RLS ainda exige user autenticado). Para leitura pública não é necessário.
     async function ensureAuthReady(maxMs = 4000) {
       try {
         if (!auth?.auth?.getUser) return true;
@@ -134,7 +136,6 @@ export default {
       } catch (_) {}
       return true;
     }
-
     async function waitForStorage(maxMs = 4000) {
       const start = Date.now();
       while (Date.now() - start < maxMs) {
@@ -148,7 +149,6 @@ export default {
       const seg = String(name).split(".").pop() || "";
       return seg.toLowerCase();
     }
-
     function guessContentType(name, fallback = "application/octet-stream") {
       const ext = extOf(name);
       if (["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg"].includes(ext)) {
@@ -160,48 +160,19 @@ export default {
       return fallback;
     }
 
-    async function getSignedUrl(bucket, storagePath) {
-      if (!bucket || !storagePath) return null;
-      await ensureAuthReady();
-      const ready = await waitForStorage(1500);
-      if (!ready || !supabase?.storage) return null;
-
-      const preferPublicUrl = bucket === SUPABASE_IMAGE_BUCKET;
-
-      if (preferPublicUrl) {
-        try {
-          const { data } = supabase.storage.from(bucket).getPublicUrl(storagePath);
-          if (data?.publicUrl) return data.publicUrl;
-        } catch (e) {
-          console.warn("[Banner] Falha ao obter URL pública:", e);
-        }
-      }
-
+    // === NOVO: sempre usar URL pública (bucket público) ===
+    function getPublicUrl(bucket, storagePath) {
+      if (!bucket || !storagePath || !supabase?.storage) return null;
       try {
-        const { data, error } = await supabase.storage
-          .from(bucket)
-          .createSignedUrl(storagePath, 60 * 60, {
-            transform: { width: 1600, resize: "contain" },
-          });
-        if (error) {
-          console.warn("[Banner] Falha ao criar URL assinada:", error);
-        } else if (data?.signedUrl) {
-          return data.signedUrl;
-        }
+        // Você pode manter transform para servir redimensionado pela Image CDN
+        const { data } = supabase.storage.from(bucket).getPublicUrl(storagePath, {
+          transform: { width: 1600, resize: "contain" },
+        });
+        return data?.publicUrl || null;
       } catch (e) {
-        console.warn(e);
+        console.warn("[Banner] getPublicUrl error:", e);
+        return null;
       }
-
-      if (!preferPublicUrl) {
-        try {
-          const { data } = supabase.storage.from(bucket).getPublicUrl(storagePath);
-          return data?.publicUrl || null;
-        } catch (_) {
-          return null;
-        }
-      }
-
-      return null;
     }
 
     let loadToken = 0;
@@ -219,34 +190,31 @@ export default {
       let resolvedUrl = "";
       let resolvedStorage = null;
 
+      // Se vier string: pode ser URL completa ou "path/no/bucket"
       if (typeof rawValue === "string") {
         const trimmed = rawValue.trim();
         if (/^(https?:|data:|blob:)/i.test(trimmed)) {
-          resolvedUrl = trimmed;
+          resolvedUrl = trimmed; // já é uma URL
         } else {
-          const bucket = SUPABASE_IMAGE_BUCKET;
-          const signed = await getSignedUrl(bucket, trimmed);
+          const bucket = "banners";
+          const publicUrl = getPublicUrl(bucket, trimmed);
           if (token !== loadToken) return;
-          if (signed) {
-            resolvedUrl = signed;
-            resolvedStorage = { bucket, storagePath: trimmed };
-          } else {
-            resolvedUrl = trimmed;
-          }
+          resolvedUrl = publicUrl || trimmed;
+          resolvedStorage = { bucket, storagePath: trimmed };
         }
       } else if (typeof rawValue === "object") {
-        const bucket = rawValue?.bucket || rawValue?.storageBucket || SUPABASE_IMAGE_BUCKET;
+        const bucket = rawValue?.bucket || rawValue?.storageBucket || "banners";
         const storagePath = rawValue?.storagePath || rawValue?.objectPath || rawValue?.path || null;
-        const hintedUrl = rawValue?.url || rawValue?.signedUrl || "";
+        const hintedUrl = rawValue?.url || rawValue?.publicUrl || rawValue?.signedUrl || "";
         if (hintedUrl) {
           resolvedUrl = hintedUrl;
         }
         if (bucket && storagePath) {
           resolvedStorage = { bucket, storagePath };
           if (!resolvedUrl || resolvedUrl === storagePath) {
-            const signed = await getSignedUrl(bucket, storagePath);
+            const publicUrl = getPublicUrl(bucket, storagePath);
             if (token !== loadToken) return;
-            if (signed) resolvedUrl = signed;
+            if (publicUrl) resolvedUrl = publicUrl;
           }
         }
       }
@@ -258,6 +226,7 @@ export default {
       syncBannerUrl(officialUrl.value);
     }
 
+    // Reagir às mudanças externas do prop
     watch(
       () => props.content?.imageUrl,
       (next) => {
@@ -270,11 +239,9 @@ export default {
       if (isUploading.value) return;
       if (fileInput.value) fileInput.value.click();
     }
-
     function resetInput(eventTarget) {
       if (eventTarget) eventTarget.value = "";
     }
-
     function showPopup(type, message, { autoClose = true } = {}) {
       popup.value = { visible: true, type, message };
       if (autoClose) {
@@ -283,22 +250,21 @@ export default {
         }, type === "error" ? 4000 : 1500);
       }
     }
-
     function showSuccess(message) {
       showPopup("success", message, { autoClose: true });
     }
-
     function showError(message) {
       showPopup("error", message, { autoClose: false });
     }
 
+    // Upload continua igual (precisa passar no RLS de INSERT do storage.objects)
     async function onFileSelected(event) {
       const file = event.target?.files?.[0] || null;
       resetInput(event.target);
       if (!file) return;
 
       if (!file.type?.startsWith("image/") && !/\.(png|jpg|jpeg|gif|webp|bmp|svg)$/i.test(file.name)) {
-        showError(t("Please select a valid image file."));
+        showError("Please select a valid image file.");
         return;
       }
 
@@ -318,7 +284,7 @@ export default {
         await ensureAuthReady();
         const okStorage = await waitForStorage(4000);
         if (!okStorage || !supabase?.storage) {
-          throw new Error(t("Supabase Storage não está pronto. Tente novamente."));
+          throw new Error("Supabase Storage não está pronto. Tente novamente.");
         }
 
         const { data: userData, error: authErr } = auth?.auth?.getUser
@@ -327,14 +293,14 @@ export default {
         if (auth && (authErr || !userData?.user)) {
           throw new Error(
             authErr
-              ? `${t("Erro ao obter usuário do Supabase Auth:")} ${authErr.message || authErr}`
-              : t("Usuário não autenticado no Supabase.")
+              ? `Erro ao obter usuário do Supabase Auth: ${authErr.message || authErr}`
+              : "Usuário não autenticado no Supabase."
           );
         }
 
         const workspace = getVar(workspaceVarId) || "no-workspace";
         const ticket = getVar(ticketVarId) || "no-ticket";
-        const bucket = SUPABASE_IMAGE_BUCKET;
+        const bucket = "banners";
 
         const extension = extOf(file.name);
         const uniqueId = window.crypto?.randomUUID
@@ -342,6 +308,7 @@ export default {
           : `${Date.now().toString(36)}-${Math.random().toString(16).slice(2)}`;
         const objectPath = `${workspace}/${ticket}/banner/${uniqueId}${extension ? `.${extension}` : ""}`;
 
+        // Se você usa uma RPC para validar path, mantenha (ajuste para o bucket 'banners')
         try {
           const { data: allowed, error: rpcError } = sb?.callPostgresFunction
             ? await supabase.rpc("rls_user_in_path_workspace", { obj_name: objectPath })
@@ -349,12 +316,10 @@ export default {
           if (rpcError) {
             console.warn("[Banner] RLS check falhou:", rpcError);
           } else if (allowed === false) {
-            throw new Error(t("Você não tem permissão para salvar esta imagem."));
+            throw new Error("Você não tem permissão para salvar esta imagem.");
           }
         } catch (rlsError) {
-          if (rlsError instanceof Error) {
-            throw rlsError;
-          }
+          if (rlsError instanceof Error) throw rlsError;
           throw new Error(String(rlsError));
         }
 
@@ -368,15 +333,16 @@ export default {
           throw new Error(uploadError.message || uploadError);
         }
 
-        const signedUrl = await getSignedUrl(bucket, objectPath);
-        if (!signedUrl) {
-          throw new Error(t("Unable to get URL for uploaded image."));
+        // === NOVO: usar URL PÚBLICA (não expira) ===
+        const publicUrl = getPublicUrl(bucket, objectPath);
+        if (!publicUrl) {
+          throw new Error("Unable to get public URL for uploaded image.");
         }
 
         storageInfo.value = { bucket, storagePath: objectPath };
-        officialUrl.value = signedUrl;
-        displayUrl.value = signedUrl;
-        syncBannerUrl(signedUrl);
+        officialUrl.value = publicUrl;
+        displayUrl.value = publicUrl;
+        syncBannerUrl(publicUrl);
 
         emit("trigger-event", {
           name: "onUpload",
@@ -384,13 +350,13 @@ export default {
             value: {
               bucket,
               storagePath: objectPath,
-              signedUrl,
+              publicUrl,
               file,
             },
           },
         });
 
-        showSuccess(t("Image loaded successfully."));
+        showSuccess("Image loaded successfully.");
       } catch (error) {
         console.warn("[Banner] Falha no upload:", error);
         storageInfo.value = previousStorage;
@@ -434,7 +400,8 @@ export default {
       triggerFileInput,
       onFileSelected,
       remount,
-      t,
+      translate,
+      t: translate,
     };
   },
 };
