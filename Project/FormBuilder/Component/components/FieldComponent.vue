@@ -44,7 +44,7 @@
             </template>
             <template v-else>
               <span class="material-symbols-outlined deadline-empty-icon">calendar_month</span>
-              <span class="deadline-empty-text">Select</span>
+              <span class="deadline-empty-text">{{ translateText('Select') }}</span>
             </template>
           </div>
           <CustomDatePicker
@@ -101,7 +101,7 @@
               @touchstart.stop
               @change="onYesNoChange(true)"
             />
-            Sim
+            {{ translateText('Sim') }}
           </label>
           <label class="radio-label">
             <input
@@ -114,7 +114,7 @@
               @touchstart.stop
               @change="onYesNoChange(false)"
             />
-            Não
+            {{ translateText('Não') }}
           </label>
         </div>
       </template>
@@ -122,17 +122,17 @@
       <template v-else-if="field.fieldType === 'FORMATED_TEXT'">
         <div class="formatted-text-wrapper">
           <div v-if="!isReadOnly" class="toolbar">
-            <button type="button" @click="format('bold')" title="Negrito"><span class="material-symbols-outlined">format_bold</span></button>
-            <button type="button" @click="format('italic')" title="Itálico"><span class="material-symbols-outlined">format_italic</span></button>
-            <button type="button" @click="format('underline')" title="Sublinhado"><span class="material-symbols-outlined">format_underlined</span></button>
-            <button type="button" @click="format('insertUnorderedList')" title="Lista"><span class="material-symbols-outlined">format_list_bulleted</span></button>
-            <button type="button" @click="format('insertOrderedList')" title="Lista numerada"><span class="material-symbols-outlined">format_list_numbered</span></button>
-            <button type="button" @click="format('removeFormat')" title="Limpar formatação"><span class="material-symbols-outlined">format_clear</span></button>
-            <button type="button" @click="insertLink" title="Inserir link"><span class="material-symbols-outlined">link</span></button>
-            <button type="button" @click="insertImage" title="Inserir imagem"><span class="material-symbols-outlined">image</span></button>
-            <button type="button" class="color-btn" :style="{ color: currentColor }" title="Cor do texto">
+            <button type="button" @click="format('bold')" :title="translateText('Negrito')"><span class="material-symbols-outlined">format_bold</span></button>
+            <button type="button" @click="format('italic')" :title="translateText('Itálico')"><span class="material-symbols-outlined">format_italic</span></button>
+            <button type="button" @click="format('underline')" :title="translateText('Sublinhado')"><span class="material-symbols-outlined">format_underlined</span></button>
+            <button type="button" @click="format('insertUnorderedList')" :title="translateText('Lista')"><span class="material-symbols-outlined">format_list_bulleted</span></button>
+            <button type="button" @click="format('insertOrderedList')" :title="translateText('Lista numerada')"><span class="material-symbols-outlined">format_list_numbered</span></button>
+            <button type="button" @click="format('removeFormat')" :title="translateText('Limpar formatação')"><span class="material-symbols-outlined">format_clear</span></button>
+            <button type="button" @click="insertLink" :title="translateText('Inserir link')"><span class="material-symbols-outlined">link</span></button>
+            <button type="button" @click="insertImage" :title="translateText('Inserir imagem')"><span class="material-symbols-outlined">image</span></button>
+            <button type="button" class="color-btn" :style="{ color: currentColor }" :title="translateText('Cor do texto')">
               <span style="font-weight: bold; font-size: 16px;">A</span>
-              <input type="color" @input="setColor($event)" :value="currentColor" class="color-input" title="Cor do texto" />
+              <input type="color" @input="setColor($event)" :value="currentColor" class="color-input" :title="translateText('Cor do texto')" />
             </button>
           </div>
           <div
@@ -198,7 +198,7 @@
               <input
                 type="text"
                 v-model="searchTerm"
-                placeholder="Pesquisar..."
+                :placeholder="translateText('Pesquisar...')"
                 class="list-search-input"
                 @keydown.stop
                 @mousedown.stop
@@ -210,7 +210,7 @@
               v-if="filteredListOptions.length === 0"
               class="custom-dropdown-no-options"
             >
-              Nenhuma opção encontrada
+              {{ translateText('Nenhuma opção encontrada') }}
             </div>
             <div
               v-for="option in filteredListOptions"
@@ -266,6 +266,7 @@ import dataSourceUtils, {
   fetchDataSourceOptions,
   hasFetchableDataSource as rawHasFetchableDataSource
 } from '../utils/dataSource';
+import { translateTerm } from '../translation.js';
 
 const hasFetchableDataSource =
   typeof rawHasFetchableDataSource === 'function'
@@ -707,7 +708,7 @@ export default {
       return normalizeFieldDataSource(fieldLike);
     },
     translateText(text) {
-      return text;
+      return translateTerm(text);
     },
     async loadDataSourceOptions() {
       const dataSource = this.dataSourceConfig;
