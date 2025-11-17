@@ -59,7 +59,7 @@ export function translateText(text) {
             return translated;
         }
     } catch (error) {
-        console.warn('[ComboAgrupador] translatePhrase error:', error);
+        console.warn('[ComboMultiColunas] translatePhrase error:', error);
     }
 
     try {
@@ -68,7 +68,7 @@ export function translateText(text) {
             return legacy;
         }
     } catch (error) {
-        console.warn('[ComboAgrupador] Translation error:', error);
+        console.warn('[ComboMultiColunas] Translation error:', error);
     }
 
     return value;

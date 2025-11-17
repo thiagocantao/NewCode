@@ -46,6 +46,7 @@ import useAccessibility from './useAccessibility_Option';
 import useEditorHint from './editor/useEditorHint';
 /* wwEditor:end */
 import { areValuesEqual } from './utils';
+import { translateText } from './translation';
 
 const SELECT_OPTION_ICON =
     '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check"><path d="M20 6 9 17l-5-5"/></svg>';
@@ -334,21 +335,25 @@ export default {
 
         const contextMethods = {
             select: {
-                description: 'Select the current option',
+                description: translateText('Select the current option'),
                 method: select,
-                editor: { label: 'Select', group: 'Select Option', icon: 'cursor-click' },
+                editor: {
+                    label: translateText('Select'),
+                    group: translateText('Select Option'),
+                    icon: 'cursor-click',
+                },
             },
         };
 
 
         onBeforeUnmount(() => unregisterOption(optionId));
 
-        const contextMarkdown = `### Select Option local informations
+        const contextMarkdown = translateText(`### Select Option local informations
 
         // - \`isSelected\`: Boolean indicating if the option is selected
         // - \`isOptionDisabled\`: Boolean indicating if the option is disabled
         // - \`label\`: The label of the option (will be overwritten if defined in the Select root element)
-        // - \`value\`: The value of the option (will be overwritten if defined in the Select root element)`;
+        // - \`value\`: The value of the option (will be overwritten if defined in the Select root element)`);
 
         return {
             optionRef,
