@@ -328,17 +328,11 @@ export default {
         },
         resolvePlaceholder(condition) {
             const field = this.getFieldDefinition(condition.fieldId);
-            if (field?.placeholder) {
-                return field.placeholder;
-            }
-            return translateText('Enter value');
+            return field?.placeholder || translateText('Enter value');
         },
         resolveListPlaceholder(condition) {
             const field = this.getFieldDefinition(condition.fieldId);
-            if (field?.placeholder) {
-                return field.placeholder;
-            }
-            return translateText('Select...');
+            return field?.placeholder || translateText('Select...');
         },
         resolveInputType(condition) {
             const field = this.getFieldDefinition(condition.fieldId);

@@ -70,9 +70,7 @@
                     />
                 </div>
                 <div v-if="!hasOptions" class="query-multi-select__state">{{ translateText('No options') }}</div>
-                <div v-else-if="!filteredOptions.length" class="query-multi-select__state">
-                    {{ translateText('No results found') }}
-                </div>
+                <div v-else-if="!filteredOptions.length" class="query-multi-select__state">{{ translateText('No results found') }}</div>
                 <ul v-else class="query-multi-select__list">
                     <li
                         v-for="option in filteredOptions"
@@ -130,7 +128,7 @@ export default {
         const visibleChipCount = ref(Number.POSITIVE_INFINITY);
         const hiddenChipCount = ref(0);
         let resizeObserver = null;
-        const placeholderText = computed(() => props.placeholder);
+        const placeholderText = computed(() => props.placeholder || translateText('Select...'));
         const loadingState = computed(() => props.loading);
         const optionsState = computed(() => (Array.isArray(props.options) ? props.options : []));
         const searchTerm = ref('');
