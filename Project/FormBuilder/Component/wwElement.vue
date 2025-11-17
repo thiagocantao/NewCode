@@ -191,6 +191,7 @@ import DraggableField from './components/DraggableField.vue';
 import FormSection from './components/FormSection.vue';
 import FieldComponent from './components/FieldComponent.vue';
 import FieldPropertiesPanel from './components/FieldPropertiesPanel.vue';
+import { translateTerm } from './translation.js';
 
 export default {
 name: 'FormBuilder',
@@ -1874,41 +1875,7 @@ const updateFieldInUse = ({ fieldId, inUse }) => {
   }
 };
 
-// Função de tradução usando getLabel implementada localmente
-const getLabel = (phrase) => {
-  
-  try {
-    if (typeof wwLib.wwVariable === 'undefined') return phrase;
-    const lang = window.wwLib.wwVariable.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
-    const jsonArr = window.wwLib.wwVariable.getValue('4bb37062-2a1b-4cb6-a115-ae6df0c557d2');
-    const allLangs = window.wwLib.wwVariable.getValue('5abe8801-7f12-4c9c-b356-900431ab4491');
-
-
-    if (!lang || !jsonArr || !allLangs) return phrase;
-    const isoLangs = allLangs.map(l => l.Lang);
-    function findIndexByKey(key) {
-      return jsonArr.findIndex(obj => Object.prototype.hasOwnProperty.call(obj, key));
-    }
-    const part = phrase;
-    const idx = findIndexByKey(part);
-    if (idx === -1) {
-      const labels = {};
-      isoLangs.forEach(code => { labels[code] = part; });
-      jsonArr.push({ [part]: labels });
-      return part;
-    } else {
-      const entry = jsonArr[idx][part];
-      return entry[lang] ?? part;
-    }
-  } catch (error) {
-    return phrase;
-  }
-};
-
-const translateText = (text) => {
-  // Usa getLabel se possível, senão retorna o texto original
-  return getLabel(text);
-};
+const translateText = (text) => translateTerm(text);
 
 // Exemplo de como usar a tradução em métodos
 const showTranslatedMessage = () => {
