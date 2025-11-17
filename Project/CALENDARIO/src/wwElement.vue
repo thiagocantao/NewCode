@@ -113,8 +113,8 @@
                     <button
                       type="button"
                       class="dp-icon"
-                      title="Abrir calendário"
-                      aria-label="Abrir calendário"
+                      :title="translateText('Open calendar')"
+                      :aria-label="translateText('Open calendar')"
                       @pointerdown.stop.prevent="openDp"
                       @mousedown.stop.prevent="openDp"
                       @click.stop.prevent="openDp"
@@ -192,6 +192,7 @@
 
 <script>
 import { ref, watch, onMounted, onBeforeUnmount, nextTick, computed } from "vue";
+import { translatePhrase } from "./translation";
 
 export default {
   props: {
@@ -210,7 +211,30 @@ export default {
     /* wwEditor:end */
   },
   setup(props) {
-    const translateText = (text) => text;
+    function translateText(text) {
+      if (text == null) return "";
+      const value = typeof text === "string" ? text : String(text);
+
+      try {
+        const translated = translatePhrase(value);
+        if (translated !== undefined && translated !== null && translated !== "") {
+          return translated;
+        }
+      } catch (error) {
+        console.warn("[Calendario] translatePhrase error:", error);
+      }
+
+      try {
+        const legacy = window.translateText?.(value);
+        if (legacy !== undefined && legacy !== null && legacy !== "") {
+          return legacy;
+        }
+      } catch (error) {
+        console.warn("[Calendario] Translation error:", error);
+      }
+
+      return value;
+    }
 
     // ===== Configs WeWeb (IDs fornecidos) =====
     const ww = window.wwLib?.wwVariable;
