@@ -1066,15 +1066,12 @@ function defer(fn, delay = 0) {
   const runWithSuppressedReveal = (operation, { recaptureDelay = 50 } = {}) => {
     suppressRevealUntilCapture = true;
     const finalize = () => {
-      const pristine = isGridStatePristine();
-
       if (typeof recaptureDelay === "number") {
         scheduleCaptureInitialGridState(recaptureDelay);
       } else {
         suppressRevealUntilCapture = false;
       }
-
-      updateHideSaveButtonVisibility(pristine);
+         updateHideSaveButtonVisibility(pristine);
     };
 
 
@@ -1241,18 +1238,6 @@ function defer(fn, delay = 0) {
   defaultValue: {},
   readonly: true,
   });
-  const { setValue: setTicketTagTotals } = wwLib.wwVariable.useComponentVariable({
-    uid: props.uid,
-    name: "ticketTagTotals",
-    type: "object",
-    defaultValue: {
-      problem: 0,
-      update: 0,
-      request: 0,
-      incident: 0,
-    },
-    readonly: true,
-  });
   const { value: columnsPositionValue, setValue: setColumnsPosition } = wwLib.wwVariable.useComponentVariable({
   uid: props.uid,
   name: "columnsPosition",
@@ -1309,37 +1294,6 @@ function getExternalSortFromWW() {
     return [];
   }
 }
-
-  const createTicketTagTotals = () => ({
-    problem: 0,
-    update: 0,
-    request: 0,
-    incident: 0,
-  });
-
-  const updateTicketTagTotals = () => {
-    const totals = createTicketTagTotals();
-
-    const increment = tag => {
-      const normalizedTag = typeof tag === 'string' ? tag.trim().toLowerCase() : '';
-      if (normalizedTag && Object.prototype.hasOwnProperty.call(totals, normalizedTag)) {
-        totals[normalizedTag] += 1;
-      }
-    };
-
-    if (gridApi.value && typeof gridApi.value.forEachNodeAfterFilterAndSort === 'function') {
-      gridApi.value.forEachNodeAfterFilterAndSort(node => {
-        if (!node?.data) return;
-        increment(node.data.TagTicketModel);
-      });
-    } else {
-      const rows = wwLib.wwUtils.getDataFromCollection(props.content?.rowData);
-      const safeRows = Array.isArray(rows) ? rows : [];
-      safeRows.forEach(row => increment(row?.TagTicketModel));
-    }
-
-    setTicketTagTotals(totals);
-  };
 
 /**
  * Aplica a ordenação externa (WW variable) na grid e sincroniza variável local `sort`.
@@ -1467,55 +1421,6 @@ const remountComponent = () => {
     return [];
   };
 
-  const STATUS_COLLECTION_ID = '95233031-3746-48c8-8c3c-8722b0075d61';
-  const STATUS_VALUE_FIELD = 'id';
-  const STATUS_LABEL_FIELD = 'status';
-  let statusFilterOptionsCache = null;
-
-  const normalizeStatusFilterOption = item => {
-    if (!item || typeof item !== 'object') return null;
-    const value = item?.[STATUS_VALUE_FIELD];
-    const label = item?.[STATUS_LABEL_FIELD];
-    if (value == null || label == null) return null;
-    return {
-      value,
-      label: String(label),
-    };
-  };
-
-  const readStatusCollectionEntries = () => {
-    try {
-      const collection = wwLib?.wwCollection?.getCollection?.(STATUS_COLLECTION_ID);
-      const raw = collection?.data;
-      const candidates = Array.isArray(raw)
-        ? raw
-        : Array.isArray(raw?.data)
-        ? raw.data
-        : Array.isArray(raw?.result)
-        ? raw.result
-        : Array.isArray(raw?.results)
-        ? raw.results
-        : [];
-
-      return candidates
-        .map(normalizeStatusFilterOption)
-        .filter(Boolean)
-        .sort((a, b) => String(a.label).localeCompare(String(b.label), undefined, { sensitivity: 'base' }));
-    } catch (error) {
-      console.warn('[GridViewDinamica] Failed to read status filter options from collection', error);
-      return [];
-    }
-  };
-
-  const getStatusFilterOptions = ({ forceReload = false } = {}) => {
-    if (!forceReload && Array.isArray(statusFilterOptionsCache)) {
-      return statusFilterOptionsCache.map(opt => ({ ...opt }));
-    }
-    const options = readStatusCollectionEntries();
-    statusFilterOptionsCache = options;
-    return options.map(opt => ({ ...opt }));
-  };
-
   const loadApiOptions = async (col, ticketId) => {
     try {
       const lang = window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
@@ -1595,19 +1500,7 @@ const remountComponent = () => {
     const lazyStatus = shouldLazyLoadStatus(col);
 
     if (lazyStatus && !force) {
-      const cachedStatusOptions = getStatusFilterOptions();
-      if (cachedStatusOptions.length) {
-        return cachedStatusOptions;
-      }
       return [];
-    }
-
-    if (lazyStatus) {
-      const refreshedStatusOptions = getStatusFilterOptions({ forceReload: true });
-      if (refreshedStatusOptions.length) {
-        return refreshedStatusOptions;
-      }
-      return buildLazyStatusFallbackOptions(col);
     }
 
     if (tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID') {
@@ -1814,8 +1707,6 @@ const remountComponent = () => {
 
       resetHideSaveButtonVisibility();
 
-      updateTicketTagTotals();
-
       // Restaura imediatamente e também em pequenos delays
       restoreGridState();
       setTimeout(restoreGridState, 0);
@@ -1870,9 +1761,6 @@ const remountComponent = () => {
     // Impedir mover colunas para posição de pinned
 
     params.api.addEventListener('columnMoved', (event) => {
-      if (isProgrammaticEvent(event)) {
-        return;
-      }
       const api = (params.columnApi && typeof params.columnApi.getAllGridColumns === 'function')
         ? params.columnApi
         : (params.api && typeof params.api.getAllGridColumns === 'function')
@@ -2090,14 +1978,6 @@ const remountComponent = () => {
     },
     { deep: true, immediate: true }
   );
-
-  watch(
-    () => wwLib.wwUtils.getDataFromCollection(props.content?.rowData),
-    () => {
-      updateTicketTagTotals();
-    },
-    { deep: true, immediate: true }
-  );
   
   const onRowSelected = (event) => {
   const name = event.node.isSelected() ? "rowSelected" : "rowDeselected";
@@ -2129,7 +2009,6 @@ const remountComponent = () => {
   });
   }
   saveGridState();
-  updateTicketTagTotals();
   (() => { try { const pristine = isGridStatePristine(); updateHideSaveButtonVisibility(pristine); } catch(e) { console && console.warn && console.warn('[Grid Pristine inline] failed:', e); } })();
   };
   
@@ -2271,9 +2150,7 @@ const remountComponent = () => {
       const onFirstDataRendered = () => {
       updateColumnsPosition();
       updateColumnsSort();
-
-      updateTicketTagTotals();
-
+      
       // Reaplica o estado salvo após o primeiro render (garante consistência)
       setTimeout(() => {
         restoreGridState();
@@ -2322,18 +2199,15 @@ setTimeout(() => {
       onRowSelected,
       onSelectionChanged,
       gridApi,
-      columnApi,
       onFilterChanged,
       onSortChanged,
       onColumnMoved,
-      runWithSuppressedReveal,
       forceSelectionColumnFirst,
       forceSelectionColumnFirstDOM,
       columnOptions,
       refreshRowFromSource,
       refreshRowListOptions,
       shouldLazyLoadStatus,
-      getStatusFilterOptions,
       buildLazyStatusFallbackOptions,
       getRowMetadataHash,
       waitForRowHydration,
@@ -2343,7 +2217,6 @@ setTimeout(() => {
       componentKey,
       remountComponent,
       clearSavedGridState,
-      updateColumnsPosition,
       localeText: computed(() => {
         let lang = 'en-US';
         try {
@@ -2471,8 +2344,6 @@ setTimeout(() => {
         const tagControl = (colCopy.TagControl || colCopy.tagControl || colCopy.tagcontrol || '').toUpperCase();
         const identifier = (colCopy.FieldDB || '').toUpperCase();
 
-        const lazyStatus = this.shouldLazyLoadStatus(colCopy);
-
         // Se o filtro for agListColumnFilter, usar o filtro customizado
         if (colCopy.filter === 'agListColumnFilter') {
           const isResponsible = tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
@@ -2491,29 +2362,9 @@ setTimeout(() => {
               // options will be added below when available
             }
           };
-          if (!isResponsible) {
-            const filterRendererConfig = {
-              useCustomFormatter: !!colCopy.useCustomFormatter,
-              formatter: colCopy.formatter,
-            };
-            if (colCopy.useStyleArray && Array.isArray(this.content?.cellStyleArray)) {
-              filterRendererConfig.useStyleArray = true;
-              filterRendererConfig.styleArray = this.content.cellStyleArray;
-            }
-            const filterParams = { rendererConfig: filterRendererConfig };
-            if (lazyStatus) {
-              filterParams.getFilterOptions = () => {
-                const options = this.getStatusFilterOptions({ forceReload: true });
-                if (options.length) {
-                  return options;
-                }
-                return this.buildLazyStatusFallbackOptions(colCopy);
-              };
-            }
-            result.filterParams = filterParams;
-          }
           const fieldKey = colCopy.id || colCopy.field;
           const useTicket = this.usesTicketId(colCopy);
+          const lazyStatus = this.shouldLazyLoadStatus(colCopy);
           const getDsOptionsSync = params => {
             const ticketId = params.data?.TicketID;
             const key = this.getOptionsCacheKey(colCopy, ticketId);
@@ -2676,15 +2527,14 @@ setTimeout(() => {
                 const ticketId = params.data?.TicketID;
                 const key = this.getOptionsCacheKey(colCopy, ticketId);
                 if (lazyStatus) {
-                  const statusOptions = this.getStatusFilterOptions();
-                  if (statusOptions.length) {
-                    return statusOptions;
-                  }
                   return this.buildLazyStatusFallbackOptions(colCopy);
                 }
                 const colOpts = this.columnOptions[fieldKey] || {};
                 const cached = colOpts[key];
                 if (cached) return cached;
+                if (lazyStatus) {
+                  return this.buildLazyStatusFallbackOptions(colCopy);
+                }
                 this.getColumnOptions(colCopy, useTicket ? ticketId : undefined).then(opts => {
                   if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
                   this.columnOptions[fieldKey][key] = opts;
@@ -2719,13 +2569,10 @@ setTimeout(() => {
                 });
               };
 
-              const staticOptionsRaw = Array.isArray(colCopy.options)
+              const staticOptions = Array.isArray(colCopy.options)
                 ? colCopy.options
                 : Array.isArray(colCopy.listOptions)
                 ? colCopy.listOptions
-                : null;
-              const staticOptions = staticOptionsRaw
-                ? parseStaticOptions(staticOptionsRaw)
                 : null;
 
               const isResponsible = tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
@@ -2745,29 +2592,6 @@ setTimeout(() => {
                 editable: false,
                 cellEditor: staticOptions && staticOptions.length ? ListCellEditor : (tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor : FixedListCellEditor),
               };
-              if (!isResponsible) {
-                const filterRendererConfig = {
-                  useCustomFormatter: !!colCopy.useCustomFormatter,
-                  formatter: colCopy.formatter,
-                };
-                if (colCopy.useStyleArray && Array.isArray(this.content?.cellStyleArray)) {
-                  filterRendererConfig.useStyleArray = true;
-                  filterRendererConfig.styleArray = this.content.cellStyleArray;
-                }
-                const filterParams = { rendererConfig: filterRendererConfig };
-                if (lazyStatus) {
-                  filterParams.getFilterOptions = () => {
-                    const options = this.getStatusFilterOptions({ forceReload: true });
-                    if (options.length) {
-                      return options;
-                    }
-                    return this.buildLazyStatusFallbackOptions(colCopy);
-                  };
-                } else if (staticOptions && staticOptions.length) {
-                  filterParams.options = staticOptions;
-                }
-                result.filterParams = filterParams;
-              }
               if (staticOptions && staticOptions.length) {
                 result.options = staticOptions;
                 result.cellEditorParams = { options: staticOptions };
@@ -2832,28 +2656,6 @@ setTimeout(() => {
               result.filter = (tagControl === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID')
                 ? ResponsibleUserFilterRenderer
                 : ListFilterRenderer;
-              if (result.filter === ListFilterRenderer) {
-                const lazyStatus = this.shouldLazyLoadStatus(colCopy);
-                const filterRendererConfig = {
-                  useCustomFormatter: !!colCopy.useCustomFormatter,
-                  formatter: colCopy.formatter,
-                };
-                if (colCopy.useStyleArray && Array.isArray(this.content?.cellStyleArray)) {
-                  filterRendererConfig.useStyleArray = true;
-                  filterRendererConfig.styleArray = this.content.cellStyleArray;
-                }
-                const filterParams = { rendererConfig: filterRendererConfig };
-                if (lazyStatus) {
-                  filterParams.getFilterOptions = () => {
-                    const options = this.getStatusFilterOptions({ forceReload: true });
-                    if (options.length) {
-                      return options;
-                    }
-                    return this.buildLazyStatusFallbackOptions(colCopy);
-                  };
-                }
-                result.filterParams = filterParams;
-              }
             }
             // Apply custom formatter if enabled
             if (colCopy.useCustomFormatter) {
@@ -3269,169 +3071,6 @@ setTimeout(() => {
   resetFilters() {
     if (this.gridApi) {
       this.gridApi.setFilterModel(null);
-    }
-  },
-  resetColumnPositions() {
-    const parseColumnsPayload = payload => {
-      if (!payload) return [];
-
-      let source = payload;
-      try {
-        if (wwLib?.wwUtils?.getDataFromCollection) {
-          const resolved = wwLib.wwUtils.getDataFromCollection(payload);
-          if (resolved != null) {
-            source = resolved;
-          }
-        }
-      } catch (error) {
-        // Ignore collection resolution errors and fall back to raw payload
-      }
-
-      if (Array.isArray(source)) {
-        return source;
-      }
-
-      if (typeof source === "string") {
-        const trimmed = source.trim();
-        if (!trimmed) return [];
-        try {
-          const parsed = JSON.parse(trimmed);
-          if (Array.isArray(parsed)) return parsed;
-          if (Array.isArray(parsed?.columns)) return parsed.columns;
-          if (Array.isArray(parsed?.Columns)) return parsed.Columns;
-          if (Array.isArray(parsed?.data)) return parsed.data;
-          return [];
-        } catch (error) {
-          console.warn("[GridViewDinamica] resetColumnPositions: failed to parse Columns JSON", error);
-          return [];
-        }
-      }
-
-      if (typeof source === "object") {
-        if (Array.isArray(source.columns)) return source.columns;
-        if (Array.isArray(source.Columns)) return source.Columns;
-        if (Array.isArray(source.data)) return source.data;
-      }
-
-      return [];
-    };
-
-    const primaryColumns = parseColumnsPayload(this.content?.Columns);
-    const fallbackColumns = parseColumnsPayload(this.content?.columns);
-    const columnsConfig = primaryColumns.length ? primaryColumns : fallbackColumns;
-
-    if (!columnsConfig.length) {
-      console.warn("[GridViewDinamica] resetColumnPositions: no column definitions found in Columns property");
-      return;
-    }
-
-    const includeSelectionColumn = this.content.rowSelection === 'multiple' && !this.content.disableCheckboxes;
-
-    const normalizedColumns = columnsConfig
-      .map((column, index) => {
-        if (!column || typeof column !== "object") return null;
-
-        const rawId =
-          column.FieldID ??
-          column.FieldId ??
-          column.Field ??
-          column.field ??
-          column.colId ??
-          column.ColId ??
-          column.id ??
-          column.ColumnId ??
-          column.FieldDB ??
-          column.ColumnName ??
-          column.columnId ??
-          null;
-
-        if (rawId == null || rawId === "") {
-          return null;
-        }
-
-        const rawOrder =
-          column.positionInGrid ??
-          column.PositionInGrid ??
-          column.PositionField ??
-          column.positionField ??
-          column.order ??
-          column.Order ??
-          index;
-
-        const numericOrder = Number(rawOrder);
-        const order = Number.isFinite(numericOrder) ? numericOrder : index;
-
-        const pinnedRaw = column.pinned ?? column.Pinned ?? null;
-        const pinned = pinnedRaw === 'left' || pinnedRaw === 'right' ? pinnedRaw : undefined;
-
-        return {
-          colId: String(rawId),
-          order,
-          pinned,
-        };
-      })
-      .filter(Boolean)
-      .sort((a, b) => a.order - b.order);
-
-    if (!normalizedColumns.length) {
-      console.warn("[GridViewDinamica] resetColumnPositions: unable to resolve column identifiers from Columns JSON");
-      return;
-    }
-
-    const state = normalizedColumns.map((col, idx) => ({
-      colId: col.colId,
-      order: includeSelectionColumn ? idx + 1 : idx,
-      ...(col.pinned ? { pinned: col.pinned } : {}),
-    }));
-
-    if (includeSelectionColumn) {
-      state.unshift({
-        colId: 'ag-Grid-SelectionColumn',
-        order: 0,
-        pinned: 'left',
-        suppressSizeToFit: true,
-        suppressAutoSize: true,
-      });
-    }
-
-    const candidateApis = [
-      this.columnApi,
-      this.gridApi?.columnApi,
-      this.gridApi,
-    ];
-
-    const targetApi = candidateApis.find(api => api && typeof api.applyColumnState === 'function');
-
-    if (!targetApi) {
-      console.warn("[GridViewDinamica] resetColumnPositions: column API unavailable");
-      return;
-    }
-
-    const applyState = () => {
-      targetApi.applyColumnState({
-        state,
-        applyOrder: true,
-        ...(includeSelectionColumn ? { defaultState: { pinned: null } } : {}),
-      });
-    };
-
-    if (typeof this.runWithSuppressedReveal === 'function') {
-      this.runWithSuppressedReveal(applyState);
-    } else {
-      applyState();
-    }
-
-    if (typeof this.updateColumnsPosition === 'function') {
-      this.updateColumnsPosition();
-    }
-
-    if (includeSelectionColumn) {
-      if (typeof this.forceSelectionColumnFirst === 'function') {
-        this.forceSelectionColumnFirst();
-      }
-      if (typeof this.forceSelectionColumnFirstDOM === 'function') {
-        this.$nextTick?.(() => this.forceSelectionColumnFirstDOM());
-      }
     }
   },
   setFilters(filters) {
@@ -3986,12 +3625,10 @@ forceClearSelection() {
     :deep(.ag-theme-quartz select),
     :deep(.ag-theme-quartz textarea),
     :deep(.ag-theme-quartz button) {
-      font-family: var(
-        --grid-view-dinamica-font-family,
-        Roboto,
-        Arial,
-        sans-serif
-      ) !important;
+      font-family: var(--grid-view-dinamica-font-family,
+          Roboto,
+          Arial,
+          sans-serif) !important;
       font-size: var(--grid-view-dinamica-font-size, 12px) !important;
     }
 
