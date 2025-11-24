@@ -1241,13 +1241,14 @@ function defer(fn, delay = 0) {
   const { setValue: setTicketTagCounts } = wwLib.wwVariable.useComponentVariable({
     uid: props.uid,
     name: "ticketTagCounts",
-    type: "object",
-    defaultValue: {
-      problem: 0,
-      update: 0,
-      request: 0,
-      incident: 0,
-    },
+    type: "array",
+    defaultValue: [
+      { TagControl: null, TicketModelName: "All", QuantityTickets: 0 },
+      { TagControl: "incident", TicketModelName: "Incidents", QuantityTickets: 0 },
+      { TagControl: "problem", TicketModelName: "Problems", QuantityTickets: 0 },
+      { TagControl: "request", TicketModelName: "Requests", QuantityTickets: 0 },
+      { TagControl: "update", TicketModelName: "Updates", QuantityTickets: 0 }
+    ],
     readonly: true,
   });
   const { value: columnsPositionValue, setValue: setColumnsPosition } = wwLib.wwVariable.useComponentVariable({
@@ -1307,12 +1308,12 @@ const asObject = (v) => (v && typeof v === 'object' ? v : {});
     }
   }
 
-  const countTagTickets = rows => {
+  const buildTicketTagCounts = rows => {
     const counts = {
-      problem: 0,
-      update: 0,
-      request: 0,
       incident: 0,
+      problem: 0,
+      request: 0,
+      update: 0,
     };
 
     rows.forEach(row => {
@@ -1323,7 +1324,14 @@ const asObject = (v) => (v && typeof v === 'object' ? v : {});
       }
     });
 
-    return counts;
+    const total = rows.length;
+    return [
+      { TagControl: null, TicketModelName: "All", QuantityTickets: total },
+      { TagControl: "incident", TicketModelName: "Incidents", QuantityTickets: counts.incident },
+      { TagControl: "problem", TicketModelName: "Problems", QuantityTickets: counts.problem },
+      { TagControl: "request", TicketModelName: "Requests", QuantityTickets: counts.request },
+      { TagControl: "update", TicketModelName: "Updates", QuantityTickets: counts.update },
+    ];
   };
 
   const updateTicketTagCounts = () => {
@@ -1342,7 +1350,7 @@ const asObject = (v) => (v && typeof v === 'object' ? v : {});
       rows = Array.isArray(collectionData) ? collectionData : [];
     }
 
-    setTicketTagCounts(countTagTickets(rows));
+    setTicketTagCounts(buildTicketTagCounts(rows));
   };
 
 /**
