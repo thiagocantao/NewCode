@@ -1288,22 +1288,23 @@ return [];
 };
 const asObject = (v) => (v && typeof v === 'object' ? v : {});
 
-// Normaliza o Sort vindo da variável WW para o formato do AG Grid
-  function getExternalSortFromWW() {
+  // Normaliza o Sort vindo da variável WW para o formato do AG Grid
+    function getExternalSortFromWW() {
   try {
-    const raw = window.wwLib?.wwVariable?.getValue('74a13796-f64f-47d6-8e5f-4fb4700fd94b');
-    const sortArr = Array.isArray(raw) ? raw?.[0]?.Sort : raw?.Sort ?? raw?.[0]?.Sort;
-    if (!Array.isArray(sortArr)) return [];
-    // sortArr esperado: [{ id: 'ColId', isASC: true/false }, ...]
-    return sortArr
-      .filter(s => s && s.id)
-      .map((s, idx) => ({
-        colId: String(s.id),
-        sort: s.isASC ? 'asc' : 'desc',
-        sortIndex: idx
-      }));
-  } catch {
-    return [];
+      const raw = window.wwLib?.wwVariable?.getValue('74a13796-f64f-47d6-8e5f-4fb4700fd94b');
+      const sortArr = Array.isArray(raw) ? raw?.[0]?.Sort : raw?.Sort ?? raw?.[0]?.Sort;
+      if (!Array.isArray(sortArr)) return [];
+      // sortArr esperado: [{ id: 'ColId', isASC: true/false }, ...]
+      return sortArr
+        .filter(s => s && s.id)
+        .map((s, idx) => ({
+          colId: String(s.id),
+          sort: s.isASC ? 'asc' : 'desc',
+          sortIndex: idx
+        }));
+    } catch {
+      return [];
+    }
   }
 
   const countTagTickets = rows => {
@@ -1343,7 +1344,6 @@ const asObject = (v) => (v && typeof v === 'object' ? v : {});
 
     setTicketTagCounts(countTagTickets(rows));
   };
-}
 
 /**
  * Aplica a ordenação externa (WW variable) na grid e sincroniza variável local `sort`.
