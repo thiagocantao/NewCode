@@ -332,6 +332,8 @@ export default {
       s = s.trim();
       if (!s) return "";
 
+      if (s === "24:00" || s === "24:00:00") return "00:00";
+
       // AM/PM
       const ampm = s.match(/^(\d{1,2}):?(\d{2})(?::\d{2})?\s*([AaPp][Mm])$/);
       if (ampm) {
@@ -604,7 +606,26 @@ export default {
     });
 
     function shouldDisableSecondShift(day) {
-      return day.shift1Start === "00:00" && day.shift1End === "00:00";
+      return day.shift1Start && day.shift1End && day.shift1Start === day.shift1End;
+    }
+
+    function normalizeDayForOutput(day) {
+      const normalized = { ...day };
+
+      const shift1Equal = day.shift1Start && day.shift1End && day.shift1Start === day.shift1End;
+      const shift2Equal = day.shift2Start && day.shift2End && day.shift2Start === day.shift2End;
+
+      if (shift1Equal) {
+        normalized.shift1End = "24:00";
+        normalized.shift2Start = "";
+        normalized.shift2End = "";
+      }
+
+      if (shift2Equal) {
+        normalized.shift2End = "24:00";
+      }
+
+      return normalized;
     }
 
     function timeToMinutes(time) { if (!time) return null; const [h, m] = time.split(":").map(Number); return h * 60 + m; }
@@ -753,14 +774,16 @@ export default {
       ensureExtraTimesFromWeekDays(updatedDays);
     }
 
+    const weekDaysForOutput = computed(() => weekDays.value.map((d) => normalizeDayForOutput(d)));
+
     const calendarValues = ref({
-      weekDays: weekDays.value.map((d) => ({ ...d })),
+      weekDays: weekDaysForOutput.value,
       excludedDates: [...excludedDates.value],
     });
 
-    watch([weekDays, excludedDates], () => {
+    watch([weekDays, excludedDates, weekDaysForOutput], () => {
       calendarValues.value = {
-        weekDays: weekDays.value.map((d) => ({ ...d })),
+        weekDays: weekDaysForOutput.value,
         excludedDates: [...excludedDates.value],
       };
     }, { deep: true });
