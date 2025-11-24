@@ -1241,6 +1241,18 @@ function defer(fn, delay = 0) {
   defaultValue: {},
   readonly: true,
   });
+  const { setValue: setTicketTagTotals } = wwLib.wwVariable.useComponentVariable({
+    uid: props.uid,
+    name: "ticketTagTotals",
+    type: "object",
+    defaultValue: {
+      problem: 0,
+      update: 0,
+      request: 0,
+      incident: 0,
+    },
+    readonly: true,
+  });
   const { value: columnsPositionValue, setValue: setColumnsPosition } = wwLib.wwVariable.useComponentVariable({
   uid: props.uid,
   name: "columnsPosition",
@@ -1297,6 +1309,37 @@ function getExternalSortFromWW() {
     return [];
   }
 }
+
+  const createTicketTagTotals = () => ({
+    problem: 0,
+    update: 0,
+    request: 0,
+    incident: 0,
+  });
+
+  const updateTicketTagTotals = () => {
+    const totals = createTicketTagTotals();
+
+    const increment = tag => {
+      const normalizedTag = typeof tag === 'string' ? tag.trim().toLowerCase() : '';
+      if (normalizedTag && Object.prototype.hasOwnProperty.call(totals, normalizedTag)) {
+        totals[normalizedTag] += 1;
+      }
+    };
+
+    if (gridApi.value && typeof gridApi.value.forEachNodeAfterFilterAndSort === 'function') {
+      gridApi.value.forEachNodeAfterFilterAndSort(node => {
+        if (!node?.data) return;
+        increment(node.data.TagTicketModel);
+      });
+    } else {
+      const rows = wwLib.wwUtils.getDataFromCollection(props.content?.rowData);
+      const safeRows = Array.isArray(rows) ? rows : [];
+      safeRows.forEach(row => increment(row?.TagTicketModel));
+    }
+
+    setTicketTagTotals(totals);
+  };
 
 /**
  * Aplica a ordenação externa (WW variable) na grid e sincroniza variável local `sort`.
@@ -1771,6 +1814,8 @@ const remountComponent = () => {
 
       resetHideSaveButtonVisibility();
 
+      updateTicketTagTotals();
+
       // Restaura imediatamente e também em pequenos delays
       restoreGridState();
       setTimeout(restoreGridState, 0);
@@ -2045,6 +2090,14 @@ const remountComponent = () => {
     },
     { deep: true, immediate: true }
   );
+
+  watch(
+    () => wwLib.wwUtils.getDataFromCollection(props.content?.rowData),
+    () => {
+      updateTicketTagTotals();
+    },
+    { deep: true, immediate: true }
+  );
   
   const onRowSelected = (event) => {
   const name = event.node.isSelected() ? "rowSelected" : "rowDeselected";
@@ -2076,6 +2129,7 @@ const remountComponent = () => {
   });
   }
   saveGridState();
+  updateTicketTagTotals();
   (() => { try { const pristine = isGridStatePristine(); updateHideSaveButtonVisibility(pristine); } catch(e) { console && console.warn && console.warn('[Grid Pristine inline] failed:', e); } })();
   };
   
@@ -2217,7 +2271,9 @@ const remountComponent = () => {
       const onFirstDataRendered = () => {
       updateColumnsPosition();
       updateColumnsSort();
-      
+
+      updateTicketTagTotals();
+
       // Reaplica o estado salvo após o primeiro render (garante consistência)
       setTimeout(() => {
         restoreGridState();
