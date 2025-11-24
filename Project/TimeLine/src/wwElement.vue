@@ -879,6 +879,7 @@
 <script>
   import { computed, ref, watch, onMounted, onBeforeUnmount } from "vue";
 import { useElementSize } from "@vueuse/core";
+import { SUPABASE_IMAGE_BUCKET } from "../supabaseBuckets";
 
 export default {
   props: {
@@ -969,17 +970,12 @@ export default {
       return (item?.FieldTypeControl || item?.fieldTypeControl) === "FORMATED_TEXT";
     }
 
-    function openFtModal(item) {
-      ftModalItem.value = item;
-      ftModalOpen.value = true;
-    }
+    const formattedKey = (item, side) => {
+      const base = item?.EventID || item?.id || `${item?.CreatedDate || ""}-${item?.NameFieldModified || ""}`;
+      return `${base}-${side}`;
+    };
 
-    function closeFtModal() {
-      ftModalOpen.value = false;
-      ftModalItem.value = null;
-    }
-
-    function getFormattedHtml(item, side) {
+    function baseFormattedHtml(item, side) {
       if (!item) return "";
       const raw = side === "old" ? item.FieldOldValue ?? item.OldValueTitle ?? "" : item.FieldNewValue ?? item.NewValueTitle ?? "";
       const parsed = parseMaybeJSON(raw);
@@ -992,6 +988,97 @@ export default {
           ? raw
           : "";
       return sanitizeHtml(html);
+    }
+
+    function extractInboundTicketPath(src) {
+      if (!src || typeof src !== "string") return null;
+      try {
+        const parsedUrl = new URL(src, window.location.origin);
+        const path = parsedUrl.searchParams.get("path");
+        if (!path || !path.toLowerCase().startsWith("inbound/")) return null;
+        return path.replace(/^\/+/, "");
+      } catch (e) {
+        return null;
+      }
+    }
+
+    async function getSignedTicketImage(path) {
+      if (!path) return null;
+      if (privateTicketImageCache.has(path)) {
+        return privateTicketImageCache.get(path);
+      }
+
+      if (!supabase?.storage) return null;
+      await ensureAuthReady();
+
+      try {
+        const { data, error } = await supabase.storage.from(SUPABASE_IMAGE_BUCKET).createSignedUrl(path, 60 * 60);
+        if (error || !data?.signedUrl) return null;
+
+        privateTicketImageCache.set(path, data.signedUrl);
+        return data.signedUrl;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    async function processInboundTicketImages(htmlContent) {
+      if (!htmlContent || typeof htmlContent !== "string") return htmlContent || "";
+      if (typeof document === "undefined") return htmlContent;
+
+      const container = document.createElement("div");
+      container.innerHTML = htmlContent;
+      const images = Array.from(container.querySelectorAll("img"));
+      if (!images.length) return htmlContent;
+
+      await Promise.all(
+        images.map(async (img) => {
+          const src = img.getAttribute("src") || "";
+          const inboundPath = extractInboundTicketPath(src);
+          if (!inboundPath) return;
+
+          const signedUrl = await getSignedTicketImage(inboundPath);
+          if (signedUrl) {
+            img.setAttribute("src", signedUrl);
+          }
+        })
+      );
+
+      return container.innerHTML;
+    }
+
+    async function resolveFormattedHtml(item, side) {
+      const key = formattedKey(item, side);
+      const processed = await processInboundTicketImages(baseFormattedHtml(item, side));
+      formattedHtmlCache.value = { ...formattedHtmlCache.value, [key]: processed };
+      return processed;
+    }
+
+    function getFormattedHtml(item, side) {
+      const key = formattedKey(item, side);
+      const cached = formattedHtmlCache.value[key];
+      if (cached !== undefined) return cached;
+
+      const base = baseFormattedHtml(item, side);
+      formattedHtmlCache.value = { ...formattedHtmlCache.value, [key]: base };
+      resolveFormattedHtml(item, side);
+      return base;
+    }
+
+    async function preprocessFormattedText(item) {
+      if (!item) return;
+      await Promise.all([resolveFormattedHtml(item, "old"), resolveFormattedHtml(item, "new")]);
+    }
+
+    function openFtModal(item) {
+      ftModalItem.value = item;
+      ftModalOpen.value = true;
+      preprocessFormattedText(item);
+    }
+
+    function closeFtModal() {
+      ftModalOpen.value = false;
+      ftModalItem.value = null;
     }
 
     /* ========= ActivityAdded ========= */
@@ -1425,6 +1512,9 @@ const getAssigneeTooltip = (item, side) => {
       auth = window?.wwLib?.wwPlugins?.supabaseAuth?.publicInstance || null;
       handleDataSource();
     }
+
+    const privateTicketImageCache = new Map();
+    const formattedHtmlCache = ref({});
 
     const getVar = (id) => window?.wwLib?.wwVariable?.getValue?.(id);
     const setVar = (id, val, opts = {}) => window?.wwLib?.wwVariable?.updateValue?.(id, val, opts);
