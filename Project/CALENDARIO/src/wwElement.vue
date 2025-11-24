@@ -18,16 +18,24 @@
             <td>
               <select v-model="day.shift1Start" :disabled="!day.active">
                 <option value=""></option>
-                <option v-for="hour in hours" :key="hour.value" :value="hour.value">
+                <option
+                  v-for="(hour, index) in startHours"
+                  :key="`${hour.value}-${index}`"
+                  :value="hour.value"
+                >
                   {{ hour.label }}
                 </option>
               </select>
             </td>
             <td>-</td>
             <td>
-              <select v-model="day.shift1End" :disabled="!day.active">
-                <option value=""></option>
-                <option v-for="hour in hours" :key="hour.value" :value="hour.value">
+                <select v-model="day.shift1End" :disabled="!day.active">
+                  <option value=""></option>
+                  <option
+                    v-for="(hour, index) in endHours"
+                    :key="`${hour.value}-${index}`"
+                    :value="hour.value"
+                  >
                   {{ hour.label }}
                 </option>
               </select>
@@ -39,9 +47,16 @@
             </td>
             <td>,</td>
             <td>
-              <select v-model="day.shift2Start" :disabled="!day.active">
+              <select
+                v-model="day.shift2Start"
+                :disabled="!day.active || shouldDisableSecondShift(day)"
+              >
                 <option value=""></option>
-                <option v-for="hour in hours" :key="hour.value" :value="hour.value">
+                <option
+                  v-for="(hour, index) in startHours"
+                  :key="`${hour.value}-${index}`"
+                  :value="hour.value"
+                >
                   {{ hour.label }}
                 </option>
               </select>
@@ -53,9 +68,16 @@
             </td>
             <td>-</td>
             <td>
-              <select v-model="day.shift2End" :disabled="!day.active">
+              <select
+                v-model="day.shift2End"
+                :disabled="!day.active || shouldDisableSecondShift(day)"
+              >
                 <option value=""></option>
-                <option v-for="hour in hours" :key="hour.value" :value="hour.value">
+                <option
+                  v-for="(hour, index) in endHours"
+                  :key="`${hour.value}-${index}`"
+                  :value="hour.value"
+                >
                   {{ hour.label }}
                 </option>
               </select>
@@ -310,6 +332,8 @@ export default {
       s = s.trim();
       if (!s) return "";
 
+      if (s === "24:00" || s === "24:00:00") return "00:00";
+
       // AM/PM
       const ampm = s.match(/^(\d{1,2}):?(\d{2})(?::\d{2})?\s*([AaPp][Mm])$/);
       if (ampm) {
@@ -553,22 +577,73 @@ export default {
       })
     );
 
-    // Lista final de horas = base + extras do dataSource
-    const hours = computed(() => {
+    // Lista base de horas = grade de 15min + extras do dataSource
+    const baseHours = computed(() => {
       const all = new Set(baseQuarterHours.value);
       for (const v of extraTimes.value) all.add(v);
       const ordered = Array.from(all).sort((a, b) => minutesFromHHMM(a) - minutesFromHHMM(b));
       return ordered.map((value) => ({ value, label: labelForTime(value) }));
     });
 
+    const extraMidnightOption = computed(() => ({
+      value: "00:00",
+      label: labelForTime("00:00"),
+    }));
+
+    // Combos que iniciam turno: mantém horário inicial 00:00 e adiciona outro ao fim
+    const startHours = computed(() => {
+      const base = baseHours.value;
+      return [...base, extraMidnightOption.value];
+    });
+
+    // Combos que finalizam turno: removem o 00:00 inicial e mantêm apenas o final
+    const endHours = computed(() => {
+      const base = baseHours.value;
+      const withoutInitialMidnight = base.filter((option, index) =>
+        !(option.value === "00:00" && index === 0)
+      );
+      return [...withoutInitialMidnight, extraMidnightOption.value];
+    });
+
+    function shouldDisableSecondShift(day) {
+      if (!day.shift1Start || !day.shift1End) return false;
+      if (day.shift1Start === day.shift1End) return true;
+      return day.shift1End === "00:00";
+    }
+
+    function normalizeDayForOutput(day) {
+      const normalized = { ...day };
+
+      const shift1Equal = day.shift1Start && day.shift1End && day.shift1Start === day.shift1End;
+
+      if (shift1Equal) {
+        normalized.shift2Start = "";
+        normalized.shift2End = "";
+      }
+
+      return normalized;
+    }
+
     function timeToMinutes(time) { if (!time) return null; const [h, m] = time.split(":").map(Number); return h * 60 + m; }
+    function getComparableMinutes(day, key) {
+      const value = day[key];
+      if (!value) return null;
+
+      const isEndField = key === "shift1End" || key === "shift2End";
+      if (isEndField && value === "00:00") {
+        const startKey = key === "shift1End" ? "shift1Start" : "shift2Start";
+        const startVal = day[startKey];
+        if (startVal && startVal !== "00:00") return 24 * 60; // treat as end-of-day
+      }
+
+      return timeToMinutes(value);
+    }
     function isInconsistent(day, field) {
       const order = ["shift1Start", "shift1End", "shift2Start", "shift2End"];
       let last = null;
       for (const key of order) {
-        const val = day[key];
-        if (val) {
-          const minutes = timeToMinutes(val);
+        const minutes = getComparableMinutes(day, key);
+        if (minutes !== null) {
           if (last !== null && minutes < last) { if (key === field) return true; }
           else { last = minutes; }
         }
@@ -583,6 +658,10 @@ export default {
         for (const day of days) {
           if (!day.active) {
             ["shift1Start", "shift1End", "shift2Start", "shift2End"].forEach((field) => {
+              if (day[field]) day[field] = "";
+            });
+          } else if (shouldDisableSecondShift(day)) {
+            ["shift2Start", "shift2End"].forEach((field) => {
               if (day[field]) day[field] = "";
             });
           }
@@ -703,14 +782,16 @@ export default {
       ensureExtraTimesFromWeekDays(updatedDays);
     }
 
+    const weekDaysForOutput = computed(() => weekDays.value.map((d) => normalizeDayForOutput(d)));
+
     const calendarValues = ref({
-      weekDays: weekDays.value.map((d) => ({ ...d })),
+      weekDays: weekDaysForOutput.value,
       excludedDates: [...excludedDates.value],
     });
 
-    watch([weekDays, excludedDates], () => {
+    watch([weekDays, excludedDates, weekDaysForOutput], () => {
       calendarValues.value = {
-        weekDays: weekDays.value.map((d) => ({ ...d })),
+        weekDays: weekDaysForOutput.value,
         excludedDates: [...excludedDates.value],
       };
     }, { deep: true });
@@ -810,7 +891,7 @@ export default {
 
     return {
       // estado principal
-      weekDays, hours,
+      weekDays, startHours, endHours,
       excludedDates, newExcludedDate,
 
       // datepicker
@@ -827,6 +908,7 @@ export default {
       showConfirm, calendarValues, excludedDatesHeight,
       showDefaultCalendarMessage, defaultCalendarMessage,
       translateText, isInconsistent, hasHourInconsistency,
+      shouldDisableSecondShift,
 
       // configs
       lang, timeZone, formatStyle,
