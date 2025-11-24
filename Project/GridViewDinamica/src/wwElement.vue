@@ -1238,6 +1238,19 @@ function defer(fn, delay = 0) {
   defaultValue: {},
   readonly: true,
   });
+  const { setValue: setTicketTagCounts } = wwLib.wwVariable.useComponentVariable({
+    uid: props.uid,
+    name: "ticketTagCounts",
+    type: "array",
+    defaultValue: [
+      { TagControl: null, TicketModelName: "All", QuantityTickets: 0 },
+      { TagControl: "incident", TicketModelName: "Incidents", QuantityTickets: 0 },
+      { TagControl: "problem", TicketModelName: "Problems", QuantityTickets: 0 },
+      { TagControl: "request", TicketModelName: "Requests", QuantityTickets: 0 },
+      { TagControl: "update", TicketModelName: "Updates", QuantityTickets: 0 }
+    ],
+    readonly: true,
+  });
   const { value: columnsPositionValue, setValue: setColumnsPosition } = wwLib.wwVariable.useComponentVariable({
   uid: props.uid,
   name: "columnsPosition",
@@ -1276,24 +1289,95 @@ return [];
 };
 const asObject = (v) => (v && typeof v === 'object' ? v : {});
 
-// Normaliza o Sort vindo da variável WW para o formato do AG Grid
-function getExternalSortFromWW() {
+  // Normaliza o Sort vindo da variável WW para o formato do AG Grid
+    function getExternalSortFromWW() {
   try {
-    const raw = window.wwLib?.wwVariable?.getValue('74a13796-f64f-47d6-8e5f-4fb4700fd94b');
-    const sortArr = Array.isArray(raw) ? raw?.[0]?.Sort : raw?.Sort ?? raw?.[0]?.Sort;
-    if (!Array.isArray(sortArr)) return [];
-    // sortArr esperado: [{ id: 'ColId', isASC: true/false }, ...]
-    return sortArr
-      .filter(s => s && s.id)
-      .map((s, idx) => ({
-        colId: String(s.id),
-        sort: s.isASC ? 'asc' : 'desc',
-        sortIndex: idx
-      }));
-  } catch {
-    return [];
+      const raw = window.wwLib?.wwVariable?.getValue('74a13796-f64f-47d6-8e5f-4fb4700fd94b');
+      const sortArr = Array.isArray(raw) ? raw?.[0]?.Sort : raw?.Sort ?? raw?.[0]?.Sort;
+      if (!Array.isArray(sortArr)) return [];
+      // sortArr esperado: [{ id: 'ColId', isASC: true/false }, ...]
+      return sortArr
+        .filter(s => s && s.id)
+        .map((s, idx) => ({
+          colId: String(s.id),
+          sort: s.isASC ? 'asc' : 'desc',
+          sortIndex: idx
+        }));
+    } catch {
+      return [];
+    }
   }
-}
+
+  const buildTicketTagCounts = rows => {
+    const counts = {
+      incident: 0,
+      problem: 0,
+      request: 0,
+      update: 0,
+    };
+
+    rows.forEach(row => {
+      if (!row || typeof row !== 'object') return;
+      const tag = String(row.TagTicketModel || '').toLowerCase();
+      if (Object.prototype.hasOwnProperty.call(counts, tag)) {
+        counts[tag] += 1;
+      }
+    });
+
+    const total = rows.length;
+    return [
+      { TagControl: null, TicketModelName: "All", QuantityTickets: total },
+      { TagControl: "incident", TicketModelName: "Incidents", QuantityTickets: counts.incident },
+      { TagControl: "problem", TicketModelName: "Problems", QuantityTickets: counts.problem },
+      { TagControl: "request", TicketModelName: "Requests", QuantityTickets: counts.request },
+      { TagControl: "update", TicketModelName: "Updates", QuantityTickets: counts.update },
+    ];
+  };
+
+  const updateTicketTagCounts = () => {
+    let rows = [];
+
+    if (gridApi.value && typeof gridApi.value.forEachNodeAfterFilter === 'function') {
+      const filteredRows = [];
+      gridApi.value.forEachNodeAfterFilter(node => {
+        if (node?.data) {
+          filteredRows.push(node.data);
+        }
+      });
+      rows = filteredRows;
+    } else {
+      const collectionData = wwLib.wwUtils.getDataFromCollection(props.content?.rowData);
+      rows = Array.isArray(collectionData) ? collectionData : [];
+    }
+
+    setTicketTagCounts(buildTicketTagCounts(rows));
+  };
+
+  const emitGridLoadedEvent = () => {
+    deferAfterGridUpdate(() => {
+      nextTick(() => {
+        const rows = [];
+
+        if (gridApi.value && typeof gridApi.value.forEachNode === "function") {
+          gridApi.value.forEachNode(node => {
+            if (node?.data) {
+              rows.push(node.data);
+            }
+          });
+        } else {
+          const collectionData = wwLib.wwUtils.getDataFromCollection(props.content?.rowData);
+          if (Array.isArray(collectionData)) {
+            rows.push(...collectionData);
+          }
+        }
+
+        ctx.emit("trigger-event", {
+          name: "gridLoaded",
+          event: { rows, totalRows: rows.length },
+        });
+      });
+    });
+  };
 
 /**
  * Aplica a ordenação externa (WW variable) na grid e sincroniza variável local `sort`.
@@ -1672,6 +1756,8 @@ const remountComponent = () => {
       }
     }, 0);
     resetHideSaveButtonVisibility();
+    updateTicketTagCounts();
+    emitGridLoadedEvent();
   }, { deep: true });
 
 
@@ -1734,6 +1820,8 @@ const remountComponent = () => {
 
       updateColumnsPosition();
       updateColumnsSort();
+
+      updateTicketTagCounts();
 
       // Persistir estado em todos eventos relevantes
       params.api.addEventListener('filterChanged', saveGridState);
@@ -1994,22 +2082,27 @@ const remountComponent = () => {
   };
   
   const onFilterChanged = (event) => {
-  if (!gridApi.value) return;
-  const filterModel = gridApi.value.getFilterModel();
-  if (
-  JSON.stringify(filterModel || {}) !==
-  JSON.stringify(filterValue.value || {})
-  ) {
-  setFilters(filterModel);
-  syncHideSaveButtonVisibility(event);
+    if (!gridApi.value) return;
+    const filterModel = gridApi.value.getFilterModel();
+    if (
+      JSON.stringify(filterModel || {}) !==
+      JSON.stringify(filterValue.value || {})
+    ) {
+      setFilters(filterModel);
+      syncHideSaveButtonVisibility(event);
 
-  ctx.emit("trigger-event", {
-  name: "filterChanged",
-  event: filterModel,
-  });
-  }
-  saveGridState();
-  (() => { try { const pristine = isGridStatePristine(); updateHideSaveButtonVisibility(pristine); } catch(e) { console && console.warn && console.warn('[Grid Pristine inline] failed:', e); } })();
+      ctx.emit("trigger-event", {
+        name: "filterChanged",
+        event: filterModel,
+      });
+    }
+
+    deferAfterGridUpdate(() => {
+      updateTicketTagCounts();
+      emitGridLoadedEvent();
+    });
+    saveGridState();
+    (() => { try { const pristine = isGridStatePristine(); updateHideSaveButtonVisibility(pristine); } catch(e) { console && console.warn && console.warn('[Grid Pristine inline] failed:', e); } })();
   };
   
   const onSortChanged = (event) => {
@@ -2029,6 +2122,7 @@ const remountComponent = () => {
       updateHideSaveButtonVisibility(pristine);
       (() => { try { const pristine = isGridStatePristine(); updateHideSaveButtonVisibility(pristine); } catch(e) { console && console.warn && console.warn('[Grid Pristine inline] failed:', e); } })();
       ctx.emit("trigger-event", { name: "sortChanged", event: normalizedSort });
+      emitGridLoadedEvent();
     });
   };
 
@@ -2174,6 +2268,9 @@ setTimeout(() => {
         // Força reposicionamento no DOM como backup
         setTimeout(() => forceSelectionColumnFirstDOM(), 400);
       }
+
+      updateTicketTagCounts();
+      emitGridLoadedEvent();
     };
   
       onMounted(() => {
