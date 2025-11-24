@@ -167,6 +167,37 @@ export default {
       }
     };
 
+    const parseListOptions = (listOptions) => {
+      if (!listOptions || typeof listOptions !== 'string') {
+        return [];
+      }
+      return listOptions
+        .split(',')
+        .map(opt => opt.trim())
+        .filter(opt => opt.length)
+        .map(opt => ({ value: opt, label: opt }));
+    };
+
+    const hasFetchableDataSource = (field) => {
+      const dataSource = field?.dataSource;
+      if (!dataSource) return false;
+
+      if (typeof dataSource === 'string') {
+        return dataSource.trim().length > 0;
+      }
+
+      if (typeof dataSource === 'object') {
+        return Boolean(dataSource.url) || Boolean(dataSource.functionName);
+      }
+
+      return false;
+    };
+
+    const resolveStaticOptions = (field) => {
+      const listOptions = field?.list_options || field?.listOptions;
+      return parseListOptions(listOptions);
+    };
+
     const getOptions = async (field) => {
       if (!field.dataSource) {
         return [];
@@ -260,7 +291,23 @@ export default {
     };
 
     const loadOptions = async (field) => {
-      if (!field.dataSource) {
+      const isListField =
+        field.fieldType === 'LIST' ||
+        field.fieldType === 'CONTROLLED_LIST' ||
+        field.fieldType === 'SIMPLE_LIST';
+
+      if (!isListField) {
+        return;
+      }
+
+      const hasDataSource = hasFetchableDataSource(field);
+
+      // If there is no usable dataSource, fall back to static list options
+      if (!hasDataSource) {
+        const staticOptions = resolveStaticOptions(field);
+        if (staticOptions.length) {
+          options.value[field.id] = staticOptions;
+        }
         return;
       }
 
@@ -269,9 +316,14 @@ export default {
 
       try {
         const result = await getOptions(field);
-        options.value[field.id] = result;
+        const resolvedOptions = result?.length ? result : resolveStaticOptions(field);
+        options.value[field.id] = resolvedOptions;
       } catch (err) {
         error.value[field.id] = err.message;
+        const staticOptions = resolveStaticOptions(field);
+        if (staticOptions.length) {
+          options.value[field.id] = staticOptions;
+        }
       } finally {
         loading.value[field.id] = false;
       }
@@ -279,16 +331,16 @@ export default {
 
     const getFieldOptions = (fieldId) => {
       const field = sectionFields.value.find(f => f.id === fieldId);
-      const listOptions = field?.list_options || field?.listOptions;
-      if ((field?.fieldType === 'SIMPLE_LIST' || field?.fieldType === 'LIST' || field?.fieldType === 'CONTROLLED_LIST') && !field?.dataSource && listOptions && typeof listOptions === 'string' && listOptions.trim() !== '') {
-        const options = listOptions.split(',').map(opt => {
-          const trimmed = opt.trim();
-          return { value: trimmed, label: trimmed };
-        });
-        return options;
-      }
       const fieldOptions = options.value[fieldId] || [];
-      return fieldOptions;
+      if (fieldOptions.length) {
+        return fieldOptions;
+      }
+
+      if (field?.fieldType === 'SIMPLE_LIST' || field?.fieldType === 'LIST' || field?.fieldType === 'CONTROLLED_LIST') {
+        return resolveStaticOptions(field);
+      }
+
+      return [];
     };
 
     const updateFieldValue = (fieldId, value) => {
@@ -312,7 +364,7 @@ export default {
     onMounted(() => {
       // Load options for all LIST fields
       sectionFields.value.forEach(field => {
-        if (field.fieldType === 'LIST' || field.fieldType === 'CONTROLLED_LIST') {
+        if (field.fieldType === 'LIST' || field.fieldType === 'CONTROLLED_LIST' || field.fieldType === 'SIMPLE_LIST') {
           loadOptions(field);
         }
       });
