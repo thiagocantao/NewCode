@@ -165,8 +165,9 @@
 </template>
 
 <script>
-  import CustomAlert from './CustomAlert.vue';
+import CustomAlert from './CustomAlert.vue';
 import CustomDatePicker from './CustomDatePicker.vue';
+import { SUPABASE_IMAGE_BUCKET } from '../../../supabaseBuckets';
 
 export default {
   name: 'FieldComponent',
@@ -227,6 +228,7 @@ export default {
       dataNow: new Date(),
       currentColor: '#699d8c',
       isUserInput: false,
+      privateTicketImageCache: new Map(),
     }
   },
   computed: {
@@ -490,8 +492,8 @@ export default {
       this.showAlert = this.autoSaveEnabled && !!val;
     },
     localValue(newVal) {
-      if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte && this.$refs.rte.innerHTML !== newVal) {
-        this.$refs.rte.innerHTML = newVal || '';
+      if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
+        this.renderFormattedTextContent(newVal || '');
       }
     },
     ticketClosed: {
@@ -722,6 +724,74 @@ export default {
       document.execCommand('foreColor', false, event.target.value);
       this.currentColor = event.target.value;
     },
+    getSupabaseClient() {
+      const pluginClient = window?.wwLib?.wwPlugins?.supabase;
+      const globalClient = window?.supabase?.client || window?.supabase || null;
+      return pluginClient?.instance || pluginClient?.client || globalClient || null;
+    },
+    extractInboundTicketPath(src) {
+      if (!src || typeof src !== 'string') return null;
+      try {
+        const parsedUrl = new URL(src, window.location.origin);
+        const path = parsedUrl.searchParams.get('path');
+        if (!path || !path.toLowerCase().startsWith('inbound/')) return null;
+        return path.replace(/^\/+/, '');
+      } catch (e) {
+        return null;
+      }
+    },
+    async getSignedTicketImage(path) {
+      if (!path) return null;
+      if (this.privateTicketImageCache.has(path)) {
+        return this.privateTicketImageCache.get(path);
+      }
+
+      const supabase = this.getSupabaseClient();
+      if (!supabase?.storage) return null;
+
+      try {
+        const { data, error } = await supabase
+          .storage
+          .from(SUPABASE_IMAGE_BUCKET)
+          .createSignedUrl(path, 60 * 60);
+
+        if (error || !data?.signedUrl) return null;
+
+        this.privateTicketImageCache.set(path, data.signedUrl);
+        return data.signedUrl;
+      } catch (e) {
+        return null;
+      }
+    },
+    async processInboundTicketImages(htmlContent) {
+      if (!htmlContent || typeof htmlContent !== 'string') return htmlContent || '';
+      if (typeof document === 'undefined') return htmlContent;
+
+      const container = document.createElement('div');
+      container.innerHTML = htmlContent;
+      const images = Array.from(container.querySelectorAll('img'));
+      if (!images.length) return htmlContent;
+
+      await Promise.all(images.map(async (img) => {
+        const src = img.getAttribute('src') || '';
+        const inboundPath = this.extractInboundTicketPath(src);
+        if (!inboundPath) return;
+
+        const signedUrl = await this.getSignedTicketImage(inboundPath);
+        if (signedUrl) {
+          img.setAttribute('src', signedUrl);
+        }
+      }));
+
+      return container.innerHTML;
+    },
+    async renderFormattedTextContent(htmlContent) {
+      if (!this.$refs.rte) return;
+      const processed = await this.processInboundTicketImages(htmlContent);
+      if (this.$refs.rte.innerHTML !== processed) {
+        this.$refs.rte.innerHTML = processed;
+      }
+    },
     insertLink() {
       this.$refs.rte && this.$refs.rte.focus();
       const url = prompt('Digite a URL do link:');
@@ -882,7 +952,7 @@ export default {
   },
   mounted() {
     if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
-      this.$refs.rte.innerHTML = this.localValue || '';
+      this.renderFormattedTextContent(this.localValue || '');
     }
     if (this.field.fieldType === 'DEADLINE') {
       this.updateDeadlineTimer();
