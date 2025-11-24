@@ -613,16 +613,10 @@ export default {
       const normalized = { ...day };
 
       const shift1Equal = day.shift1Start && day.shift1End && day.shift1Start === day.shift1End;
-      const shift2Equal = day.shift2Start && day.shift2End && day.shift2Start === day.shift2End;
 
       if (shift1Equal) {
-        normalized.shift1End = "24:00";
         normalized.shift2Start = "";
         normalized.shift2End = "";
-      }
-
-      if (shift2Equal) {
-        normalized.shift2End = "24:00";
       }
 
       return normalized;
