@@ -144,6 +144,11 @@ export default {
   },
   getTestEvent: "getCellClickedTestEvent"
 },
+  {
+    name: "gridLoaded",
+    label: { en: "On Grid Loaded" },
+    event: { rows: [], totalRows: 0 },
+  },
   ],
   actions: [
   {
