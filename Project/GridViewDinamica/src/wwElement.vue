@@ -2055,23 +2055,24 @@ const remountComponent = () => {
   };
   
   const onFilterChanged = (event) => {
-  if (!gridApi.value) return;
-  const filterModel = gridApi.value.getFilterModel();
-  if (
-  JSON.stringify(filterModel || {}) !==
-  JSON.stringify(filterValue.value || {})
-  ) {
-  setFilters(filterModel);
-  syncHideSaveButtonVisibility(event);
+    if (!gridApi.value) return;
+    const filterModel = gridApi.value.getFilterModel();
+    if (
+      JSON.stringify(filterModel || {}) !==
+      JSON.stringify(filterValue.value || {})
+    ) {
+      setFilters(filterModel);
+      syncHideSaveButtonVisibility(event);
 
-  ctx.emit("trigger-event", {
-  name: "filterChanged",
-  event: filterModel,
-  });
-  }
-  updateTicketTagCounts();
-  saveGridState();
-  (() => { try { const pristine = isGridStatePristine(); updateHideSaveButtonVisibility(pristine); } catch(e) { console && console.warn && console.warn('[Grid Pristine inline] failed:', e); } })();
+      ctx.emit("trigger-event", {
+        name: "filterChanged",
+        event: filterModel,
+      });
+    }
+
+    deferAfterGridUpdate(() => updateTicketTagCounts());
+    saveGridState();
+    (() => { try { const pristine = isGridStatePristine(); updateHideSaveButtonVisibility(pristine); } catch(e) { console && console.warn && console.warn('[Grid Pristine inline] failed:', e); } })();
   };
   
   const onSortChanged = (event) => {
