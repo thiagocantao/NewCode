@@ -28,8 +28,16 @@
 </template>
 
 <script>
-import { computed, ref, onMounted, onUnmounted, toRef } from 'vue';
+import { computed, ref, onMounted, toRef } from 'vue';
 import FieldComponent from './FieldComponent.vue';
+import {
+  LIST_FIELD_TYPES,
+  normalizeFieldDataSource,
+  hasFetchableDataSource,
+  fetchDataSourceOptions,
+  parseListOptions,
+  mapOptionsFromData
+} from './listDataSource';
 
 export default {
   name: 'FormSection',
@@ -88,12 +96,9 @@ export default {
     const isExpanded = ref(true);
     const isMobile = toRef(props, 'isMobile');
     const isReadOnly = toRef(props, 'isReadOnly');
-    const loadingOptions = ref({});
-    const fieldOptions = ref({});
     const options = ref({});
     const loading = ref({});
     const error = ref({});
-    const hasAddedListener = ref(false);
     const fieldValues = ref({});
     const fieldComponents = ref([]);
 
@@ -167,100 +172,39 @@ export default {
       }
     };
 
-    const getOptions = async (field) => {
-      if (!field.dataSource) {
-        return [];
+    const resolvePlatformContext = () => {
+      if (typeof window === 'undefined') {
+        return { workspaceId: null, userId: props.userId || null };
       }
 
-      try {
-        let url = '';
-        let method = 'POST';
-        let fetchOptions = { method: 'POST', headers: {} };
-        fetchOptions.headers['Content-Type'] = 'application/json';
-        if (props.apiKey) fetchOptions.headers['apikey'] = props.apiKey;
-        if (props.apiAuthorization) fetchOptions.headers['Authorization'] = props.apiAuthorization;
-        
-        fetchOptions.body = JSON.stringify({
-          ...(props.companyId ? { p_idcompany: props.companyId } : {}),
-          ...(props.language ? { p_language: props.language } : {})
-        });
-        if (typeof field.dataSource === 'string') {
-          if (!field.dataSource) {
-            return [];
-          }
-          url = (props.apiUrl || '') + field.dataSource;
-        } else if (field.dataSource.url) {
-          url = field.dataSource.url;
-          if (field.dataSource.method && field.dataSource.method.toUpperCase() === 'GET') {
-            method = 'GET';
-            fetchOptions.method = 'GET';
-            delete fetchOptions.body;
-          }
-        } else if (field.dataSource.functionName) {
-          if (field.fieldType === 'CONTROLLED_LIST') {
-          }
-          url = (props.apiUrl || '') + field.dataSource.functionName;
-        } else {
-          return [];
+      const safeGet = key => {
+        try {
+          return window?.wwLib?.wwVariable?.getValue?.(key);
+        } catch (err) {
+          console.warn('[CADASTROSFormRender] Failed to read variable', key, err);
+          return null;
         }
+      };
 
-        if (field.fieldType === 'CONTROLLED_LIST') {
-        }
-        const response = await fetch(url, fetchOptions);
-        if (field.fieldType === 'CONTROLLED_LIST') {
-          let apiResult = '';
-          try {
-            apiResult = await response.clone().text();
-          } catch (e) {
-            apiResult = '[erro ao ler resposta da API]';
-          }
-        }
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        if (!Array.isArray(data)) {
-          throw new Error('API response is not an array');
-        }
-
-        if (field.dataSource.transform) {
-          const options = data
-            .map(item => {
-              let value = item[field.dataSource.transform?.value] ?? item.id;
-              let label = item[field.dataSource.transform?.label] ?? item.name;
-              if (value === undefined || label === undefined) {
-                return null;
-              }
-              return { value, label };
-            })
-            .filter(item => item !== null)
-            .sort((a, b) => a.label.localeCompare(b.label));
-          return options;
-        }
-
-        return data
-          .map(item => {
-            const value = item[field.dataSource.valueField || 'id'];
-            const label = item[field.dataSource.labelField || 'name'];
-
-            if (value === undefined || label === undefined) {
-              return null;
-            }
-
-            return { value, label };
-          })
-          .filter(item => item !== null)
-          .sort((a, b) => a.label.localeCompare(b.label));
-      } catch (err) {
-        throw err;
-      }
+      return {
+        workspaceId: safeGet('744511f1-3309-41da-a9fd-0721e7dd2f99') || null,
+        userId: safeGet('fc54ab80-1a04-4cfe-a504-793bdcfce5dd') || props.userId || null
+      };
     };
 
     const loadOptions = async (field) => {
-      if (!field.dataSource) {
+      const normalizedType = String(field?.fieldType || '').toUpperCase();
+      if (!LIST_FIELD_TYPES.includes(normalizedType)) {
+        return;
+      }
+
+      const normalizedDataSource = normalizeFieldDataSource(field.dataSource || field.data_source);
+      const fallbackOptions = parseListOptions(field?.list_options || field?.listOptions);
+
+      if (!hasFetchableDataSource(normalizedDataSource)) {
+        if (fallbackOptions.length) {
+          options.value[field.id] = fallbackOptions;
+        }
         return;
       }
 
@@ -268,27 +212,43 @@ export default {
       error.value[field.id] = null;
 
       try {
-        const result = await getOptions(field);
-        options.value[field.id] = result;
+        const context = {
+          apiUrl: props.apiUrl,
+          apiKey: props.apiKey,
+          apiAuthorization: props.apiAuthorization,
+          ticketId: props.ticketId || null,
+          companyId: props.companyId || null,
+          language: props.language || null,
+          ...resolvePlatformContext()
+        };
+
+        const result = await fetchDataSourceOptions(normalizedDataSource, context);
+        const normalizedOptions = Array.isArray(result)
+          ? result
+          : mapOptionsFromData(result, normalizedDataSource) || [];
+
+        options.value[field.id] = normalizedOptions.length ? normalizedOptions : fallbackOptions;
       } catch (err) {
         error.value[field.id] = err.message;
+        if (fallbackOptions.length) {
+          options.value[field.id] = fallbackOptions;
+        }
       } finally {
         loading.value[field.id] = false;
       }
     };
 
     const getFieldOptions = (fieldId) => {
-      const field = sectionFields.value.find(f => f.id === fieldId);
-      const listOptions = field?.list_options || field?.listOptions;
-      if ((field?.fieldType === 'SIMPLE_LIST' || field?.fieldType === 'LIST' || field?.fieldType === 'CONTROLLED_LIST') && !field?.dataSource && listOptions && typeof listOptions === 'string' && listOptions.trim() !== '') {
-        const options = listOptions.split(',').map(opt => {
-          const trimmed = opt.trim();
-          return { value: trimmed, label: trimmed };
-        });
-        return options;
+      const existing = options.value[fieldId];
+      if (Array.isArray(existing) && existing.length) {
+        return existing;
       }
-      const fieldOptions = options.value[fieldId] || [];
-      return fieldOptions;
+
+      const field = sectionFields.value.find(f => f.id === fieldId);
+      if (!field) return [];
+
+      const fallbackOptions = parseListOptions(field?.list_options || field?.listOptions);
+      return fallbackOptions;
     };
 
     const updateFieldValue = (fieldId, value) => {
@@ -312,17 +272,10 @@ export default {
     onMounted(() => {
       // Load options for all LIST fields
       sectionFields.value.forEach(field => {
-        if (field.fieldType === 'LIST' || field.fieldType === 'CONTROLLED_LIST') {
+        if (LIST_FIELD_TYPES.includes(String(field?.fieldType || '').toUpperCase())) {
           loadOptions(field);
         }
       });
-    });
-
-    onUnmounted(() => {
-      if (hasAddedListener.value) {
-        window.removeEventListener('ww-ready', loadListOptions);
-        hasAddedListener.value = false;
-      }
     });
 
     return {
@@ -332,8 +285,6 @@ export default {
       sectionTitle,
       sectionFields,
       getInputType,
-      loadingOptions,
-      fieldOptions,
       updateFieldValue,
       options,
       loading,
