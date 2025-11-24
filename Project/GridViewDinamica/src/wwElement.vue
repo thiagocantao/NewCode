@@ -2097,7 +2097,10 @@ const remountComponent = () => {
       });
     }
 
-    deferAfterGridUpdate(() => updateTicketTagCounts());
+    deferAfterGridUpdate(() => {
+      updateTicketTagCounts();
+      emitGridLoadedEvent();
+    });
     saveGridState();
     (() => { try { const pristine = isGridStatePristine(); updateHideSaveButtonVisibility(pristine); } catch(e) { console && console.warn && console.warn('[Grid Pristine inline] failed:', e); } })();
   };
@@ -2119,6 +2122,7 @@ const remountComponent = () => {
       updateHideSaveButtonVisibility(pristine);
       (() => { try { const pristine = isGridStatePristine(); updateHideSaveButtonVisibility(pristine); } catch(e) { console && console.warn && console.warn('[Grid Pristine inline] failed:', e); } })();
       ctx.emit("trigger-event", { name: "sortChanged", event: normalizedSort });
+      emitGridLoadedEvent();
     });
   };
 
