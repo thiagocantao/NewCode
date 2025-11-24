@@ -606,7 +606,9 @@ export default {
     });
 
     function shouldDisableSecondShift(day) {
-      return day.shift1Start && day.shift1End && day.shift1Start === day.shift1End;
+      if (!day.shift1Start || !day.shift1End) return false;
+      if (day.shift1Start === day.shift1End) return true;
+      return day.shift1End === "00:00";
     }
 
     function normalizeDayForOutput(day) {
@@ -623,13 +625,25 @@ export default {
     }
 
     function timeToMinutes(time) { if (!time) return null; const [h, m] = time.split(":").map(Number); return h * 60 + m; }
+    function getComparableMinutes(day, key) {
+      const value = day[key];
+      if (!value) return null;
+
+      const isEndField = key === "shift1End" || key === "shift2End";
+      if (isEndField && value === "00:00") {
+        const startKey = key === "shift1End" ? "shift1Start" : "shift2Start";
+        const startVal = day[startKey];
+        if (startVal && startVal !== "00:00") return 24 * 60; // treat as end-of-day
+      }
+
+      return timeToMinutes(value);
+    }
     function isInconsistent(day, field) {
       const order = ["shift1Start", "shift1End", "shift2Start", "shift2End"];
       let last = null;
       for (const key of order) {
-        const val = day[key];
-        if (val) {
-          const minutes = timeToMinutes(val);
+        const minutes = getComparableMinutes(day, key);
+        if (minutes !== null) {
           if (last !== null && minutes < last) { if (key === field) return true; }
           else { last = minutes; }
         }
