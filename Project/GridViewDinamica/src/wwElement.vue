@@ -1353,6 +1353,32 @@ const asObject = (v) => (v && typeof v === 'object' ? v : {});
     setTicketTagCounts(buildTicketTagCounts(rows));
   };
 
+  const emitGridLoadedEvent = () => {
+    deferAfterGridUpdate(() => {
+      nextTick(() => {
+        const rows = [];
+
+        if (gridApi.value && typeof gridApi.value.forEachNode === "function") {
+          gridApi.value.forEachNode(node => {
+            if (node?.data) {
+              rows.push(node.data);
+            }
+          });
+        } else {
+          const collectionData = wwLib.wwUtils.getDataFromCollection(props.content?.rowData);
+          if (Array.isArray(collectionData)) {
+            rows.push(...collectionData);
+          }
+        }
+
+        ctx.emit("trigger-event", {
+          name: "gridLoaded",
+          event: { rows, totalRows: rows.length },
+        });
+      });
+    });
+  };
+
 /**
  * Aplica a ordenação externa (WW variable) na grid e sincroniza variável local `sort`.
  * - Atualiza columnState (applyColumnState)
@@ -1731,6 +1757,7 @@ const remountComponent = () => {
     }, 0);
     resetHideSaveButtonVisibility();
     updateTicketTagCounts();
+    emitGridLoadedEvent();
   }, { deep: true });
 
 
@@ -2239,6 +2266,7 @@ setTimeout(() => {
       }
 
       updateTicketTagCounts();
+      emitGridLoadedEvent();
     };
   
       onMounted(() => {
