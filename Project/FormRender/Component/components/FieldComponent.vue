@@ -167,7 +167,7 @@
 <script>
 import CustomAlert from './CustomAlert.vue';
 import CustomDatePicker from './CustomDatePicker.vue';
-import { SUPABASE_IMAGE_BUCKET } from '../../../supabaseBuckets';
+import { SUPABASE_IMAGE_BUCKET } from './supabaseBuckets';
 
 export default {
   name: 'FieldComponent',
