@@ -607,16 +607,18 @@ export default {
 
     function shouldDisableSecondShift(day) {
       if (!day.shift1Start || !day.shift1End) return false;
-      if (day.shift1Start === day.shift1End) return true;
+      const isEqualMidnight = day.shift1Start === "00:00" && day.shift1End === "00:00";
+      if (isEqualMidnight) return true;
       return day.shift1End === "00:00";
     }
 
     function normalizeDayForOutput(day) {
       const normalized = { ...day };
 
-      const shift1Equal = day.shift1Start && day.shift1End && day.shift1Start === day.shift1End;
+      const shift1EqualMidnight =
+        day.shift1Start && day.shift1End && day.shift1Start === "00:00" && day.shift1End === "00:00";
 
-      if (shift1Equal) {
+      if (shift1EqualMidnight) {
         normalized.shift2Start = "";
         normalized.shift2End = "";
       }
@@ -639,6 +641,20 @@ export default {
       return timeToMinutes(value);
     }
     function isInconsistent(day, field) {
+      const equalPairs = [
+        ["shift1Start", "shift1End"],
+        ["shift2Start", "shift2End"],
+      ];
+
+      for (const [startKey, endKey] of equalPairs) {
+        const startVal = day[startKey];
+        const endVal = day[endKey];
+        const isEqualNonMidnight =
+          startVal && endVal && startVal === endVal && startVal !== "00:00";
+
+        if (isEqualNonMidnight && (field === startKey || field === endKey)) return true;
+      }
+
       const order = ["shift1Start", "shift1End", "shift2Start", "shift2End"];
       let last = null;
       for (const key of order) {
