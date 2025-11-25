@@ -249,10 +249,16 @@ export default {
       if (newField) {
         isRequired.value = Boolean(newField.is_mandatory);
         isHideLegend.value = Boolean(newField.is_hide_legend);
-        showOnly.value = Boolean(newField.show_only);
-        showOnlyGroups.value = normalizeShowOnlyGroups(
+        const normalizedShowOnlyGroups = normalizeShowOnlyGroups(
           newField.show_only_groups || newField.show_only_groups_json
         );
+
+        showOnlyGroups.value = normalizedShowOnlyGroups;
+        showOnly.value = Boolean(newField.show_only || normalizedShowOnlyGroups.length);
+
+        if (normalizedShowOnlyGroups.length && !newField.show_only) {
+          updateFieldProperty('show_only', true);
+        }
         columns.value = parseInt(newField.columns) || 1;
 
         const hiddenInEndUserNewTicket =
