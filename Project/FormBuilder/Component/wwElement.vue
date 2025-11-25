@@ -1612,6 +1612,9 @@ const updateFormState = () => {
       is_mandatory: normalizeBoolean(field.is_mandatory),
       is_readonly: normalizeBoolean(field.is_readonly),
       is_hide_legend: normalizeBoolean(field.is_hide_legend),
+      show_only: normalizeBoolean(field.show_only),
+      IsHiddenInEndUserNewTicket: normalizeBoolean(field.IsHiddenInEndUserNewTicket),
+      IsHiddenInEndUserViewTicket: normalizeBoolean(field.IsHiddenInEndUserViewTicket),
       tip_translations: field.tip_translations || { 'en-US': field.tip || '' },
       deleted: false,
       name: field.name,
@@ -1731,7 +1734,10 @@ const selectFieldForProperties = (field, sectionId) => {
     fieldType: field.fieldType || 'text',
     is_mandatory: Boolean(field.is_mandatory),
     is_readonly: Boolean(field.is_readonly),
-    is_hide_legend: Boolean(field.is_hide_legend)
+    is_hide_legend: Boolean(field.is_hide_legend),
+    show_only: Boolean(field.show_only),
+    IsHiddenInEndUserNewTicket: Boolean(field.IsHiddenInEndUserNewTicket),
+    IsHiddenInEndUserViewTicket: Boolean(field.IsHiddenInEndUserViewTicket)
   };
   
 };
@@ -1750,7 +1756,10 @@ const updateFieldProperties = (updatedField) => {
     fieldType: updatedField.fieldType || 'text',
     is_mandatory: Boolean(updatedField.is_mandatory),
     is_readonly: Boolean(updatedField.is_readonly),
-    is_hide_legend: Boolean(updatedField.is_hide_legend)
+    is_hide_legend: Boolean(updatedField.is_hide_legend),
+    show_only: Boolean(updatedField.show_only),
+    IsHiddenInEndUserNewTicket: Boolean(updatedField.IsHiddenInEndUserNewTicket),
+    IsHiddenInEndUserViewTicket: Boolean(updatedField.IsHiddenInEndUserViewTicket)
   };
 
   // Find the section containing this field
