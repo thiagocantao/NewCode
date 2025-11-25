@@ -1594,28 +1594,6 @@ const normalizeBoolean = (value) => {
 const normalizeStringArray = (value) => {
   if (Array.isArray(value)) return value.map(item => String(item));
   if (value === null || value === undefined || value === '') return [];
-  if (typeof value === 'string') {
-    const trimmed = value.trim();
-
-    if (!trimmed) return [];
-
-    try {
-      const parsed = JSON.parse(trimmed);
-      if (Array.isArray(parsed)) return parsed.map(item => String(item));
-    } catch (error) {
-      // Ignore parse errors and fallback to plain string handling
-    }
-
-    if (trimmed.includes(',')) {
-      return trimmed
-        .split(',')
-        .map(item => item.trim())
-        .filter(Boolean)
-        .map(item => String(item));
-    }
-
-    return [trimmed];
-  }
   return [String(value)];
 };
 
@@ -1641,22 +1619,9 @@ const updateFormState = () => {
       is_readonly: normalizeBoolean(field.is_readonly),
       is_hide_legend: normalizeBoolean(field.is_hide_legend),
       show_only: normalizeBoolean(field.show_only),
-      show_only_groups: normalizeStringArray(field.show_only_groups || field.show_only_groups_json),
-      show_only_groups_json: JSON.stringify(
-        normalizeStringArray(field.show_only_groups || field.show_only_groups_json)
-      ),
-      IsHiddenInEndUserNewTicket: normalizeBoolean(
-        field.IsHiddenInEndUserNewTicket ?? field.isHiddenInEndUserNewTicket
-      ),
-      isHiddenInEndUserNewTicket: normalizeBoolean(
-        field.IsHiddenInEndUserNewTicket ?? field.isHiddenInEndUserNewTicket
-      ),
-      IsHiddenInEndUserViewTicket: normalizeBoolean(
-        field.IsHiddenInEndUserViewTicket ?? field.isHiddenInEndUserViewTicket
-      ),
-      isHiddenInEndUserViewTicket: normalizeBoolean(
-        field.IsHiddenInEndUserViewTicket ?? field.isHiddenInEndUserViewTicket
-      ),
+      show_only_groups: normalizeStringArray(field.show_only_groups),
+      IsHiddenInEndUserNewTicket: normalizeBoolean(field.IsHiddenInEndUserNewTicket),
+      IsHiddenInEndUserViewTicket: normalizeBoolean(field.IsHiddenInEndUserViewTicket),
       tip_translations: field.tip_translations || { 'en-US': field.tip || '' },
       deleted: false,
       name: field.name,
@@ -1778,22 +1743,9 @@ const selectFieldForProperties = (field, sectionId) => {
       is_readonly: Boolean(field.is_readonly),
       is_hide_legend: Boolean(field.is_hide_legend),
       show_only: Boolean(field.show_only),
-      show_only_groups: normalizeStringArray(field.show_only_groups || field.show_only_groups_json),
-      show_only_groups_json: JSON.stringify(
-        normalizeStringArray(field.show_only_groups || field.show_only_groups_json)
-      ),
-      IsHiddenInEndUserNewTicket: Boolean(
-        field.IsHiddenInEndUserNewTicket ?? field.isHiddenInEndUserNewTicket
-      ),
-      isHiddenInEndUserNewTicket: Boolean(
-        field.IsHiddenInEndUserNewTicket ?? field.isHiddenInEndUserNewTicket
-      ),
-      IsHiddenInEndUserViewTicket: Boolean(
-        field.IsHiddenInEndUserViewTicket ?? field.isHiddenInEndUserViewTicket
-      ),
-      isHiddenInEndUserViewTicket: Boolean(
-        field.IsHiddenInEndUserViewTicket ?? field.isHiddenInEndUserViewTicket
-      )
+      show_only_groups: normalizeStringArray(field.show_only_groups),
+      IsHiddenInEndUserNewTicket: Boolean(field.IsHiddenInEndUserNewTicket),
+      IsHiddenInEndUserViewTicket: Boolean(field.IsHiddenInEndUserViewTicket)
     };
   
 };
@@ -1814,22 +1766,9 @@ const updateFieldProperties = (updatedField) => {
     is_readonly: Boolean(updatedField.is_readonly),
     is_hide_legend: Boolean(updatedField.is_hide_legend),
     show_only: Boolean(updatedField.show_only),
-    show_only_groups: normalizeStringArray(updatedField.show_only_groups || updatedField.show_only_groups_json),
-    show_only_groups_json: JSON.stringify(
-      normalizeStringArray(updatedField.show_only_groups || updatedField.show_only_groups_json)
-    ),
-    IsHiddenInEndUserNewTicket: Boolean(
-      updatedField.IsHiddenInEndUserNewTicket ?? updatedField.isHiddenInEndUserNewTicket
-    ),
-    isHiddenInEndUserNewTicket: Boolean(
-      updatedField.IsHiddenInEndUserNewTicket ?? updatedField.isHiddenInEndUserNewTicket
-    ),
-    IsHiddenInEndUserViewTicket: Boolean(
-      updatedField.IsHiddenInEndUserViewTicket ?? updatedField.isHiddenInEndUserViewTicket
-    ),
-    isHiddenInEndUserViewTicket: Boolean(
-      updatedField.IsHiddenInEndUserViewTicket ?? updatedField.isHiddenInEndUserViewTicket
-    )
+    show_only_groups: normalizeStringArray(updatedField.show_only_groups),
+    IsHiddenInEndUserNewTicket: Boolean(updatedField.IsHiddenInEndUserNewTicket),
+    IsHiddenInEndUserViewTicket: Boolean(updatedField.IsHiddenInEndUserViewTicket)
   };
 
   // Find the section containing this field
