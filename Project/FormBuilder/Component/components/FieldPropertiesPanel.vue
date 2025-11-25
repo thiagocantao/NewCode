@@ -508,8 +508,8 @@ export default {
   }
 
   .group-title {
-    font-weight: 600;
+    font-weight: 400 !important;
     color: #222;
-    font-size: 18px;
+    font-size: 18px !important;
   }
 </style>
