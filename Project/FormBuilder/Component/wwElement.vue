@@ -1648,7 +1648,13 @@ const updateFormState = () => {
       IsHiddenInEndUserNewTicket: normalizeBoolean(
         field.IsHiddenInEndUserNewTicket ?? field.isHiddenInEndUserNewTicket
       ),
+      isHiddenInEndUserNewTicket: normalizeBoolean(
+        field.IsHiddenInEndUserNewTicket ?? field.isHiddenInEndUserNewTicket
+      ),
       IsHiddenInEndUserViewTicket: normalizeBoolean(
+        field.IsHiddenInEndUserViewTicket ?? field.isHiddenInEndUserViewTicket
+      ),
+      isHiddenInEndUserViewTicket: normalizeBoolean(
         field.IsHiddenInEndUserViewTicket ?? field.isHiddenInEndUserViewTicket
       ),
       tip_translations: field.tip_translations || { 'en-US': field.tip || '' },
@@ -1779,7 +1785,13 @@ const selectFieldForProperties = (field, sectionId) => {
       IsHiddenInEndUserNewTicket: Boolean(
         field.IsHiddenInEndUserNewTicket ?? field.isHiddenInEndUserNewTicket
       ),
+      isHiddenInEndUserNewTicket: Boolean(
+        field.IsHiddenInEndUserNewTicket ?? field.isHiddenInEndUserNewTicket
+      ),
       IsHiddenInEndUserViewTicket: Boolean(
+        field.IsHiddenInEndUserViewTicket ?? field.isHiddenInEndUserViewTicket
+      ),
+      isHiddenInEndUserViewTicket: Boolean(
         field.IsHiddenInEndUserViewTicket ?? field.isHiddenInEndUserViewTicket
       )
     };
@@ -1809,7 +1821,13 @@ const updateFieldProperties = (updatedField) => {
     IsHiddenInEndUserNewTicket: Boolean(
       updatedField.IsHiddenInEndUserNewTicket ?? updatedField.isHiddenInEndUserNewTicket
     ),
+    isHiddenInEndUserNewTicket: Boolean(
+      updatedField.IsHiddenInEndUserNewTicket ?? updatedField.isHiddenInEndUserNewTicket
+    ),
     IsHiddenInEndUserViewTicket: Boolean(
+      updatedField.IsHiddenInEndUserViewTicket ?? updatedField.isHiddenInEndUserViewTicket
+    ),
+    isHiddenInEndUserViewTicket: Boolean(
       updatedField.IsHiddenInEndUserViewTicket ?? updatedField.isHiddenInEndUserViewTicket
     )
   };
