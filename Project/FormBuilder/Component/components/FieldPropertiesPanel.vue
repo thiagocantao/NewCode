@@ -124,6 +124,17 @@
           </div>
         </div>
       </div>
+
+      <div class="form-group" v-if="showOnly">
+        <label>Show only for groups</label>
+        <QueryMultiSelect
+          :model-value="showOnlyGroups"
+          :options="showOnlyOptions"
+          :loading="showOnlyLoading"
+          placeholder="Select groups"
+          @update:modelValue="updateShowOnlyGroups"
+        />
+      </div>
     </div>
     <div class="panel-body empty-state" v-else>
       <div class="empty-message">{{ noFieldSelectedMessage }}</div>
@@ -133,9 +144,11 @@
 
 <script>
   import { ref, computed, watch, onMounted, nextTick } from 'vue';
+  import QueryMultiSelect from './QueryMultiSelect.vue';
 
 export default {
   name: 'FieldPropertiesPanel',
+  components: { QueryMultiSelect },
   props: {
     selectedField: {
       type: Object,
@@ -190,6 +203,16 @@ export default {
     const columns = ref(1);
     const tipText = ref('');
     const showOnly = ref(false);
+    const showOnlyGroups = ref([]);
+    const showOnlyOptions = ref([]);
+    const showOnlyLoading = ref(false);
+    const SHOW_ONLY_GROUPS_VARIABLE_ID = '79df4513-8ec5-4a4b-8f2c-d055d9eb30f4';
+
+    const normalizeShowOnlyGroups = (value) => {
+      if (Array.isArray(value)) return value.map(item => String(item));
+      if (value === null || value === undefined || value === '') return [];
+      return [String(value)];
+    };
     const isHiddenInEndUserNewTicket = ref(false);
     const isHiddenInEndUserViewTicket = ref(false);
 
@@ -206,6 +229,7 @@ export default {
         isRequired.value = Boolean(newField.is_mandatory);
         isHideLegend.value = Boolean(newField.is_hide_legend);
         showOnly.value = Boolean(newField.show_only);
+        showOnlyGroups.value = normalizeShowOnlyGroups(newField.show_only_groups);
         columns.value = parseInt(newField.columns) || 1;
 
         if (newField.IsHiddenInEndUserNewTicket === undefined) {
@@ -248,6 +272,7 @@ export default {
       hasTip.value = false;
       tipText.value = '';
       showOnly.value = false;
+      showOnlyGroups.value = [];
       columns.value = 1;
       isHiddenInEndUserNewTicket.value = false;
       isHiddenInEndUserViewTicket.value = false;
@@ -266,12 +291,20 @@ export default {
         }
       }
       
-      // Se for show_only, também atualiza is_readonly
       if (property === 'show_only') {
         emit('update-field', {
           ...props.selectedField,
           [property]: value,
-          is_readonly: value // true se show_only for true, false se show_only for false
+          show_only_groups: value ? showOnlyGroups.value : []
+        });
+        return;
+      }
+
+      if (property === 'show_only_groups') {
+        emit('update-field', {
+          ...props.selectedField,
+          [property]: normalizeShowOnlyGroups(value),
+          show_only: showOnly.value
         });
         return;
       }
@@ -304,7 +337,69 @@ export default {
       
       emit('update-field', updatedField);
     };
-    
+
+    const loadShowOnlyOptions = () => {
+      try {
+        const wwVariable = window?.wwLib?.wwVariable;
+        if (!wwVariable) return;
+
+        const getters = [
+          wwVariable.getValue?.bind(wwVariable),
+          wwVariable.getComponentValue?.bind(wwVariable),
+          wwVariable.get?.bind(wwVariable)
+        ].filter(Boolean);
+
+        const rawData = getters.reduce((acc, getter) => {
+          if (acc !== undefined) return acc;
+          try {
+            return getter(SHOW_ONLY_GROUPS_VARIABLE_ID);
+          } catch (error) {
+            console.warn('[FieldPropertiesPanel] Unable to read show only options:', error);
+            return undefined;
+          }
+        }, undefined);
+
+        if (!Array.isArray(rawData)) {
+          showOnlyOptions.value = [];
+          return;
+        }
+
+        showOnlyOptions.value = rawData
+          .map(item => ({
+            label: item?.name ?? String(item?.groupID ?? ''),
+            value: item?.groupID ?? item?.id ?? null
+          }))
+          .filter(option => option.value !== null && option.value !== undefined);
+      } catch (error) {
+        console.warn('[FieldPropertiesPanel] Error loading show only options:', error);
+        showOnlyOptions.value = [];
+      }
+    };
+
+    const updateShowOnlyGroups = (value) => {
+      const normalizedValue = normalizeShowOnlyGroups(value);
+      showOnlyGroups.value = normalizedValue;
+      updateFieldProperty('show_only_groups', normalizedValue);
+    };
+
+    watch(showOnly, (value) => {
+      if (!value) {
+        updateShowOnlyGroups([]);
+      } else if (!showOnlyOptions.value.length) {
+        showOnlyLoading.value = true;
+        loadShowOnlyOptions();
+        showOnlyLoading.value = false;
+      }
+    });
+
+    onMounted(() => {
+      if (showOnly.value) {
+        showOnlyLoading.value = true;
+        loadShowOnlyOptions();
+        showOnlyLoading.value = false;
+      }
+    });
+
     return {
       uniqueId,
       isRequired,
@@ -313,11 +408,15 @@ export default {
       columns,
       tipText,
       showOnly,
+      showOnlyGroups,
+      showOnlyOptions,
+      showOnlyLoading,
       isHiddenInEndUserNewTicket,
       isHiddenInEndUserViewTicket,
       updateFieldProperty,
       toggleTip,
-      updateTip
+      updateTip,
+      updateShowOnlyGroups
     };
   }
 };
