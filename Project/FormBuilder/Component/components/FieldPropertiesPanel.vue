@@ -90,6 +90,40 @@
           </div>
         </div>
       </div>
+
+      <div class="form-group">
+        <label class="group-title">End Users</label>
+      </div>
+
+      <div class="form-group toggle">
+        <div class="toggle-container">
+          <label>Hide when adding tickets</label>
+          <div class="toggle-switch">
+            <input
+              type="checkbox"
+              :id="`end-user-new-${uniqueId}`"
+              v-model="isHiddenInEndUserNewTicket"
+              @change="updateFieldProperty('IsHiddenInEndUserNewTicket', isHiddenInEndUserNewTicket)"
+            />
+            <label :for="`end-user-new-${uniqueId}`" class="toggle-label"></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group toggle">
+        <div class="toggle-container">
+          <label>Hide from ticket view</label>
+          <div class="toggle-switch">
+            <input
+              type="checkbox"
+              :id="`end-user-view-${uniqueId}`"
+              v-model="isHiddenInEndUserViewTicket"
+              @change="updateFieldProperty('IsHiddenInEndUserViewTicket', isHiddenInEndUserViewTicket)"
+            />
+            <label :for="`end-user-view-${uniqueId}`" class="toggle-label"></label>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="panel-body empty-state" v-else>
       <div class="empty-message">{{ noFieldSelectedMessage }}</div>
@@ -152,10 +186,12 @@ export default {
     // Field properties
     const isRequired = ref(false);
     const isHideLegend = ref(false);
-    const hasTip = ref(false);    
+    const hasTip = ref(false);
     const columns = ref(1);
     const tipText = ref('');
     const showOnly = ref(false);
+    const isHiddenInEndUserNewTicket = ref(false);
+    const isHiddenInEndUserViewTicket = ref(false);
 
     const currentLang = computed(() => {
       if (typeof window !== 'undefined' && window.wwLib && window.wwLib.wwVariable) {
@@ -171,6 +207,20 @@ export default {
         isHideLegend.value = Boolean(newField.is_hide_legend);
         showOnly.value = Boolean(newField.show_only);
         columns.value = parseInt(newField.columns) || 1;
+
+        if (newField.IsHiddenInEndUserNewTicket === undefined) {
+          isHiddenInEndUserNewTicket.value = false;
+          updateFieldProperty('IsHiddenInEndUserNewTicket', false);
+        } else {
+          isHiddenInEndUserNewTicket.value = Boolean(newField.IsHiddenInEndUserNewTicket);
+        }
+
+        if (newField.IsHiddenInEndUserViewTicket === undefined) {
+          isHiddenInEndUserViewTicket.value = false;
+          updateFieldProperty('IsHiddenInEndUserViewTicket', false);
+        } else {
+          isHiddenInEndUserViewTicket.value = Boolean(newField.IsHiddenInEndUserViewTicket);
+        }
         
         // Atualiza o gradiente do range
         nextTick(() => {
@@ -199,6 +249,8 @@ export default {
       tipText.value = '';
       showOnly.value = false;
       columns.value = 1;
+      isHiddenInEndUserNewTicket.value = false;
+      isHiddenInEndUserViewTicket.value = false;
     };
     
     // Update field property
@@ -261,6 +313,8 @@ export default {
       columns,
       tipText,
       showOnly,
+      isHiddenInEndUserNewTicket,
+      isHiddenInEndUserViewTicket,
       updateFieldProperty,
       toggleTip,
       updateTip
@@ -439,5 +493,10 @@ export default {
     color: #666;
     font-size: 14px;
     text-align: center;
+  }
+
+  .group-title {
+    font-weight: 600;
+    color: #222;
   }
 </style>
