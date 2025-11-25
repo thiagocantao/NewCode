@@ -114,7 +114,7 @@ export default {
         placeholder: { type: String, default: () => translateTerm('Select...') },
         disabled: { type: Boolean, default: false },
         loading: { type: Boolean, default: false },
-        chipBackgroundColor: { type: String, default: '#2563eb' },
+        chipBackgroundColor: { type: String, default: 'rgb(105, 157, 140)' },
         chipTextColor: { type: String, default: '#ffffff' },
         multiple: { type: Boolean, default: true },
     },
@@ -513,7 +513,7 @@ export default {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    background-color: var(--query-multi-select-chip-bg, #2563eb);
+    background-color: var(--query-multi-select-chip-bg,  rgb(105, 157, 140));
     color: var(--query-multi-select-chip-color, #ffffff);
     border-radius: 4px;
     padding: 4px 8px;
@@ -522,7 +522,7 @@ export default {
 }
 
 .query-multi-select__chip--counter {
-    background-color: var(--query-multi-select-chip-bg, #2563eb);
+    background-color: var(--query-multi-select-chip-bg,  rgb(105, 157, 140));
     color: var(--query-multi-select-chip-color, #ffffff);
 }
 
