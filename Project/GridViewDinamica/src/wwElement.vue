@@ -1342,24 +1342,40 @@ const asObject = (v) => (v && typeof v === 'object' ? v : {});
     ];
   };
 
-  const updateTicketTagCounts = () => {
-    let rows = [];
-    const ticketTypeFilter = getTicketTypeFilter();
+  const applyColumnFiltersToRows = (rows) => {
+    if (!gridApi.value || typeof gridApi.value.getFilterModel !== "function") return rows;
 
-    if (!ticketTypeFilter && gridApi.value && typeof gridApi.value.forEachNodeAfterFilter === 'function') {
-      const filteredRows = [];
-      gridApi.value.forEachNodeAfterFilter(node => {
-        if (node?.data) {
-          filteredRows.push(node.data);
+    const filterModel = gridApi.value.getFilterModel() || {};
+    const filterIds = Object.keys(filterModel);
+    if (!filterIds.length) return rows;
+
+    return rows.filter(row => {
+      const fakeNode = { data: row };
+
+      return filterIds.every(colId => {
+        const filterInstance = gridApi.value.getFilterInstance(colId);
+
+        if (filterInstance?.doesFilterPass) {
+          try {
+            return filterInstance.doesFilterPass({ node: fakeNode, data: row });
+          } catch (error) {
+            console.warn("[GridViewDinamica] Failed to evaluate filter for counts", error);
+            return true;
+          }
         }
-      });
-      rows = filteredRows;
-    } else {
-      const collectionData = wwLib.wwUtils.getDataFromCollection(props.content?.rowData);
-      rows = Array.isArray(collectionData) ? collectionData : [];
-    }
 
-    setTicketTagCounts(buildTicketTagCounts(rows));
+        return true;
+      });
+    });
+  };
+
+  const updateTicketTagCounts = () => {
+    const collectionData = wwLib.wwUtils.getDataFromCollection(props.content?.rowData);
+    const rows = Array.isArray(collectionData) ? collectionData : [];
+
+    const rowsAfterColumnFilters = applyColumnFiltersToRows(rows);
+
+    setTicketTagCounts(buildTicketTagCounts(rowsAfterColumnFilters));
   };
 
   const emitGridLoadedEvent = () => {
