@@ -211,6 +211,28 @@ export default {
     const normalizeShowOnlyGroups = (value) => {
       if (Array.isArray(value)) return value.map(item => String(item));
       if (value === null || value === undefined || value === '') return [];
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+
+        if (!trimmed) return [];
+
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (Array.isArray(parsed)) return parsed.map(item => String(item));
+        } catch (error) {
+          // Ignore JSON parse errors and fallback to plain string handling
+        }
+
+        if (trimmed.includes(',')) {
+          return trimmed
+            .split(',')
+            .map(item => item.trim())
+            .filter(Boolean)
+            .map(item => String(item));
+        }
+
+        return [trimmed];
+      }
       return [String(value)];
     };
     const isHiddenInEndUserNewTicket = ref(false);
@@ -229,7 +251,9 @@ export default {
         isRequired.value = Boolean(newField.is_mandatory);
         isHideLegend.value = Boolean(newField.is_hide_legend);
         showOnly.value = Boolean(newField.show_only);
-        showOnlyGroups.value = normalizeShowOnlyGroups(newField.show_only_groups);
+        showOnlyGroups.value = normalizeShowOnlyGroups(
+          newField.show_only_groups || newField.show_only_groups_json
+        );
         columns.value = parseInt(newField.columns) || 1;
 
         if (newField.IsHiddenInEndUserNewTicket === undefined) {
@@ -295,16 +319,19 @@ export default {
         emit('update-field', {
           ...props.selectedField,
           [property]: value,
-          show_only_groups: value ? showOnlyGroups.value : []
+          show_only_groups: value ? showOnlyGroups.value : [],
+          show_only_groups_json: JSON.stringify(value ? showOnlyGroups.value : [])
         });
         return;
       }
 
       if (property === 'show_only_groups') {
+        const normalizedGroups = normalizeShowOnlyGroups(value);
         emit('update-field', {
           ...props.selectedField,
-          [property]: normalizeShowOnlyGroups(value),
-          show_only: showOnly.value
+          [property]: normalizedGroups,
+          show_only: showOnly.value,
+          show_only_groups_json: JSON.stringify(normalizedGroups)
         });
         return;
       }
