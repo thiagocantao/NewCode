@@ -5,7 +5,7 @@
 <div v-if="isEditing" class="debug-panel"> 
   <h4>Debug Info</h4>
   <pre>{{ JSON.stringify(debugInfo, null, 2) }}</pre> 
-</div> 
+</div>
 
 <!-- Combined Form Builder with both field definition and form builder sections -->
 <div class="dual-container">
@@ -332,6 +332,7 @@ const cloneDeep = (value) => {
     return undefined;
   }
   try {
+    console.log(JSON.parse(JSON.stringify(value)))
     return JSON.parse(JSON.stringify(value));
   } catch (error) {
     console.warn('Failed to clone value', error);
@@ -1754,6 +1755,7 @@ const updateFieldProperties = (updatedField) => {
 
   if (!updatedField) return;
 
+console.log("UPDATE", updatedField)
   // Normalizar o campo atualizado
   const normalizedField = {
     ...updatedField,
