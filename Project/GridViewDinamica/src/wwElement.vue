@@ -1342,18 +1342,39 @@ const asObject = (v) => (v && typeof v === 'object' ? v : {});
     ];
   };
 
-  const applyColumnFiltersToRows = (rows) => {
+  const resolveFilterInstance = async (colId) => {
+    if (!gridApi.value) return null;
+
+    if (typeof gridApi.value.getFilterInstance === "function") {
+      return gridApi.value.getFilterInstance(colId);
+    }
+
+    if (typeof gridApi.value.getColumnFilterInstance === "function") {
+      try {
+        return await gridApi.value.getColumnFilterInstance(colId);
+      } catch (error) {
+        console.warn("[GridViewDinamica] Failed to resolve column filter instance", error);
+        return null;
+      }
+    }
+
+    return null;
+  };
+
+  const applyColumnFiltersToRows = async (rows) => {
     if (!gridApi.value || typeof gridApi.value.getFilterModel !== "function") return rows;
 
     const filterModel = gridApi.value.getFilterModel() || {};
     const filterIds = Object.keys(filterModel);
     if (!filterIds.length) return rows;
 
+    const filterInstances = await Promise.all(filterIds.map(resolveFilterInstance));
+
     return rows.filter(row => {
       const fakeNode = { data: row };
 
-      return filterIds.every(colId => {
-        const filterInstance = gridApi.value.getFilterInstance(colId);
+      return filterIds.every((colId, index) => {
+        const filterInstance = filterInstances[index];
 
         if (filterInstance?.doesFilterPass) {
           try {
@@ -1373,9 +1394,14 @@ const asObject = (v) => (v && typeof v === 'object' ? v : {});
     const collectionData = wwLib.wwUtils.getDataFromCollection(props.content?.rowData);
     const rows = Array.isArray(collectionData) ? collectionData : [];
 
-    const rowsAfterColumnFilters = applyColumnFiltersToRows(rows);
-
-    setTicketTagCounts(buildTicketTagCounts(rowsAfterColumnFilters));
+    applyColumnFiltersToRows(rows)
+      .then(rowsAfterColumnFilters => {
+        setTicketTagCounts(buildTicketTagCounts(rowsAfterColumnFilters));
+      })
+      .catch(error => {
+        console.warn("[GridViewDinamica] Failed to refresh ticket tag counts", error);
+        setTicketTagCounts(buildTicketTagCounts(rows));
+      });
   };
 
   const emitGridLoadedEvent = () => {
