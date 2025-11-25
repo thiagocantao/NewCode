@@ -291,12 +291,10 @@ export default {
         }
       }
       
-      // Se for show_only, também atualiza is_readonly
       if (property === 'show_only') {
         emit('update-field', {
           ...props.selectedField,
           [property]: value,
-          is_readonly: value, // true se show_only for true, false se show_only for false
           show_only_groups: value ? showOnlyGroups.value : []
         });
         return;
@@ -306,8 +304,7 @@ export default {
         emit('update-field', {
           ...props.selectedField,
           [property]: normalizeShowOnlyGroups(value),
-          show_only: showOnly.value,
-          is_readonly: showOnly.value
+          show_only: showOnly.value
         });
         return;
       }
