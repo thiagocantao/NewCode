@@ -76,7 +76,11 @@
         ></textarea>
       </div>
 
-      <div class="form-group toggle">
+      <div class="form-group end-users-group">
+        <label class="group-title">End Users</label>
+      </div>
+
+      <div class="form-group toggle end-users-toggle">
         <div class="toggle-container">
           <label>{{ showOnlyLabel }}</label>
           <div class="toggle-switch">
@@ -89,10 +93,6 @@
             <label :for="`show-only-${uniqueId}`" class="toggle-label"></label>
           </div>
         </div>
-      </div>
-
-      <div class="form-group">
-        <label class="group-title">End Users</label>
       </div>
 
       <div class="form-group toggle">
@@ -495,8 +495,19 @@ export default {
     text-align: center;
   }
 
+  .end-users-group {
+    margin-top: 24px;
+    padding-top: 10px;
+    border-top: 1px solid #e0e0e0;
+  }
+
+  .end-users-toggle {
+    margin-top: 10px;
+  }
+
   .group-title {
     font-weight: 600;
     color: #222;
+    font-size: 16px;
   }
 </style>
