@@ -1809,6 +1809,11 @@ console.log("UPDATE", updatedField)
         ...normalizedField
       };
 
+      // Mantém o painel de propriedades sincronizado com os valores alterados
+      selectedFieldForProperties.value = {
+        ...section.fields[fieldIndex]
+      };
+
       // Update the form state
       updateFormState();
     }
