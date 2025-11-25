@@ -10,7 +10,8 @@
       :components="editorComponents" :singleClickEdit="true" @grid-ready="onGridReady" @row-selected="onRowSelected"
       @selection-changed="onSelectionChanged" @cell-value-changed="onCellValueChanged" @filter-changed="onFilterChanged"
       @sort-changed="onSortChanged" @column-moved="onColumnMoved" @row-clicked="onRowClicked"
-      @first-data-rendered="onFirstDataRendered" @cell-clicked="onCellClicked">
+      @row-data-changed="onRowDataChanged" @row-data-updated="onRowDataUpdated" @first-data-rendered="onFirstDataRendered"
+      @cell-clicked="onCellClicked">
     </ag-grid-vue>
   </div> 
 </template>
@@ -1238,6 +1239,26 @@ function defer(fn, delay = 0) {
   defaultValue: {},
   readonly: true,
   });
+  const { setValue: setTicketTagCounts } = wwLib.wwVariable.useComponentVariable({
+    uid: props.uid,
+    name: "ticketTagCounts",
+    type: "array",
+    defaultValue: [
+      { TagControl: null, TicketModelName: "All", QuantityTickets: 0 },
+      { TagControl: "incident", TicketModelName: "Incidents", QuantityTickets: 0 },
+      { TagControl: "problem", TicketModelName: "Problems", QuantityTickets: 0 },
+      { TagControl: "request", TicketModelName: "Requests", QuantityTickets: 0 },
+      { TagControl: "update", TicketModelName: "Updates", QuantityTickets: 0 }
+    ],
+    readonly: true,
+  });
+  const getTicketTypeFilter = () => {
+    const raw = props?.content?.ticketTypeFilter;
+    if (raw == null || raw === "") return null;
+    const normalized = String(raw).toLowerCase();
+    const allowed = ["incident", "request", "problem", "update"];
+    return allowed.includes(normalized) ? normalized : null;
+  };
   const { value: columnsPositionValue, setValue: setColumnsPosition } = wwLib.wwVariable.useComponentVariable({
   uid: props.uid,
   name: "columnsPosition",
@@ -1276,24 +1297,138 @@ return [];
 };
 const asObject = (v) => (v && typeof v === 'object' ? v : {});
 
-// Normaliza o Sort vindo da variável WW para o formato do AG Grid
-function getExternalSortFromWW() {
+  // Normaliza o Sort vindo da variável WW para o formato do AG Grid
+    function getExternalSortFromWW() {
   try {
-    const raw = window.wwLib?.wwVariable?.getValue('74a13796-f64f-47d6-8e5f-4fb4700fd94b');
-    const sortArr = Array.isArray(raw) ? raw?.[0]?.Sort : raw?.Sort ?? raw?.[0]?.Sort;
-    if (!Array.isArray(sortArr)) return [];
-    // sortArr esperado: [{ id: 'ColId', isASC: true/false }, ...]
-    return sortArr
-      .filter(s => s && s.id)
-      .map((s, idx) => ({
-        colId: String(s.id),
-        sort: s.isASC ? 'asc' : 'desc',
-        sortIndex: idx
-      }));
-  } catch {
-    return [];
+      const raw = window.wwLib?.wwVariable?.getValue('74a13796-f64f-47d6-8e5f-4fb4700fd94b');
+      const sortArr = Array.isArray(raw) ? raw?.[0]?.Sort : raw?.Sort ?? raw?.[0]?.Sort;
+      if (!Array.isArray(sortArr)) return [];
+      // sortArr esperado: [{ id: 'ColId', isASC: true/false }, ...]
+      return sortArr
+        .filter(s => s && s.id)
+        .map((s, idx) => ({
+          colId: String(s.id),
+          sort: s.isASC ? 'asc' : 'desc',
+          sortIndex: idx
+        }));
+    } catch {
+      return [];
+    }
   }
-}
+
+  const buildTicketTagCounts = rows => {
+    const counts = {
+      incident: 0,
+      problem: 0,
+      request: 0,
+      update: 0,
+    };
+
+    rows.forEach(row => {
+      if (!row || typeof row !== 'object') return;
+      const tag = String(row.TagTicketModel || '').toLowerCase();
+      if (Object.prototype.hasOwnProperty.call(counts, tag)) {
+        counts[tag] += 1;
+      }
+    });
+
+    const total = rows.length;
+    return [
+      { TagControl: null, TicketModelName: "All", QuantityTickets: total },
+      { TagControl: "incident", TicketModelName: "Incidents", QuantityTickets: counts.incident },
+      { TagControl: "problem", TicketModelName: "Problems", QuantityTickets: counts.problem },
+      { TagControl: "request", TicketModelName: "Requests", QuantityTickets: counts.request },
+      { TagControl: "update", TicketModelName: "Updates", QuantityTickets: counts.update },
+    ];
+  };
+
+  const resolveFilterInstance = async (colId) => {
+    if (!gridApi.value) return null;
+
+    if (typeof gridApi.value.getFilterInstance === "function") {
+      return gridApi.value.getFilterInstance(colId);
+    }
+
+    if (typeof gridApi.value.getColumnFilterInstance === "function") {
+      try {
+        return await gridApi.value.getColumnFilterInstance(colId);
+      } catch (error) {
+        console.warn("[GridViewDinamica] Failed to resolve column filter instance", error);
+        return null;
+      }
+    }
+
+    return null;
+  };
+
+  const applyColumnFiltersToRows = async (rows) => {
+    if (!gridApi.value || typeof gridApi.value.getFilterModel !== "function") return rows;
+
+    const filterModel = gridApi.value.getFilterModel() || {};
+    const filterIds = Object.keys(filterModel);
+    if (!filterIds.length) return rows;
+
+    const filterInstances = await Promise.all(filterIds.map(resolveFilterInstance));
+
+    return rows.filter(row => {
+      const fakeNode = { data: row };
+
+      return filterIds.every((colId, index) => {
+        const filterInstance = filterInstances[index];
+
+        if (filterInstance?.doesFilterPass) {
+          try {
+            return filterInstance.doesFilterPass({ node: fakeNode, data: row });
+          } catch (error) {
+            console.warn("[GridViewDinamica] Failed to evaluate filter for counts", error);
+            return true;
+          }
+        }
+
+        return true;
+      });
+    });
+  };
+
+  const updateTicketTagCounts = () => {
+    const collectionData = wwLib.wwUtils.getDataFromCollection(props.content?.rowData);
+    const rows = Array.isArray(collectionData) ? collectionData : [];
+
+    applyColumnFiltersToRows(rows)
+      .then(rowsAfterColumnFilters => {
+        setTicketTagCounts(buildTicketTagCounts(rowsAfterColumnFilters));
+      })
+      .catch(error => {
+        console.warn("[GridViewDinamica] Failed to refresh ticket tag counts", error);
+        setTicketTagCounts(buildTicketTagCounts(rows));
+      });
+  };
+
+  const emitGridLoadedEvent = () => {
+    deferAfterGridUpdate(() => {
+      nextTick(() => {
+        const rows = [];
+
+        if (gridApi.value && typeof gridApi.value.forEachNode === "function") {
+          gridApi.value.forEachNode(node => {
+            if (node?.data) {
+              rows.push(node.data);
+            }
+          });
+        } else {
+          const collectionData = wwLib.wwUtils.getDataFromCollection(props.content?.rowData);
+          if (Array.isArray(collectionData)) {
+            rows.push(...collectionData);
+          }
+        }
+
+        ctx.emit("trigger-event", {
+          name: "gridLoaded",
+          event: { rows, totalRows: rows.length },
+        });
+      });
+    });
+  };
 
 /**
  * Aplica a ordenação externa (WW variable) na grid e sincroniza variável local `sort`.
@@ -1672,6 +1807,8 @@ const remountComponent = () => {
       }
     }, 0);
     resetHideSaveButtonVisibility();
+    updateTicketTagCounts();
+    emitGridLoadedEvent();
   }, { deep: true });
 
 
@@ -1734,6 +1871,8 @@ const remountComponent = () => {
 
       updateColumnsPosition();
       updateColumnsSort();
+
+      updateTicketTagCounts();
 
       // Persistir estado em todos eventos relevantes
       params.api.addEventListener('filterChanged', saveGridState);
@@ -1992,24 +2131,45 @@ const remountComponent = () => {
   const selected = gridApi.value.getSelectedRows() || [];
   setSelectedRows(selected);
   };
+
+  const refreshGridStateChanges = (event) => {
+    syncHideSaveButtonVisibility(event);
+    deferAfterGridUpdate(() => {
+      updateTicketTagCounts();
+      emitGridLoadedEvent();
+    });
+  };
+
+  const onRowDataChanged = (event) => {
+    refreshGridStateChanges(event);
+  };
+
+  const onRowDataUpdated = (event) => {
+    refreshGridStateChanges(event);
+  };
   
   const onFilterChanged = (event) => {
-  if (!gridApi.value) return;
-  const filterModel = gridApi.value.getFilterModel();
-  if (
-  JSON.stringify(filterModel || {}) !==
-  JSON.stringify(filterValue.value || {})
-  ) {
-  setFilters(filterModel);
-  syncHideSaveButtonVisibility(event);
+    if (!gridApi.value) return;
+    const filterModel = gridApi.value.getFilterModel();
+    if (
+      JSON.stringify(filterModel || {}) !==
+      JSON.stringify(filterValue.value || {})
+    ) {
+      setFilters(filterModel);
+      syncHideSaveButtonVisibility(event);
 
-  ctx.emit("trigger-event", {
-  name: "filterChanged",
-  event: filterModel,
-  });
-  }
-  saveGridState();
-  (() => { try { const pristine = isGridStatePristine(); updateHideSaveButtonVisibility(pristine); } catch(e) { console && console.warn && console.warn('[Grid Pristine inline] failed:', e); } })();
+      ctx.emit("trigger-event", {
+        name: "filterChanged",
+        event: filterModel,
+      });
+    }
+
+    deferAfterGridUpdate(() => {
+      updateTicketTagCounts();
+      emitGridLoadedEvent();
+    });
+    saveGridState();
+    (() => { try { const pristine = isGridStatePristine(); updateHideSaveButtonVisibility(pristine); } catch(e) { console && console.warn && console.warn('[Grid Pristine inline] failed:', e); } })();
   };
   
   const onSortChanged = (event) => {
@@ -2029,6 +2189,7 @@ const remountComponent = () => {
       updateHideSaveButtonVisibility(pristine);
       (() => { try { const pristine = isGridStatePristine(); updateHideSaveButtonVisibility(pristine); } catch(e) { console && console.warn && console.warn('[Grid Pristine inline] failed:', e); } })();
       ctx.emit("trigger-event", { name: "sortChanged", event: normalizedSort });
+      emitGridLoadedEvent();
     });
   };
 
@@ -2174,6 +2335,9 @@ setTimeout(() => {
         // Força reposicionamento no DOM como backup
         setTimeout(() => forceSelectionColumnFirstDOM(), 400);
       }
+
+      updateTicketTagCounts();
+      emitGridLoadedEvent();
     };
   
       onMounted(() => {
@@ -2198,6 +2362,8 @@ setTimeout(() => {
       onGridReady,
       onRowSelected,
       onSelectionChanged,
+      onRowDataChanged,
+      onRowDataUpdated,
       gridApi,
       onFilterChanged,
       onSortChanged,
@@ -2258,7 +2424,18 @@ setTimeout(() => {
     computed: {
     rowData() {
       const data = wwLib.wwUtils.getDataFromCollection(this.content.rowData);
-      return Array.isArray(data) ? data ?? [] : [];
+      const rows = Array.isArray(data) ? data ?? [] : [];
+      const rawFilter = this.content?.ticketTypeFilter;
+      if (rawFilter == null || rawFilter === "") return rows;
+
+      const normalized = String(rawFilter).toLowerCase();
+      const allowed = ["incident", "request", "problem", "update"];
+      if (!allowed.includes(normalized)) return rows;
+
+      return rows.filter(row => {
+        const tag = String(row?.TagTicketModel || "").toLowerCase();
+        return tag === normalized;
+      });
     },
     defaultColDef() {
       return {
