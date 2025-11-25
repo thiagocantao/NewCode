@@ -54,6 +54,7 @@ export default {
   ],
   customSettingsPropertiesOrder: [
   "rowData",
+  "ticketTypeFilter",
   "idFormula",
   "generateColumns",
   "columns",
@@ -933,6 +934,24 @@ export default {
   "A collection or an array of data: \n\n`myCollection` or `[{}, {}, ...]`",
   },
   /* wwEditor:end */
+  },
+  ticketTypeFilter: {
+    label: { en: "Ticket type filter" },
+    type: "TextSelect",
+    options: {
+      choices: [
+        { value: "", label: "All", default: true },
+        { value: "incident", label: "Incident" },
+        { value: "request", label: "Request" },
+        { value: "problem", label: "Problem" },
+        { value: "update", label: "Update" },
+      ],
+    },
+    section: "settings",
+    bindable: true,
+    propertyHelp: {
+      tooltip: "Limit which ticket type is shown in the grid without affecting ticketTagCounts.",
+    },
   },
   idFormula: {
   type: "Formula",

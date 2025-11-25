@@ -1252,6 +1252,13 @@ function defer(fn, delay = 0) {
     ],
     readonly: true,
   });
+  const getTicketTypeFilter = () => {
+    const raw = props?.content?.ticketTypeFilter;
+    if (raw == null || raw === "") return null;
+    const normalized = String(raw).toLowerCase();
+    const allowed = ["incident", "request", "problem", "update"];
+    return allowed.includes(normalized) ? normalized : null;
+  };
   const { value: columnsPositionValue, setValue: setColumnsPosition } = wwLib.wwVariable.useComponentVariable({
   uid: props.uid,
   name: "columnsPosition",
@@ -1337,8 +1344,9 @@ const asObject = (v) => (v && typeof v === 'object' ? v : {});
 
   const updateTicketTagCounts = () => {
     let rows = [];
+    const ticketTypeFilter = getTicketTypeFilter();
 
-    if (gridApi.value && typeof gridApi.value.forEachNodeAfterFilter === 'function') {
+    if (!ticketTypeFilter && gridApi.value && typeof gridApi.value.forEachNodeAfterFilter === 'function') {
       const filteredRows = [];
       gridApi.value.forEachNodeAfterFilter(node => {
         if (node?.data) {
@@ -2374,7 +2382,18 @@ setTimeout(() => {
     computed: {
     rowData() {
       const data = wwLib.wwUtils.getDataFromCollection(this.content.rowData);
-      return Array.isArray(data) ? data ?? [] : [];
+      const rows = Array.isArray(data) ? data ?? [] : [];
+      const rawFilter = this.content?.ticketTypeFilter;
+      if (rawFilter == null || rawFilter === "") return rows;
+
+      const normalized = String(rawFilter).toLowerCase();
+      const allowed = ["incident", "request", "problem", "update"];
+      if (!allowed.includes(normalized)) return rows;
+
+      return rows.filter(row => {
+        const tag = String(row?.TagTicketModel || "").toLowerCase();
+        return tag === normalized;
+      });
     },
     defaultColDef() {
       return {
