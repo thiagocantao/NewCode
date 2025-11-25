@@ -1645,8 +1645,12 @@ const updateFormState = () => {
       show_only_groups_json: JSON.stringify(
         normalizeStringArray(field.show_only_groups || field.show_only_groups_json)
       ),
-      IsHiddenInEndUserNewTicket: normalizeBoolean(field.IsHiddenInEndUserNewTicket),
-      IsHiddenInEndUserViewTicket: normalizeBoolean(field.IsHiddenInEndUserViewTicket),
+      IsHiddenInEndUserNewTicket: normalizeBoolean(
+        field.IsHiddenInEndUserNewTicket ?? field.isHiddenInEndUserNewTicket
+      ),
+      IsHiddenInEndUserViewTicket: normalizeBoolean(
+        field.IsHiddenInEndUserViewTicket ?? field.isHiddenInEndUserViewTicket
+      ),
       tip_translations: field.tip_translations || { 'en-US': field.tip || '' },
       deleted: false,
       name: field.name,
@@ -1772,8 +1776,12 @@ const selectFieldForProperties = (field, sectionId) => {
       show_only_groups_json: JSON.stringify(
         normalizeStringArray(field.show_only_groups || field.show_only_groups_json)
       ),
-      IsHiddenInEndUserNewTicket: Boolean(field.IsHiddenInEndUserNewTicket),
-      IsHiddenInEndUserViewTicket: Boolean(field.IsHiddenInEndUserViewTicket)
+      IsHiddenInEndUserNewTicket: Boolean(
+        field.IsHiddenInEndUserNewTicket ?? field.isHiddenInEndUserNewTicket
+      ),
+      IsHiddenInEndUserViewTicket: Boolean(
+        field.IsHiddenInEndUserViewTicket ?? field.isHiddenInEndUserViewTicket
+      )
     };
   
 };
@@ -1798,8 +1806,12 @@ const updateFieldProperties = (updatedField) => {
     show_only_groups_json: JSON.stringify(
       normalizeStringArray(updatedField.show_only_groups || updatedField.show_only_groups_json)
     ),
-    IsHiddenInEndUserNewTicket: Boolean(updatedField.IsHiddenInEndUserNewTicket),
-    IsHiddenInEndUserViewTicket: Boolean(updatedField.IsHiddenInEndUserViewTicket)
+    IsHiddenInEndUserNewTicket: Boolean(
+      updatedField.IsHiddenInEndUserNewTicket ?? updatedField.isHiddenInEndUserNewTicket
+    ),
+    IsHiddenInEndUserViewTicket: Boolean(
+      updatedField.IsHiddenInEndUserViewTicket ?? updatedField.isHiddenInEndUserViewTicket
+    )
   };
 
   // Find the section containing this field

@@ -256,18 +256,22 @@ export default {
         );
         columns.value = parseInt(newField.columns) || 1;
 
-        if (newField.IsHiddenInEndUserNewTicket === undefined) {
+        const hiddenInEndUserNewTicket =
+          newField.IsHiddenInEndUserNewTicket ?? newField.isHiddenInEndUserNewTicket;
+        if (hiddenInEndUserNewTicket === undefined) {
           isHiddenInEndUserNewTicket.value = false;
           updateFieldProperty('IsHiddenInEndUserNewTicket', false);
         } else {
-          isHiddenInEndUserNewTicket.value = Boolean(newField.IsHiddenInEndUserNewTicket);
+          isHiddenInEndUserNewTicket.value = Boolean(hiddenInEndUserNewTicket);
         }
 
-        if (newField.IsHiddenInEndUserViewTicket === undefined) {
+        const hiddenInEndUserViewTicket =
+          newField.IsHiddenInEndUserViewTicket ?? newField.isHiddenInEndUserViewTicket;
+        if (hiddenInEndUserViewTicket === undefined) {
           isHiddenInEndUserViewTicket.value = false;
           updateFieldProperty('IsHiddenInEndUserViewTicket', false);
         } else {
-          isHiddenInEndUserViewTicket.value = Boolean(newField.IsHiddenInEndUserViewTicket);
+          isHiddenInEndUserViewTicket.value = Boolean(hiddenInEndUserViewTicket);
         }
         
         // Atualiza o gradiente do range
