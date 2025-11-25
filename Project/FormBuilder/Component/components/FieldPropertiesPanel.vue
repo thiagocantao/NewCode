@@ -339,8 +339,14 @@ export default {
         return;
       }
       
+      const endUserVisibility = {
+        IsHiddenInEndUserNewTicket: isHiddenInEndUserNewTicket.value,
+        IsHiddenInEndUserViewTicket: isHiddenInEndUserViewTicket.value
+      };
+
       emit('update-field', {
         ...props.selectedField,
+        ...endUserVisibility,
         [property]: value
       });
     };
