@@ -80,20 +80,7 @@
         <label class="group-title">End Users</label>
       </div>
 
-      <div class="form-group toggle end-users-toggle">
-        <div class="toggle-container">
-          <label>{{ showOnlyLabel }}</label>
-          <div class="toggle-switch">
-            <input
-              type="checkbox"
-              :id="`show-only-${uniqueId}`"
-              v-model="showOnly"
-              @change="updateFieldProperty('show_only', showOnly)"
-            />
-            <label :for="`show-only-${uniqueId}`" class="toggle-label"></label>
-          </div>
-        </div>
-      </div>
+      
 
       <div class="form-group toggle">
         <div class="toggle-container">
@@ -121,6 +108,21 @@
               @change="updateFieldProperty('IsHiddenInEndUserViewTicket', isHiddenInEndUserViewTicket)"
             />
             <label :for="`end-user-view-${uniqueId}`" class="toggle-label"></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group toggle end-users-toggle">
+        <div class="toggle-container">
+          <label>{{ showOnlyLabel }}</label>
+          <div class="toggle-switch">
+            <input
+              type="checkbox"
+              :id="`show-only-${uniqueId}`"
+              v-model="showOnly"
+              @change="updateFieldProperty('show_only', showOnly)"
+            />
+            <label :for="`show-only-${uniqueId}`" class="toggle-label"></label>
           </div>
         </div>
       </div>
@@ -508,6 +510,6 @@ export default {
   .group-title {
     font-weight: 600;
     color: #222;
-    font-size: 16px;
+    font-size: 18px;
   }
 </style>
