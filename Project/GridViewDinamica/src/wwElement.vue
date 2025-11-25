@@ -10,7 +10,8 @@
       :components="editorComponents" :singleClickEdit="true" @grid-ready="onGridReady" @row-selected="onRowSelected"
       @selection-changed="onSelectionChanged" @cell-value-changed="onCellValueChanged" @filter-changed="onFilterChanged"
       @sort-changed="onSortChanged" @column-moved="onColumnMoved" @row-clicked="onRowClicked"
-      @first-data-rendered="onFirstDataRendered" @cell-clicked="onCellClicked">
+      @row-data-changed="onRowDataChanged" @row-data-updated="onRowDataUpdated" @first-data-rendered="onFirstDataRendered"
+      @cell-clicked="onCellClicked">
     </ag-grid-vue>
   </div> 
 </template>
@@ -2080,6 +2081,22 @@ const remountComponent = () => {
   const selected = gridApi.value.getSelectedRows() || [];
   setSelectedRows(selected);
   };
+
+  const refreshGridStateChanges = (event) => {
+    syncHideSaveButtonVisibility(event);
+    deferAfterGridUpdate(() => {
+      updateTicketTagCounts();
+      emitGridLoadedEvent();
+    });
+  };
+
+  const onRowDataChanged = (event) => {
+    refreshGridStateChanges(event);
+  };
+
+  const onRowDataUpdated = (event) => {
+    refreshGridStateChanges(event);
+  };
   
   const onFilterChanged = (event) => {
     if (!gridApi.value) return;
@@ -2295,6 +2312,8 @@ setTimeout(() => {
       onGridReady,
       onRowSelected,
       onSelectionChanged,
+      onRowDataChanged,
+      onRowDataUpdated,
       gridApi,
       onFilterChanged,
       onSortChanged,
