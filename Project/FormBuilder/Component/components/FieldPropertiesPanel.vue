@@ -80,9 +80,7 @@
         <label class="group-title">End Users</label>
       </div>
 
-      
-
-      <div class="form-group toggle">
+      <div class="form-group toggle end-users-toggle">
         <div class="toggle-container">
           <label>Hide when adding tickets</label>
           <div class="toggle-switch">
@@ -123,6 +121,36 @@
               @change="updateFieldProperty('show_only', showOnly)"
             />
             <label :for="`show-only-${uniqueId}`" class="toggle-label"></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group toggle">
+        <div class="toggle-container">
+          <label>Hide when adding tickets</label>
+          <div class="toggle-switch">
+            <input
+              type="checkbox"
+              :id="`end-user-new-${uniqueId}`"
+              v-model="isHiddenInEndUserNewTicket"
+              @change="updateFieldProperty('IsHiddenInEndUserNewTicket', isHiddenInEndUserNewTicket)"
+            />
+            <label :for="`end-user-new-${uniqueId}`" class="toggle-label"></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group toggle">
+        <div class="toggle-container">
+          <label>Hide from ticket view</label>
+          <div class="toggle-switch">
+            <input
+              type="checkbox"
+              :id="`end-user-view-${uniqueId}`"
+              v-model="isHiddenInEndUserViewTicket"
+              @change="updateFieldProperty('IsHiddenInEndUserViewTicket', isHiddenInEndUserViewTicket)"
+            />
+            <label :for="`end-user-view-${uniqueId}`" class="toggle-label"></label>
           </div>
         </div>
       </div>
@@ -508,8 +536,8 @@ export default {
   }
 
   .group-title {
-    font-weight: 400 !important;
+    font-weight: 600;
     color: #222;
-    font-size: 18px !important;
+    font-size: 16px;
   }
 </style>
