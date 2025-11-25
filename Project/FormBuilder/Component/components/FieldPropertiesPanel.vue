@@ -126,7 +126,6 @@
       </div>
 
       <div class="form-group" v-if="showOnly">
-        <label>Show only for groups</label>
         <QueryMultiSelect
           :model-value="showOnlyGroups"
           :options="showOnlyOptions"
