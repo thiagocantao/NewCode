@@ -187,7 +187,7 @@ export default {
     },
     noFieldSelectedMessage: {
       type: String,
-      default: 'Select a field to edit its properties'
+      default: 'Select a Field to define its Properties'
     }
   },
   emits: ['update-field'],
