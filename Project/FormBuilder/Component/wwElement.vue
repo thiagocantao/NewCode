@@ -170,8 +170,9 @@ class="section-spacing"
 </div>
 </div>
 <div class="properties-panel-container" v-if="!isEditing">
-<FieldPropertiesPanel 
-:selected-field="selectedFieldForProperties" 
+<FieldPropertiesPanel
+:selected-field="selectedFieldForProperties"
+:no-field-selected-message="translateText('Select a Field  to define its Properties')"
 @update-field="updateFieldProperties"
 />
 </div>
@@ -185,7 +186,7 @@ class="section-spacing"
 </template>
 
 <script>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import Sortable from 'sortablejs';
 import DraggableField from './components/DraggableField.vue';
 import FormSection from './components/FormSection.vue';
@@ -459,6 +460,22 @@ const isNewSection = ref(false);
 const searchQuery = ref('');
 const selectedFieldForProperties = ref(null);
 const forceUpdate = ref(0);
+const clearSelectedField = () => {
+  selectedFieldForProperties.value = null;
+};
+const handleClickOutsideFields = (event) => {
+  const target = event?.target;
+  if (!target || typeof target.closest !== 'function') {
+    return;
+  }
+
+  const isFieldElement = target.closest('.single-draggable');
+  const isPropertiesPanel = target.closest('.field-properties-panel');
+
+  if (!isFieldElement && !isPropertiesPanel) {
+    clearSelectedField();
+  }
+};
 
 const cloneFieldDefinition = (field) => {
   if (!field || typeof field !== 'object') {
@@ -1277,6 +1294,7 @@ const loadFieldsData = () => {
     availableFields.value = Array.isArray(data) ? data : [];
     rememberFieldDefinitions(availableFields.value);
     setFieldsData(availableFields.value);
+    clearSelectedField();
   } catch (error) {
     console.error('Error loading fields data:', error);
   }
@@ -1911,6 +1929,7 @@ const showTranslatedMessage = () => {
 // Lifecycle hooks
 onMounted(() => {
 loadData();
+document.addEventListener('click', handleClickOutsideFields, true);
 
 // Use a more reliable approach with multiple attempts and better error handling
 const attemptInitialization = (attempts = 0, maxAttempts = 5) => {
@@ -1957,6 +1976,10 @@ setTimeout(() => attemptInitialization(attempts + 1, maxAttempts), delay);
 
 // Start the initialization process with a longer initial delay
 setTimeout(() => attemptInitialization(), 300);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutsideFields, true);
 });
 
 watch(() => props.content.fieldsJson, () => {
