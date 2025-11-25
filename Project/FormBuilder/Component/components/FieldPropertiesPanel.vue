@@ -124,36 +124,6 @@
           </div>
         </div>
       </div>
-
-      <div class="form-group toggle">
-        <div class="toggle-container">
-          <label>Hide when adding tickets</label>
-          <div class="toggle-switch">
-            <input
-              type="checkbox"
-              :id="`end-user-new-${uniqueId}`"
-              v-model="isHiddenInEndUserNewTicket"
-              @change="updateFieldProperty('IsHiddenInEndUserNewTicket', isHiddenInEndUserNewTicket)"
-            />
-            <label :for="`end-user-new-${uniqueId}`" class="toggle-label"></label>
-          </div>
-        </div>
-      </div>
-
-      <div class="form-group toggle">
-        <div class="toggle-container">
-          <label>Hide from ticket view</label>
-          <div class="toggle-switch">
-            <input
-              type="checkbox"
-              :id="`end-user-view-${uniqueId}`"
-              v-model="isHiddenInEndUserViewTicket"
-              @change="updateFieldProperty('IsHiddenInEndUserViewTicket', isHiddenInEndUserViewTicket)"
-            />
-            <label :for="`end-user-view-${uniqueId}`" class="toggle-label"></label>
-          </div>
-        </div>
-      </div>
     </div>
     <div class="panel-body empty-state" v-else>
       <div class="empty-message">{{ noFieldSelectedMessage }}</div>
@@ -536,8 +506,8 @@ export default {
   }
 
   .group-title {
-    font-weight: 600;
+    font-weight: 400;
     color: #222;
-    font-size: 16px;
+    font-size: 18px !important;
   }
 </style>
