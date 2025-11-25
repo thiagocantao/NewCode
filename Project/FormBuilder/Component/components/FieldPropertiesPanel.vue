@@ -338,6 +338,7 @@ export default {
         });
         return;
       }
+      console.log(property, value);
       
       emit('update-field', {
         ...props.selectedField,
