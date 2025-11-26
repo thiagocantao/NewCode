@@ -53,8 +53,8 @@ ref="availableFieldsContainer"
 
 <!-- Form Builder Section -->
 <div class="form-builder">
-    <div v-if="content.showCabecalhoFormBuilder" class="cabecalhoFormBuilder">
-      <div class="header-row header-row-title">
+    <div v-if="content.showCabecalhoFormBuilder && hasHeaderFields" class="cabecalhoFormBuilder">
+      <div v-if="headerFieldPresence.title" class="header-row header-row-title">
         <div class="header-title">
           <input
             type="text"
@@ -64,11 +64,12 @@ ref="availableFieldsContainer"
           />
         </div>
       </div>
-      <div class="header-row header-row-controls">
+      <div v-if="headerControlsVisible" class="header-row header-row-controls">
         <div class="header-tags">
           <div
             class="select-wrapper tag-select-wrapper"
             :style="computeSelectWidthStyle(headerPriority, translateText('Select priority'))"
+            v-if="headerFieldPresence.priority"
           >
             <select disabled="true" class="tag-selectPriority" v-model="headerPriority">
               <option
@@ -86,6 +87,7 @@ ref="availableFieldsContainer"
           <div
             class="select-wrapper tag-select-wrapper"
             :style="computeSelectWidthStyle(headerCategory, translateText('Category'))"
+            v-if="headerFieldPresence.category"
           >
             <select disabled="true" class="tag-selectCat1" v-model="headerCategory"></select>
             <span v-if="!headerCategory" class="select-placeholder">
@@ -95,6 +97,7 @@ ref="availableFieldsContainer"
           <div
             class="select-wrapper tag-select-wrapper"
             :style="computeSelectWidthStyle(headerSubcategory, translateText('Subcategory'))"
+            v-if="headerFieldPresence.subcategory"
           >
             <select disabled="true" class="tag-selectCat2" v-model="headerSubcategory"></select>
             <span v-if="!headerSubcategory" class="select-placeholder">
@@ -104,6 +107,7 @@ ref="availableFieldsContainer"
           <div
             class="select-wrapper tag-select-wrapper"
             :style="computeSelectWidthStyle(headerThirdLevelCategory, translateText('Third-level category'))"
+            v-if="headerFieldPresence.thirdLevelCategory"
           >
             <select disabled="true" class="tag-selectCat3" v-model="headerThirdLevelCategory"></select>
             <span v-if="!headerThirdLevelCategory" class="select-placeholder">
@@ -112,7 +116,7 @@ ref="availableFieldsContainer"
           </div>
         </div>
         <div class="header-tags-rigth">
-          <div class="assignee-wrapper">
+          <div class="assignee-wrapper" v-if="headerFieldPresence.assignee">
             <span class="user-icon">
               <i class="material-symbols-outlined">{{ translateText('person') }}</i>
             </span>
@@ -126,7 +130,7 @@ ref="availableFieldsContainer"
               </span>
             </div>
           </div>
-          <div class="status-wrapper">
+          <div class="status-wrapper" v-if="headerFieldPresence.status">
             <div
               class="select-wrapper status-select-wrapper"
               :style="computeSelectWidthStyle(headerStatus, translateText('New'))"
@@ -545,6 +549,81 @@ const headerSubcategory = ref('');
 const headerThirdLevelCategory = ref('');
 const headerAssignee = ref('');
 const headerStatus = ref('');
+const headerControlledFields = computed(
+  () => formData.value?.form?.default_controlled_field_parameters || []
+);
+
+const findControlledFieldByName = (fields, name) =>
+  (fields || []).find(
+    field => field?.name && field.name.toLowerCase() === name.toLowerCase()
+  );
+
+const normalizeHeaderDefaultValue = field => {
+  if (!field) return '';
+
+  const rawValue = field.default_value ?? field.defaultValue;
+
+  if (rawValue == null) return '';
+
+  if (typeof rawValue === 'object') {
+    return rawValue.label ?? rawValue.name ?? rawValue.value ?? '';
+  }
+
+  return rawValue;
+};
+
+const populateHeaderFieldsFromForm = form => {
+  const fields = form?.default_controlled_field_parameters || [];
+
+  headerTitle.value = normalizeHeaderDefaultValue(
+    findControlledFieldByName(fields, 'Title')
+  );
+  headerPriority.value = normalizeHeaderDefaultValue(
+    findControlledFieldByName(fields, 'Priority')
+  );
+  headerCategory.value = normalizeHeaderDefaultValue(
+    findControlledFieldByName(fields, 'Category')
+  );
+  headerSubcategory.value = normalizeHeaderDefaultValue(
+    findControlledFieldByName(fields, 'Sub Category')
+  );
+  headerThirdLevelCategory.value = normalizeHeaderDefaultValue(
+    findControlledFieldByName(fields, 'Category Level 3')
+  );
+  headerAssignee.value = normalizeHeaderDefaultValue(
+    findControlledFieldByName(fields, 'Assigned To')
+  );
+  headerStatus.value = normalizeHeaderDefaultValue(
+    findControlledFieldByName(fields, 'Status')
+  );
+};
+
+const headerFieldPresence = computed(() => {
+  const fields = headerControlledFields.value;
+
+  return {
+    title: !!findControlledFieldByName(fields, 'Title'),
+    priority: !!findControlledFieldByName(fields, 'Priority'),
+    category: !!findControlledFieldByName(fields, 'Category'),
+    subcategory: !!findControlledFieldByName(fields, 'Sub Category'),
+    thirdLevelCategory: !!findControlledFieldByName(fields, 'Category Level 3'),
+    assignee: !!findControlledFieldByName(fields, 'Assigned To'),
+    status: !!findControlledFieldByName(fields, 'Status')
+  };
+});
+
+const hasHeaderFields = computed(() =>
+  Object.values(headerFieldPresence.value).some(Boolean)
+);
+
+const headerControlsVisible = computed(() =>
+  headerFieldPresence.value.priority ||
+  headerFieldPresence.value.category ||
+  headerFieldPresence.value.subcategory ||
+  headerFieldPresence.value.thirdLevelCategory ||
+  headerFieldPresence.value.assignee ||
+  headerFieldPresence.value.status
+);
 
 const normalizePriorityOption = option => {
   if (option == null) {
@@ -1366,6 +1445,7 @@ if (typeof window !== 'undefined') {
     });
     rememberFieldDefinitions(formSectionFields);
     setFormData(cloneDeep(data));
+    populateHeaderFieldsFromForm(data.form);
   } catch (error) {
     console.error('Error loading form data:', error);
   }
@@ -1992,6 +2072,10 @@ loadFormData();
 }
 }, { immediate: true, deep: true });
 
+watch(headerControlledFields, fields => {
+  populateHeaderFieldsFromForm({ default_controlled_field_parameters: fields });
+}, { deep: true });
+
 const onRemoveField = ({ sectionId, field }) => {
   removeFormField({ sectionId, field });
 };
@@ -2052,6 +2136,9 @@ headerSubcategory,
   headerThirdLevelCategory,
   headerAssignee,
   headerStatus,
+  headerFieldPresence,
+  headerControlsVisible,
+  hasHeaderFields,
   priorityOptions,
   computeSelectWidthStyle,
   translateText,
