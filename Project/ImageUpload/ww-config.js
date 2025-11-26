@@ -58,6 +58,29 @@ export default {
       bindable: true,
       defaultValue: 'attach_file',
     },
+    iconColor: {
+      label: {
+        en: 'Icon color',
+        pt: 'Cor do ícone',
+      },
+      type: 'Color',
+      bindable: true,
+      defaultValue: '#475569',
+    },
+    iconSize: {
+      label: {
+        en: 'Icon size (px)',
+        pt: 'Tamanho do ícone (px)',
+      },
+      type: 'Number',
+      bindable: true,
+      defaultValue: 32,
+      options: {
+        min: 8,
+        max: 128,
+        step: 1,
+      },
+    },
   },
   events: {
     onUpload: {

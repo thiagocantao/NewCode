@@ -18,7 +18,12 @@
       :disabled="isUploading"
       @click="triggerFileInput"
     >
-      <span class="material-symbols-outlined image-upload__icon">{{ icon }}</span>
+      <span
+        class="material-symbols-outlined image-upload__icon"
+        :style="iconStyle"
+      >
+        {{ icon }}
+      </span>
     </button>
 
     <transition name="image-upload-popup">
@@ -96,6 +101,23 @@ export default {
       const trimmed = rawIcon.trim();
       return trimmed || "attach_file";
     });
+
+    const iconColor = computed(() => {
+      const rawColor = props.content?.iconColor;
+      if (typeof rawColor !== "string") return "#475569";
+      return rawColor.trim() || "#475569";
+    });
+
+    const iconSize = computed(() => {
+      const rawSize = Number(props.content?.iconSize);
+      if (Number.isFinite(rawSize) && rawSize > 0) return `${rawSize}px`;
+      return "32px";
+    });
+
+    const iconStyle = computed(() => ({
+      color: iconColor.value,
+      fontSize: iconSize.value,
+    }));
 
     // expoõe a URL atual via variável do WeWeb (igual estava)
     const bannerImageUrl = ref("");
@@ -412,6 +434,7 @@ export default {
       remount,
       translate,
       t: translate,
+      iconStyle,
     };
   },
 };
@@ -425,6 +448,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
+  background: transparent;
 }
 
 .image-upload__file-input {
@@ -435,24 +459,16 @@ export default {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  border: 2px dashed #cbd5f5;
-  background: #f8fafc;
-  color: #475569;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
   cursor: pointer;
-  transition: box-shadow 0.2s ease, transform 0.2s ease, background 0.2s ease;
-}
-
-.image-upload__button:hover,
-.image-upload.is-uploading .image-upload__button {
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
-  background: #e2e8f0;
+  transition: transform 0.15s ease, opacity 0.15s ease;
 }
 
 .image-upload__button:active {
-  transform: scale(0.98);
+  transform: scale(0.96);
 }
 
 .image-upload__button:disabled {
@@ -461,7 +477,6 @@ export default {
 }
 
 .image-upload__icon {
-  font-size: 32px;
   line-height: 1;
 }
 
