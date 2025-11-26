@@ -73,7 +73,7 @@ ref="availableFieldsContainer"
           >
             <select disabled="true" class="tag-selectPriority" v-model="headerPriority">
               <option
-                v-for="option in priorityOptions"
+                v-for="option in headerListOptions.priority"
                 :key="option.value ?? option.label ?? option"
                 :value="option.value ?? option.label ?? option"
               >
@@ -89,7 +89,15 @@ ref="availableFieldsContainer"
             :style="computeSelectWidthStyle(headerCategory, translateText('Category'))"
             v-if="headerFieldPresence.category"
           >
-            <select disabled="true" class="tag-selectCat1" v-model="headerCategory"></select>
+            <select disabled="true" class="tag-selectCat1" v-model="headerCategory">
+              <option
+                v-for="option in headerListOptions.category"
+                :key="option.value ?? option.label ?? option"
+                :value="option.value ?? option.label ?? option"
+              >
+                {{ option.label ?? option.value ?? option }}
+              </option>
+            </select>
             <span v-if="!headerCategory" class="select-placeholder">
               {{ translateText('Category') }}
             </span>
@@ -99,7 +107,15 @@ ref="availableFieldsContainer"
             :style="computeSelectWidthStyle(headerSubcategory, translateText('Subcategory'))"
             v-if="headerFieldPresence.subcategory"
           >
-            <select disabled="true" class="tag-selectCat2" v-model="headerSubcategory"></select>
+            <select disabled="true" class="tag-selectCat2" v-model="headerSubcategory">
+              <option
+                v-for="option in headerListOptions.subcategory"
+                :key="option.value ?? option.label ?? option"
+                :value="option.value ?? option.label ?? option"
+              >
+                {{ option.label ?? option.value ?? option }}
+              </option>
+            </select>
             <span v-if="!headerSubcategory" class="select-placeholder">
               {{ translateText('Subcategory') }}
             </span>
@@ -109,7 +125,15 @@ ref="availableFieldsContainer"
             :style="computeSelectWidthStyle(headerThirdLevelCategory, translateText('Third-level category'))"
             v-if="headerFieldPresence.thirdLevelCategory"
           >
-            <select disabled="true" class="tag-selectCat3" v-model="headerThirdLevelCategory"></select>
+            <select disabled="true" class="tag-selectCat3" v-model="headerThirdLevelCategory">
+              <option
+                v-for="option in headerListOptions.thirdLevelCategory"
+                :key="option.value ?? option.label ?? option"
+                :value="option.value ?? option.label ?? option"
+              >
+                {{ option.label ?? option.value ?? option }}
+              </option>
+            </select>
             <span v-if="!headerThirdLevelCategory" class="select-placeholder">
               {{ translateText('Third-level category') }}
             </span>
@@ -124,7 +148,15 @@ ref="availableFieldsContainer"
               class="select-wrapper assignee-select-wrapper"
               :style="computeSelectWidthStyle(headerAssignee, translateText('Unassigned'))"
             >
-              <select disabled="true" class="user-select" v-model="headerAssignee"></select>
+              <select disabled="true" class="user-select" v-model="headerAssignee">
+                <option
+                  v-for="option in headerListOptions.assignee"
+                  :key="option.value ?? option.label ?? option"
+                  :value="option.value ?? option.label ?? option"
+                >
+                  {{ option.label ?? option.value ?? option }}
+                </option>
+              </select>
               <span v-if="!headerAssignee" class="select-placeholder">
                 {{ translateText('Unassigned') }}
               </span>
@@ -135,7 +167,15 @@ ref="availableFieldsContainer"
               class="select-wrapper status-select-wrapper"
               :style="computeSelectWidthStyle(headerStatus, translateText('New'))"
             >
-              <select disabled="true" class="status-select" v-model="headerStatus"></select>
+              <select disabled="true" class="status-select" v-model="headerStatus">
+                <option
+                  v-for="option in headerListOptions.status"
+                  :key="option.value ?? option.label ?? option"
+                  :value="option.value ?? option.label ?? option"
+                >
+                  {{ option.label ?? option.value ?? option }}
+                </option>
+              </select>
               <span v-if="!headerStatus" class="select-placeholder status-placeholder">
                 {{ translateText('New') }}
               </span>
@@ -190,13 +230,14 @@ class="section-spacing"
 </template>
 
 <script>
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, reactive, watch } from 'vue';
 import Sortable from 'sortablejs';
 import DraggableField from './components/DraggableField.vue';
 import FormSection from './components/FormSection.vue';
 import FieldComponent from './components/FieldComponent.vue';
 import FieldPropertiesPanel from './components/FieldPropertiesPanel.vue';
 import { translateTerm } from './translation.js';
+import { fetchDataSourceOptions, shouldLoadDataSource } from './utils/dataSource';
 
 export default {
 name: 'FormBuilder',
@@ -549,6 +590,22 @@ const headerSubcategory = ref('');
 const headerThirdLevelCategory = ref('');
 const headerAssignee = ref('');
 const headerStatus = ref('');
+const headerListOptions = reactive({
+  priority: [],
+  category: [],
+  subcategory: [],
+  thirdLevelCategory: [],
+  assignee: [],
+  status: []
+});
+const headerOptionsLoading = reactive({
+  priority: false,
+  category: false,
+  subcategory: false,
+  thirdLevelCategory: false,
+  assignee: false,
+  status: false
+});
 const headerControlledFields = computed(
   () => formData.value?.form?.default_controlled_field_parameters || []
 );
@@ -598,6 +655,81 @@ const populateHeaderFieldsFromForm = form => {
   );
 };
 
+const normalizeHeaderOptions = field => {
+  if (!field) return [];
+
+  const rawOptions =
+    field?.options ??
+    field?.list_options ??
+    field?.listOptions ??
+    field?.ListOptions ??
+    field?.dataSource?.list_options ??
+    field?.DataSource?.list_options ??
+    null;
+
+  return normalizeOptions(rawOptions);
+};
+
+const ensureValueExistsInOptions = (modelRef, options) => {
+  const hasValue = options.some(option => {
+    if (option && typeof option === 'object') {
+      return (
+        option.value === modelRef.value ||
+        option.label === modelRef.value ||
+        option.name === modelRef.value
+      );
+    }
+
+    return option === modelRef.value;
+  });
+
+  if (!hasValue) {
+    modelRef.value = '';
+  }
+};
+
+const HEADER_FIELD_CONFIG = [
+  { key: 'priority', name: 'Priority', model: headerPriority },
+  { key: 'category', name: 'Category', model: headerCategory },
+  { key: 'subcategory', name: 'Sub Category', model: headerSubcategory },
+  { key: 'thirdLevelCategory', name: 'Category Level 3', model: headerThirdLevelCategory },
+  { key: 'assignee', name: 'Assigned To', model: headerAssignee },
+  { key: 'status', name: 'Status', model: headerStatus }
+];
+
+const loadHeaderOptionsForField = async ({ key, name, model }) => {
+  const targetField = findControlledFieldByName(headerControlledFields.value, name);
+
+  const normalizedFromConfig = normalizeHeaderOptions(targetField);
+  headerListOptions[key] = normalizedFromConfig;
+  ensureValueExistsInOptions(model, normalizedFromConfig);
+
+  if (!targetField || !shouldLoadDataSource(targetField)) {
+    return;
+  }
+
+  headerOptionsLoading[key] = true;
+
+  try {
+    const options = await fetchDataSourceOptions(
+      targetField?.dataSource ?? targetField?.DataSource ?? targetField
+    );
+
+    if (Array.isArray(options) && options.length) {
+      headerListOptions[key] = options;
+      ensureValueExistsInOptions(model, options);
+    }
+  } catch (error) {
+    console.error(`Failed to load header options for ${name}`, error);
+  } finally {
+    headerOptionsLoading[key] = false;
+  }
+};
+
+const refreshHeaderListOptions = async () => {
+  await Promise.all(HEADER_FIELD_CONFIG.map(loadHeaderOptionsForField));
+};
+
 const headerFieldPresence = computed(() => {
   const fields = headerControlledFields.value;
 
@@ -624,93 +756,6 @@ const headerControlsVisible = computed(() =>
   headerFieldPresence.value.assignee ||
   headerFieldPresence.value.status
 );
-
-const normalizePriorityOption = option => {
-  if (option == null) {
-    return null;
-  }
-
-  if (typeof option !== 'object') {
-    const primitiveValue = String(option);
-    return { value: primitiveValue, label: primitiveValue };
-  }
-
-  const rawValue =
-    option.value ??
-    option.Value ??
-    option.id ??
-    option.ID ??
-    option.Id ??
-    option.key ??
-    option.Key ??
-    option.slug ??
-    option.Slug ??
-    null;
-
-  const rawLabel =
-    option.label ??
-    option.Label ??
-    option.name ??
-    option.Name ??
-    option.title ??
-    option.Title ??
-    option.description ??
-    option.Description ??
-    null;
-
-  const normalizedValueCandidate =
-    rawValue != null && typeof rawValue !== 'object'
-      ? String(rawValue)
-      : rawLabel != null && typeof rawLabel !== 'object'
-        ? String(rawLabel)
-        : null;
-
-  if (!normalizedValueCandidate) {
-    return null;
-  }
-
-  const normalizedLabelCandidate =
-    rawLabel != null && typeof rawLabel !== 'object'
-      ? String(rawLabel)
-      : normalizedValueCandidate;
-
-  return {
-    value: normalizedValueCandidate,
-    label: normalizedLabelCandidate
-  };
-};
-
-const priorityOptions = computed(() => {
- 
-  const collectionData = wwLib.wwCollection.getCollection("913fd277-8f18-420e-977e-ce52b6a751f9").data;
-
-  if (!Array.isArray(collectionData)) {
-    return [];
-  }
-
-  const seenValues = new Set();
-
-  return collectionData
-    .map(normalizePriorityOption)
-    .filter(option => {
-      if (!option || !option.value) {
-        return false;
-      }
-
-      if (seenValues.has(option.value)) {
-        return false;
-      }
-
-      seenValues.add(option.value);
-      return true;
-    });
-});
-
-watch(priorityOptions, newOptions => {
-  if (!newOptions.some(option => option.value === headerPriority.value)) {
-    headerPriority.value = '';
-  }
-});
 
 const getDisplayLength = (value) => {
   if (!value && value !== 0) {
@@ -1446,6 +1491,7 @@ if (typeof window !== 'undefined') {
     rememberFieldDefinitions(formSectionFields);
     setFormData(cloneDeep(data));
     populateHeaderFieldsFromForm(data.form);
+    refreshHeaderListOptions();
   } catch (error) {
     console.error('Error loading form data:', error);
   }
@@ -2074,6 +2120,7 @@ loadFormData();
 
 watch(headerControlledFields, fields => {
   populateHeaderFieldsFromForm({ default_controlled_field_parameters: fields });
+  refreshHeaderListOptions();
 }, { deep: true });
 
 const onRemoveField = ({ sectionId, field }) => {
@@ -2131,15 +2178,16 @@ updateFieldInUse,
 orderedSections,
 headerTitle,
 headerPriority,
-headerCategory,
-headerSubcategory,
+  headerCategory,
+  headerSubcategory,
   headerThirdLevelCategory,
   headerAssignee,
   headerStatus,
   headerFieldPresence,
   headerControlsVisible,
   hasHeaderFields,
-  priorityOptions,
+  headerListOptions,
+  headerOptionsLoading,
   computeSelectWidthStyle,
   translateText,
 showTranslatedMessage,
