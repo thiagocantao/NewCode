@@ -26,11 +26,6 @@
       </span>
     </button>
 
-    <transition name="image-upload-popup">
-      <div v-if="popup.visible" class="image-upload__popup" :class="popup.type">
-        {{ popup.message }}
-      </div>
-    </transition>
   </div>
 </template>
 
@@ -54,7 +49,6 @@ export default {
     const displayUrl = ref("");
     const officialUrl = ref("");
     const isUploading = ref(false);
-    const popup = ref({ visible: false, type: "", message: "" });
 
     const objectUrls = new Set();
     const storageInfo = ref(null);
@@ -273,21 +267,6 @@ export default {
     function resetInput(eventTarget) {
       if (eventTarget) eventTarget.value = "";
     }
-    function showPopup(type, message, { autoClose = true } = {}) {
-      popup.value = { visible: true, type, message: translate(message) };
-      if (autoClose) {
-        window.setTimeout(() => {
-          popup.value.visible = false;
-        }, type === "error" ? 4000 : 1500);
-      }
-    }
-    function showSuccess(message) {
-      showPopup("success", message, { autoClose: true });
-    }
-    function showError(message) {
-      showPopup("error", message, { autoClose: false });
-    }
-
     // Upload continua igual (precisa passar no RLS de INSERT do storage.objects)
     async function onFileSelected(event) {
       const file = event.target?.files?.[0] || null;
@@ -295,7 +274,6 @@ export default {
       if (!file) return;
 
       if (!file.type?.startsWith("image/") && !/\.(png|jpg|jpeg|gif|webp|bmp|svg)$/i.test(file.name)) {
-        showError(translate("Please select a valid image file."));
         return;
       }
 
@@ -386,15 +364,12 @@ export default {
             },
           },
         });
-
-        showSuccess(translate("Image loaded successfully."));
       } catch (error) {
         console.warn("[ImageUpload] Falha no upload:", error);
         storageInfo.value = previousStorage;
         officialUrl.value = previousOfficialUrl;
         displayUrl.value = previousOfficialUrl;
         syncBannerUrl(previousOfficialUrl);
-        showError(error?.message || String(error));
       } finally {
         isUploading.value = false;
         if (previewUrl) {
@@ -426,7 +401,6 @@ export default {
       fileInput,
       displayUrl,
       isUploading,
-      popup,
       computedHeight,
       icon,
       triggerFileInput,
@@ -480,38 +454,4 @@ export default {
   line-height: 1;
 }
 
-.image-upload__popup {
-  position: absolute;
-  left: 50%;
-  bottom: 12px;
-  transform: translateX(-50%);
-  padding: 10px 16px;
-  border-radius: 1px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #0f172a;
-  background: #f1f5f9;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.2);
-}
-
-.image-upload__popup.success {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.image-upload__popup.error {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-
-.image-upload-popup-enter-active,
-.image-upload-popup-leave-active {
-  transition: opacity 0.25s ease, transform 0.25s ease;
-}
-
-.image-upload-popup-enter-from,
-.image-upload-popup-leave-to {
-  opacity: 0;
-  transform: translate(-50%, 10px);
-}
 </style>
