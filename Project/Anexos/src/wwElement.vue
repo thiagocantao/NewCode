@@ -375,6 +375,37 @@ export default {
       };
     }
 
+    function fileToBase64(file) {
+      if (!(file instanceof File)) return Promise.resolve(null);
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          resolve(typeof reader.result === "string" ? reader.result : null);
+        };
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function resolveBase64String(attachment) {
+      if (!attachment) return null;
+      if (typeof attachment.base64 === "string") return attachment.base64;
+      if (attachment.base64 === null) return null;
+      if (!(attachment.file instanceof File)) {
+        attachment.base64 = null;
+        return null;
+      }
+
+      if (!attachment._base64Promise) {
+        attachment._base64Promise = fileToBase64(attachment.file).then((value) => {
+          attachment.base64 = value;
+          return value;
+        });
+      }
+
+      return attachment._base64Promise;
+    }
+
     const autoSaveToPostticketattachment = computed(() => {
       const flag = props.content?.autoSaveToPostticketattachment;
       return flag === false ? false : true;
@@ -577,22 +608,29 @@ export default {
       }
     }
 
+    let attachmentsInfoBuildId = 0;
     watch(
       files,
-      () => {
-        const info = files.value.map((f) => {
-          const location = resolveStorageLocation(f);
-          return {
-            name: f.file.name,
-            size: f.file.size,
-            type: f.file.type,
-            url: f.url,
-            storagePath: location.storagePath,
-            bucket: location.bucket,
-            signedUrl: f.signedUrl || null,
-            attachmentId: f.attachmentId || null,
-          };
-        });
+      async () => {
+        const buildId = ++attachmentsInfoBuildId;
+        const info = await Promise.all(
+          files.value.map(async (f) => {
+            const location = resolveStorageLocation(f);
+            const base64 = await resolveBase64String(f);
+            return {
+              name: f.file.name,
+              size: f.file.size,
+              type: f.file.type,
+              url: f.url,
+              storagePath: location.storagePath,
+              bucket: location.bucket,
+              signedUrl: f.signedUrl || null,
+              attachmentId: f.attachmentId || null,
+              base64,
+            };
+          })
+        );
+        if (buildId !== attachmentsInfoBuildId) return;
         attachmentsInfo.value = info;
         if (setAttachmentsInfo) setAttachmentsInfo(info);
       },
@@ -630,6 +668,7 @@ export default {
             createdBy: item.createdby,
             createdDate: item.createddate,
             textContent: null,
+            base64: null,
           };
           try {
             if (storageReady && supabase?.storage && bucket && storagePath) {
@@ -731,7 +770,7 @@ export default {
             ? URL.createObjectURL(file) : null,
           isImage: kind.isImage, isPdf: kind.isPdf, isTxt: kind.isTxt,
           isUploaded: false, bucket: "ticket", storagePath: null,
-          signedUrl: null, attachmentId: null, textContent: null,
+          signedUrl: null, attachmentId: null, textContent: null, base64: null,
         };
       });
       files.value.push(...selected);
