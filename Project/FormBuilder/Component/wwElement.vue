@@ -862,6 +862,16 @@ const ensureValueExistsInOptions = (modelRef, options) => {
   }
 };
 
+const autoSelectSingleOption = (key, modelRef) => {
+  const options = headerListOptions[key] || [];
+
+  if (options.length === 1) {
+    const [onlyOption] = options;
+    const newValue = onlyOption?.value ?? onlyOption?.label ?? onlyOption;
+    modelRef.value = newValue ?? '';
+  }
+};
+
 const HEADER_FIELD_CONFIG = [
   { key: 'priority', name: 'PriorityID', model: headerPriority },
   { key: 'category', name: 'CategoryID', model: headerCategory },
@@ -2398,12 +2408,14 @@ watch(headerCategory, () => {
   headerSubcategory.value = '';
   headerThirdLevelCategory.value = '';
   headerListOptions.subcategory = getCategoryVariableOptions('subcategory');
+  autoSelectSingleOption('subcategory', headerSubcategory);
   headerListOptions.thirdLevelCategory = [];
 });
 
 watch(headerSubcategory, () => {
   headerThirdLevelCategory.value = '';
   headerListOptions.thirdLevelCategory = getCategoryVariableOptions('thirdLevelCategory');
+  autoSelectSingleOption('thirdLevelCategory', headerThirdLevelCategory);
 });
 
 const onRemoveField = ({ sectionId, field }) => {
