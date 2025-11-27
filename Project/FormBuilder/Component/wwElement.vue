@@ -2872,7 +2872,7 @@ width: 255px;
 }
 
 .header-dropdown-wrapper {
-  width: 100%;
+  width: 300px;
 }
 
 .custom-dropdown-wrapper {
@@ -2895,6 +2895,22 @@ width: 255px;
   text-overflow: ellipsis;
   transition: border .2s;
   color: #787878 !important;
+  white-space: nowrap;
+  overflow: hidden;
+  width: fit-content;
+  min-width: 140px;
+  max-width: 200px;
+}
+
+.custom-dropdown-selected span:not(.dropdown-arrow) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.custom-dropdown-selected .dropdown-arrow {
+  flex-shrink: 0;
+  margin-left: 8px;
 }
 
 .custom-dropdown-selected.open {
