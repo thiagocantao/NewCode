@@ -71,72 +71,232 @@ ref="availableFieldsContainer"
             :style="computeSelectWidthStyle(headerPriority, translateText('Select priority'))"
             v-if="headerFieldPresence.priority"
           >
-            <select disabled="true" class="tag-selectPriority" v-model="headerPriority">
-              <option
-                v-for="option in headerListOptions.priority"
-                :key="option.value ?? option.label ?? option"
-                :value="option.value ?? option.label ?? option"
+            <div
+              class="custom-dropdown-wrapper header-dropdown-wrapper"
+              :ref="el => setHeaderDropdownRef('priority', el)"
+            >
+              <div
+                class="custom-dropdown-selected"
+                :class="{ open: headerDropdownState.priority.open }"
+                @click.stop="toggleHeaderDropdown('priority')"
               >
-                {{ option.label ?? option.value ?? option }}
-              </option>
-            </select>
-            <span v-if="!headerPriority" class="select-placeholder">
-              {{ translateText('Select priority') }}
-            </span>
+                <span v-if="getHeaderSelectedLabel('priority')">
+                  {{ getHeaderSelectedLabel('priority') }}
+                </span>
+                <span v-else class="placeholder">
+                  {{ translateText('Select priority') }}
+                </span>
+                <span class="material-symbols-outlined dropdown-arrow">expand_more</span>
+              </div>
+              <div
+                v-if="headerDropdownState.priority.open"
+                class="custom-dropdown-list"
+              >
+                <div class="dropdown-search-wrapper">
+                  <span class="material-symbols-outlined search-icon">search</span>
+                  <input
+                    type="text"
+                    v-model="headerDropdownState.priority.search"
+                    :placeholder="translateText('Search...')"
+                    class="list-search-input"
+                    @click.stop
+                    @mousedown.stop
+                    @touchstart.stop
+                  />
+                </div>
+                <div
+                  v-if="getFilteredHeaderOptions('priority').length === 0"
+                  class="custom-dropdown-no-options"
+                >
+                  {{ translateText('No options found') }}
+                </div>
+                <div
+                  v-for="option in getFilteredHeaderOptions('priority')"
+                  :key="option.value ?? option.label ?? option"
+                  class="custom-dropdown-option"
+                  :class="{ selected: isHeaderOptionSelected('priority', option) }"
+                  @click.stop="selectHeaderOption('priority', option)"
+                  @mousedown.stop
+                  @touchstart.stop
+                >
+                  {{ option.label ?? option.value ?? option }}
+                </div>
+              </div>
+            </div>
           </div>
           <div
             class="select-wrapper tag-select-wrapper"
             :style="computeSelectWidthStyle(headerCategory, translateText('Category'))"
             v-if="headerFieldPresence.category"
           >
-            <select disabled="true" class="tag-selectCat1" v-model="headerCategory">
-              <option
-                v-for="option in headerListOptions.category"
-                :key="option.value ?? option.label ?? option"
-                :value="option.value ?? option.label ?? option"
+            <div
+              class="custom-dropdown-wrapper header-dropdown-wrapper"
+              :ref="el => setHeaderDropdownRef('category', el)"
+            >
+              <div
+                class="custom-dropdown-selected"
+                :class="{ open: headerDropdownState.category.open }"
+                @click.stop="toggleHeaderDropdown('category')"
               >
-                {{ option.label ?? option.value ?? option }}
-              </option>
-            </select>
-            <span v-if="!headerCategory" class="select-placeholder">
-              {{ translateText('Category') }}
-            </span>
+                <span v-if="getHeaderSelectedLabel('category')">
+                  {{ getHeaderSelectedLabel('category') }}
+                </span>
+                <span v-else class="placeholder">
+                  {{ translateText('Category') }}
+                </span>
+                <span class="material-symbols-outlined dropdown-arrow">expand_more</span>
+              </div>
+              <div
+                v-if="headerDropdownState.category.open"
+                class="custom-dropdown-list"
+              >
+                <div class="dropdown-search-wrapper">
+                  <span class="material-symbols-outlined search-icon">search</span>
+                  <input
+                    type="text"
+                    v-model="headerDropdownState.category.search"
+                    :placeholder="translateText('Search...')"
+                    class="list-search-input"
+                    @click.stop
+                    @mousedown.stop
+                    @touchstart.stop
+                  />
+                </div>
+                <div
+                  v-if="getFilteredHeaderOptions('category').length === 0"
+                  class="custom-dropdown-no-options"
+                >
+                  {{ translateText('No options found') }}
+                </div>
+                <div
+                  v-for="option in getFilteredHeaderOptions('category')"
+                  :key="option.value ?? option.label ?? option"
+                  class="custom-dropdown-option"
+                  :class="{ selected: isHeaderOptionSelected('category', option) }"
+                  @click.stop="selectHeaderOption('category', option)"
+                  @mousedown.stop
+                  @touchstart.stop
+                >
+                  {{ option.label ?? option.value ?? option }}
+                </div>
+              </div>
+            </div>
           </div>
           <div
             class="select-wrapper tag-select-wrapper"
             :style="computeSelectWidthStyle(headerSubcategory, translateText('Subcategory'))"
             v-if="headerFieldPresence.subcategory"
           >
-            <select disabled="true" class="tag-selectCat2" v-model="headerSubcategory">
-              <option
-                v-for="option in headerListOptions.subcategory"
-                :key="option.value ?? option.label ?? option"
-                :value="option.value ?? option.label ?? option"
+            <div
+              class="custom-dropdown-wrapper header-dropdown-wrapper"
+              :ref="el => setHeaderDropdownRef('subcategory', el)"
+            >
+              <div
+                class="custom-dropdown-selected"
+                :class="{ open: headerDropdownState.subcategory.open }"
+                @click.stop="toggleHeaderDropdown('subcategory')"
               >
-                {{ option.label ?? option.value ?? option }}
-              </option>
-            </select>
-            <span v-if="!headerSubcategory" class="select-placeholder">
-              {{ translateText('Subcategory') }}
-            </span>
+                <span v-if="getHeaderSelectedLabel('subcategory')">
+                  {{ getHeaderSelectedLabel('subcategory') }}
+                </span>
+                <span v-else class="placeholder">
+                  {{ translateText('Subcategory') }}
+                </span>
+                <span class="material-symbols-outlined dropdown-arrow">expand_more</span>
+              </div>
+              <div
+                v-if="headerDropdownState.subcategory.open"
+                class="custom-dropdown-list"
+              >
+                <div class="dropdown-search-wrapper">
+                  <span class="material-symbols-outlined search-icon">search</span>
+                  <input
+                    type="text"
+                    v-model="headerDropdownState.subcategory.search"
+                    :placeholder="translateText('Search...')"
+                    class="list-search-input"
+                    @click.stop
+                    @mousedown.stop
+                    @touchstart.stop
+                  />
+                </div>
+                <div
+                  v-if="getFilteredHeaderOptions('subcategory').length === 0"
+                  class="custom-dropdown-no-options"
+                >
+                  {{ translateText('No options found') }}
+                </div>
+                <div
+                  v-for="option in getFilteredHeaderOptions('subcategory')"
+                  :key="option.value ?? option.label ?? option"
+                  class="custom-dropdown-option"
+                  :class="{ selected: isHeaderOptionSelected('subcategory', option) }"
+                  @click.stop="selectHeaderOption('subcategory', option)"
+                  @mousedown.stop
+                  @touchstart.stop
+                >
+                  {{ option.label ?? option.value ?? option }}
+                </div>
+              </div>
+            </div>
           </div>
           <div
             class="select-wrapper tag-select-wrapper"
             :style="computeSelectWidthStyle(headerThirdLevelCategory, translateText('Third-level category'))"
             v-if="headerFieldPresence.thirdLevelCategory"
           >
-            <select disabled="true" class="tag-selectCat3" v-model="headerThirdLevelCategory">
-              <option
-                v-for="option in headerListOptions.thirdLevelCategory"
-                :key="option.value ?? option.label ?? option"
-                :value="option.value ?? option.label ?? option"
+            <div
+              class="custom-dropdown-wrapper header-dropdown-wrapper"
+              :ref="el => setHeaderDropdownRef('thirdLevelCategory', el)"
+            >
+              <div
+                class="custom-dropdown-selected"
+                :class="{ open: headerDropdownState.thirdLevelCategory.open }"
+                @click.stop="toggleHeaderDropdown('thirdLevelCategory')"
               >
-                {{ option.label ?? option.value ?? option }}
-              </option>
-            </select>
-            <span v-if="!headerThirdLevelCategory" class="select-placeholder">
-              {{ translateText('Third-level category') }}
-            </span>
+                <span v-if="getHeaderSelectedLabel('thirdLevelCategory')">
+                  {{ getHeaderSelectedLabel('thirdLevelCategory') }}
+                </span>
+                <span v-else class="placeholder">
+                  {{ translateText('Third-level category') }}
+                </span>
+                <span class="material-symbols-outlined dropdown-arrow">expand_more</span>
+              </div>
+              <div
+                v-if="headerDropdownState.thirdLevelCategory.open"
+                class="custom-dropdown-list"
+              >
+                <div class="dropdown-search-wrapper">
+                  <span class="material-symbols-outlined search-icon">search</span>
+                  <input
+                    type="text"
+                    v-model="headerDropdownState.thirdLevelCategory.search"
+                    :placeholder="translateText('Search...')"
+                    class="list-search-input"
+                    @click.stop
+                    @mousedown.stop
+                    @touchstart.stop
+                  />
+                </div>
+                <div
+                  v-if="getFilteredHeaderOptions('thirdLevelCategory').length === 0"
+                  class="custom-dropdown-no-options"
+                >
+                  {{ translateText('No options found') }}
+                </div>
+                <div
+                  v-for="option in getFilteredHeaderOptions('thirdLevelCategory')"
+                  :key="option.value ?? option.label ?? option"
+                  class="custom-dropdown-option"
+                  :class="{ selected: isHeaderOptionSelected('thirdLevelCategory', option) }"
+                  @click.stop="selectHeaderOption('thirdLevelCategory', option)"
+                  @mousedown.stop
+                  @touchstart.stop
+                >
+                  {{ option.label ?? option.value ?? option }}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         <div class="header-tags-rigth">
@@ -148,18 +308,58 @@ ref="availableFieldsContainer"
               class="select-wrapper assignee-select-wrapper"
               :style="computeSelectWidthStyle(headerAssignee, translateText('Unassigned'))"
             >
-              <select disabled="true" class="user-select" v-model="headerAssignee">
-                <option
-                  v-for="option in headerListOptions.assignee"
-                  :key="option.value ?? option.label ?? option"
-                  :value="option.value ?? option.label ?? option"
+              <div
+                class="custom-dropdown-wrapper header-dropdown-wrapper"
+                :ref="el => setHeaderDropdownRef('assignee', el)"
+              >
+                <div
+                  class="custom-dropdown-selected"
+                  :class="{ open: headerDropdownState.assignee.open }"
+                  @click.stop="toggleHeaderDropdown('assignee')"
                 >
-                  {{ option.label ?? option.value ?? option }}
-                </option>
-              </select>
-              <span v-if="!headerAssignee" class="select-placeholder">
-                {{ translateText('Unassigned') }}
-              </span>
+                  <span v-if="getHeaderSelectedLabel('assignee')">
+                    {{ getHeaderSelectedLabel('assignee') }}
+                  </span>
+                  <span v-else class="placeholder">
+                    {{ translateText('Unassigned') }}
+                  </span>
+                  <span class="material-symbols-outlined dropdown-arrow">expand_more</span>
+                </div>
+                <div
+                  v-if="headerDropdownState.assignee.open"
+                  class="custom-dropdown-list"
+                >
+                  <div class="dropdown-search-wrapper">
+                    <span class="material-symbols-outlined search-icon">search</span>
+                    <input
+                      type="text"
+                      v-model="headerDropdownState.assignee.search"
+                      :placeholder="translateText('Search...')"
+                      class="list-search-input"
+                      @click.stop
+                      @mousedown.stop
+                      @touchstart.stop
+                    />
+                  </div>
+                  <div
+                    v-if="getFilteredHeaderOptions('assignee').length === 0"
+                    class="custom-dropdown-no-options"
+                  >
+                    {{ translateText('No options found') }}
+                  </div>
+                  <div
+                    v-for="option in getFilteredHeaderOptions('assignee')"
+                    :key="option.value ?? option.label ?? option"
+                    class="custom-dropdown-option"
+                    :class="{ selected: isHeaderOptionSelected('assignee', option) }"
+                    @click.stop="selectHeaderOption('assignee', option)"
+                    @mousedown.stop
+                    @touchstart.stop
+                  >
+                    {{ option.label ?? option.value ?? option }}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           <div class="status-wrapper" v-if="headerFieldPresence.status">
@@ -167,18 +367,58 @@ ref="availableFieldsContainer"
               class="select-wrapper status-select-wrapper"
               :style="computeSelectWidthStyle(headerStatus, translateText('New'))"
             >
-              <select disabled="true" class="status-select" v-model="headerStatus">
-                <option
-                  v-for="option in headerListOptions.status"
-                  :key="option.value ?? option.label ?? option"
-                  :value="option.value ?? option.label ?? option"
+              <div
+                class="custom-dropdown-wrapper header-dropdown-wrapper"
+                :ref="el => setHeaderDropdownRef('status', el)"
+              >
+                <div
+                  class="custom-dropdown-selected"
+                  :class="{ open: headerDropdownState.status.open }"
+                  @click.stop="toggleHeaderDropdown('status')"
                 >
-                  {{ option.label ?? option.value ?? option }}
-                </option>
-              </select>
-              <span v-if="!headerStatus" class="select-placeholder status-placeholder">
-                {{ translateText('New') }}
-              </span>
+                  <span v-if="getHeaderSelectedLabel('status')">
+                    {{ getHeaderSelectedLabel('status') }}
+                  </span>
+                  <span v-else class="placeholder status-placeholder">
+                    {{ translateText('New') }}
+                  </span>
+                  <span class="material-symbols-outlined dropdown-arrow">expand_more</span>
+                </div>
+                <div
+                  v-if="headerDropdownState.status.open"
+                  class="custom-dropdown-list"
+                >
+                  <div class="dropdown-search-wrapper">
+                    <span class="material-symbols-outlined search-icon">search</span>
+                    <input
+                      type="text"
+                      v-model="headerDropdownState.status.search"
+                      :placeholder="translateText('Search...')"
+                      class="list-search-input"
+                      @click.stop
+                      @mousedown.stop
+                      @touchstart.stop
+                    />
+                  </div>
+                  <div
+                    v-if="getFilteredHeaderOptions('status').length === 0"
+                    class="custom-dropdown-no-options"
+                  >
+                    {{ translateText('No options found') }}
+                  </div>
+                  <div
+                    v-for="option in getFilteredHeaderOptions('status')"
+                    :key="option.value ?? option.label ?? option"
+                    class="custom-dropdown-option"
+                    :class="{ selected: isHeaderOptionSelected('status', option) }"
+                    @click.stop="selectHeaderOption('status', option)"
+                    @mousedown.stop
+                    @touchstart.stop
+                  >
+                    {{ option.label ?? option.value ?? option }}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -516,9 +756,17 @@ const handleClickOutsideFields = (event) => {
 
   const isFieldElement = target.closest('.single-draggable');
   const isPropertiesPanel = target.closest('.field-properties-panel');
+  const isHeaderDropdown = HEADER_FIELD_CONFIG.some(({ key }) => {
+    const refEl = headerDropdownRefs[key]?.value || headerDropdownRefs[key];
+    return refEl && refEl.contains(target);
+  });
 
   if (!isFieldElement && !isPropertiesPanel) {
     clearSelectedField();
+  }
+
+  if (!isHeaderDropdown) {
+    closeAllHeaderDropdowns();
   }
 };
 
@@ -696,6 +944,96 @@ const HEADER_FIELD_CONFIG = [
   { key: 'assignee', name: 'Assigned To', model: headerAssignee },
   { key: 'status', name: 'Status', model: headerStatus }
 ];
+const headerFieldModels = {
+  priority: headerPriority,
+  category: headerCategory,
+  subcategory: headerSubcategory,
+  thirdLevelCategory: headerThirdLevelCategory,
+  assignee: headerAssignee,
+  status: headerStatus
+};
+const headerDropdownRefs = HEADER_FIELD_CONFIG.reduce((acc, { key }) => {
+  acc[key] = ref(null);
+  return acc;
+}, {});
+const setHeaderDropdownRef = (key, el) => {
+  if (!headerDropdownRefs[key]) return;
+  headerDropdownRefs[key].value = el;
+};
+const headerDropdownState = reactive(
+  HEADER_FIELD_CONFIG.reduce((acc, { key }) => {
+    acc[key] = { open: false, search: '' };
+    return acc;
+  }, {})
+);
+const closeAllHeaderDropdowns = () => {
+  HEADER_FIELD_CONFIG.forEach(({ key }) => {
+    headerDropdownState[key].open = false;
+  });
+};
+const toggleHeaderDropdown = (key) => {
+  const target = headerDropdownState[key];
+  if (!target) return;
+
+  const isOpening = !target.open;
+  closeAllHeaderDropdowns();
+  target.open = isOpening;
+};
+const getHeaderSelectedOption = (key) => {
+  const model = headerFieldModels[key];
+  if (!model) return null;
+
+  return (headerListOptions[key] || []).find(option => {
+    if (option && typeof option === 'object') {
+      const value = option.value ?? option.label ?? option.name;
+      return (
+        value == model.value ||
+        option.label == model.value ||
+        option.name == model.value
+      );
+    }
+
+    return option == model.value;
+  }) || null;
+};
+const getHeaderSelectedLabel = (key) => {
+  const selected = getHeaderSelectedOption(key);
+  if (selected && typeof selected === 'object') {
+    return selected.label ?? selected.value ?? '';
+  }
+
+  return headerFieldModels[key]?.value || '';
+};
+const isHeaderOptionSelected = (key, option) => {
+  const model = headerFieldModels[key];
+  if (!model) return false;
+
+  const optValue = option?.value ?? option?.label ?? option;
+  return model.value == optValue;
+};
+const getFilteredHeaderOptions = (key) => {
+  const options = headerListOptions[key] || [];
+  const searchTerm = (headerDropdownState[key]?.search || '').trim().toLowerCase();
+
+  if (!searchTerm) {
+    return options;
+  }
+
+  return options.filter(option => {
+    const label = (option?.label ?? option?.value ?? option ?? '')
+      .toString()
+      .toLowerCase();
+    return label.includes(searchTerm);
+  });
+};
+const selectHeaderOption = (key, option) => {
+  const model = headerFieldModels[key];
+  if (!model) return;
+
+  const newValue = option?.value ?? option?.label ?? option;
+  model.value = newValue ?? '';
+  closeAllHeaderDropdowns();
+};
 
 const loadHeaderOptionsForField = async ({ key, name, model }) => {
   const targetField = findControlledFieldByName(headerControlledFields.value, name);
@@ -2188,6 +2526,14 @@ headerPriority,
   hasHeaderFields,
   headerListOptions,
   headerOptionsLoading,
+  headerDropdownState,
+  headerDropdownRefs,
+  setHeaderDropdownRef,
+  toggleHeaderDropdown,
+  getFilteredHeaderOptions,
+  getHeaderSelectedLabel,
+  isHeaderOptionSelected,
+  selectHeaderOption,
   computeSelectWidthStyle,
   translateText,
 showTranslatedMessage,
@@ -2523,6 +2869,145 @@ width: 255px;
   align-items: center;
   flex: 0 0 auto;
   --select-placeholder-length: 10;
+}
+
+.header-dropdown-wrapper {
+  width: 300px;
+}
+
+.custom-dropdown-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.custom-dropdown-selected {
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  padding: 6px 12px;
+  background: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 34px;
+  font-size: 0.845rem;
+  letter-spacing: 0px;
+  text-overflow: ellipsis;
+  transition: border .2s;
+  color: #787878 !important;
+  white-space: nowrap;
+  overflow: hidden;
+  width: fit-content;
+  min-width: 140px;
+  max-width: 200px;
+}
+
+.custom-dropdown-selected span:not(.dropdown-arrow) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.custom-dropdown-selected .dropdown-arrow {
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.custom-dropdown-selected.open {
+  border-color: #699d8c;
+  box-shadow: 0 2px 8px rgba(105, 157, 140, 0.08);
+}
+
+.custom-dropdown-list {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 4px 16px rgba(105, 157, 140, 0.10);
+  z-index: 1005;
+  max-height: 320px;
+  min-width: 180px;
+  overflow-y: auto;
+  margin-top: 2px;
+  padding-bottom: 4px;
+}
+
+.custom-dropdown-option {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 0.845rem;
+  letter-spacing: 0px;
+  text-overflow: ellipsis;
+  transition: background 0.15s;
+}
+
+.custom-dropdown-option.selected {
+  background: #e3eafc;
+  color: #699d8c;
+  font-weight: bold;
+}
+
+.custom-dropdown-option:hover {
+  background: #f5f5f5;
+}
+
+.custom-dropdown-no-options {
+  padding: 8px 12px;
+  color: #888;
+  font-size: 13px;
+  text-align: center;
+}
+
+.custom-dropdown-selected .dropdown-arrow {
+  font-size: 20px;
+  color: #bdbdbd;
+  margin-left: 8px;
+}
+
+.custom-dropdown-selected .placeholder {
+  color: var(--placeholder-color, #787878);
+}
+
+.dropdown-search-wrapper {
+  position: relative;
+  width: 96%;
+  margin: 10px auto 10px auto;
+  display: flex;
+  align-items: center;
+  background-color: #FFFFFF !important;
+}
+
+.dropdown-search-wrapper .search-icon {
+  position: absolute;
+  right: 12px;
+  font-size: 20px;
+  color: #bdbdbd;
+  pointer-events: none;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.list-search-input {
+  border: 1.5px solid #bdbdbd !important;
+  border-radius: 20px;
+  padding: 7px 38px 7px 12px;
+  font-size: 0.845rem;
+  letter-spacing: 0px;
+  text-overflow: ellipsis;
+  width: 100%;
+  box-sizing: border-box;
+  background: #f8f9fa;
+  transition: border 0.2s;
+  outline: none;
+}
+
+.list-search-input:focus,
+.list-search-input:active,
+.list-search-input:hover {
+  border-color: #bdbdbd !important;
+  background: #fff;
 }
 
 .tag-select-wrapper {
