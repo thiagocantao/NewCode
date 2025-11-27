@@ -2788,7 +2788,7 @@ width: 255px;
 .cabecalhoFormBuilder {
   position: sticky;
   top: 0;
-  z-index: 5;
+  z-index: 10000;
   display: flex;
   flex-direction: column;
   align-items: stretch;
