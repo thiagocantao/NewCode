@@ -773,6 +773,37 @@ const populateHeaderFieldsFromForm = form => {
   );
 };
 
+const updateControlledFieldDefaultValue = (name, value) => {
+  const currentFormData = cloneDeep(formData.value) || {};
+  const controlledFields = currentFormData?.form?.default_controlled_field_parameters;
+
+  if (!Array.isArray(controlledFields)) {
+    return;
+  }
+
+  const targetField = findControlledFieldByName(controlledFields, name);
+
+  if (!targetField) {
+    return;
+  }
+
+  targetField.default_value = value;
+
+  if (targetField.defaultValue !== undefined) {
+    targetField.defaultValue = value;
+  }
+
+  if (targetField.value !== undefined) {
+    targetField.value = value;
+  }
+
+  setFormData(currentFormData);
+
+  if (typeof window !== 'undefined') {
+    window.FormFieldsJsonSave = cloneDeep(currentFormData);
+  }
+};
+
 const normalizeHeaderOptions = field => {
   if (!field) return [];
 
@@ -2416,6 +2447,10 @@ watch(headerSubcategory, () => {
   headerThirdLevelCategory.value = '';
   headerListOptions.thirdLevelCategory = getCategoryVariableOptions('thirdLevelCategory');
   autoSelectSingleOption('thirdLevelCategory', headerThirdLevelCategory);
+});
+
+[{ model: headerTitle, name: 'Title' }, ...HEADER_FIELD_CONFIG].forEach(({ model, name }) => {
+  watch(model, newValue => updateControlledFieldDefaultValue(name, newValue));
 });
 
 const onRemoveField = ({ sectionId, field }) => {
