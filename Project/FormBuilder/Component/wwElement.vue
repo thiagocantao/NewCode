@@ -733,6 +733,36 @@ const findControlledFieldByName = (fields, name) =>
     field => field?.tag_control && field.tag_control.toLowerCase() === name.toLowerCase()
   );
 
+const updateControlledFieldDefaultValue = (fieldName, value) => {
+  if (!fieldName) return;
+
+  const updatedFormData = cloneDeep(formData.value) || {};
+
+  if (!updatedFormData.form || !Array.isArray(updatedFormData.form.default_controlled_field_parameters)) {
+    return;
+  }
+
+  const targetField = findControlledFieldByName(
+    updatedFormData.form.default_controlled_field_parameters,
+    fieldName
+  );
+
+  if (!targetField) {
+    return;
+  }
+
+  const nextValue = value ?? '';
+
+  Object.assign(targetField, {
+    default_value: nextValue,
+    defaultValue: nextValue,
+    value: nextValue
+  });
+
+  setFormData(updatedFormData);
+  updateFormState();
+};
+
 const normalizeHeaderDefaultValue = field => {
   if (!field) return '';
 
@@ -879,6 +909,11 @@ const HEADER_FIELD_CONFIG = [
   { key: 'thirdLevelCategory', name: 'CategoryLevel3ID', model: headerThirdLevelCategory },
   { key: 'assignee', name: 'ResponsibleUserID', model: headerAssignee },
   { key: 'status', name: 'StatusID', model: headerStatus }
+];
+
+const HEADER_VALUE_WATCHERS = [
+  { name: 'Title', model: headerTitle },
+  ...HEADER_FIELD_CONFIG.map(({ name, model }) => ({ name, model }))
 ];
 const headerFieldModels = {
   priority: headerPriority,
@@ -2403,6 +2438,10 @@ watch(headerControlledFields, fields => {
   populateHeaderFieldsFromForm({ default_controlled_field_parameters: fields });
   refreshHeaderListOptions();
 }, { deep: true });
+
+HEADER_VALUE_WATCHERS.forEach(({ name, model }) => {
+  watch(model, newValue => updateControlledFieldDefaultValue(name, newValue));
+});
 
 watch(headerCategory, () => {
   headerSubcategory.value = '';
