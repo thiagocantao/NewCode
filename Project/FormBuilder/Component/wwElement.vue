@@ -1,100 +1,79 @@
 <template>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
-<div class="form-builder-container">
-<!-- Debug Panel -->
-<div v-if="isEditing" class="debug-panel"> 
-  <h4>Debug Info</h4>
-  <pre>{{ JSON.stringify(debugInfo, null, 2) }}</pre> 
-</div>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+  <div class="form-builder-container">
+    <!-- Debug Panel -->
+    <div v-if="isEditing" class="debug-panel">
+      <h4>Debug Info</h4>
+      <pre>{{ JSON.stringify(debugInfo, null, 2) }}</pre>
+    </div>
 
-<!-- Combined Form Builder with both field definition and form builder sections -->
-<div class="dual-container">
-<!-- Available Fields Section -->
-<div class="field-definition-container">
-<div class="container-header">
-{{ content.availableFieldsTitle || translateText('Available Fields') }}
-</div>
- 
-<div class="field-search">
-<input 
-type="text" 
-class="search-input" 
-v-model="searchQuery" 
+    <!-- Combined Form Builder with both field definition and form builder sections -->
+    <div class="dual-container">
+      <!-- Available Fields Section -->
+      <div class="field-definition-container">
+        <div class="container-header">
+          {{ content.availableFieldsTitle || translateText('Available Fields') }}
+        </div>
+
+        <div class="field-search">
+          <input
+type="text"
+class="search-input"
+v-model="searchQuery"
 :placeholder="translateText('Search for field...')"
 />
-<span class="search-icon">
+          <span class="search-icon">
 <i class="material-symbols-outlined-search">search</i>
 </span>
-</div>
-
-<div 
-class="available-fields-container"
-ref="availableFieldsContainer"
->
-        <div class="fields-grid scrollable">
-          <DraggableField
-            v-for="field in filteredAvailableFields"
-            :key="field.ID + '-' + (isFieldDisabled(field) ? 'disabled' : 'free')"
-            :field="field"
-            :show-properties="false"
-            :show-actions="true"
-            :is-editing="isEditing"
-            :show-field-component="false"
-            :is-disabled="isFieldDisabled(field)"
-            @edit-field="editField"
-            @remove-field="removeAvailableField"
-            @select-field="selectFieldForProperties"
-          />
         </div>
-</div>
+
+        <div class="available-fields-container" ref="availableFieldsContainer">
+          <div class="fields-grid scrollable">
+            <DraggableField v-for="field in filteredAvailableFields"
+              :key="field.ID + '-' + (isFieldDisabled(field) ? 'disabled' : 'free')" :field="field"
+              :show-properties="false" :show-actions="true" :is-editing="isEditing" :show-field-component="false"
+              :is-disabled="isFieldDisabled(field)" @edit-field="editField" @remove-field="removeAvailableField"
+              @select-field="selectFieldForProperties" />
+          </div>
+        </div>
 
 
-</div>
+      </div>
 
-<!-- Form Builder Section -->
-<div class="form-builder">
-    <div v-if="content.showCabecalhoFormBuilder && hasHeaderFields" class="cabecalhoFormBuilder">
-      <div v-if="headerFieldPresence.title" class="header-row header-row-title">
-        <div class="header-title">
-          <input
+      <!-- Form Builder Section -->
+      <div class="form-builder">
+        <div v-if="content.showCabecalhoFormBuilder && hasHeaderFields" class="cabecalhoFormBuilder">
+          <div v-if="headerFieldPresence.title" class="header-row header-row-title">
+            <div class="header-title">
+              <input
             type="text"
             class="inputCabecalho"
             v-model="headerTitle"
             :placeholder="translateText('Insert text')"
           />
-        </div>
-      </div>
-      <div v-if="headerControlsVisible" class="header-row header-row-controls">
-        <div class="header-tags">
-          <div
-            class="select-wrapper tag-select-wrapper"
-            :style="computeSelectWidthStyle(headerPriority, translateText('Select priority'))"
-            v-if="headerFieldPresence.priority"
-          >
-            <div
-              class="custom-dropdown-wrapper header-dropdown-wrapper"
-              :ref="el => setHeaderDropdownRef('priority', el)"
-            >
-              <div
-                class="custom-dropdown-selected"
-                :class="{ open: headerDropdownState.priority.open }"
-                @click.stop="toggleHeaderDropdown('priority')"
-              >
-                <span v-if="getHeaderSelectedLabel('priority')">
+            </div>
+          </div>
+          <div v-if="headerControlsVisible" class="header-row header-row-controls">
+            <div class="header-tags">
+              <div class="select-wrapper tag-select-wrapper"
+                :style="computeSelectWidthStyle(headerPriority, translateText('Select priority'))"
+                v-if="headerFieldPresence.priority">
+                <div class="custom-dropdown-wrapper header-dropdown-wrapper"
+                  :ref="el => setHeaderDropdownRef('priority', el)">
+                  <div class="custom-dropdown-selected" :class="{ open: headerDropdownState.priority.open }"
+                    @click.stop="toggleHeaderDropdown('priority')">
+                    <span v-if="getHeaderSelectedLabel('priority')">
                   {{ getHeaderSelectedLabel('priority') }}
                 </span>
-                <span v-else class="placeholder">
+                    <span v-else class="placeholder">
                   {{ translateText('Select priority') }}
                 </span>
-                <span class="material-symbols-outlined dropdown-arrow">expand_more</span>
-              </div>
-              <div
-                v-if="headerDropdownState.priority.open"
-                class="custom-dropdown-list"
-              >
-                <div class="dropdown-search-wrapper">
-                  <span class="material-symbols-outlined search-icon">search</span>
-                  <input
+                    <span class="material-symbols-outlined dropdown-arrow">expand_more</span>
+                  </div>
+                  <div v-if="headerDropdownState.priority.open" class="custom-dropdown-list">
+                    <div class="dropdown-search-wrapper">
+                      <span class="material-symbols-outlined search-icon">search</span>
+                      <input
                     type="text"
                     v-model="headerDropdownState.priority.search"
                     :placeholder="translateText('Search...')"
@@ -103,56 +82,38 @@ ref="availableFieldsContainer"
                     @mousedown.stop
                     @touchstart.stop
                   />
-                </div>
-                <div
-                  v-if="getFilteredHeaderOptions('priority').length === 0"
-                  class="custom-dropdown-no-options"
-                >
-                  {{ translateText('No options found') }}
-                </div>
-                <div
-                  v-for="option in getFilteredHeaderOptions('priority')"
-                  :key="option.value ?? option.label ?? option"
-                  class="custom-dropdown-option"
-                  :class="{ selected: isHeaderOptionSelected('priority', option) }"
-                  @click.stop="selectHeaderOption('priority', option)"
-                  @mousedown.stop
-                  @touchstart.stop
-                >
-                  {{ option.label ?? option.value ?? option }}
+                    </div>
+                    <div v-if="getFilteredHeaderOptions('priority').length === 0" class="custom-dropdown-no-options">
+                      {{ translateText('No options found') }}
+                    </div>
+                    <div v-for="option in getFilteredHeaderOptions('priority')"
+                      :key="option.value ?? option.label ?? option" class="custom-dropdown-option"
+                      :class="{ selected: isHeaderOptionSelected('priority', option) }"
+                      @click.stop="selectHeaderOption('priority', option)" @mousedown.stop @touchstart.stop>
+                      {{ option.label ?? option.value ?? option }}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-          <div
-            class="select-wrapper tag-select-wrapper"
-            :style="computeSelectWidthStyle(headerCategory, translateText('Category'))"
-            v-if="headerFieldPresence.category"
-          >
-            <div
-              class="custom-dropdown-wrapper header-dropdown-wrapper"
-              :ref="el => setHeaderDropdownRef('category', el)"
-            >
-              <div
-                class="custom-dropdown-selected"
-                :class="{ open: headerDropdownState.category.open }"
-                @click.stop="toggleHeaderDropdown('category')"
-              >
-                <span v-if="getHeaderSelectedLabel('category')">
+              <div class="select-wrapper tag-select-wrapper"
+                :style="computeSelectWidthStyle(headerCategory, translateText('Category'))"
+                v-if="headerFieldPresence.category">
+                <div class="custom-dropdown-wrapper header-dropdown-wrapper"
+                  :ref="el => setHeaderDropdownRef('category', el)">
+                  <div class="custom-dropdown-selected" :class="{ open: headerDropdownState.category.open }"
+                    @click.stop="toggleHeaderDropdown('category')">
+                    <span v-if="getHeaderSelectedLabel('category')">
                   {{ getHeaderSelectedLabel('category') }}
                 </span>
-                <span v-else class="placeholder">
+                    <span v-else class="placeholder">
                   {{ translateText('Category') }}
                 </span>
-                <span class="material-symbols-outlined dropdown-arrow">expand_more</span>
-              </div>
-              <div
-                v-if="headerDropdownState.category.open"
-                class="custom-dropdown-list"
-              >
-                <div class="dropdown-search-wrapper">
-                  <span class="material-symbols-outlined search-icon">search</span>
-                  <input
+                    <span class="material-symbols-outlined dropdown-arrow">expand_more</span>
+                  </div>
+                  <div v-if="headerDropdownState.category.open" class="custom-dropdown-list">
+                    <div class="dropdown-search-wrapper">
+                      <span class="material-symbols-outlined search-icon">search</span>
+                      <input
                     type="text"
                     v-model="headerDropdownState.category.search"
                     :placeholder="translateText('Search...')"
@@ -161,56 +122,38 @@ ref="availableFieldsContainer"
                     @mousedown.stop
                     @touchstart.stop
                   />
-                </div>
-                <div
-                  v-if="getFilteredHeaderOptions('category').length === 0"
-                  class="custom-dropdown-no-options"
-                >
-                  {{ translateText('No options found') }}
-                </div>
-                <div
-                  v-for="option in getFilteredHeaderOptions('category')"
-                  :key="option.value ?? option.label ?? option"
-                  class="custom-dropdown-option"
-                  :class="{ selected: isHeaderOptionSelected('category', option) }"
-                  @click.stop="selectHeaderOption('category', option)"
-                  @mousedown.stop
-                  @touchstart.stop
-                >
-                  {{ option.label ?? option.value ?? option }}
+                    </div>
+                    <div v-if="getFilteredHeaderOptions('category').length === 0" class="custom-dropdown-no-options">
+                      {{ translateText('No options found') }}
+                    </div>
+                    <div v-for="option in getFilteredHeaderOptions('category')"
+                      :key="option.value ?? option.label ?? option" class="custom-dropdown-option"
+                      :class="{ selected: isHeaderOptionSelected('category', option) }"
+                      @click.stop="selectHeaderOption('category', option)" @mousedown.stop @touchstart.stop>
+                      {{ option.label ?? option.value ?? option }}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-          <div
-            class="select-wrapper tag-select-wrapper"
-            :style="computeSelectWidthStyle(headerSubcategory, translateText('Subcategory'))"
-            v-if="headerFieldPresence.subcategory"
-          >
-            <div
-              class="custom-dropdown-wrapper header-dropdown-wrapper"
-              :ref="el => setHeaderDropdownRef('subcategory', el)"
-            >
-              <div
-                class="custom-dropdown-selected"
-                :class="{ open: headerDropdownState.subcategory.open }"
-                @click.stop="toggleHeaderDropdown('subcategory')"
-              >
-                <span v-if="getHeaderSelectedLabel('subcategory')">
+              <div class="select-wrapper tag-select-wrapper"
+                :style="computeSelectWidthStyle(headerSubcategory, translateText('Subcategory'))"
+                v-if="headerFieldPresence.subcategory">
+                <div class="custom-dropdown-wrapper header-dropdown-wrapper"
+                  :ref="el => setHeaderDropdownRef('subcategory', el)">
+                  <div class="custom-dropdown-selected" :class="{ open: headerDropdownState.subcategory.open }"
+                    @click.stop="toggleHeaderDropdown('subcategory')">
+                    <span v-if="getHeaderSelectedLabel('subcategory')">
                   {{ getHeaderSelectedLabel('subcategory') }}
                 </span>
-                <span v-else class="placeholder">
+                    <span v-else class="placeholder">
                   {{ translateText('Subcategory') }}
                 </span>
-                <span class="material-symbols-outlined dropdown-arrow">expand_more</span>
-              </div>
-              <div
-                v-if="headerDropdownState.subcategory.open"
-                class="custom-dropdown-list"
-              >
-                <div class="dropdown-search-wrapper">
-                  <span class="material-symbols-outlined search-icon">search</span>
-                  <input
+                    <span class="material-symbols-outlined dropdown-arrow">expand_more</span>
+                  </div>
+                  <div v-if="headerDropdownState.subcategory.open" class="custom-dropdown-list">
+                    <div class="dropdown-search-wrapper">
+                      <span class="material-symbols-outlined search-icon">search</span>
+                      <input
                     type="text"
                     v-model="headerDropdownState.subcategory.search"
                     :placeholder="translateText('Search...')"
@@ -219,56 +162,38 @@ ref="availableFieldsContainer"
                     @mousedown.stop
                     @touchstart.stop
                   />
-                </div>
-                <div
-                  v-if="getFilteredHeaderOptions('subcategory').length === 0"
-                  class="custom-dropdown-no-options"
-                >
-                  {{ translateText('No options found') }}
-                </div>
-                <div
-                  v-for="option in getFilteredHeaderOptions('subcategory')"
-                  :key="option.value ?? option.label ?? option"
-                  class="custom-dropdown-option"
-                  :class="{ selected: isHeaderOptionSelected('subcategory', option) }"
-                  @click.stop="selectHeaderOption('subcategory', option)"
-                  @mousedown.stop
-                  @touchstart.stop
-                >
-                  {{ option.label ?? option.value ?? option }}
+                    </div>
+                    <div v-if="getFilteredHeaderOptions('subcategory').length === 0" class="custom-dropdown-no-options">
+                      {{ translateText('No options found') }}
+                    </div>
+                    <div v-for="option in getFilteredHeaderOptions('subcategory')"
+                      :key="option.value ?? option.label ?? option" class="custom-dropdown-option"
+                      :class="{ selected: isHeaderOptionSelected('subcategory', option) }"
+                      @click.stop="selectHeaderOption('subcategory', option)" @mousedown.stop @touchstart.stop>
+                      {{ option.label ?? option.value ?? option }}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-          <div
-            class="select-wrapper tag-select-wrapper"
-            :style="computeSelectWidthStyle(headerThirdLevelCategory, translateText('Third-level category'))"
-            v-if="headerFieldPresence.thirdLevelCategory"
-          >
-            <div
-              class="custom-dropdown-wrapper header-dropdown-wrapper"
-              :ref="el => setHeaderDropdownRef('thirdLevelCategory', el)"
-            >
-              <div
-                class="custom-dropdown-selected"
-                :class="{ open: headerDropdownState.thirdLevelCategory.open }"
-                @click.stop="toggleHeaderDropdown('thirdLevelCategory')"
-              >
-                <span v-if="getHeaderSelectedLabel('thirdLevelCategory')">
+              <div class="select-wrapper tag-select-wrapper"
+                :style="computeSelectWidthStyle(headerThirdLevelCategory, translateText('Third-level category'))"
+                v-if="headerFieldPresence.thirdLevelCategory">
+                <div class="custom-dropdown-wrapper header-dropdown-wrapper"
+                  :ref="el => setHeaderDropdownRef('thirdLevelCategory', el)">
+                  <div class="custom-dropdown-selected" :class="{ open: headerDropdownState.thirdLevelCategory.open }"
+                    @click.stop="toggleHeaderDropdown('thirdLevelCategory')">
+                    <span v-if="getHeaderSelectedLabel('thirdLevelCategory')">
                   {{ getHeaderSelectedLabel('thirdLevelCategory') }}
                 </span>
-                <span v-else class="placeholder">
+                    <span v-else class="placeholder">
                   {{ translateText('Third-level category') }}
                 </span>
-                <span class="material-symbols-outlined dropdown-arrow">expand_more</span>
-              </div>
-              <div
-                v-if="headerDropdownState.thirdLevelCategory.open"
-                class="custom-dropdown-list"
-              >
-                <div class="dropdown-search-wrapper">
-                  <span class="material-symbols-outlined search-icon">search</span>
-                  <input
+                    <span class="material-symbols-outlined dropdown-arrow">expand_more</span>
+                  </div>
+                  <div v-if="headerDropdownState.thirdLevelCategory.open" class="custom-dropdown-list">
+                    <div class="dropdown-search-wrapper">
+                      <span class="material-symbols-outlined search-icon">search</span>
+                      <input
                     type="text"
                     v-model="headerDropdownState.thirdLevelCategory.search"
                     :placeholder="translateText('Search...')"
@@ -277,61 +202,44 @@ ref="availableFieldsContainer"
                     @mousedown.stop
                     @touchstart.stop
                   />
-                </div>
-                <div
-                  v-if="getFilteredHeaderOptions('thirdLevelCategory').length === 0"
-                  class="custom-dropdown-no-options"
-                >
-                  {{ translateText('No options found') }}
-                </div>
-                <div
-                  v-for="option in getFilteredHeaderOptions('thirdLevelCategory')"
-                  :key="option.value ?? option.label ?? option"
-                  class="custom-dropdown-option"
-                  :class="{ selected: isHeaderOptionSelected('thirdLevelCategory', option) }"
-                  @click.stop="selectHeaderOption('thirdLevelCategory', option)"
-                  @mousedown.stop
-                  @touchstart.stop
-                >
-                  {{ option.label ?? option.value ?? option }}
+                    </div>
+                    <div v-if="getFilteredHeaderOptions('thirdLevelCategory').length === 0"
+                      class="custom-dropdown-no-options">
+                      {{ translateText('No options found') }}
+                    </div>
+                    <div v-for="option in getFilteredHeaderOptions('thirdLevelCategory')"
+                      :key="option.value ?? option.label ?? option" class="custom-dropdown-option"
+                      :class="{ selected: isHeaderOptionSelected('thirdLevelCategory', option) }"
+                      @click.stop="selectHeaderOption('thirdLevelCategory', option)" @mousedown.stop @touchstart.stop>
+                      {{ option.label ?? option.value ?? option }}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-        <div class="header-tags-rigth">
-          <div class="assignee-wrapper" v-if="headerFieldPresence.assignee">
-            <span class="user-icon">
+            <div class="header-tags-rigth">
+              <div class="assignee-wrapper" v-if="headerFieldPresence.assignee">
+                <span class="user-icon">
               <i class="material-symbols-outlined">{{ translateText('person') }}</i>
             </span>
-            <div
-              class="select-wrapper assignee-select-wrapper"
-              :style="computeSelectWidthStyle(headerAssignee, translateText('Unassigned'))"
-            >
-              <div
-                class="custom-dropdown-wrapper header-dropdown-wrapper"
-                :ref="el => setHeaderDropdownRef('assignee', el)"
-              >
-                <div
-                  class="custom-dropdown-selected-assign"
-                  :class="{ open: headerDropdownState.assignee.open }"
-                  @click.stop="toggleHeaderDropdown('assignee')"
-                >
-                  <span v-if="getHeaderSelectedLabel('assignee')">
+                <div class="select-wrapper assignee-select-wrapper"
+                  :style="computeSelectWidthStyle(headerAssignee, translateText('Unassigned'))">
+                  <div class="custom-dropdown-wrapper header-dropdown-wrapper"
+                    :ref="el => setHeaderDropdownRef('assignee', el)">
+                    <div class="custom-dropdown-selected-assign" :class="{ open: headerDropdownState.assignee.open }"
+                      @click.stop="toggleHeaderDropdown('assignee')">
+                      <span v-if="getHeaderSelectedLabel('assignee')">
                     {{ getHeaderSelectedLabel('assignee') }}
                   </span>
-                  <span v-else class="placeholder">
+                      <span v-else class="placeholder">
                     {{ translateText('Unassigned') }}
                   </span>
-                  <span class="material-symbols-outlined dropdown-arrow">expand_more</span>
-                </div>
-                <div
-                  v-if="headerDropdownState.assignee.open"
-                  class="custom-dropdown-list"
-                >
-                  <div class="dropdown-search-wrapper">
-                    <span class="material-symbols-outlined search-icon">search</span>
-                    <input
+                      <span class="material-symbols-outlined dropdown-arrow">expand_more</span>
+                    </div>
+                    <div v-if="headerDropdownState.assignee.open" class="custom-dropdown-list">
+                      <div class="dropdown-search-wrapper">
+                        <span class="material-symbols-outlined search-icon">search</span>
+                        <input
                       type="text"
                       v-model="headerDropdownState.assignee.search"
                       :placeholder="translateText('Search...')"
@@ -340,57 +248,39 @@ ref="availableFieldsContainer"
                       @mousedown.stop
                       @touchstart.stop
                     />
-                  </div>
-                  <div
-                    v-if="getFilteredHeaderOptions('assignee').length === 0"
-                    class="custom-dropdown-no-options"
-                  >
-                    {{ translateText('No options found') }}
-                  </div>
-                  <div
-                    v-for="option in getFilteredHeaderOptions('assignee')"
-                    :key="option.value ?? option.label ?? option"
-                    class="custom-dropdown-option"
-                    :class="{ selected: isHeaderOptionSelected('assignee', option) }"
-                    @click.stop="selectHeaderOption('assignee', option)"
-                    @mousedown.stop
-                    @touchstart.stop
-                  >
-                    {{ option.label ?? option.value ?? option }}
+                      </div>
+                      <div v-if="getFilteredHeaderOptions('assignee').length === 0" class="custom-dropdown-no-options">
+                        {{ translateText('No options found') }}
+                      </div>
+                      <div v-for="option in getFilteredHeaderOptions('assignee')"
+                        :key="option.value ?? option.label ?? option" class="custom-dropdown-option"
+                        :class="{ selected: isHeaderOptionSelected('assignee', option) }"
+                        @click.stop="selectHeaderOption('assignee', option)" @mousedown.stop @touchstart.stop>
+                        {{ option.label ?? option.value ?? option }}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-          <div class="status-wrapper" v-if="headerFieldPresence.status">
-            <div
-              class="select-wrapper status-select-wrapper"
-              :style="computeSelectWidthStyle(headerStatus, translateText('New'))"
-            >
-              <div
-                class="custom-dropdown-wrapper header-dropdown-wrapper"
-                :ref="el => setHeaderDropdownRef('status', el)"
-              >
-                <div
-                  class="custom-dropdown-selected"
-                  :class="{ open: headerDropdownState.status.open }"
-                  @click.stop="toggleHeaderDropdown('status')"
-                >
-                  <span v-if="getHeaderSelectedLabel('status')">
+              <div class="status-wrapper" v-if="headerFieldPresence.status">
+                <div class="select-wrapper status-select-wrapper"
+                  :style="computeSelectWidthStyle(headerStatus, translateText('New'))">
+                  <div class="custom-dropdown-wrapper header-dropdown-wrapper"
+                    :ref="el => setHeaderDropdownRef('status', el)">
+                    <div class="custom-dropdown-selected" :class="{ open: headerDropdownState.status.open }"
+                      @click.stop="toggleHeaderDropdown('status')">
+                      <span v-if="getHeaderSelectedLabel('status')">
                     {{ getHeaderSelectedLabel('status') }}
                   </span>
-                  <span v-else class="placeholder status-placeholder">
+                      <span v-else class="placeholder status-placeholder">
                     {{ translateText('New') }}
                   </span>
-                  <span class="material-symbols-outlined dropdown-arrow">expand_more</span>
-                </div>
-                <div
-                  v-if="headerDropdownState.status.open"
-                  class="custom-dropdown-list-status"
-                >
-                  <div class="dropdown-search-wrapper">
-                    <span class="material-symbols-outlined search-icon">search</span>
-                    <input
+                      <span class="material-symbols-outlined dropdown-arrow">expand_more</span>
+                    </div>
+                    <div v-if="headerDropdownState.status.open" class="custom-dropdown-list-status">
+                      <div class="dropdown-search-wrapper">
+                        <span class="material-symbols-outlined search-icon">search</span>
+                        <input
                       type="text"
                       v-model="headerDropdownState.status.search"
                       :placeholder="translateText('Search...')"
@@ -399,78 +289,58 @@ ref="availableFieldsContainer"
                       @mousedown.stop
                       @touchstart.stop
                     />
-                  </div>
-                  <div
-                    v-if="getFilteredHeaderOptions('status').length === 0"
-                    class="custom-dropdown-no-options"
-                  >
-                    {{ translateText('No options found') }}
-                  </div>
-                  <div
-                    v-for="option in getFilteredHeaderOptions('status')"
-                    :key="option.value ?? option.label ?? option"
-                    class="custom-dropdown-option"
-                    :class="{ selected: isHeaderOptionSelected('status', option) }"
-                    @click.stop="selectHeaderOption('status', option)"
-                    @mousedown.stop
-                    @touchstart.stop
-                  >
-                    {{ option.label ?? option.value ?? option }}
+                      </div>
+                      <div v-if="getFilteredHeaderOptions('status').length === 0" class="custom-dropdown-no-options">
+                        {{ translateText('No options found') }}
+                      </div>
+                      <div v-for="option in getFilteredHeaderOptions('status')"
+                        :key="option.value ?? option.label ?? option" class="custom-dropdown-option"
+                        :class="{ selected: isHeaderOptionSelected('status', option) }"
+                        @click.stop="selectHeaderOption('status', option)" @mousedown.stop @touchstart.stop>
+                        {{ option.label ?? option.value ?? option }}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
-<div style="display: flex; width:100%; justify-content:end; align-items:end; height:50px; padding:12px">
-<button 
-v-if="!isEditing" 
+        <div style="display: flex; width:100%; justify-content:end; align-items:end; height:50px; padding:12px">
+          <button
+v-if="!isEditing"
 class="add-button"
 @click="showAddSectionModal"
 >
 {{ translateText('New section') }}
 </button>
-</div>
+        </div>
 
-<div class="form-sections-container scrollable" ref="formSectionsContainer">
-<FormSection
-v-for="section in orderedSections"
-:key="section.id"
-:section="section"
-:all-fields="allAvailableFields"
-:is-editing="isEditing"
-@update-section="updateFormState"
-@edit-section="editSection"
-@edit-field="editFormField"
-@remove-field="removeFormField"
-@select-field="selectFieldForProperties"
-@remove-section="handleRemoveSection"
-@field-value-change="handleFieldValueChange"
-@update-field-in-use="updateFieldInUse"
-class="section-spacing"
-/>
-</div>
-</div>
-<div class="properties-panel-container" v-if="!isEditing">
-<FieldPropertiesPanel
-:selected-field="selectedFieldForProperties"
-:no-field-selected-message="translateText('Select a Field  to define its Properties')"
-@update-field="updateFieldProperties"
-/>
-</div>
-</div>
+        <div class="form-sections-container scrollable" ref="formSectionsContainer">
+          <FormSection v-for="section in orderedSections" :key="section.id" :section="section"
+            :all-fields="allAvailableFields" :is-editing="isEditing" @update-section="updateFormState"
+            @edit-section="editSection" @edit-field="editFormField" @remove-field="removeFormField"
+            @select-field="selectFieldForProperties" @remove-section="handleRemoveSection"
+            @field-value-change="handleFieldValueChange" @update-field-in-use="updateFieldInUse"
+            class="section-spacing" />
+        </div>
+      </div>
+      <div class="properties-panel-container" v-if="!isEditing">
+        <FieldPropertiesPanel :selected-field="selectedFieldForProperties"
+          :no-field-selected-message="translateText('Select a Field  to define its Properties')"
+          @update-field="updateFieldProperties" />
+      </div>
+    </div>
 
-<!-- Field Properties Panel -->
+    <!-- Field Properties Panel -->
 
 
 
-</div>
+  </div>
 </template>
 
 <script>
-import { ref, computed, onMounted, onBeforeUnmount, reactive, watch } from 'vue';
+  import { ref, computed, onMounted, onBeforeUnmount, reactive, watch } from 'vue';
 import Sortable from 'sortablejs';
 import DraggableField from './components/DraggableField.vue';
 import FormSection from './components/FormSection.vue';
@@ -757,7 +627,7 @@ const handleClickOutsideFields = (event) => {
   const isFieldElement = target.closest('.single-draggable');
   const isPropertiesPanel = target.closest('.field-properties-panel');
   const isHeaderDropdown = HEADER_FIELD_CONFIG.some(({ key }) => {
-    const refEl = headerDropdownRefs[key]?.value || headerDropdownRefs[key];
+    const refEl = headerDropdownRefs[key]?.value;
     return refEl && refEl.contains(target);
   });
 
@@ -860,7 +730,7 @@ const headerControlledFields = computed(
 
 const findControlledFieldByName = (fields, name) =>
   (fields || []).find(
-    field => field?.name && field.name.toLowerCase() === name.toLowerCase()
+    field => field?.tag_control && field.tag_control.toLowerCase() === name.toLowerCase()
   );
 
 const normalizeHeaderDefaultValue = field => {
@@ -884,22 +754,22 @@ const populateHeaderFieldsFromForm = form => {
     findControlledFieldByName(fields, 'Title')
   );
   headerPriority.value = normalizeHeaderDefaultValue(
-    findControlledFieldByName(fields, 'Priority')
+    findControlledFieldByName(fields, 'PriorityID')
   );
   headerCategory.value = normalizeHeaderDefaultValue(
-    findControlledFieldByName(fields, 'Category')
+    findControlledFieldByName(fields, 'CategoryID')
   );
   headerSubcategory.value = normalizeHeaderDefaultValue(
-    findControlledFieldByName(fields, 'Sub Category')
+    findControlledFieldByName(fields, 'SubCategoryID')
   );
   headerThirdLevelCategory.value = normalizeHeaderDefaultValue(
-    findControlledFieldByName(fields, 'Category Level 3')
+    findControlledFieldByName(fields, 'CategoryLevel3ID')
   );
   headerAssignee.value = normalizeHeaderDefaultValue(
-    findControlledFieldByName(fields, 'Assigned To')
+    findControlledFieldByName(fields, 'ResponsibleUserID')
   );
   headerStatus.value = normalizeHeaderDefaultValue(
-    findControlledFieldByName(fields, 'Status')
+    findControlledFieldByName(fields, 'StatusID')
   );
 };
 
@@ -937,12 +807,12 @@ const ensureValueExistsInOptions = (modelRef, options) => {
 };
 
 const HEADER_FIELD_CONFIG = [
-  { key: 'priority', name: 'Priority', model: headerPriority },
-  { key: 'category', name: 'Category', model: headerCategory },
-  { key: 'subcategory', name: 'Sub Category', model: headerSubcategory },
-  { key: 'thirdLevelCategory', name: 'Category Level 3', model: headerThirdLevelCategory },
-  { key: 'assignee', name: 'Assigned To', model: headerAssignee },
-  { key: 'status', name: 'Status', model: headerStatus }
+  { key: 'priority', name: 'PriorityID', model: headerPriority },
+  { key: 'category', name: 'CategoryID', model: headerCategory },
+  { key: 'subcategory', name: 'SubCategoryID', model: headerSubcategory },
+  { key: 'thirdLevelCategory', name: 'CategoryLevel3ID', model: headerThirdLevelCategory },
+  { key: 'assignee', name: 'ResponsibleUserID', model: headerAssignee },
+  { key: 'status', name: 'StatusID', model: headerStatus }
 ];
 const headerFieldModels = {
   priority: headerPriority,
@@ -1073,12 +943,12 @@ const headerFieldPresence = computed(() => {
 
   return {
     title: !!findControlledFieldByName(fields, 'Title'),
-    priority: !!findControlledFieldByName(fields, 'Priority'),
-    category: !!findControlledFieldByName(fields, 'Category'),
-    subcategory: !!findControlledFieldByName(fields, 'Sub Category'),
-    thirdLevelCategory: !!findControlledFieldByName(fields, 'Category Level 3'),
-    assignee: !!findControlledFieldByName(fields, 'Assigned To'),
-    status: !!findControlledFieldByName(fields, 'Status')
+    priority: !!findControlledFieldByName(fields, 'PriorityID'),
+    category: !!findControlledFieldByName(fields, 'CategoryID'),
+    subcategory: !!findControlledFieldByName(fields, 'SubCategoryID'),
+    thirdLevelCategory: !!findControlledFieldByName(fields, 'CategoryLevel3ID'),
+    assignee: !!findControlledFieldByName(fields, 'ResponsibleUserID'),
+    status: !!findControlledFieldByName(fields, 'StatusID')
   };
 });
 
@@ -2544,27 +2414,27 @@ handleFieldValueChange
 </script>
 
 <style lang="scss" scoped>
-.form-builder-container {
-font-family: Roboto-Regular, "Open Sans", Arial, sans-serif !important;
-color: surface;
-width: 100%;
-}
+  .form-builder-container {
+    font-family: Roboto-Regular, "Open Sans", Arial, sans-serif !important;
+    color: surface;
+    width: 100%;
+  }
 
 
 
-.dual-container {
-display: flex;
-flex-direction: column;
-gap: 20px;
-width: 100%;
-height: calc(100vh - 155px);
+  .dual-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+    height: calc(100vh - 155px);
 
-@media (min-width: 992px) {
-flex-direction: row;
-}
-}
+    @media (min-width: 992px) {
+      flex-direction: row;
+    }
+  }
 
-.form-builder {
+  .form-builder {
     width: 100%;
     border: 1px solid #e0e0e0;
     border-radius: 8px;
@@ -2575,653 +2445,658 @@ flex-direction: row;
     height: 100%;
     flex: 1;
     overflow-y: auto;
-}
+  }
 
-.field-definition-container{
-max-width:300px;
-width: 300px;
-border: 1px solid #e0e0e0;
-border-radius: 8px;
-background-color: #fff;
-box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-@media (min-width: 992px) {
-width: 50%;
-}
-}
+  .field-definition-container {
+    max-width: 300px;
+    width: 300px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background-color: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 
-.container-header {
+    @media (min-width: 992px) {
+      width: 50%;
+    }
+  }
+
+  .container-header {
     margin: 20px 24px 8px;
     height: 24px;
     color: rgb(48, 48, 48);
     font-size: 1.125rem;
     font-weight: 400;
-}
-
-.header-actions {
-display: flex;
-gap: 10px;
-}
-
-.add-button {
-background-color:transparent;
-color: rgb(105, 157, 140);
-border: none;
-border-radius: 4px;
-padding: 6px 12px;
-cursor: pointer;
-font-size: 14px;
-display: flex;
-align-items: center;
-}
-
-.add-button:hover {
-background-color: #d3d3d3;
-}
-
-.field-search {
-position: relative;
-padding: 15px 15px 0;
-}
-
-.search-input {
-width: 100%;
-padding: 10px 15px;
-border: 1px solid #ddd;
-border-radius: 20px;
-font-size: 14px;
-outline: none;
-}
-
-.search-icon {
-position: absolute;
-right: 25px;
-top: 22px;
-color: #999;
-width:30px;
-height:30px;
-}
-
-.available-fields-container {
-padding: 15px;
-min-height: 100px;
-display: flex;
-flex-direction: column;
-gap: 15px;
-}
-
-.fields-grid {
-display: grid;
-grid-template-columns: repeat(auto-fill, minmax(100%, 1fr));
-gap: 5px;
-max-height: calc(100vh - 295px); /* Ajuste conforme seu layout */
-overflow-y: auto;
-}
-
-/* Aplica para qualquer div com rolagem */
-.scrollable:hover::-webkit-scrollbar {
-  width: 6px; /* largura da barra vertical */
-  height: 6px; /* altura da barra horizontal (se necessário) */
-}
-
-/* Invisível por padrão */
-.scrollable::-webkit-scrollbar {
-  width: 0px;
-  height: 0px;
-}
-
-/* Cor do trilho (fundo da barra) */
-.scrollable:hover::-webkit-scrollbar-track {
-  background: transparent;
-  cursor:default;
-}
-
-/* Cor do "thumb" (a barra em si) */
-.scrollable:hover::-webkit-scrollbar-thumb {
-  background-color: #c0c0c0;
-  border-radius: 3px;
-  cursor:default;
-}
-
-.form-sections-container {
-padding: 15px;
-}
-
-.container-footer {
-padding: 10px;
-border-top: 1px solid #e0e0e0;
-display: flex;
-justify-content: flex-end;
-gap: 10px;
-}
-
-.action-button {background-color: #f8f9fa;
-border: 1px solid #ddd;
-border-radius: 4px;padding: 8px 16px;
-cursor: pointer;
-font-size: 12px;
-}
-
-.action-button:hover {
-background-color:#e9ecef;
-}
-
-.import-button {
-background-color: #6c757d;
-border: 1px solid #6c757d;
-color: white;
-}
-
-.import-button:hover {
-background-color: #5a6268;
-}
-
-.sortable-ghost {
-opacity: 0.5;
-background: #c8ebfb;
-}
-
-.sortable-chosen {background: #e9f5fb;
-}
-
-.sortable-drag {
-opacity: 0.8;
-}
-
-.form-sections-container {
-max-height: calc(100vh - 345px); /* Ajuste conforme seu layout */
-overflow-y: auto;
-}
-
-.section-header {
-
-}
-
-.form-section {
-margin: 0;
-padding: 0;
-}
-
-.form-section .section-header {
-margin: 0;
-padding: 10px;
-}
-
-i.material-symbols-outlined {
-font-family: 'Material Symbols Outlined';
-font-weight: normal;
-font-style: normal;
-font-size: 16px;
-line-height: 1;
-letter-spacing: normal;
-text-transform: none;
-display: inline-block;
-white-space: nowrap;
-word-wrap: normal;
-direction: ltr;
--webkit-font-feature-settings: 'liga';
--webkit-font-smoothing: antialiased;
-vertical-align: middle;
-}
-
-i.material-symbols-outlined-search {
-font-family: 'Material Symbols Outlined';
-font-weight: normal;
-font-style: normal;
-font-size: 24px;
-line-height: 1;
-letter-spacing: normal;
-text-transform: none;
-display: inline-block;
-white-space: nowrap;
-word-wrap: normal;
-direction: ltr;
--webkit-font-feature-settings: 'liga';
--webkit-font-smoothing: antialiased;
-vertical-align: middle;
-}
-
-.properties-panel-container {
-width: 255px;
-}
-
-
-.cabecalhoFormBuilder {
-  position: sticky;
-  top: 0;
-  z-index: 10000;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 12px;
-  background: #f5f6fa;
-  border-radius: 10px 10px 0 0;
-  padding: 16px 24px;
-  border-bottom: 1px solid #dadcde;
-}
-
-.header-row {
-  width: 100%;
-  display: flex;
-}
-
-.header-row-title {
-  align-items: center;
-}
-
-.header-row-controls {
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.header-title {
-  flex: 1 1 auto;
-  min-width: 200px;
-}
-
-.inputCabecalho {
-  font-size: 1.25rem;
-  font-family: Roboto-Light, "Open Sans", Arial, sans-serif;
-  border-radius: 6px;
-  height: 36px;
-  border: 1px solid transparent;
-  padding: 4px 8px;
-  background: transparent;
-  width: 100%;
-  color: #4f4f4f;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.inputCabecalho:hover {
-  background-color: #e4e7ef;
-}
-
-.inputCabecalho:focus {
-  background-color: transparent;
-  border: 1px solid #4f4f4f;
-  outline: none;
-}
-
-.header-tags {
-  display: flex;
-  flex: 1 1 auto;
-  gap: 12px;
-  row-gap: 6px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.header-tags-rigth {
-  display: flex;
-  flex: 1 1 auto;
-  gap: 12px;
-  row-gap: 6px;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: right;
-}
-
-.select-wrapper {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  flex: 0 0 auto;
-  --select-placeholder-length: 10;
-}
-
-.header-dropdown-wrapper {
-  width: 300px;
-}
-
-.custom-dropdown-wrapper {
-  position: relative;
-  width: 100%;
-}
-
-.custom-dropdown-selected {
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  padding: 6px 12px;
-  background: #fff;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 34px;
-  font-size: 0.845rem;
-  letter-spacing: 0px;
-  text-overflow: ellipsis;
-  transition: border .2s;
-  color: #787878 !important;
-  white-space: nowrap;
-  overflow: hidden;
-  width: fit-content;
-  min-width: 140px;
-  max-width: 195px;
-}
-
-.custom-dropdown-selected-assign {
-border: 0px;
-padding: 6px 12px;
-background: transparent;
-cursor: pointer;
-display: flex;
-align-items: center;
-justify-content: space-between;
-height: 34px;
-font-size: 0.845rem;
-letter-spacing: 0px;
-text-overflow: ellipsis;
-transition: border .2s;
-color: #787878 !important;
-white-space: nowrap;
-overflow: hidden;
-width: fit-content;
-min-width: 140px;
-max-width: 200px;
-}
-
-.custom-dropdown-selected span:not(.dropdown-arrow) {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.custom-dropdown-selected .dropdown-arrow {
-  flex-shrink: 0;
-  margin-left: 8px;
-}
-
-.custom-dropdown-selected.open {
-  border-color: #699d8c;
-  box-shadow: 0 2px 8px rgba(105, 157, 140, 0.08);
-}
-
-.custom-dropdown-list {
-  position: absolute;
-  left: 0;
-  right: 0;
-  background: #fff;
-  border: 1px solid #d1d5db;
-  border-radius: 0 0 6px 6px;
-  box-shadow: 0 4px 16px rgba(105, 157, 140, 0.10);
-  z-index: 2147483648;
-  max-height: 320px;
-  min-width: 280px;
-  overflow-y: auto;
-  margin-top: 2px;
-  padding-bottom: 4px;
-}
-
-.custom-dropdown-list-status {
-position: absolute;
-right: 0;
-background: #fff;
-border: 1px solid #d1d5db;
-border-radius: 0 0 6px 6px;
-box-shadow: 0 4px 16px rgba(105, 157, 140, 0.10);
-z-index: 2147483648;
-max-height: 320px;
-min-width: 200px;
-overflow-y: auto;
-margin-top: 2px;
-padding-bottom: 4px;
-}
-
-.custom-dropdown-option {
-  padding: 8px 12px;
-  cursor: pointer;
-  font-size: 0.845rem;
-  letter-spacing: 0px;
-  text-overflow: ellipsis;
-  transition: background 0.15s;
-}
-
-.custom-dropdown-option.selected {
-  background: #e3eafc;
-  color: #699d8c;
-  font-weight: bold;
-}
-
-.custom-dropdown-option:hover {
-  background: #f5f5f5;
-}
-
-.custom-dropdown-no-options {
-  padding: 8px 12px;
-  color: #888;
-  font-size: 13px;
-  text-align: center;
-}
-
-.custom-dropdown-selected .dropdown-arrow {
-  font-size: 20px;
-  color: #bdbdbd;
-  margin-left: 8px;
-}
-
-.custom-dropdown-selected .placeholder {
-  color: var(--placeholder-color, #787878);
-}
-
-.dropdown-search-wrapper {
-  position: relative;
-  width: 96%;
-  margin: 10px auto 10px auto;
-  display: flex;
-  align-items: center;
-  background-color: #FFFFFF !important;
-}
-
-.dropdown-search-wrapper .search-icon {
-  position: absolute;
-  right: 8px;
-  font-size: 22px;
-  color: #bdbdbd;
-  pointer-events: none;
-  top: 19px;
-  transform: translateY(-50%);
-}
-
-.list-search-input {
-  border: 1.5px solid #bdbdbd !important;
-  border-radius: 20px;
-  padding: 7px 38px 7px 12px;
-  font-size: 0.845rem;
-  letter-spacing: 0px;
-  text-overflow: ellipsis;
-  width: 100%;
-  box-sizing: border-box;
-  background: #f8f9fa;
-  transition: border 0.2s;
-  outline: none;
-}
-
-.list-search-input:focus,
-.list-search-input:active,
-.list-search-input:hover {
-  border-color: #bdbdbd !important;
-  background: #fff;
-}
-
-.tag-select-wrapper {
-  width: calc(var(--select-placeholder-length)  + 2.8rem);
-}
-
-.tag-selectPriority {
-  border: 1px solid #d0d4dc;
-  border-radius: 999px;
-  padding: 2px 12px;
-  background-color: #eef1f7;
-  color: #3a3f4b;
-  font-size: 13px;
-  appearance: none;
-  min-height: 26px;
-  width: auto;
-  min-width: 100px;
-}
-
-.tag-selectCat1 {
-border: 1px solid #d0d4dc;
-border-radius: 999px;
-padding: 2px 12px;
-background-color: #eef1f7;
-color: #3a3f4b;
-font-size: 13px;
-appearance: none;
-min-height: 26px;
-width: auto;
-min-width: 75px;
-}
-
-.tag-selectCat2 {
-border: 1px solid #d0d4dc;
-border-radius: 999px;
-padding: 2px 12px;
-background-color: #eef1f7;
-color: #3a3f4b;
-font-size: 13px;
-appearance: none;
-min-height: 26px;
-width: auto;
-min-width: 95px;
-}
-
-.tag-selectCat3 {
-border: 1px solid #d0d4dc;
-border-radius: 999px;
-padding: 2px 12px;
-background-color: #eef1f7;
-color: #3a3f4b;
-font-size: 13px;
-appearance: none;
-min-height: 26px;
-width: auto;
-min-width: 140px;
-}
-
-.tag-select:focus {
-  outline: none;
-  border-color: #5c74a4;
-  box-shadow: 0 0 0 2px rgba(92, 116, 164, 0.2);
-}
-
-.select-placeholder {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #5f6368;
-  font-size: 13px;
-  pointer-events: none;
-  white-space: nowrap;
-}
-
-.header-meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: auto;
-  flex: 0 0 auto;
-}
-
-.assignee-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 0px;
-  padding: 0px 12px;
-  border-radius: 999px;
-  border: 1px solid #d0d4dc;
-  background-color: transparent;
-}
-
-.user-icon {
-  width: 26px;
-  height: 26px;
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  background: #f0f1f5;
-  border-radius: 50%;
-  color: #4f4f4f;
-  font-size: 16px;
-}
-
-.assignee-select-wrapper {
-  width: calc(var(--select-placeholder-length) + 2.8rem);
-  background-color: transparent;
-}
-
-.user-select {
-  appearance: none;
-  border: none;
-  background: transparent;
-  font-size: 13px;
-  color: #3a3f4b;
-  padding: 4px 4px 4px 0;
-  min-width: 0;
-  width: auto;
-}
-
-.user-select:focus {
-  outline: none;
-}
-
-.status-wrapper {
-  display: flex;
-  align-items: center;
-}
-
-.status-select-wrapper {
-  width: calc(var(--select-placeholder-length) + 2.8rem);
-}
-
-.status-select {
-  border: 1px solid #4d6dc3;
-  border-radius: 8px;
-  padding: 2px 12px;
-  background-color: #4d6dc3;
-  color: #ffffff;
-  font-size: 13px;
-  appearance: none;
-  min-height: 26px;
-  width: auto;
-  min-width: 50px;
-}
-
-.status-select:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(77, 109, 195, 0.25);
-}
-
-.status-placeholder {
-  color: #ffffff;
-}
-
-.debug-panel {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 10px;
-  border-radius: 4px;
-  max-width: 400px;
-  max-height: 300px;
-  overflow: auto;
-  z-index: 9999;
-}
-
-.debug-panel pre {
-  margin: 0;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
-.section-spacing {
-  margin-bottom: 20px;
-}
-
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  .add-button {
+    background-color: transparent;
+    color: rgb(105, 157, 140);
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+  }
+
+  .add-button:hover {
+    background-color: #d3d3d3;
+  }
+
+  .field-search {
+    position: relative;
+    padding: 15px 15px 0;
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    font-size: 14px;
+    outline: none;
+  }
+
+  .search-icon {
+    position: absolute;
+    right: 25px;
+    top: 22px;
+    color: #999;
+    width: 30px;
+    height: 30px;
+  }
+
+  .available-fields-container {
+    padding: 15px;
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .fields-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100%, 1fr));
+    gap: 5px;
+    max-height: calc(100vh - 295px);
+    /* Ajuste conforme seu layout */
+    overflow-y: auto;
+  }
+
+  /* Aplica para qualquer div com rolagem */
+  .scrollable:hover::-webkit-scrollbar {
+    width: 6px;
+    /* largura da barra vertical */
+    height: 6px;
+    /* altura da barra horizontal (se necessário) */
+  }
+
+  /* Invisível por padrão */
+  .scrollable::-webkit-scrollbar {
+    width: 0px;
+    height: 0px;
+  }
+
+  /* Cor do trilho (fundo da barra) */
+  .scrollable:hover::-webkit-scrollbar-track {
+    background: transparent;
+    cursor: default;
+  }
+
+  /* Cor do "thumb" (a barra em si) */
+  .scrollable:hover::-webkit-scrollbar-thumb {
+    background-color: #c0c0c0;
+    border-radius: 3px;
+    cursor: default;
+  }
+
+  .form-sections-container {
+    padding: 15px;
+  }
+
+  .container-footer {
+    padding: 10px;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  .action-button {
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+
+  .action-button:hover {
+    background-color: #e9ecef;
+  }
+
+  .import-button {
+    background-color: #6c757d;
+    border: 1px solid #6c757d;
+    color: white;
+  }
+
+  .import-button:hover {
+    background-color: #5a6268;
+  }
+
+  .sortable-ghost {
+    opacity: 0.5;
+    background: #c8ebfb;
+  }
+
+  .sortable-chosen {
+    background: #e9f5fb;
+  }
+
+  .sortable-drag {
+    opacity: 0.8;
+  }
+
+  .form-sections-container {
+    max-height: calc(100vh - 345px);
+    /* Ajuste conforme seu layout */
+    overflow-y: auto;
+  }
+
+  .section-header {}
+
+  .form-section {
+    margin: 0;
+    padding: 0;
+  }
+
+  .form-section .section-header {
+    margin: 0;
+    padding: 10px;
+  }
+
+  i.material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 16px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+    vertical-align: middle;
+  }
+
+  i.material-symbols-outlined-search {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+    vertical-align: middle;
+  }
+
+  .properties-panel-container {
+    width: 255px;
+  }
+
+
+  .cabecalhoFormBuilder {
+    position: sticky;
+    top: 0;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    background: #f5f6fa;
+    border-radius: 10px 10px 0 0;
+    padding: 16px 24px;
+    border-bottom: 1px solid #dadcde;
+  }
+
+  .header-row {
+    width: 100%;
+    display: flex;
+  }
+
+  .header-row-title {
+    align-items: center;
+  }
+
+  .header-row-controls {
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .header-title {
+    flex: 1 1 auto;
+    min-width: 200px;
+  }
+
+  .inputCabecalho {
+    font-size: 1.25rem;
+    font-family: Roboto-Light, "Open Sans", Arial, sans-serif;
+    border-radius: 6px;
+    height: 36px;
+    border: 1px solid transparent;
+    padding: 4px 8px;
+    background: transparent;
+    width: 100%;
+    color: #4f4f4f;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .inputCabecalho:hover {
+    background-color: #e4e7ef;
+  }
+
+  .inputCabecalho:focus {
+    background-color: transparent;
+    border: 1px solid #4f4f4f;
+    outline: none;
+  }
+
+  .header-tags {
+    display: flex;
+    flex: 1 1 auto;
+    gap: 12px;
+    row-gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .header-tags-rigth {
+    display: flex;
+    flex: 1 1 auto;
+    gap: 12px;
+    row-gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: right;
+  }
+
+  .select-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    --select-placeholder-length: 10;
+  }
+
+  .header-dropdown-wrapper {
+    width: 300px;
+  }
+
+  .custom-dropdown-wrapper {
+    position: relative;
+    width: 100%;
+  }
+
+  .custom-dropdown-selected {
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    padding: 6px 12px;
+    background: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 34px;
+    font-size: 0.845rem;
+    letter-spacing: 0px;
+    text-overflow: ellipsis;
+    transition: border .2s;
+    color: #787878 !important;
+    white-space: nowrap;
+    overflow: hidden;
+    width: fit-content;
+    min-width: 140px;
+    max-width: 195px;
+  }
+
+  .custom-dropdown-selected-assign {
+    border: 0px;
+    padding: 6px 12px;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 34px;
+    font-size: 0.845rem;
+    letter-spacing: 0px;
+    text-overflow: ellipsis;
+    transition: border .2s;
+    color: #787878 !important;
+    white-space: nowrap;
+    overflow: hidden;
+    width: fit-content;
+    min-width: 140px;
+    max-width: 200px;
+  }
+
+  .custom-dropdown-selected span:not(.dropdown-arrow) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .custom-dropdown-selected .dropdown-arrow {
+    flex-shrink: 0;
+    margin-left: 8px;
+  }
+
+  .custom-dropdown-selected.open {
+    border-color: #699d8c;
+    box-shadow: 0 2px 8px rgba(105, 157, 140, 0.08);
+  }
+
+  .custom-dropdown-list {
+    position: absolute;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 0 0 6px 6px;
+    box-shadow: 0 4px 16px rgba(105, 157, 140, 0.10);
+    z-index: 2147483648;
+    max-height: 320px;
+    min-width: 280px;
+    overflow-y: auto;
+    margin-top: 2px;
+    padding-bottom: 4px;
+  }
+
+  .custom-dropdown-list-status {
+    position: absolute;
+    right: 0;
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 0 0 6px 6px;
+    box-shadow: 0 4px 16px rgba(105, 157, 140, 0.10);
+    z-index: 2147483648;
+    max-height: 320px;
+    min-width: 200px;
+    overflow-y: auto;
+    margin-top: 2px;
+    padding-bottom: 4px;
+  }
+
+  .custom-dropdown-option {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 0.845rem;
+    letter-spacing: 0px;
+    text-overflow: ellipsis;
+    transition: background 0.15s;
+  }
+
+  .custom-dropdown-option.selected {
+    background: #e3eafc;
+    color: #699d8c;
+    font-weight: bold;
+  }
+
+  .custom-dropdown-option:hover {
+    background: #f5f5f5;
+  }
+
+  .custom-dropdown-no-options {
+    padding: 8px 12px;
+    color: #888;
+    font-size: 13px;
+    text-align: center;
+  }
+
+  .custom-dropdown-selected .dropdown-arrow {
+    font-size: 20px;
+    color: #bdbdbd;
+    margin-left: 8px;
+  }
+
+  .custom-dropdown-selected .placeholder {
+    color: var(--placeholder-color, #787878);
+  }
+
+  .dropdown-search-wrapper {
+    position: relative;
+    width: 96%;
+    margin: 10px auto 10px auto;
+    display: flex;
+    align-items: center;
+    background-color: #FFFFFF !important;
+  }
+
+  .dropdown-search-wrapper .search-icon {
+    position: absolute;
+    right: 8px;
+    font-size: 22px;
+    color: #bdbdbd;
+    pointer-events: none;
+    top: 19px;
+    transform: translateY(-50%);
+  }
+
+  .list-search-input {
+    border: 1.5px solid #bdbdbd !important;
+    border-radius: 20px;
+    padding: 7px 38px 7px 12px;
+    font-size: 0.845rem;
+    letter-spacing: 0px;
+    text-overflow: ellipsis;
+    width: 100%;
+    box-sizing: border-box;
+    background: #f8f9fa;
+    transition: border 0.2s;
+    outline: none;
+  }
+
+  .list-search-input:focus,
+  .list-search-input:active,
+  .list-search-input:hover {
+    border-color: #bdbdbd !important;
+    background: #fff;
+  }
+
+  .tag-select-wrapper {
+    width: calc(var(--select-placeholder-length) + 2.8rem);
+  }
+
+  .tag-selectPriority {
+    border: 1px solid #d0d4dc;
+    border-radius: 999px;
+    padding: 2px 12px;
+    background-color: #eef1f7;
+    color: #3a3f4b;
+    font-size: 13px;
+    appearance: none;
+    min-height: 26px;
+    width: auto;
+    min-width: 100px;
+  }
+
+  .tag-selectCat1 {
+    border: 1px solid #d0d4dc;
+    border-radius: 999px;
+    padding: 2px 12px;
+    background-color: #eef1f7;
+    color: #3a3f4b;
+    font-size: 13px;
+    appearance: none;
+    min-height: 26px;
+    width: auto;
+    min-width: 75px;
+  }
+
+  .tag-selectCat2 {
+    border: 1px solid #d0d4dc;
+    border-radius: 999px;
+    padding: 2px 12px;
+    background-color: #eef1f7;
+    color: #3a3f4b;
+    font-size: 13px;
+    appearance: none;
+    min-height: 26px;
+    width: auto;
+    min-width: 95px;
+  }
+
+  .tag-selectCat3 {
+    border: 1px solid #d0d4dc;
+    border-radius: 999px;
+    padding: 2px 12px;
+    background-color: #eef1f7;
+    color: #3a3f4b;
+    font-size: 13px;
+    appearance: none;
+    min-height: 26px;
+    width: auto;
+    min-width: 140px;
+  }
+
+  .tag-select:focus {
+    outline: none;
+    border-color: #5c74a4;
+    box-shadow: 0 0 0 2px rgba(92, 116, 164, 0.2);
+  }
+
+  .select-placeholder {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #5f6368;
+    font-size: 13px;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .header-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    flex: 0 0 auto;
+  }
+
+  .assignee-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0px;
+    padding: 0px 12px;
+    border-radius: 999px;
+    border: 1px solid #d0d4dc;
+    background-color: transparent;
+  }
+
+  .user-icon {
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    background: #f0f1f5;
+    border-radius: 50%;
+    color: #4f4f4f;
+    font-size: 16px;
+  }
+
+  .assignee-select-wrapper {
+    width: calc(var(--select-placeholder-length) + 2.8rem);
+    background-color: transparent;
+  }
+
+  .user-select {
+    appearance: none;
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    color: #3a3f4b;
+    padding: 4px 4px 4px 0;
+    min-width: 0;
+    width: auto;
+  }
+
+  .user-select:focus {
+    outline: none;
+  }
+
+  .status-wrapper {
+    display: flex;
+    align-items: center;
+  }
+
+  .status-select-wrapper {
+    width: calc(var(--select-placeholder-length) + 2.8rem);
+  }
+
+  .status-select {
+    border: 1px solid #4d6dc3;
+    border-radius: 8px;
+    padding: 2px 12px;
+    background-color: #4d6dc3;
+    color: #ffffff;
+    font-size: 13px;
+    appearance: none;
+    min-height: 26px;
+    width: auto;
+    min-width: 50px;
+  }
+
+  .status-select:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(77, 109, 195, 0.25);
+  }
+
+  .status-placeholder {
+    color: #ffffff;
+  }
+
+  .debug-panel {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px;
+    border-radius: 4px;
+    max-width: 400px;
+    max-height: 300px;
+    overflow: auto;
+    z-index: 9999;
+  }
+
+  .debug-panel pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  .section-spacing {
+    margin-bottom: 20px;
+  }
 </style>
