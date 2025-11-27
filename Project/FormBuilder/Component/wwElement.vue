@@ -532,6 +532,30 @@ function __isListType(t) {
   const x = String(t || '').toUpperCase();
   return x === 'SIMPLE_LIST' || x === 'CONTROLLED_LIST' || x === 'LIST';
 }
+function __hasListOptions(field) {
+  if (!field) return false;
+
+  const direct =
+    field.options ??
+    field.list_options ??
+    field.listOptions ??
+    field.ListOptions ??
+    null;
+
+  if (Array.isArray(direct) && direct.length) return true;
+
+  const dataSourceOptions = field?.dataSource?.list_options ?? field?.DataSource?.list_options;
+  return Array.isArray(dataSourceOptions) && dataSourceOptions.length > 0;
+}
+function normalizeListDefaultValue(field, value, fallback) {
+  if (value === '' && (__isListType(field?.fieldType) || __hasListOptions(field))) {
+    return null;
+  }
+
+  if (value === undefined) return fallback;
+
+  return value ?? fallback;
+}
 function __withOptionsCache(field) {
   const f = { ...field };
   try {
@@ -751,7 +775,7 @@ const updateControlledFieldDefaultValue = (fieldName, value) => {
     return;
   }
 
-  const nextValue = value ?? '';
+  const nextValue = normalizeListDefaultValue(targetField, value, '');
 
   Object.assign(targetField, {
     default_value: nextValue,
@@ -2087,12 +2111,15 @@ const updateFormState = () => {
       deleted: false,
       name: field.name,
       fieldType: field.fieldType,
-      default_value:
+      default_value: normalizeListDefaultValue(
+        field,
         field.default_value !== undefined
           ? field.default_value
           : field.defaultValue !== undefined
             ? field.defaultValue
-            : field.value ?? null
+            : field.value,
+        null
+      )
     }))
   }));
 
@@ -2297,9 +2324,11 @@ const handleFieldValueChange = ({ sectionId, fieldId, value, field, fieldType })
     return;
   }
 
-  targetField.default_value = value;
-  targetField.defaultValue = value;
-  targetField.value = value;
+  const normalizedDefault = normalizeListDefaultValue(targetField, value, '');
+
+  targetField.default_value = normalizedDefault;
+  targetField.defaultValue = normalizedDefault;
+  targetField.value = normalizedDefault;
 
   // Ensure boolean defaults remain null when cleared
   if (fieldType === 'YES_NO' && (value === '' || value === undefined)) {
