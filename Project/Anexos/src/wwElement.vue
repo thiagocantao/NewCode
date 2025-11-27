@@ -542,6 +542,13 @@ export default {
           return fileItem.base64;
         }
 
+        // Gera uma URL assinada se ainda não houver e o caminho/bucket existir
+        if (!fileItem.url && fileItem.bucket && fileItem.storagePath) {
+          fileItem.url = await getFreshSignedUrl(fileItem, {
+            transformImage: { width: 1200, resize: "contain" },
+          });
+        }
+
         if (fileItem.url) {
           const response = await fetch(fileItem.url);
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
