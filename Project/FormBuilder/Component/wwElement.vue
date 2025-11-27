@@ -488,7 +488,6 @@ const cloneDeep = (value) => {
     return undefined;
   }
   try {
-    console.log(JSON.parse(JSON.stringify(value)))
     return JSON.parse(JSON.stringify(value));
   } catch (error) {
     console.warn('Failed to clone value', error);
@@ -771,37 +770,6 @@ const populateHeaderFieldsFromForm = form => {
   headerStatus.value = normalizeHeaderDefaultValue(
     findControlledFieldByName(fields, 'StatusID')
   );
-};
-
-const updateControlledFieldDefaultValue = (name, value) => {
-  const currentFormData = cloneDeep(formData.value) || {};
-  const controlledFields = currentFormData?.form?.default_controlled_field_parameters;
-
-  if (!Array.isArray(controlledFields)) {
-    return;
-  }
-
-  const targetField = findControlledFieldByName(controlledFields, name);
-
-  if (!targetField) {
-    return;
-  }
-
-  targetField.default_value = value;
-
-  if (targetField.defaultValue !== undefined) {
-    targetField.defaultValue = value;
-  }
-
-  if (targetField.value !== undefined) {
-    targetField.value = value;
-  }
-
-  setFormData(currentFormData);
-
-  if (typeof window !== 'undefined') {
-    window.FormFieldsJsonSave = cloneDeep(currentFormData);
-  }
 };
 
 const normalizeHeaderOptions = field => {
@@ -2210,8 +2178,6 @@ const selectFieldForProperties = (field, sectionId) => {
 const updateFieldProperties = (updatedField) => {
 
   if (!updatedField) return;
-
-console.log("UPDATE", updatedField)
   // Normalizar o campo atualizado
   const normalizedField = {
     ...updatedField,
@@ -2447,10 +2413,6 @@ watch(headerSubcategory, () => {
   headerThirdLevelCategory.value = '';
   headerListOptions.thirdLevelCategory = getCategoryVariableOptions('thirdLevelCategory');
   autoSelectSingleOption('thirdLevelCategory', headerThirdLevelCategory);
-});
-
-[{ model: headerTitle, name: 'Title' }, ...HEADER_FIELD_CONFIG].forEach(({ model, name }) => {
-  watch(model, newValue => updateControlledFieldDefaultValue(name, newValue));
 });
 
 const onRemoveField = ({ sectionId, field }) => {
