@@ -732,6 +732,59 @@ const findControlledFieldByName = (fields, name) =>
     field => field?.tag_control && field.tag_control.toLowerCase() === name.toLowerCase()
   );
 
+const updateHeaderDefaultValue = (tagControl, value) => {
+  if (!tagControl) return;
+
+  const currentData = cloneDeep(formData.value) || {};
+  const form = currentData.form || {};
+  const fields = form.default_controlled_field_parameters || [];
+
+  const matchesTag = field =>
+    field?.tag_control && field.tag_control.toLowerCase() === tagControl.toLowerCase();
+
+  const tryUpdateField = field => {
+    if (!field || !matchesTag(field)) return false;
+
+    field.default_value = value ?? null;
+    return true;
+  };
+
+  let updated = false;
+
+  fields.forEach(field => {
+    if (tryUpdateField(field)) {
+      updated = true;
+      return;
+    }
+
+    const dataSource = field?.dataSource || field?.DataSource;
+
+    if (dataSource && typeof dataSource === 'object') {
+      Object.keys(dataSource).forEach(key => {
+        if (tryUpdateField(dataSource[key])) {
+          updated = true;
+        }
+      });
+    }
+  });
+
+  if (!updated) return;
+
+  form.default_controlled_field_parameters = fields;
+  currentData.form = form;
+
+  setFormData(currentData);
+
+  if (typeof window !== 'undefined') {
+    window.FormFieldsJsonSave = cloneDeep(currentData);
+  }
+
+  emit('trigger-event', {
+    name: 'formUpdated',
+    event: { value: cloneDeep(currentData) }
+  });
+};
+
 const normalizeHeaderDefaultValue = field => {
   if (!field) return '';
 
@@ -1027,6 +1080,12 @@ const headerFieldPresence = computed(() => {
 const hasHeaderFields = computed(() =>
   Object.values(headerFieldPresence.value).some(Boolean)
 );
+
+HEADER_FIELD_CONFIG.forEach(({ name, model }) => {
+  watch(model, value => {
+    updateHeaderDefaultValue(name, value);
+  });
+});
 
 const headerControlsVisible = computed(() =>
   headerFieldPresence.value.priority ||
@@ -2400,6 +2459,10 @@ watch(headerControlledFields, fields => {
   populateHeaderFieldsFromForm({ default_controlled_field_parameters: fields });
   refreshHeaderListOptions();
 }, { deep: true });
+
+watch(headerTitle, (value) => {
+  updateHeaderDefaultValue('Title', value);
+});
 
 watch(headerCategory, () => {
   headerSubcategory.value = '';
