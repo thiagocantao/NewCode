@@ -73,7 +73,7 @@ ref="availableFieldsContainer"
           >
             <div
               class="custom-dropdown-wrapper header-dropdown-wrapper"
-              :ref="el => (headerDropdownRefs.priority = el)"
+              :ref="el => setHeaderDropdownRef('priority', el)"
             >
               <div
                 class="custom-dropdown-selected"
@@ -131,7 +131,7 @@ ref="availableFieldsContainer"
           >
             <div
               class="custom-dropdown-wrapper header-dropdown-wrapper"
-              :ref="el => (headerDropdownRefs.category = el)"
+              :ref="el => setHeaderDropdownRef('category', el)"
             >
               <div
                 class="custom-dropdown-selected"
@@ -189,7 +189,7 @@ ref="availableFieldsContainer"
           >
             <div
               class="custom-dropdown-wrapper header-dropdown-wrapper"
-              :ref="el => (headerDropdownRefs.subcategory = el)"
+              :ref="el => setHeaderDropdownRef('subcategory', el)"
             >
               <div
                 class="custom-dropdown-selected"
@@ -247,7 +247,7 @@ ref="availableFieldsContainer"
           >
             <div
               class="custom-dropdown-wrapper header-dropdown-wrapper"
-              :ref="el => (headerDropdownRefs.thirdLevelCategory = el)"
+              :ref="el => setHeaderDropdownRef('thirdLevelCategory', el)"
             >
               <div
                 class="custom-dropdown-selected"
@@ -310,7 +310,7 @@ ref="availableFieldsContainer"
             >
               <div
                 class="custom-dropdown-wrapper header-dropdown-wrapper"
-                :ref="el => (headerDropdownRefs.assignee = el)"
+                :ref="el => setHeaderDropdownRef('assignee', el)"
               >
                 <div
                   class="custom-dropdown-selected"
@@ -369,7 +369,7 @@ ref="availableFieldsContainer"
             >
               <div
                 class="custom-dropdown-wrapper header-dropdown-wrapper"
-                :ref="el => (headerDropdownRefs.status = el)"
+                :ref="el => setHeaderDropdownRef('status', el)"
               >
                 <div
                   class="custom-dropdown-selected"
@@ -757,7 +757,7 @@ const handleClickOutsideFields = (event) => {
   const isFieldElement = target.closest('.single-draggable');
   const isPropertiesPanel = target.closest('.field-properties-panel');
   const isHeaderDropdown = HEADER_FIELD_CONFIG.some(({ key }) => {
-    const refEl = headerDropdownRefs[key]?.value;
+    const refEl = headerDropdownRefs[key]?.value || headerDropdownRefs[key];
     return refEl && refEl.contains(target);
   });
 
@@ -956,6 +956,10 @@ const headerDropdownRefs = HEADER_FIELD_CONFIG.reduce((acc, { key }) => {
   acc[key] = ref(null);
   return acc;
 }, {});
+const setHeaderDropdownRef = (key, el) => {
+  if (!headerDropdownRefs[key]) return;
+  headerDropdownRefs[key].value = el;
+};
 const headerDropdownState = reactive(
   HEADER_FIELD_CONFIG.reduce((acc, { key }) => {
     acc[key] = { open: false, search: '' };
@@ -2524,6 +2528,7 @@ headerPriority,
   headerOptionsLoading,
   headerDropdownState,
   headerDropdownRefs,
+  setHeaderDropdownRef,
   toggleHeaderDropdown,
   getFilteredHeaderOptions,
   getHeaderSelectedLabel,
@@ -2905,7 +2910,7 @@ width: 255px;
   border: 1px solid #d1d5db;
   border-radius: 0 0 6px 6px;
   box-shadow: 0 4px 16px rgba(105, 157, 140, 0.10);
-  z-index: 100;
+  z-index: 1005;
   max-height: 320px;
   min-width: 180px;
   overflow-y: auto;
