@@ -532,30 +532,6 @@ function __isListType(t) {
   const x = String(t || '').toUpperCase();
   return x === 'SIMPLE_LIST' || x === 'CONTROLLED_LIST' || x === 'LIST';
 }
-function __hasListOptions(field) {
-  if (!field) return false;
-
-  const direct =
-    field.options ??
-    field.list_options ??
-    field.listOptions ??
-    field.ListOptions ??
-    null;
-
-  if (Array.isArray(direct) && direct.length) return true;
-
-  const dataSourceOptions = field?.dataSource?.list_options ?? field?.DataSource?.list_options;
-  return Array.isArray(dataSourceOptions) && dataSourceOptions.length > 0;
-}
-function normalizeListDefaultValue(field, value, fallback) {
-  if (value === '' && (__isListType(field?.fieldType) || __hasListOptions(field))) {
-    return null;
-  }
-
-  if (value === undefined) return fallback;
-
-  return value ?? fallback;
-}
 function __withOptionsCache(field) {
   const f = { ...field };
   try {
@@ -752,55 +728,10 @@ const headerControlledFields = computed(
   () => formData.value?.form?.default_controlled_field_parameters || []
 );
 
-const normalizeControlledFieldName = (field) => {
-  const rawName =
-    field?.tag_control ??
-    field?.TagControl ??
-    field?.tagControl ??
-    field?.name ??
-    field?.Name ??
-    null;
-
-  return typeof rawName === 'string' ? rawName.toLowerCase() : null;
-};
-
-const findControlledFieldByName = (fields, name) => {
-  if (!name) return null;
-
-  const targetName = name.toLowerCase();
-
-  return (fields || []).find(field => normalizeControlledFieldName(field) === targetName) || null;
-};
-
-const updateControlledFieldDefaultValue = (fieldName, value) => {
-  if (!fieldName) return;
-
-  const updatedFormData = cloneDeep(formData.value) || {};
-
-  if (!updatedFormData.form || !Array.isArray(updatedFormData.form.default_controlled_field_parameters)) {
-    return;
-  }
-
-  const targetField = findControlledFieldByName(
-    updatedFormData.form.default_controlled_field_parameters,
-    fieldName
+const findControlledFieldByName = (fields, name) =>
+  (fields || []).find(
+    field => field?.tag_control && field.tag_control.toLowerCase() === name.toLowerCase()
   );
-
-  if (!targetField) {
-    return;
-  }
-
-  const nextValue = normalizeListDefaultValue(targetField, value, '');
-
-  Object.assign(targetField, {
-    default_value: nextValue,
-    defaultValue: nextValue,
-    value: nextValue
-  });
-
-  setFormData(updatedFormData);
-  updateFormState();
-};
 
 const normalizeHeaderDefaultValue = field => {
   if (!field) return '';
@@ -948,11 +879,6 @@ const HEADER_FIELD_CONFIG = [
   { key: 'thirdLevelCategory', name: 'CategoryLevel3ID', model: headerThirdLevelCategory },
   { key: 'assignee', name: 'ResponsibleUserID', model: headerAssignee },
   { key: 'status', name: 'StatusID', model: headerStatus }
-];
-
-const HEADER_VALUE_WATCHERS = [
-  { name: 'Title', model: headerTitle },
-  ...HEADER_FIELD_CONFIG.map(({ name, model }) => ({ name, model }))
 ];
 const headerFieldModels = {
   priority: headerPriority,
@@ -2126,15 +2052,12 @@ const updateFormState = () => {
       deleted: false,
       name: field.name,
       fieldType: field.fieldType,
-      default_value: normalizeListDefaultValue(
-        field,
+      default_value:
         field.default_value !== undefined
           ? field.default_value
           : field.defaultValue !== undefined
             ? field.defaultValue
-            : field.value,
-        null
-      )
+            : field.value ?? null
     }))
   }));
 
@@ -2339,11 +2262,9 @@ const handleFieldValueChange = ({ sectionId, fieldId, value, field, fieldType })
     return;
   }
 
-  const normalizedDefault = normalizeListDefaultValue(targetField, value, '');
-
-  targetField.default_value = normalizedDefault;
-  targetField.defaultValue = normalizedDefault;
-  targetField.value = normalizedDefault;
+  targetField.default_value = value;
+  targetField.defaultValue = value;
+  targetField.value = value;
 
   // Ensure boolean defaults remain null when cleared
   if (fieldType === 'YES_NO' && (value === '' || value === undefined)) {
@@ -2482,10 +2403,6 @@ watch(headerControlledFields, fields => {
   populateHeaderFieldsFromForm({ default_controlled_field_parameters: fields });
   refreshHeaderListOptions();
 }, { deep: true });
-
-HEADER_VALUE_WATCHERS.forEach(({ name, model }) => {
-  watch(model, newValue => updateControlledFieldDefaultValue(name, newValue));
-});
 
 watch(headerCategory, () => {
   headerSubcategory.value = '';
