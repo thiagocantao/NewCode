@@ -7,7 +7,7 @@
     <input
       ref="fileInput"
       type="file"
-      accept="image/*"
+      :accept="acceptList"
       class="image-upload__file-input"
       @change="onFileSelected"
     />
@@ -49,6 +49,39 @@ export default {
     const displayUrl = ref("");
     const officialUrl = ref("");
     const isUploading = ref(false);
+
+    const SUPPORTED_FILES = [
+      { mime: "application/pdf", exts: ["pdf"] },
+      { mime: "application/msword", exts: ["doc"] },
+      {
+        mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        exts: ["docx"],
+      },
+      { mime: "application/vnd.ms-excel", exts: ["xls"] },
+      {
+        mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        exts: ["xlsx"],
+      },
+      { mime: "text/plain", exts: ["txt", "log"] },
+      { mime: "image/png", exts: ["png"] },
+      { mime: "image/jpeg", exts: ["jpg", "jpeg"] },
+      { mime: "image/gif", exts: ["gif"] },
+      { mime: "image/webp", exts: ["webp"] },
+      { mime: "image/bmp", exts: ["bmp"] },
+      { mime: "image/svg+xml", exts: ["svg"] },
+    ];
+
+    const allowedExtensions = new Set(
+      SUPPORTED_FILES.flatMap(({ exts }) => exts).map((ext) => ext.toLowerCase())
+    );
+    const allowedMimeTypes = new Set(
+      SUPPORTED_FILES.map(({ mime }) => mime.toLowerCase()).filter(Boolean)
+    );
+    const acceptList = computed(() =>
+      SUPPORTED_FILES.flatMap(({ mime, exts }) => [mime, ...exts.map((ext) => `.${ext}`)])
+        .filter(Boolean)
+        .join(",")
+    );
 
     const objectUrls = new Set();
     const storageInfo = ref(null);
@@ -176,6 +209,11 @@ export default {
     }
     function guessContentType(name, fallback = "application/octet-stream") {
       const ext = extOf(name);
+      if (ext === "pdf") return "application/pdf";
+      if (ext === "doc") return "application/msword";
+      if (ext === "docx") return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+      if (ext === "xls") return "application/vnd.ms-excel";
+      if (ext === "xlsx") return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
       if (["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg"].includes(ext)) {
         return `image/${ext === "jpg" ? "jpeg" : ext}`;
       }
@@ -183,6 +221,14 @@ export default {
       if (ext === "json") return "application/json";
       if (ext === "csv") return "text/csv";
       return fallback;
+    }
+
+    function isSupportedFile(file) {
+      const type = file?.type?.toLowerCase?.();
+      const extension = extOf(file?.name).toLowerCase();
+      if (type && allowedMimeTypes.has(type)) return true;
+      if (extension && allowedExtensions.has(extension)) return true;
+      return false;
     }
 
     // === NOVO: sempre usar URL pública (bucket público) ===
@@ -273,23 +319,23 @@ export default {
       resetInput(event.target);
       if (!file) return;
 
-      if (!file.type?.startsWith("image/") && !/\.(png|jpg|jpeg|gif|webp|bmp|svg)$/i.test(file.name)) {
-        return;
-      }
-
       const previousOfficialUrl = officialUrl.value;
       const previousStorage = storageInfo.value ? { ...storageInfo.value } : null;
 
       let previewUrl = null;
       try {
-        previewUrl = URL.createObjectURL(file);
-        objectUrls.add(previewUrl);
-        displayUrl.value = previewUrl;
-      } catch (_) {}
+        if (!isSupportedFile(file)) {
+          throw new Error(translate("Tipo de arquivo não suportado."));
+        }
 
-      isUploading.value = true;
+        try {
+          previewUrl = URL.createObjectURL(file);
+          objectUrls.add(previewUrl);
+          displayUrl.value = previewUrl;
+        } catch (_) {}
 
-      try {
+        isUploading.value = true;
+
         await ensureAuthReady();
         const okStorage = await waitForStorage(4000);
         if (!okStorage || !supabase?.storage) {
@@ -325,7 +371,7 @@ export default {
           if (rpcError) {
             console.warn("[ImageUpload] RLS check falhou:", rpcError);
           } else if (allowed === false) {
-            throw new Error(translate("Você não tem permissão para salvar esta imagem."));
+            throw new Error(translate("Você não tem permissão para salvar este arquivo."));
           }
         } catch (rlsError) {
           if (rlsError instanceof Error) throw rlsError;
@@ -345,7 +391,7 @@ export default {
         // === NOVO: usar URL PÚBLICA (não expira) ===
         const publicUrl = getPublicUrl(bucket, objectPath);
         if (!publicUrl) {
-          throw new Error(translate("Unable to get public URL for uploaded image."));
+          throw new Error(translate("Unable to get public URL for uploaded file."));
         }
 
         storageInfo.value = { bucket, storagePath: objectPath };
@@ -409,6 +455,7 @@ export default {
       translate,
       t: translate,
       iconStyle,
+      acceptList,
     };
   },
 };
