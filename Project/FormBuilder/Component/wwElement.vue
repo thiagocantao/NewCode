@@ -865,44 +865,46 @@ return;
         field => field?.tag_control && field.tag_control.toLowerCase() === name.toLowerCase()
       );
 
-    const normalizeHeaderDefaultValue = field => {
-      if (!field) return '';
+    const extractHeaderDefaultState = field => {
+      if (!field) return { value: '', label: '' };
 
       const rawValue = field.default_value ?? field.defaultValue;
 
-      if (rawValue == null) return '';
+      if (rawValue == null) return { value: '', label: '' };
 
       if (typeof rawValue === 'object') {
-        return rawValue.label ?? rawValue.name ?? rawValue.value ?? '';
+        const value = rawValue.value ?? rawValue.id ?? rawValue.label ?? rawValue.name ?? '';
+        const label = rawValue.label ?? rawValue.name ?? rawValue.value ?? rawValue.id ?? '';
+
+        return { value, label };
       }
 
-      return rawValue;
+      return { value: rawValue, label: rawValue };
     };
 
     const populateHeaderFieldsFromForm = form => {
       const fields = form?.default_controlled_field_parameters || [];
 
-      headerTitle.value = normalizeHeaderDefaultValue(
+      const applyDefault = (key, fieldName, modelRef) => {
+        const { value, label } = extractHeaderDefaultState(
+          findControlledFieldByName(fields, fieldName)
+        );
+
+        modelRef.value = value;
+        headerSelectedLabels[key] = label;
+      };
+
+      const titleDefault = extractHeaderDefaultState(
         findControlledFieldByName(fields, 'Title')
       );
-      headerPriority.value = normalizeHeaderDefaultValue(
-        findControlledFieldByName(fields, 'PriorityID')
-      );
-      headerCategory.value = normalizeHeaderDefaultValue(
-        findControlledFieldByName(fields, 'CategoryID')
-      );
-      headerSubcategory.value = normalizeHeaderDefaultValue(
-        findControlledFieldByName(fields, 'SubCategoryID')
-      );
-      headerThirdLevelCategory.value = normalizeHeaderDefaultValue(
-        findControlledFieldByName(fields, 'CategoryLevel3ID')
-      );
-      headerAssignee.value = normalizeHeaderDefaultValue(
-        findControlledFieldByName(fields, 'ResponsibleUserID')
-      );
-      headerStatus.value = normalizeHeaderDefaultValue(
-        findControlledFieldByName(fields, 'StatusID')
-      );
+      headerTitle.value = titleDefault.label || titleDefault.value;
+
+      applyDefault('priority', 'PriorityID', headerPriority);
+      applyDefault('category', 'CategoryID', headerCategory);
+      applyDefault('subcategory', 'SubCategoryID', headerSubcategory);
+      applyDefault('thirdLevelCategory', 'CategoryLevel3ID', headerThirdLevelCategory);
+      applyDefault('assignee', 'ResponsibleUserID', headerAssignee);
+      applyDefault('status', 'StatusID', headerStatus);
     };
 
     const normalizeHeaderOptions = field => {
