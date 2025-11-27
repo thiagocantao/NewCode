@@ -752,10 +752,25 @@ const headerControlledFields = computed(
   () => formData.value?.form?.default_controlled_field_parameters || []
 );
 
-const findControlledFieldByName = (fields, name) =>
-  (fields || []).find(
-    field => field?.tag_control && field.tag_control.toLowerCase() === name.toLowerCase()
-  );
+const normalizeControlledFieldName = (field) => {
+  const rawName =
+    field?.tag_control ??
+    field?.TagControl ??
+    field?.tagControl ??
+    field?.name ??
+    field?.Name ??
+    null;
+
+  return typeof rawName === 'string' ? rawName.toLowerCase() : null;
+};
+
+const findControlledFieldByName = (fields, name) => {
+  if (!name) return null;
+
+  const targetName = name.toLowerCase();
+
+  return (fields || []).find(field => normalizeControlledFieldName(field) === targetName) || null;
+};
 
 const updateControlledFieldDefaultValue = (fieldName, value) => {
   if (!fieldName) return;
