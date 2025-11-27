@@ -518,6 +518,53 @@ export default {
       return { isImage, isPdf, isTxt };
     }
 
+    const stripBase64Prefix = (value) => {
+      if (typeof value !== "string") return null;
+      const commaIdx = value.indexOf(",");
+      return commaIdx !== -1 ? value.slice(commaIdx + 1) : value;
+    };
+
+    const blobToBase64 = (blob) =>
+      new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(stripBase64Prefix(reader.result));
+        reader.onerror = (e) => reject(e);
+        reader.readAsDataURL(blob);
+      });
+
+    async function ensureBase64Content(fileItem) {
+      if (!fileItem || fileItem.base64) return fileItem.base64 || null;
+      if (fileItem._base64Loading) return null;
+      fileItem._base64Loading = true;
+      try {
+        if (fileItem.file instanceof File) {
+          fileItem.base64 = await blobToBase64(fileItem.file);
+          return fileItem.base64;
+        }
+
+        // Gera uma URL assinada se ainda não houver e o caminho/bucket existir
+        if (!fileItem.url && fileItem.bucket && fileItem.storagePath) {
+          fileItem.url = await getFreshSignedUrl(fileItem, {
+            transformImage: { width: 1200, resize: "contain" },
+          });
+        }
+
+        if (fileItem.url) {
+          const response = await fetch(fileItem.url);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const blob = await response.blob();
+          fileItem.base64 = await blobToBase64(blob);
+          return fileItem.base64;
+        }
+      } catch (error) {
+        console.warn("[Anexos] Unable to get base64 content", error);
+      } finally {
+        fileItem._base64Loading = false;
+      }
+
+      return null;
+    }
+
     function guessContentType(name, fallback = "application/octet-stream") {
       const ext = extOf(name);
       if (ext === "txt" || ext === "log") return "text/plain";
@@ -590,6 +637,7 @@ export default {
             bucket: location.bucket,
             signedUrl: f.signedUrl || null,
             attachmentId: f.attachmentId || null,
+            base64: f.base64 || null,
           };
         });
         attachmentsInfo.value = info;
@@ -629,6 +677,8 @@ export default {
             createdBy: item.createdby,
             createdDate: item.createddate,
             textContent: null,
+            base64: null,
+            _base64Loading: false,
           };
           try {
             if (storageReady && supabase?.storage && bucket && storagePath) {
@@ -647,6 +697,7 @@ export default {
       );
       if (myVersion !== dsLoadVersion) return;
       files.value = items;
+      await Promise.all(items.map((item) => ensureBase64Content(item)));
     }
 
     function clearFiles() {
@@ -731,9 +782,13 @@ export default {
           isImage: kind.isImage, isPdf: kind.isPdf, isTxt: kind.isTxt,
           isUploaded: false, bucket: "ticket", storagePath: null,
           signedUrl: null, attachmentId: null, textContent: null,
+          base64: null,
+          _base64Loading: false,
         };
       });
       files.value.push(...selected);
+
+      await Promise.all(selected.map((item) => ensureBase64Content(item)));
 
       const language = getVar(languageVarId);
       const WorkspaceID = getVar(workspaceVarId);
