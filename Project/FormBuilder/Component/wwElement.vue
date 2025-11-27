@@ -313,7 +313,7 @@ ref="availableFieldsContainer"
                 :ref="el => setHeaderDropdownRef('assignee', el)"
               >
                 <div
-                  class="custom-dropdown-selected"
+                  class="custom-dropdown-selected-assign"
                   :class="{ open: headerDropdownState.assignee.open }"
                   @click.stop="toggleHeaderDropdown('assignee')"
                 >
@@ -386,7 +386,7 @@ ref="availableFieldsContainer"
                 </div>
                 <div
                   v-if="headerDropdownState.status.open"
-                  class="custom-dropdown-list"
+                  class="custom-dropdown-list-status"
                 >
                   <div class="dropdown-search-wrapper">
                     <span class="material-symbols-outlined search-icon">search</span>
@@ -2899,7 +2899,28 @@ width: 255px;
   overflow: hidden;
   width: fit-content;
   min-width: 140px;
-  max-width: 200px;
+  max-width: 195px;
+}
+
+.custom-dropdown-selected-assign {
+border: 0px;
+padding: 6px 12px;
+background: transparent;
+cursor: pointer;
+display: flex;
+align-items: center;
+justify-content: space-between;
+height: 34px;
+font-size: 0.845rem;
+letter-spacing: 0px;
+text-overflow: ellipsis;
+transition: border .2s;
+color: #787878 !important;
+white-space: nowrap;
+overflow: hidden;
+width: fit-content;
+min-width: 140px;
+max-width: 200px;
 }
 
 .custom-dropdown-selected span:not(.dropdown-arrow) {
@@ -2926,12 +2947,27 @@ width: 255px;
   border: 1px solid #d1d5db;
   border-radius: 0 0 6px 6px;
   box-shadow: 0 4px 16px rgba(105, 157, 140, 0.10);
-  z-index: 1005;
+  z-index: 2147483648;
   max-height: 320px;
-  min-width: 180px;
+  min-width: 280px;
   overflow-y: auto;
   margin-top: 2px;
   padding-bottom: 4px;
+}
+
+.custom-dropdown-list-status {
+position: absolute;
+right: 0;
+background: #fff;
+border: 1px solid #d1d5db;
+border-radius: 0 0 6px 6px;
+box-shadow: 0 4px 16px rgba(105, 157, 140, 0.10);
+z-index: 2147483648;
+max-height: 320px;
+min-width: 200px;
+overflow-y: auto;
+margin-top: 2px;
+padding-bottom: 4px;
 }
 
 .custom-dropdown-option {
@@ -2981,11 +3017,11 @@ width: 255px;
 
 .dropdown-search-wrapper .search-icon {
   position: absolute;
-  right: 12px;
-  font-size: 20px;
+  right: 8px;
+  font-size: 22px;
   color: #bdbdbd;
   pointer-events: none;
-  top: 50%;
+  top: 19px;
   transform: translateY(-50%);
 }
 
@@ -3011,7 +3047,7 @@ width: 255px;
 }
 
 .tag-select-wrapper {
-  min-width: calc(var(--select-placeholder-length)  + 2.8rem);
+  width: calc(var(--select-placeholder-length)  + 2.8rem);
 }
 
 .tag-selectPriority {
@@ -3098,7 +3134,7 @@ min-width: 140px;
   padding: 0px 12px;
   border-radius: 999px;
   border: 1px solid #d0d4dc;
-  background-color: #0000;
+  background-color: transparent;
 }
 
 .user-icon {
@@ -3114,7 +3150,8 @@ min-width: 140px;
 }
 
 .assignee-select-wrapper {
-  min-width: calc(var(--select-placeholder-length) * 0.3em + 2.5rem);
+  width: calc(var(--select-placeholder-length) + 2.8rem);
+  background-color: transparent;
 }
 
 .user-select {
@@ -3138,7 +3175,7 @@ min-width: 140px;
 }
 
 .status-select-wrapper {
-  min-width: calc(var(--select-placeholder-length) * 0.3em + 1.5rem);
+  width: calc(var(--select-placeholder-length) + 2.8rem);
 }
 
 .status-select {
