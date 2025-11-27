@@ -3011,7 +3011,7 @@ width: 255px;
 }
 
 .tag-select-wrapper {
-  min-width: calc(var(--select-placeholder-length) * 0.3em + 2.75rem);
+  min-width: calc(var(--select-placeholder-length)  + 2.8rem);
 }
 
 .tag-selectPriority {
