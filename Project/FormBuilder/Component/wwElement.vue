@@ -788,6 +788,62 @@ const normalizeHeaderOptions = field => {
   return normalizeOptions(rawOptions);
 };
 
+const getWewebVariableValue = (variableId) => {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const getter = window.wwLib?.wwVariable?.getValue;
+    return getter ? getter(variableId) : null;
+  } catch (error) {
+    console.error(`Failed to read variable ${variableId}`, error);
+    return null;
+  }
+};
+
+const CATEGORY_VARIABLE_ID = 'db57a4b4-37a1-4fbb-9b50-e6b49188b39b';
+
+const getCategoryHierarchyData = () => {
+  const rawValue = getWewebVariableValue(CATEGORY_VARIABLE_ID);
+  return Array.isArray(rawValue) ? rawValue : [];
+};
+
+const toCategoryOptions = (items = []) =>
+  items
+    .filter(item => item && item.id != null && item.category != null)
+    .map(item => ({ value: item.id, label: item.category }));
+
+const getCategoryVariableOptions = (key) => {
+  const data = getCategoryHierarchyData();
+
+  if (!data.length) return [];
+
+  if (key === 'category') {
+    return toCategoryOptions(data.filter(item => item.level === 1));
+  }
+
+  if (key === 'subcategory') {
+    if (!headerCategory.value) return [];
+
+    return toCategoryOptions(
+      data.filter(
+        item => item.categoryParentID == headerCategory.value && (item.level == null || item.level === 2)
+      )
+    );
+  }
+
+  if (key === 'thirdLevelCategory') {
+    if (!headerSubcategory.value) return [];
+
+    return toCategoryOptions(
+      data.filter(
+        item => item.categoryParentID == headerSubcategory.value && item.level === 3
+      )
+    );
+  }
+
+  return [];
+};
+
 const ensureValueExistsInOptions = (modelRef, options) => {
   const hasValue = options.some(option => {
     if (option && typeof option === 'object') {
@@ -907,6 +963,13 @@ const selectHeaderOption = (key, option) => {
 
 const loadHeaderOptionsForField = async ({ key, name, model }) => {
   const targetField = findControlledFieldByName(headerControlledFields.value, name);
+
+  if (['CategoryID', 'SubCategoryID', 'CategoryLevel3ID'].includes(name)) {
+    const options = getCategoryVariableOptions(key);
+    headerListOptions[key] = options;
+    ensureValueExistsInOptions(model, options);
+    return;
+  }
 
   const normalizedFromConfig = normalizeHeaderOptions(targetField);
   headerListOptions[key] = normalizedFromConfig;
@@ -2330,6 +2393,18 @@ watch(headerControlledFields, fields => {
   populateHeaderFieldsFromForm({ default_controlled_field_parameters: fields });
   refreshHeaderListOptions();
 }, { deep: true });
+
+watch(headerCategory, () => {
+  headerSubcategory.value = '';
+  headerThirdLevelCategory.value = '';
+  headerListOptions.subcategory = getCategoryVariableOptions('subcategory');
+  headerListOptions.thirdLevelCategory = [];
+});
+
+watch(headerSubcategory, () => {
+  headerThirdLevelCategory.value = '';
+  headerListOptions.thirdLevelCategory = getCategoryVariableOptions('thirdLevelCategory');
+});
 
 const onRemoveField = ({ sectionId, field }) => {
   removeFormField({ sectionId, field });
