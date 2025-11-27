@@ -1037,6 +1037,13 @@ return;
         headerDropdownState[key].open = false;
       });
     };
+    const headerSelectedLabels = reactive(
+      HEADER_FIELD_CONFIG.reduce((acc, { key }) => {
+        acc[key] = '';
+        return acc;
+      }, {})
+    );
+
     const toggleHeaderDropdown = (key) => {
       const target = headerDropdownState[key];
       if (!target) return;
@@ -1065,7 +1072,13 @@ return;
     const getHeaderSelectedLabel = (key) => {
       const selected = getHeaderSelectedOption(key);
       if (selected && typeof selected === 'object') {
-        return selected.label ?? selected.value ?? '';
+        const label = selected.label ?? selected.value ?? '';
+        headerSelectedLabels[key] = label;
+        return label;
+      }
+
+      if (headerSelectedLabels[key]) {
+        return headerSelectedLabels[key];
       }
 
       return headerFieldModels[key]?.value || '';
@@ -1097,6 +1110,9 @@ return;
       if (!model) return;
 
       const newValue = option?.value ?? option?.label ?? option;
+      const label = option?.label ?? option?.value ?? option ?? '';
+
+      headerSelectedLabels[key] = label;
       model.value = newValue ?? '';
       closeAllHeaderDropdowns();
     };
