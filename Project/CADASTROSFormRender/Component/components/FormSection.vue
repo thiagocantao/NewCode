@@ -65,6 +65,11 @@ export default {
       type: String,
       required: false
     },
+    listRequestBody: {
+      type: [Object, String],
+      required: false,
+      default: null
+    },
     ticketId: {
       type: String,
       required: false
@@ -216,6 +221,7 @@ export default {
           apiUrl: props.apiUrl,
           apiKey: props.apiKey,
           apiAuthorization: props.apiAuthorization,
+          listRequestBody: props.listRequestBody,
           ticketId: props.ticketId || null,
           companyId: props.companyId || null,
           language: props.language || null,

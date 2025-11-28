@@ -178,6 +178,22 @@ export default {
             }
             /* wwEditor:end */
         },
+        listRequestBody: {
+            label: { en: 'List request body (JSON)' },
+            type: 'Text',
+            section: 'settings',
+            bindable: true,
+            defaultValue: '',
+            /* wwEditor:start */
+            bindingValidation: {
+                type: 'string',
+                tooltip: 'JSON string com o body para chamadas das listas'
+            },
+            propertyHelp: {
+                tooltip: 'Informe o JSON que deve ser enviado no body das requisições de listas'
+            }
+            /* wwEditor:end */
+        },
         apiUrl: {
             label: { en: 'API URL' },
             type: 'Text',

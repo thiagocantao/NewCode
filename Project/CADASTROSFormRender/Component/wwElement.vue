@@ -19,7 +19,8 @@
             <FormSection v-for="section in formSections" :key="`section-${section.id}-${renderKey}`" :section="section"
               ref="sectionComponents"
               :all-fields="allAvailableFields" :is-editing="isEditing" :api-url="apiUrl" :api-key="apiKey"
-              :api-authorization="apiAuthorization" :ticket-id="ticketId" :company-id="companyId" :language="language"
+              :api-authorization="apiAuthorization" :list-request-body="listRequestBody" :ticket-id="ticketId"
+              :company-id="companyId" :language="language"
               :is-mobile="isMobile" :is-read-only="isFormReadonly"
               @update-section="updateFormState" @edit-section="editSection" @edit-field="editFormField"
               @remove-field="removeFormField" @select-field="selectFieldForProperties"
@@ -119,6 +120,19 @@ export default {
     const apiKey = computed(() => props.apiKey || props.content.apiKey);
     const apiAuthorization = computed(() => props.apiAuthorization || props.content.apiAuthorization);
     const apiUrl = computed(() => props.apiUrl || props.content.apiUrl);
+    const listRequestBody = computed(() => {
+      const rawBody = props.content.listRequestBody;
+      if (rawBody === undefined || rawBody === null) return null;
+      if (typeof rawBody === 'object') return rawBody;
+      if (typeof rawBody === 'string') {
+        try {
+          return JSON.parse(rawBody);
+        } catch (error) {
+          return rawBody;
+        }
+      }
+      return rawBody;
+    });
     const ticketId = computed(() => props.ticketId || props.content.ticketId);
     const companyId = computed(() => props.content.companyId);
     const language = computed(() => props.content.language);
@@ -521,6 +535,7 @@ export default {
       apiKey,
       apiAuthorization,
       apiUrl,
+      listRequestBody,
       ticketId,
       companyId,
       language,
