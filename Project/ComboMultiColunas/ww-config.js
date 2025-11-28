@@ -19,6 +19,7 @@ export default {
                 'selectedFontColor',
                 'selectedPadding',
                 'selectedTextAlign',
+                'selectedOverflow',
             ],
             [
                 'placeholderTitle',
@@ -1125,6 +1126,22 @@ export default {
             bindable: true,
             responsive: true,
             defaultValue: 'left',
+            hidden: content => content.selectType !== 'single',
+        },
+        selectedOverflow: {
+            label: { en: 'Selected item overflow' },
+            type: 'TextSelect',
+            options: {
+                options: [
+                    { value: 'ellipsis', label: { en: 'Ellipsis' } },
+                    { value: 'wrap', label: { en: 'Wrap' } },
+                ],
+            },
+            states: true,
+            classes: true,
+            bindable: true,
+            responsive: true,
+            defaultValue: 'ellipsis',
             hidden: content => content.selectType !== 'single',
         },
 

@@ -126,6 +126,11 @@ export default {
         });
 
         const selectedValueStyle = computed(() => {
+            const overflowBehavior = props.content.selectedOverflow || 'ellipsis';
+            const overflowStyles =
+                overflowBehavior === 'wrap'
+                    ? { 'white-space': 'normal', 'word-break': 'break-word' }
+                    : { 'white-space': 'nowrap', overflow: 'hidden', 'text-overflow': 'ellipsis' };
             return {
                 'font-size': props.content.selectedFontSize,
                 'font-family': props.content.selectedFontFamily,
@@ -133,6 +138,7 @@ export default {
                 'font-weight': props.content.selectedFontWeight,
                 'text-align': props.content.selectedTextAlign,
                 width: '100%',
+                ...overflowStyles,
             };
         });
 
