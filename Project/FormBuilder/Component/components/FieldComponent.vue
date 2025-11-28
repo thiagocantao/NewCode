@@ -444,6 +444,9 @@ export default {
       return normalizeFieldDataSource(this.field);
     },
     isReadOnly() {
+      const type = (this.field?.fieldType || '').toString().toUpperCase();
+      if (type === 'DEADLINE') return true;
+
       const raw =
         this.field?.is_readonly ??
         this.field?.isReadOnly ??
@@ -697,7 +700,7 @@ export default {
     if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
       this.$refs.rte.innerHTML = this.localValue || '';
     }
-    if (this.field.fieldType === 'DEADLINE' && !this.isReadOnly) {
+    if (this.field.fieldType === 'DEADLINE' && !this.deadlineTimer) {
       this.deadlineTimer = setInterval(() => {
         this.dataNow = new Date();
       }, 1000);
