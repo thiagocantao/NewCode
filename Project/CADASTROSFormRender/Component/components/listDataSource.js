@@ -214,6 +214,26 @@ function getDefaultPlatformContext() {
   };
 }
 
+function resolveRequestBody(context, defaults) {
+  const customBody = context.listRequestBody;
+
+  if (customBody !== undefined && customBody !== null) {
+    if (typeof customBody === 'object') {
+      return customBody;
+    }
+
+    if (typeof customBody === 'string') {
+      try {
+        return JSON.parse(customBody);
+      } catch (error) {
+        console.warn('[CADASTROSFormRender] Failed to parse custom list request body', error);
+      }
+    }
+  }
+
+  return defaults;
+}
+
 export async function fetchDataSourceOptions(rawDataSource, context = {}) {
   if (typeof window === 'undefined') {
     return [];
@@ -258,10 +278,12 @@ export async function fetchDataSourceOptions(rawDataSource, context = {}) {
 
   const fetchOptions = { method, headers };
   if (method !== 'GET') {
-    fetchOptions.body = JSON.stringify({
+    const defaultBody = {
       ...(workspaceId ? { p_workspaceid: workspaceId } : {}),
       ...(userId ? { p_userid: userId } : {})
-    });
+    };
+    const resolvedBody = resolveRequestBody(context, defaultBody);
+    fetchOptions.body = JSON.stringify(resolvedBody ?? {});
   }
 
   const response = await fetch(url, fetchOptions);
