@@ -228,9 +228,6 @@ export async function fetchDataSourceOptions(rawDataSource, context = {}) {
     apiUrl = '',
     apiKey,
     apiAuthorization,
-    ticketId = null,
-    companyId = null,
-    language = null,
     workspaceId = null,
     userId = null
   } = { ...getDefaultPlatformContext(), ...context };
@@ -262,9 +259,6 @@ export async function fetchDataSourceOptions(rawDataSource, context = {}) {
   const fetchOptions = { method, headers };
   if (method !== 'GET') {
     fetchOptions.body = JSON.stringify({
-      ...(companyId ? { p_idcompany: companyId } : {}),
-      ...(language ? { p_language: language } : {}),
-      p_ticketid: ticketId,
       ...(workspaceId ? { p_workspaceid: workspaceId } : {}),
       ...(userId ? { p_userid: userId } : {})
     });
