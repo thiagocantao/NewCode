@@ -32,12 +32,12 @@
             ]"
             :title="deadlineOriginalFormatted"
             role="button"
-            :tabindex="isReadOnly ? -1 : 0"
+            :tabindex="isDeadlineDisplayOnly || isReadOnly ? -1 : 0"
             @mousedown.stop
             @touchstart.stop
-            @click="openDeadlinePicker"
-            @keydown.enter.prevent="openDeadlinePicker"
-            @keydown.space.prevent="openDeadlinePicker"
+            @click="!isDeadlineDisplayOnly && openDeadlinePicker()"
+            @keydown.enter.prevent="!isDeadlineDisplayOnly && openDeadlinePicker()"
+            @keydown.space.prevent="!isDeadlineDisplayOnly && openDeadlinePicker()"
           >
             <template v-if="deadlineHasValue">
               <span class="deadline-diff-display">{{ deadlineDiff }}</span>
@@ -444,15 +444,16 @@ export default {
       return normalizeFieldDataSource(this.field);
     },
     isReadOnly() {
-      const type = (this.field?.fieldType || '').toString().toUpperCase();
-      if (type === 'DEADLINE') return true;
-
       const raw =
         this.field?.is_readonly ??
         this.field?.isReadOnly ??
         this.field?.readonly ??
         null;
       return normalizeBoolean(raw, false);
+    },
+    isDeadlineDisplayOnly() {
+      const type = (this.field?.fieldType || '').toString().toUpperCase();
+      return type === 'DEADLINE';
     },
     isMandatory() {
       const raw =
@@ -774,11 +775,11 @@ export default {
       this.updateValue(value);
     },
     openDeadlinePicker() {
-      if (this.field.fieldType === 'DEADLINE' && !this.isReadOnly) {
-        const dp = this.$refs.deadlineDatePicker;
-        if (dp && typeof dp.openDp === 'function') {
-          dp.openDp();
-        }
+      if (this.isDeadlineDisplayOnly || this.isReadOnly) return;
+
+      const dp = this.$refs.deadlineDatePicker;
+      if (dp && typeof dp.openDp === 'function') {
+        dp.openDp();
       }
     },
     onContentEditableInput(event) {
