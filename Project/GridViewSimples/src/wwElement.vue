@@ -1,5 +1,5 @@
 <template>
-  <div class="ww-datagrid" :class="{ editing: isEditing }" :style="cssVars">
+  <div class="ww-datagrid" :class="{ editing: isEditing, 'grid-hidden': !gridVisible }" :style="cssVars">
     <ag-grid-vue :key="gridKey" :rowData="rowData" :columnDefs="columnDefs" :defaultColDef="defaultColDef"
       :domLayout="content.layout === 'auto' ? 'autoHeight' : 'normal'" :style="style" :rowSelection="rowSelection"
       :selection-column-def="{ pinned: true }" :theme="theme" :getRowId="getRowId" :pagination="content.pagination"
@@ -7,6 +7,7 @@
       :suppressColumnMoveAnimation="true"
       :suppressMovableColumns="!content.movableColumns" :columnHoverHighlight="content.columnHoverHighlight"
       :singleClickEdit="content.oneClickEdit" :locale-text="localeText" @grid-ready="onGridReady"
+      @first-data-rendered="onFirstDataRendered"
       @row-selected="onRowSelected" @selection-changed="onSelectionChanged"
       @cell-value-changed="onCellValueChanged" @filter-changed="onFilterChanged" @sort-changed="onSortChanged"
       @row-clicked="onRowClicked" @cell-key-down="onCellKeyDown" @cell-editing-stopped="onCellEditingStopped">
@@ -199,13 +200,28 @@ export default {
     /* wwEditor:end */
 
     const gridKey = ref(0);
+    const gridVisible = ref(false);
     watch(
       () => props.content.rowData,
       () => {
+        gridVisible.value = false;
         gridKey.value += 1;
       },
       { deep: true }
     );
+
+    const showGrid = () => {
+      // Wait two frames to let flex columns settle before revealing the grid
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          gridVisible.value = true;
+        })
+      );
+    };
+
+    const onFirstDataRendered = () => {
+      showGrid();
+    };
 
     return {
       resolveMappingFormula,
@@ -215,6 +231,8 @@ export default {
       gridApi,
       onFilterChanged,
       onSortChanged,
+      onFirstDataRendered,
+      gridVisible,
       localeText: computed(() => {
         switch (props.content.lang) {
           case "fr":
@@ -769,6 +787,10 @@ export default {
 <style scoped lang="scss">
   .ww-datagrid {
     position: relative;
+
+    &.grid-hidden {
+      visibility: hidden;
+    }
 
     /* wwEditor:start */
     &.editing {
