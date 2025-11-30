@@ -4,6 +4,7 @@
       :domLayout="content.layout === 'auto' ? 'autoHeight' : 'normal'" :style="style" :rowSelection="rowSelection"
       :selection-column-def="{ pinned: true }" :theme="theme" :getRowId="getRowId" :pagination="content.pagination"
       :paginationPageSize="content.paginationPageSize || 10" :paginationPageSizeSelector="false"
+      :suppressColumnMoveAnimation="true"
       :suppressMovableColumns="!content.movableColumns" :columnHoverHighlight="content.columnHoverHighlight"
       :singleClickEdit="content.oneClickEdit" :locale-text="localeText" @grid-ready="onGridReady"
       @row-selected="onRowSelected" @selection-changed="onSelectionChanged"
@@ -806,6 +807,12 @@ export default {
     :deep(.ag-header-cell.ag-header-cell-filtered .ag-header-icon) {
       color: rgb(105, 157, 140) !important;
       filter: drop-shadow(0 0 2px rgb(105, 157, 140));
+    }
+
+    /* Evita o efeito de redimensionamento animado ao carregar o grid */
+    :deep(.ag-header-cell),
+    :deep(.ag-cell) {
+      transition: none !important;
     }
 
     :deep(.ag-text-left) {
