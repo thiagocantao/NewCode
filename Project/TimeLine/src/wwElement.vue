@@ -274,8 +274,11 @@
               </div>
             </template>
 
-            <!-- PriorityChanged -->
-            <template v-else-if="(item.TagControl || item.tagControl) === 'PriorityChanged'">
+            <!-- PriorityChanged / ImpactChanged -->
+            <template v-else-if="
+                (item.TagControl || item.tagControl) === 'PriorityChanged' ||
+                (item.TagControl || item.tagControl) === 'ImpactChanged'
+              ">
               <div class="activity-added-card">
                 <div class="activity-added-card__left">
                   <div class="activity-added-card__title">{{ item.Title }}</div>
