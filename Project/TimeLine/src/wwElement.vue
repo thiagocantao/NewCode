@@ -882,7 +882,7 @@
 <script>
   import { computed, ref, watch, onMounted, onBeforeUnmount } from "vue";
 import { useElementSize } from "@vueuse/core";
-import { SUPABASE_IMAGE_BUCKET } from "./supabaseBuckets";
+import { SUPABASE_IMAGE_BUCKET } from "./components/supabaseBuckets";
 
 export default {
   props: {
@@ -3061,4 +3061,3 @@ font-size: 22px;
 color: #9ca3af;
 }
 </style>
-
