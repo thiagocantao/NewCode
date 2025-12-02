@@ -291,12 +291,13 @@
     isPopup() { return true; }
   }
   import './components/list-filter.css';
-  
+
   // TODO: maybe register less modules
   // TODO: maybe register modules per grid instead of globally
   ModuleRegistry.registerModules([AllCommunityModule]);
 
   const HIDE_SAVE_BUTTON_VARIABLE_ID = "09c5aacd-b697-4e04-9571-d5db1f671877";
+  const GRID_CONFIG_VARIABLE_ID = "f33bef90-f5d8-485d-ad5b-7418bd7437f4";
 
   export default {
   components: {
@@ -1465,18 +1466,64 @@ function applyExternalSortAndSync() {
 }
 
 
-const remountComponent = () => {
-  gridApi.value = null;
-  columnApi.value = null;
-  // Força reaplicar a ordenação externa no próximo ciclo
-  forceExternalSortNextMount.value = true;
+  const remountComponent = () => {
+    gridApi.value = null;
+    columnApi.value = null;
+    // Força reaplicar a ordenação externa no próximo ciclo
+    forceExternalSortNextMount.value = true;
 
-  componentKey.value++;
-  // Não chame updateColumnsPosition/Sort aqui; eles dependem do grid já montado
-};
+    componentKey.value++;
+    // Não chame updateColumnsPosition/Sort aqui; eles dependem do grid já montado
+  };
 
   // ===================== Persistência de estado =====================
   const storageKey = `GridViewDinamicaState_${props.uid}`;
+
+  function persistGridStateToWWVariable(state) {
+    try {
+      const wwVariable = window?.wwLib?.wwVariable;
+      if (!wwVariable) return;
+
+      if (typeof wwVariable.setValue === "function") {
+        wwVariable.setValue(GRID_CONFIG_VARIABLE_ID, state);
+        return;
+      }
+      if (typeof wwVariable.updateValue === "function") {
+        wwVariable.updateValue(GRID_CONFIG_VARIABLE_ID, state);
+        return;
+      }
+      if (typeof wwVariable.setComponentValue === "function") {
+        wwVariable.setComponentValue(GRID_CONFIG_VARIABLE_ID, state);
+      }
+    } catch (error) {
+      console.warn("[GridViewDinamica] Failed to persist grid config", error);
+    }
+  }
+
+  function getGridStateFromWWVariable() {
+    try {
+      const wwVariable = window?.wwLib?.wwVariable;
+      if (wwVariable && typeof wwVariable.getValue === "function") {
+        const state = wwVariable.getValue(GRID_CONFIG_VARIABLE_ID);
+        if (state && typeof state === "object") {
+          return state;
+        }
+      }
+    } catch (error) {
+      console.warn("[GridViewDinamica] Failed to read grid config", error);
+    }
+    return null;
+  }
+
+  function getGridStateFromLocalStorage() {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
 
   function saveGridState() {
     const colApi = getColApi();
@@ -1485,8 +1532,13 @@ const remountComponent = () => {
       const state = {
         filterModel: gridApi.value.getFilterModel(),
         columnState: colApi?.getColumnState?.(),
+        sortModel:
+          typeof gridApi.value.getSortModel === "function"
+            ? gridApi.value.getSortModel()
+            : [],
       };
       localStorage.setItem(storageKey, JSON.stringify(state));
+      persistGridStateToWWVariable(state);
     } catch (e) {
       console.warn('Failed to save grid state', e);
     }
@@ -1496,13 +1548,16 @@ const remountComponent = () => {
     const colApi = getColApi();
     if (!gridApi.value || !colApi) return;
     try {
-      const raw = localStorage.getItem(storageKey);
-      if (!raw) return;
-      const state = JSON.parse(raw);
+      const state =
+        getGridStateFromWWVariable() ||
+        getGridStateFromLocalStorage();
+      if (!state) return;
+
       const hasColumnState = Array.isArray(state.columnState) && state.columnState.length;
       const hasFilterModel = state.filterModel && typeof state.filterModel === 'object';
+      const hasSortModel = Array.isArray(state.sortModel) && state.sortModel.length;
 
-      if (!hasColumnState && !hasFilterModel) {
+      if (!hasColumnState && !hasFilterModel && !hasSortModel) {
         return;
       }
 
@@ -1513,6 +1568,9 @@ const remountComponent = () => {
         if (hasFilterModel) {
           gridApi.value.setFilterModel(state.filterModel);
         }
+        if (hasSortModel) {
+          gridApi.value.setSortModel(state.sortModel);
+        }
       });
     } catch (e) {
       console.warn('Failed to restore grid state', e);
@@ -1522,6 +1580,7 @@ const remountComponent = () => {
   function clearSavedGridState() {
     try {
       localStorage.removeItem(storageKey);
+      persistGridStateToWWVariable(null);
     } catch {}
     const colApi = getColApi();
     colApi?.resetColumnState?.();
@@ -1752,8 +1811,7 @@ const remountComponent = () => {
     }
   };
 
-  // Listener de unload para salvar estado (opcional, robustez extra)
-  let beforeUnloadHandler = null;
+  // Mantido para indicar decisão de não persistir estado ao sair da página
 
   const handleDocumentClick = (e) => {
     const selectors = [
@@ -1778,8 +1836,6 @@ const remountComponent = () => {
   onMounted(() => {
     loadAllColumnOptions();
 
-    beforeUnloadHandler = () => saveGridState();
-    window.addEventListener('beforeunload', beforeUnloadHandler);
     document.addEventListener('click', handleDocumentClick, true);
   });
 
@@ -1822,12 +1878,7 @@ const remountComponent = () => {
       clearInterval(deadlineTimer);
       deadlineTimer = null;
     }
-    // Salva estado ao desmontar (garante persistência ao navegar)
-    saveGridState();
-    if (beforeUnloadHandler) {
-      window.removeEventListener('beforeunload', beforeUnloadHandler);
-      beforeUnloadHandler = null;
-    }
+    // Não persiste estado ao sair da página para evitar sobrescrever as configurações
     document.removeEventListener('click', handleDocumentClick, true);
     if (captureInitialStateTimeout) {
       clearTimeout(captureInitialStateTimeout);
