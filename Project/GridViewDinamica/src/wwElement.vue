@@ -1811,8 +1811,7 @@ function applyExternalSortAndSync() {
     }
   };
 
-  // Listener de unload para salvar estado (opcional, robustez extra)
-  let beforeUnloadHandler = null;
+  // Mantido para indicar decisão de não persistir estado ao sair da página
 
   const handleDocumentClick = (e) => {
     const selectors = [
@@ -1837,8 +1836,6 @@ function applyExternalSortAndSync() {
   onMounted(() => {
     loadAllColumnOptions();
 
-    beforeUnloadHandler = () => saveGridState();
-    window.addEventListener('beforeunload', beforeUnloadHandler);
     document.addEventListener('click', handleDocumentClick, true);
   });
 
@@ -1881,12 +1878,7 @@ function applyExternalSortAndSync() {
       clearInterval(deadlineTimer);
       deadlineTimer = null;
     }
-    // Salva estado ao desmontar (garante persistência ao navegar)
-    saveGridState();
-    if (beforeUnloadHandler) {
-      window.removeEventListener('beforeunload', beforeUnloadHandler);
-      beforeUnloadHandler = null;
-    }
+    // Não persiste estado ao sair da página para evitar sobrescrever as configurações
     document.removeEventListener('click', handleDocumentClick, true);
     if (captureInitialStateTimeout) {
       clearTimeout(captureInitialStateTimeout);
