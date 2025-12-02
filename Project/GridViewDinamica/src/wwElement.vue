@@ -3073,12 +3073,38 @@ setTimeout(() => {
                     return deadline.toLocaleDateString(lang);
                   }
                 }
+                function getDeadlineTooltipFormatted(val) {
+                  if (!val) return '';
+                  const dateStr = normalizeDeadline(val);
+                  const deadline = new Date(dateStr);
+                  if (isNaN(deadline.getTime())) return val;
+                  let lang = 'en-US';
+                  try {
+                    if (window.wwLib && window.wwLib.wwVariable && typeof window.wwLib.wwVariable.getValue === 'function') {
+                      const v = window.wwLib.wwVariable.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
+                      if (typeof v === 'string' && v.length > 0) lang = v;
+                    }
+                  } catch (e) {}
+                  const opts = {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  };
+                  try {
+                    return deadline.toLocaleString(lang, opts);
+                  } catch (err) {
+                    return deadline.toLocaleString(lang);
+                  }
+                }
                 const val = params.value;
                 if (!val) {
                   return '<span class="deadline-visual deadline-empty"><span class="material-symbols-outlined deadline-empty-icon">calendar_month</span><span class="deadline-empty-text">Select</span></span>';
                 }
                 const formattedDate = getDeadlineOriginalFormatted(val);
-                const tooltip = formattedDate || val || '';
+                const formattedTooltip = getDeadlineTooltipFormatted(val);
+                const tooltip = formattedTooltip || formattedDate || val || '';
                 const safeTooltip = escapeHtml(tooltip);
                 const tooltipAttr = safeTooltip ? ` title="${safeTooltip}"` : '';
                 const isClosedRaw = params.data?.IsClosed;
