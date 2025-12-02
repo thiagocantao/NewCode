@@ -1479,35 +1479,10 @@ function applyExternalSortAndSync() {
   // ===================== Persistência de estado =====================
   const storageKey = `GridViewDinamicaState_${props.uid}`;
 
-  const isEmptyGridState = (state) => {
-    if (!state || typeof state !== "object") return true;
-
-    const hasColumns = Array.isArray(state.columnState) && state.columnState.length > 0;
-    const hasSort = Array.isArray(state.sortModel) && state.sortModel.length > 0;
-    const hasFilters =
-      state.filterModel &&
-      typeof state.filterModel === "object" &&
-      Object.keys(state.filterModel).length > 0;
-
-    return !hasColumns && !hasSort && !hasFilters;
-  };
-
-  let restoredPersistedState = null;
-  let protectPersistedStateUntilChange = false;
-
   function persistGridStateToWWVariable(state) {
     try {
       const wwVariable = window?.wwLib?.wwVariable;
       if (!wwVariable) return;
-
-      const existing =
-        typeof wwVariable?.getValue === "function"
-          ? wwVariable.getValue(GRID_CONFIG_VARIABLE_ID)
-          : null;
-
-      if (!isEmptyGridState(existing) && isEmptyGridState(state)) {
-        return;
-      }
 
       if (typeof wwVariable.setValue === "function") {
         wwVariable.setValue(GRID_CONFIG_VARIABLE_ID, state);
@@ -1550,7 +1525,7 @@ function applyExternalSortAndSync() {
     }
   }
 
-  function saveGridState(event) {
+  function saveGridState() {
     const colApi = getColApi();
     if (!gridApi.value || !colApi) return;
     try {
@@ -1562,25 +1537,8 @@ function applyExternalSortAndSync() {
             ? gridApi.value.getSortModel()
             : [],
       };
-
-      const userTriggered = event ? !isProgrammaticEvent(event) : false;
-
-      if (protectPersistedStateUntilChange) {
-        if (!userTriggered) {
-          return;
-        }
-
-        protectPersistedStateUntilChange = false;
-      }
-
-      const existing = getGridStateFromWWVariable();
-      if (!isEmptyGridState(existing) && isEmptyGridState(state) && !userTriggered) {
-        return;
-      }
-
       localStorage.setItem(storageKey, JSON.stringify(state));
       persistGridStateToWWVariable(state);
-      restoredPersistedState = state;
     } catch (e) {
       console.warn('Failed to save grid state', e);
     }
@@ -1590,13 +1548,9 @@ function applyExternalSortAndSync() {
     const colApi = getColApi();
     if (!gridApi.value || !colApi) return;
     try {
-      const wwState = getGridStateFromWWVariable();
-      const state = wwState || getGridStateFromLocalStorage();
-
-      if (restoredPersistedState === null) {
-        restoredPersistedState = state;
-        protectPersistedStateUntilChange = !isEmptyGridState(wwState);
-      }
+      const state =
+        getGridStateFromWWVariable() ||
+        getGridStateFromLocalStorage();
       if (!state) return;
 
       const hasColumnState = Array.isArray(state.columnState) && state.columnState.length;
@@ -1613,11 +1567,6 @@ function applyExternalSortAndSync() {
         }
         if (hasFilterModel) {
           gridApi.value.setFilterModel(state.filterModel);
-          setFilters(state.filterModel);
-        }
-        if (hasSortModel) {
-          gridApi.value.setSortModel(state.sortModel);
-          setSort(normalizeSortModel(state.sortModel));
         }
         if (hasSortModel) {
           gridApi.value.setSortModel(state.sortModel);
@@ -1633,8 +1582,6 @@ function applyExternalSortAndSync() {
       localStorage.removeItem(storageKey);
       persistGridStateToWWVariable(null);
     } catch {}
-    restoredPersistedState = null;
-    protectPersistedStateUntilChange = false;
     const colApi = getColApi();
     colApi?.resetColumnState?.();
     if (gridApi.value) gridApi.value.setFilterModel(null);
@@ -1864,7 +1811,8 @@ function applyExternalSortAndSync() {
     }
   };
 
-  // Mantido para indicar decisão de não persistir estado ao sair da página
+  // Listener de unload para salvar estado (opcional, robustez extra)
+  let beforeUnloadHandler = null;
 
   const handleDocumentClick = (e) => {
     const selectors = [
@@ -1889,6 +1837,8 @@ function applyExternalSortAndSync() {
   onMounted(() => {
     loadAllColumnOptions();
 
+    beforeUnloadHandler = () => saveGridState();
+    window.addEventListener('beforeunload', beforeUnloadHandler);
     document.addEventListener('click', handleDocumentClick, true);
   });
 
@@ -1931,7 +1881,12 @@ function applyExternalSortAndSync() {
       clearInterval(deadlineTimer);
       deadlineTimer = null;
     }
-    // Não persiste estado ao sair da página para evitar sobrescrever as configurações
+    // Salva estado ao desmontar (garante persistência ao navegar)
+    saveGridState();
+    if (beforeUnloadHandler) {
+      window.removeEventListener('beforeunload', beforeUnloadHandler);
+      beforeUnloadHandler = null;
+    }
     document.removeEventListener('click', handleDocumentClick, true);
     if (captureInitialStateTimeout) {
       clearTimeout(captureInitialStateTimeout);
@@ -2272,7 +2227,7 @@ function applyExternalSortAndSync() {
       updateTicketTagCounts();
       emitGridLoadedEvent();
     });
-    saveGridState(event);
+    saveGridState();
     (() => { try { const pristine = isGridStatePristine(); updateHideSaveButtonVisibility(pristine); } catch(e) { console && console.warn && console.warn('[Grid Pristine inline] failed:', e); } })();
   };
   
@@ -2288,7 +2243,7 @@ function applyExternalSortAndSync() {
       const { sort: normalizedSort } = getNormalizedGridState();
       setSort(normalizedSort);
       updateColumnsSort();
-      saveGridState(event);
+      saveGridState();
       const pristine = isGridStatePristine();
       updateHideSaveButtonVisibility(pristine);
       (() => { try { const pristine = isGridStatePristine(); updateHideSaveButtonVisibility(pristine); } catch(e) { console && console.warn && console.warn('[Grid Pristine inline] failed:', e); } })();
