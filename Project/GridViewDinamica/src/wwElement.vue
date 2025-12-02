@@ -1613,6 +1613,11 @@ function applyExternalSortAndSync() {
         }
         if (hasFilterModel) {
           gridApi.value.setFilterModel(state.filterModel);
+          setFilters(state.filterModel);
+        }
+        if (hasSortModel) {
+          gridApi.value.setSortModel(state.sortModel);
+          setSort(normalizeSortModel(state.sortModel));
         }
         if (hasSortModel) {
           gridApi.value.setSortModel(state.sortModel);
