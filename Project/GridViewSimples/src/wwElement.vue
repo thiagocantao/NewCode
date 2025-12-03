@@ -201,14 +201,6 @@ export default {
 
     const gridKey = ref(0);
     const gridVisible = ref(false);
-    watch(
-      () => props.content.rowData,
-      () => {
-        gridVisible.value = false;
-        gridKey.value += 1;
-      },
-      { deep: true }
-    );
 
     const showGrid = () => {
       // Wait two frames to let flex columns settle before revealing the grid
@@ -218,6 +210,20 @@ export default {
         })
       );
     };
+
+    watch(
+      () => props.content.rowData,
+      (newData) => {
+        gridVisible.value = false;
+        gridKey.value += 1;
+
+        const hasNoRows = !Array.isArray(newData) || newData.length === 0;
+        if (hasNoRows) {
+          showGrid();
+        }
+      },
+      { deep: true }
+    );
 
     const onFirstDataRendered = () => {
       showGrid();
