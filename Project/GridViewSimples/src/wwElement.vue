@@ -1,11 +1,13 @@
 <template>
-  <div class="ww-datagrid" :class="{ editing: isEditing }" :style="cssVars">
+  <div class="ww-datagrid" :class="{ editing: isEditing, 'grid-hidden': !gridVisible }" :style="cssVars">
     <ag-grid-vue :key="gridKey" :rowData="rowData" :columnDefs="columnDefs" :defaultColDef="defaultColDef"
       :domLayout="content.layout === 'auto' ? 'autoHeight' : 'normal'" :style="style" :rowSelection="rowSelection"
       :selection-column-def="{ pinned: true }" :theme="theme" :getRowId="getRowId" :pagination="content.pagination"
       :paginationPageSize="content.paginationPageSize || 10" :paginationPageSizeSelector="false"
+      :suppressColumnMoveAnimation="true"
       :suppressMovableColumns="!content.movableColumns" :columnHoverHighlight="content.columnHoverHighlight"
       :singleClickEdit="content.oneClickEdit" :locale-text="localeText" @grid-ready="onGridReady"
+      @first-data-rendered="onFirstDataRendered"
       @row-selected="onRowSelected" @selection-changed="onSelectionChanged"
       @cell-value-changed="onCellValueChanged" @filter-changed="onFilterChanged" @sort-changed="onSortChanged"
       @row-clicked="onRowClicked" @cell-key-down="onCellKeyDown" @cell-editing-stopped="onCellEditingStopped">
@@ -198,13 +200,34 @@ export default {
     /* wwEditor:end */
 
     const gridKey = ref(0);
+    const gridVisible = ref(false);
+
+    const showGrid = () => {
+      // Wait two frames to let flex columns settle before revealing the grid
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          gridVisible.value = true;
+        })
+      );
+    };
+
     watch(
       () => props.content.rowData,
-      () => {
+      (newData) => {
+        gridVisible.value = false;
         gridKey.value += 1;
+
+        const hasNoRows = !Array.isArray(newData) || newData.length === 0;
+        if (hasNoRows) {
+          showGrid();
+        }
       },
       { deep: true }
     );
+
+    const onFirstDataRendered = () => {
+      showGrid();
+    };
 
     return {
       resolveMappingFormula,
@@ -214,6 +237,8 @@ export default {
       gridApi,
       onFilterChanged,
       onSortChanged,
+      onFirstDataRendered,
+      gridVisible,
       localeText: computed(() => {
         switch (props.content.lang) {
           case "fr":
@@ -769,6 +794,10 @@ export default {
   .ww-datagrid {
     position: relative;
 
+    &.grid-hidden {
+      visibility: hidden;
+    }
+
     /* wwEditor:start */
     &.editing {
       &::before {
@@ -806,6 +835,12 @@ export default {
     :deep(.ag-header-cell.ag-header-cell-filtered .ag-header-icon) {
       color: rgb(105, 157, 140) !important;
       filter: drop-shadow(0 0 2px rgb(105, 157, 140));
+    }
+
+    /* Evita o efeito de redimensionamento animado ao carregar o grid */
+    :deep(.ag-header-cell),
+    :deep(.ag-cell) {
+      transition: none !important;
     }
 
     :deep(.ag-text-left) {
