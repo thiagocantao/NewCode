@@ -469,7 +469,8 @@ export default {
       padding: '8px',
       minWidth: '260px',
       maxWidth: '320px',
-      fontFamily: 'Roboto, sans-serif',
+      fontFamily: 'var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif)',
+      fontSize: 'var(--grid-view-dinamica-font-size, 12px)',
       userSelect: 'none'
     }));
     const rowBetweenStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '6px' };
@@ -514,8 +515,8 @@ export default {
   .dp-wrapper {
     position: relative;
     width: 100%;
-    font-family: 'Roboto', sans-serif;
-    font-size: 14px;
+    font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif);
+    font-size: var(--grid-view-dinamica-font-size, 12px);
     z-index: 1;
   }
 
@@ -526,8 +527,8 @@ export default {
     padding-right: 30px;
     height: 35px;
     cursor: pointer;
-    font-family: 'Roboto', sans-serif;
-    font-size: 13px;
+    font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif);
+    font-size: var(--grid-view-dinamica-font-size, 12px);
     border: 1px solid #ccc;
     border-radius: 4px;
     background: #fff;
