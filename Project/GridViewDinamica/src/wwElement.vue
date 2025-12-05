@@ -2979,6 +2979,26 @@ setTimeout(() => {
             if (baseCellStyle) {
               result.cellStyle = baseCellStyle;
             }
+            // Use editor numérico para impedir caracteres não numéricos durante a edição
+            if ((colCopy.cellDataType === 'number' || colCopy.cellDataType === 'integer') && colCopy.editable) {
+              if (colCopy.cellDataType === 'integer') {
+                result.cellEditor = 'agTextCellEditor';
+                result.cellEditorParams = {
+                  ...(result.cellEditorParams || {}),
+                  allowedCharPattern: '\\d'
+                };
+              } else {
+                result.cellEditor = 'agNumberCellEditor';
+              }
+              result.valueParser = params => {
+                const raw = params.newValue;
+                if (raw === null || raw === undefined || raw === '') return null;
+                const parsed = Number(raw);
+                if (!Number.isFinite(parsed)) return null;
+                if (colCopy.cellDataType === 'integer' && !Number.isInteger(parsed)) return null;
+                return parsed;
+              };
+            }
             // Add header alignment style that affects all content in the header
             if (colCopy.headerAlign) {
               result.headerClass = `ag-header-align-${colCopy.headerAlign}`;
