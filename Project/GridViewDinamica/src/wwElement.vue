@@ -2981,12 +2981,14 @@ setTimeout(() => {
             }
             // Use editor numérico para impedir caracteres não numéricos durante a edição
             if ((colCopy.cellDataType === 'number' || colCopy.cellDataType === 'integer') && colCopy.editable) {
-              result.cellEditor = 'agNumberCellEditor';
               if (colCopy.cellDataType === 'integer') {
+                result.cellEditor = 'agTextCellEditor';
                 result.cellEditorParams = {
                   ...(result.cellEditorParams || {}),
-                  step: 1
+                  allowedCharPattern: '\\d'
                 };
+              } else {
+                result.cellEditor = 'agNumberCellEditor';
               }
               result.valueParser = params => {
                 const raw = params.newValue;
