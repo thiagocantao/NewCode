@@ -3348,6 +3348,23 @@ setTimeout(() => {
   "--ag-header-font-size": baseFontSize,
   fontFamily: this.resolvedFontFamily,
   fontSize: baseFontSize,
+  ...(this.content.selectionCheckboxColor
+    ? {
+      '--grid-view-dinamica-selection-checkbox-color':
+        this.content.selectionCheckboxColor,
+      '--ag-checkbox-checked-color': this.content.selectionCheckboxColor,
+      '--ag-checkbox-checked-background-color':
+        this.content.selectionCheckboxColor,
+    }
+    : {}),
+  ...(this.content.checkboxUncheckedBorderColor
+    ? {
+      '--grid-view-dinamica-checkbox-unchecked-border-color':
+        this.content.checkboxUncheckedBorderColor,
+      '--ag-checkbox-unchecked-color':
+        this.content.checkboxUncheckedBorderColor,
+    }
+    : {}),
   };
   },
   theme() {
@@ -4007,6 +4024,25 @@ forceClearSelection() {
         align-items: center !important;
         width: auto !important;
         height: auto !important;
+
+        .ag-checkbox-input-wrapper {
+          border-color: var(
+            --grid-view-dinamica-checkbox-unchecked-border-color,
+            var(--ag-checkbox-unchecked-color)
+          ) !important;
+        }
+
+        .ag-checkbox-input-wrapper.ag-checked,
+        .ag-checkbox-input-wrapper.ag-indeterminate {
+          background-color: var(
+            --grid-view-dinamica-selection-checkbox-color,
+            var(--ag-checkbox-checked-background-color)
+          ) !important;
+          border-color: var(
+            --grid-view-dinamica-selection-checkbox-color,
+            var(--ag-checkbox-checked-color)
+          ) !important;
+        }
       }
 
       // Garantir que o conteúdo do header esteja centralizado
@@ -4035,6 +4071,16 @@ forceClearSelection() {
         justify-content: center !important;
         width: 100% !important;
         height: 100% !important;
+
+        .ag-checkbox-input-wrapper {
+          border-color: var(--grid-view-dinamica-checkbox-unchecked-border-color, var(--ag-checkbox-unchecked-color)) !important;
+        }
+
+        .ag-checkbox-input-wrapper.ag-checked,
+        .ag-checkbox-input-wrapper.ag-indeterminate {
+          background-color: var(--grid-view-dinamica-selection-checkbox-color, var(--ag-checkbox-checked-background-color)) !important;
+          border-color: var(--grid-view-dinamica-selection-checkbox-color, var(--ag-checkbox-checked-color)) !important;
+        }
       }
     }
 
