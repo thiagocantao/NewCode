@@ -3006,9 +3006,9 @@ const getAssigneeTooltip = (item, side) => {
 .avatar-badge--group { z-index: 1; margin-right: -6px; } /* menos escondido */
 .avatar-badge--user  { z-index: 2; }
 
-.avatar-icon { font-size: 18px; line-height: 1; color: #fff; }
+.avatar-icon { font-size: 16px; line-height: 1; color: #fff; }
 .avatar-badge img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.avatar-initial { font-weight: 700; font-size: 14px; line-height: 1; }
+.avatar-initial { font-weight: 700; font-size: 15px; line-height: 1; }
 
 
 
