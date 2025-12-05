@@ -2994,7 +2994,7 @@ const getAssigneeTooltip = (item, side) => {
   white-space: nowrap;
 }
 
-.avatar-stack { position: relative; display: inline-flex; align-items: center; }
+.avatar-stack { position: relative; display: inline-flex; align-items: center; width: 25px}
 
 .avatar-badge {
   width: 28px; height: 28px; border-radius: 9999px;
