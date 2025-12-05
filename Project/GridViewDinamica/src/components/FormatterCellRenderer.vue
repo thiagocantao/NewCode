@@ -80,7 +80,25 @@ lang = isAmerican ? "en-us" : "en-gb";
 
  
     return `${datePart} ${timePart}`;
-  
+
+}
+
+function resolveGridFontFamily() {
+  try {
+    if (typeof window !== 'undefined' && window.getComputedStyle) {
+      const value = window
+        .getComputedStyle(document.documentElement)
+        .getPropertyValue('--grid-view-dinamica-font-family');
+      if (value && value.trim().length > 0) {
+        return value.trim();
+      }
+    }
+  } catch (error) {
+    console.warn('[FormatterCellRenderer] Failed to read grid font variable', error);
+  }
+
+  const typographyFont = readTypographyVariable();
+  return typographyFont || DEFAULT_FONT_FAMILY;
 }
 
 export default {
@@ -109,8 +127,7 @@ export default {
     formattedValue() {
       try {
         const rawValue = this.params.value;
-        const typographyFont = readTypographyVariable();
-        const fontFamily = typographyFont || DEFAULT_FONT_FAMILY;
+        const fontFamily = resolveGridFontFamily();
         let displayValue = rawValue;
 
         const fieldKey = this.params.colDef?.colId || this.params.colDef?.field;
