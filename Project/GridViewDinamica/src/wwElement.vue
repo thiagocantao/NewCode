@@ -4024,6 +4024,25 @@ forceClearSelection() {
         align-items: center !important;
         width: auto !important;
         height: auto !important;
+
+        .ag-checkbox-input-wrapper {
+          border-color: var(
+            --grid-view-dinamica-checkbox-unchecked-border-color,
+            var(--ag-checkbox-unchecked-color)
+          ) !important;
+        }
+
+        .ag-checkbox-input-wrapper.ag-checked,
+        .ag-checkbox-input-wrapper.ag-indeterminate {
+          background-color: var(
+            --grid-view-dinamica-selection-checkbox-color,
+            var(--ag-checkbox-checked-background-color)
+          ) !important;
+          border-color: var(
+            --grid-view-dinamica-selection-checkbox-color,
+            var(--ag-checkbox-checked-color)
+          ) !important;
+        }
       }
 
       // Garantir que o conteúdo do header esteja centralizado
