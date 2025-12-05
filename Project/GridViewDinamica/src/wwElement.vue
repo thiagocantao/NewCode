@@ -50,13 +50,29 @@
   } from "./utils/fontFamily.js";
 
   const GRID_BASE_FONT_SIZE = 12;
-  const GRID_BASE_FONT_SIZE_PX = `${GRID_BASE_FONT_SIZE}px`;
+  const DEFAULT_GRID_FONT_SIZE = `${GRID_BASE_FONT_SIZE}px`;
   const PINNED_HEADER_DATASET_FLAG = 'wwPinnedHeaderBlockApplied';
   const stopPinnedHeaderMouseDown = event => {
     event.stopPropagation();
   };
   const preventPinnedHeaderDragStart = event => {
     event.preventDefault();
+  };
+  const sanitizeFontFamily = value => {
+    if (typeof value !== 'string') {
+      return '';
+    }
+
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : '';
+  };
+  const sanitizeFontSize = value => {
+    if (value == null) {
+      return '';
+    }
+
+    const size = typeof value === 'number' ? `${value}px` : String(value).trim();
+    return size.length > 0 ? size : '';
   };
   // Editor customizado inline para listas
   class ListCellEditor {
@@ -1161,8 +1177,30 @@ function defer(fn, delay = 0) {
   return validCandidate || DEFAULT_FONT_FAMILY;
   });
   const resolvedFontFamily = computed(
-  () => componentFontFamily.value || fallbackFontFamily.value
+  () => {
+    const explicitFont = sanitizeFontFamily(props.content?.gridFontFamily);
+    if (explicitFont) {
+      return explicitFont;
+    }
+
+    return (
+      sanitizeFontFamily(componentFontFamily.value) ||
+      fallbackFontFamily.value ||
+      DEFAULT_FONT_FAMILY
+    );
+  }
   );
+  const resolvedFontSize = computed(() => {
+  return (
+  sanitizeFontSize(props.content?.gridFontSize) ||
+  sanitizeFontSize(props.content?.cellFontSize) ||
+  DEFAULT_GRID_FONT_SIZE
+  );
+  });
+  const resolvedFontSizeNumber = computed(() => {
+  const parsed = parseFloat(resolvedFontSize.value);
+  return Number.isFinite(parsed) ? parsed : GRID_BASE_FONT_SIZE;
+  });
 
   const updateComponentFontFamily = () => {
   componentFontFamily.value = readTypographyVariable();
@@ -2418,6 +2456,8 @@ setTimeout(() => {
       resolveRowId,
       componentFontFamily,
       resolvedFontFamily,
+      resolvedFontSize,
+      resolvedFontSizeNumber,
       onGridReady,
       onRowSelected,
       onSelectionChanged,
@@ -3261,7 +3301,7 @@ setTimeout(() => {
   };
   },
   cssVars() {
-  const baseFontSize = GRID_BASE_FONT_SIZE_PX;
+  const baseFontSize = this.resolvedFontSize;
   return {
   "--ww-data-grid_action-backgroundColor":
   this.content.actionBackgroundColor,
@@ -3290,13 +3330,13 @@ setTimeout(() => {
   return themeQuartz.withParams({
   headerBackgroundColor: "#F5F6FA",
   headerTextColor: this.content.headerTextColor,
-  headerFontSize: GRID_BASE_FONT_SIZE,
+  headerFontSize: this.resolvedFontSizeNumber,
   headerFontWeight: this.content.headerFontWeight,
   borderColor: this.content.borderColor,
   cellTextColor: this.content.cellColor,
   cellFontFamily: this.resolvedFontFamily,
   headerFontFamily: this.resolvedFontFamily,
-  dataFontSize: GRID_BASE_FONT_SIZE,
+  dataFontSize: this.resolvedFontSizeNumber,
   oddRowBackgroundColor: this.content.rowAlternateColor,
   backgroundColor: this.content.rowBackgroundColor,
   rowHoverColor: this.content.rowHoverColor,
