@@ -516,65 +516,77 @@
                     <span>{{ item.Title }}</span>
 
                     <span class="assignee-avatars">
-<!-- OLD side -->
-<span class="avatar-stack" :aria-label="getAssigneeTooltip(item, 'old')" tabindex="0">
-  <!-- group (atrás) -->
-  <span
-    v-if="hasGroup(item, 'old')"
-    class="avatar-badge avatar-badge--group"
-    :title="getGroupName(item, 'old')"
-  >
-    <i class="material-symbols-outlined avatar-icon">groups</i>
-  </span>
+                      <!-- OLD side -->
+                      <span class="assignee-side">
+                        <span class="avatar-stack" :aria-label="getAssigneeTooltip(item, 'old')" tabindex="0">
+                          <!-- group (atrás) -->
+                          <span
+                            v-if="hasGroup(item, 'old')"
+                            class="avatar-badge avatar-badge--group"
+                            :title="getGroupName(item, 'old')"
+                          >
+                            <i class="material-symbols-outlined avatar-icon">groups</i>
+                          </span>
 
-                    <!-- user (na frente) -->
-                    <span
-    v-if="hasUser(item, 'old')"
-    class="avatar-badge avatar-badge--user"
-    :title="getAssigneeName(item, 'old')"
-  >
-    <img
-      v-if="getAssigneeAvatar(item, 'old')"
-      :src="getAssigneeAvatar(item, 'old')"
-      :alt="getAssigneeName(item, 'old')"
-    />
-    <span v-else class="avatar-initial">
-      {{ getFirstInitial(getAssigneeName(item, 'old')) }}
-    </span>
-                    </span>
-                    </span>
+                          <!-- user (na frente) -->
+                          <span
+                            v-if="hasUser(item, 'old')"
+                            class="avatar-badge avatar-badge--user"
+                            :title="getAssigneeName(item, 'old')"
+                          >
+                            <img
+                              v-if="getAssigneeAvatar(item, 'old')"
+                              :src="getAssigneeAvatar(item, 'old')"
+                              :alt="getAssigneeName(item, 'old')"
+                            />
+                            <span v-else class="avatar-initial">
+                              {{ getFirstInitial(getAssigneeName(item, 'old')) }}
+                            </span>
+                          </span>
+                        </span>
 
-                    <i class="material-symbols-outlined arrow">arrow_forward</i>
+                        <span class="avatar-labels">
+                          <span v-if="hasGroup(item, 'old')" class="avatar-label">{{ getGroupName(item, 'old') }}</span>
+                          <span v-if="hasUser(item, 'old')" class="avatar-label">{{ getAssigneeName(item, 'old') }}</span>
+                        </span>
+                      </span>
 
-                    <!-- NEW side -->
-                    <span class="avatar-stack" :aria-label="getAssigneeTooltip(item, 'new')" tabindex="0">
-  <!-- group (atrás) -->
-  <span
-    v-if="hasGroup(item, 'new')"
-    class="avatar-badge avatar-badge--group"
-    :title="getGroupName(item, 'new')"
-  >
-    <i class="material-symbols-outlined avatar-icon">groups</i>
-  </span>
+                      <i class="material-symbols-outlined arrow">arrow_forward</i>
 
-                    <!-- user (na frente) -->
-                    <span
-    v-if="hasUser(item, 'new')"
-    class="avatar-badge avatar-badge--user"
-    :title="getAssigneeName(item, 'new')"
-  >
-    <img
-      v-if="getAssigneeAvatar(item, 'new')"
-      :src="getAssigneeAvatar(item, 'new')"
-      :alt="getAssigneeName(item, 'new')"
-    />
-    <span v-else class="avatar-initial">
-      {{ getFirstInitial(getAssigneeName(item, 'new')) }}
-    </span>
-                    </span>
-                    </span>
+                      <!-- NEW side -->
+                      <span class="assignee-side">
+                        <span class="avatar-stack" :aria-label="getAssigneeTooltip(item, 'new')" tabindex="0">
+                          <!-- group (atrás) -->
+                          <span
+                            v-if="hasGroup(item, 'new')"
+                            class="avatar-badge avatar-badge--group"
+                            :title="getGroupName(item, 'new')"
+                          >
+                            <i class="material-symbols-outlined avatar-icon">groups</i>
+                          </span>
 
+                          <!-- user (na frente) -->
+                          <span
+                            v-if="hasUser(item, 'new')"
+                            class="avatar-badge avatar-badge--user"
+                            :title="getAssigneeName(item, 'new')"
+                          >
+                            <img
+                              v-if="getAssigneeAvatar(item, 'new')"
+                              :src="getAssigneeAvatar(item, 'new')"
+                              :alt="getAssigneeName(item, 'new')"
+                            />
+                            <span v-else class="avatar-initial">
+                              {{ getFirstInitial(getAssigneeName(item, 'new')) }}
+                            </span>
+                          </span>
+                        </span>
 
+                        <span class="avatar-labels">
+                          <span v-if="hasGroup(item, 'new')" class="avatar-label">{{ getGroupName(item, 'new') }}</span>
+                          <span v-if="hasUser(item, 'new')" class="avatar-label">{{ getAssigneeName(item, 'new') }}</span>
+                        </span>
+                      </span>
                     </span>
                   </div>
                 </div>
@@ -2262,6 +2274,27 @@ const getAssigneeTooltip = (item, side) => {
       display: inline-flex;
       align-items: center;
       gap: 8px;
+    }
+
+    .assignee-side {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .avatar-labels {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 13px;
+      color: #374151;
+      line-height: 1.2;
+    }
+
+    .avatar-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
 
     .assignee-avatars .arrow {
