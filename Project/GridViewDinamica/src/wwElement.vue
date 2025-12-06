@@ -3418,6 +3418,76 @@ setTimeout(() => {
       this.gridApi.setFilterModel(null);
     }
   },
+  setSort(sortInput) {
+    if (!this.gridApi) return;
+
+    let payload = sortInput;
+
+    if (typeof payload === "string") {
+      try {
+        payload = JSON.parse(payload);
+      } catch (error) {
+        console.warn("[GridViewDinamica] Failed to parse sort payload", error);
+        return;
+      }
+    }
+
+    if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+      if (Array.isArray(payload.Sort)) {
+        payload = payload.Sort;
+      } else if (Array.isArray(payload.sort)) {
+        payload = payload.sort;
+      }
+    }
+
+    if (!Array.isArray(payload)) {
+      console.warn("[GridViewDinamica] Invalid sort payload", payload);
+      return;
+    }
+
+    const normalized = payload
+      .map((entry, idx) => {
+        const colId = entry?.colId ?? entry?.id ?? entry?.field ?? entry?.fieldId;
+        if (!colId) return null;
+
+        let direction = entry?.sort;
+        if (!direction) {
+          if (entry?.isASC === true) direction = "asc";
+          else if (entry?.isASC === false) direction = "desc";
+        }
+
+        if (!direction) return null;
+
+        const normalizedEntry = {
+          colId: String(colId),
+          sort: String(direction).toLowerCase() === "desc" ? "desc" : "asc",
+          sortIndex: Number.isFinite(entry?.sortIndex) ? Number(entry.sortIndex) : idx,
+        };
+
+        return normalizedEntry;
+      })
+      .filter(Boolean);
+
+    if (!normalized.length) return;
+
+    const sortModel = normalized.map(({ colId, sort }) => ({ colId, sort }));
+
+    const colApi = this.gridApi?.getColumnApi ? this.gridApi.getColumnApi() : null;
+
+    if (colApi?.applyColumnState) {
+      colApi.applyColumnState({
+        state: normalized,
+        defaultState: { sort: null },
+        applyOrder: false,
+      });
+    }
+
+    this.gridApi.setSortModel(sortModel);
+
+    if (typeof this.saveGridState === "function") {
+      this.saveGridState();
+    }
+  },
   setFilters(filters) {
     if (this.gridApi) {
       this.gridApi.setFilterModel(filters || null);
