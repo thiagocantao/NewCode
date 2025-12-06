@@ -10,10 +10,10 @@
       :components="editorComponents" :singleClickEdit="true" @grid-ready="onGridReady" @row-selected="onRowSelected"
       @selection-changed="onSelectionChanged" @cell-value-changed="onCellValueChanged" @filter-changed="onFilterChanged"
       @sort-changed="onSortChanged" @column-moved="onColumnMoved" @row-clicked="onRowClicked"
-      @row-data-changed="onRowDataChanged" @row-data-updated="onRowDataUpdated" @first-data-rendered="onFirstDataRendered"
-      @cell-clicked="onCellClicked">
+      @row-data-changed="onRowDataChanged" @row-data-updated="onRowDataUpdated"
+      @first-data-rendered="onFirstDataRendered" @cell-clicked="onCellClicked">
     </ag-grid-vue>
-  </div> 
+  </div>
 </template>
 
 <script>
@@ -2540,11 +2540,6 @@ setTimeout(() => {
       return {
         editable: false,
         resizable: this.content.resizableColumns,
-        cellStyle: {
-          fontFamily:
-            "var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif)",
-          fontSize: "var(--grid-view-dinamica-font-size, 12px)",
-        },
       };
     },
     finalColumnDefs() {
@@ -3428,55 +3423,6 @@ setTimeout(() => {
       this.gridApi.setFilterModel(filters || null);
     }
   },
-  setSort(sortInput) {
-    if (!this.gridApi) return;
-
-    let payload = sortInput;
-    if (typeof payload === "string") {
-      try {
-        payload = JSON.parse(payload);
-      } catch (error) {
-        console.warn("[GridViewDinamica] Failed to parse sort JSON payload", error);
-        return;
-      }
-    }
-
-    let sortArray = Array.isArray(payload)
-      ? payload
-      : payload?.Sort || payload?.sort || payload?.[0]?.Sort || [];
-
-    if (!Array.isArray(sortArray)) {
-      console.warn("[GridViewDinamica] Invalid sort payload for setSort action", payload);
-      return;
-    }
-
-    const normalized = sortArray
-      .filter(item => item && (item.id || item.colId))
-      .map((item, index) => ({
-        colId: String(item.id ?? item.colId),
-        sort: item.isASC ? "asc" : "desc",
-        sortIndex: index,
-      }));
-
-    if (!normalized.length) return;
-
-    const sortModel = normalized.map(({ colId, sort }) => ({ colId, sort }));
-
-    try {
-      this.columnApi?.applyColumnState?.({
-        state: normalized,
-        defaultState: { sort: null },
-        applyOrder: false,
-      });
-    } catch (error) {
-      console.warn("[GridViewDinamica] Failed to apply column state for sort", error);
-    }
-
-    this.gridApi.setSortModel(sortModel);
-    if (typeof this.saveGridState === "function") {
-      this.saveGridState();
-    }
-  },
   getRowId(params) {
   return this.resolveMappingFormula(this.content.idFormula, params.data);
   },
@@ -4080,22 +4026,16 @@ forceClearSelection() {
         height: auto !important;
 
         .ag-checkbox-input-wrapper {
-          border-color: var(
-            --grid-view-dinamica-checkbox-unchecked-border-color,
-            var(--ag-checkbox-unchecked-color)
-          ) !important;
+          border-color: var(--grid-view-dinamica-checkbox-unchecked-border-color,
+              var(--ag-checkbox-unchecked-color)) !important;
         }
 
         .ag-checkbox-input-wrapper.ag-checked,
         .ag-checkbox-input-wrapper.ag-indeterminate {
-          background-color: var(
-            --grid-view-dinamica-selection-checkbox-color,
-            var(--ag-checkbox-checked-background-color)
-          ) !important;
-          border-color: var(
-            --grid-view-dinamica-selection-checkbox-color,
-            var(--ag-checkbox-checked-color)
-          ) !important;
+          background-color: var(--grid-view-dinamica-selection-checkbox-color,
+              var(--ag-checkbox-checked-background-color)) !important;
+          border-color: var(--grid-view-dinamica-selection-checkbox-color,
+              var(--ag-checkbox-checked-color)) !important;
         }
       }
 
