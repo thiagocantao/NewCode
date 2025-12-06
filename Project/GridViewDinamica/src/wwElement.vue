@@ -2506,6 +2506,9 @@ setTimeout(() => {
       usesTicketId,
       componentKey,
       remountComponent,
+      setColumnsSortVariable: setColumnsSort,
+      setSortVariable: setSort,
+      updateColumnsSortFromApi: updateColumnsSort,
       clearSavedGridState,
       localeText: computed(() => {
         let lang = 'en-US';
@@ -3521,6 +3524,21 @@ setTimeout(() => {
 
     if (typeof this.saveGridState === "function") {
       this.saveGridState();
+    }
+
+    // Atualiza variáveis WW para refletir a ordenação aplicada
+    if (typeof this.setSortVariable === "function") {
+      this.setSortVariable(sortModel);
+    }
+    if (typeof this.setColumnsSortVariable === "function") {
+      this.setColumnsSortVariable(
+        normalized.map(entry => ({ id: entry.colId, isASC: entry.sort === "asc" }))
+      );
+    }
+
+    // Sincroniza estado interno das colunas
+    if (typeof this.updateColumnsSortFromApi === "function") {
+      this.updateColumnsSortFromApi();
     }
   },
   setFilters(filters) {
