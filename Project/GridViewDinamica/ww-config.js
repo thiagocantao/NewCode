@@ -6,6 +6,7 @@ export default {
   icon: "table",
   customStylePropertiesOrder: [
   ["layout", "height", "textColor", "borderColor"],
+  ["gridFontFamily", "gridFontSize"],
   [
   "headerTitle",
   "headerBackgroundColor",
@@ -416,6 +417,43 @@ export default {
   responsive: true,
   states: true,
   classes: true,
+  },
+  gridFontFamily: {
+  label: "Grid Font Family",
+  type: "FontFamily",
+  category: "text",
+  responsive: true,
+  states: true,
+  classes: true,
+  bindable: true,
+  bindingValidation: {
+  markdown: "font-family",
+  type: "string",
+  cssSupports: "font-family",
+  },
+  },
+  gridFontSize: {
+  label: "Grid Font Size",
+  type: "Length",
+  category: "text",
+  options: {
+  unitChoices: [
+  { value: "px", label: "px", min: 1, max: 100, default: true },
+  { value: "em", label: "em", min: 0, max: 10, digits: 3, step: 0.1 },
+  { value: "rem", label: "rem", min: 0, max: 10, digits: 3, step: 0.1 },
+  ],
+  noRange: true,
+  },
+  defaultValue: "12px",
+  responsive: true,
+  states: true,
+  classes: true,
+  bindable: true,
+  bindingValidation: {
+  markdown: "font-size",
+  type: "string",
+  cssSupports: "font-size",
+  },
   },
   headerFontFamily: {
   label: "Font family",

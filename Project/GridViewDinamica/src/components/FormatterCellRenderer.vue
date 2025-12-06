@@ -80,7 +80,42 @@ lang = isAmerican ? "en-us" : "en-gb";
 
  
     return `${datePart} ${timePart}`;
-  
+
+}
+
+function resolveGridFontFamily() {
+  try {
+    if (typeof window !== 'undefined' && window.getComputedStyle) {
+      const value = window
+        .getComputedStyle(document.documentElement)
+        .getPropertyValue('--grid-view-dinamica-font-family');
+      if (value && value.trim().length > 0) {
+        return value.trim();
+      }
+    }
+  } catch (error) {
+    console.warn('[FormatterCellRenderer] Failed to read grid font variable', error);
+  }
+
+  const typographyFont = readTypographyVariable();
+  return typographyFont || DEFAULT_FONT_FAMILY;
+}
+
+function resolveGridFontSize() {
+  try {
+    if (typeof window !== 'undefined' && window.getComputedStyle) {
+      const value = window
+        .getComputedStyle(document.documentElement)
+        .getPropertyValue('--grid-view-dinamica-font-size');
+      if (value && value.trim().length > 0) {
+        return value.trim();
+      }
+    }
+  } catch (error) {
+    console.warn('[FormatterCellRenderer] Failed to read grid font size variable', error);
+  }
+
+  return '12px';
 }
 
 export default {
@@ -109,8 +144,8 @@ export default {
     formattedValue() {
       try {
         const rawValue = this.params.value;
-        const typographyFont = readTypographyVariable();
-        const fontFamily = typographyFont || DEFAULT_FONT_FAMILY;
+        const fontFamily = resolveGridFontFamily();
+        const fontSize = resolveGridFontSize();
         let displayValue = rawValue;
 
         const fieldKey = this.params.colDef?.colId || this.params.colDef?.field;
@@ -157,14 +192,14 @@ if (
           if (isClosed && value) {
             const formattedDate = dateTimeFormater(value, '') || value;
             return `
-              <span style="display:inline-flex;align-items:center;justify-content:center;gap:6px;height:26px;min-width:100px;padding:0 12px;border:1px solid #424242;border-radius:12px;background:#424242;color:#ffffff;font-size:12px;font-weight:500;font-family:${fontFamily};text-transform:none;box-sizing:border-box;">
+              <span style="display:inline-flex;align-items:center;justify-content:center;gap:6px;height:26px;min-width:100px;padding:0 12px;border:1px solid #424242;border-radius:12px;background:#424242;color:#ffffff;font-size:${fontSize};font-weight:500;font-family:${fontFamily};text-transform:none;box-sizing:border-box;">
                 ${formattedDate}
               </span>
             `;
           }
           if (!value) {
-            return `<span style="display:inline-flex;align-items:center;justify-content:center;gap:6px;height:26px;min-width:100px;padding:0 12px;border:1px solid #bdbdbd;border-radius:12px;background:#ffffff;color:#9e9e9e;font-size:12px;font-weight:500;font-family:${fontFamily};text-transform:none;box-sizing:border-box;">
-              <span class="material-symbols-outlined" style="font-size:16px;line-height:1;font-variation-settings:'OPSZ' 24;">calendar_today</span>
+            return `<span style="display:inline-flex;align-items:center;justify-content:center;gap:6px;height:26px;min-width:100px;padding:0 12px;border:1px solid #bdbdbd;border-radius:12px;background:#ffffff;color:#9e9e9e;font-size:${fontSize};font-weight:500;font-family:${fontFamily};text-transform:none;box-sizing:border-box;">
+              <span class="material-symbols-outlined" style="font-size:calc(${fontSize} * 1.3333);line-height:1;font-variation-settings:'OPSZ' 24;">calendar_today</span>
               Select
             </span>`;
           }
@@ -241,7 +276,7 @@ if (
           return `
             <div class="deadline-bar-bg" style="width:100%;height:22px;position:relative;background:#f5f5f5;border-radius:8px;overflow:hidden;display:block;">
               <div class="deadline-bar-fill" style="position:absolute;left:0;top:0;height:100%;width:${percent}%;background:${cor};border-radius:8px;transition:width 0.4s;z-index:1;"></div>
-              <span class="deadline-label" style="position:absolute;left:0;top:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:13px;color:${textColor};font-weight:bold;font-family:${fontFamily};z-index:2;">${label}</span>
+              <span class="deadline-label" style="position:absolute;left:0;top:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:${fontSize};color:${textColor};font-weight:bold;font-family:${fontFamily};z-index:2;">${label}</span>
               <div style="position:absolute;left:0;top:0;width:100%;height:100%;border:1.5px solid ${border};border-radius:8px;pointer-events:none;z-index:3;"></div>
             </div>
           `;
