@@ -2540,6 +2540,11 @@ setTimeout(() => {
       return {
         editable: false,
         resizable: this.content.resizableColumns,
+        cellStyle: {
+          fontFamily:
+            "var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif)",
+          fontSize: "var(--grid-view-dinamica-font-size, 12px)",
+        },
       };
     },
     finalColumnDefs() {
