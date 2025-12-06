@@ -1493,7 +1493,17 @@ function applyExternalSortAndSync() {
     });
 
     // 2) Aplicar sortModel (garante sincronismo visual/eventos)
-    gridApi.value.setSortModel(sortModel);
+    if (typeof gridApi.value?.setSortModel === "function") {
+      gridApi.value.setSortModel(sortModel);
+    } else {
+      // Garantir fallback para versões sem setSortModel
+      colApi?.applyColumnState?.({
+        state: external.map(e => ({ colId: e.colId, sort: e.sort, sortIndex: e.sortIndex })),
+        defaultState: { sort: null },
+        applyOrder: false
+      });
+      gridApi.value?.refreshClientSideRowModel?.("sort");
+    }
   });
 
   // 3) Atualizar variável local `sort`
@@ -1607,7 +1617,22 @@ function applyExternalSortAndSync() {
           gridApi.value.setFilterModel(state.filterModel);
         }
         if (hasSortModel) {
-          gridApi.value.setSortModel(state.sortModel);
+          if (typeof gridApi.value?.setSortModel === "function") {
+            gridApi.value.setSortModel(state.sortModel);
+          } else {
+            const sortState = state.sortModel.map((entry, idx) => ({
+              colId: entry.colId,
+              sort: entry.sort,
+              sortIndex: Number.isFinite(entry.sortIndex) ? entry.sortIndex : idx
+            }));
+
+            colApi?.applyColumnState?.({
+              state: sortState,
+              defaultState: { sort: null },
+              applyOrder: false
+            });
+            gridApi.value?.refreshClientSideRowModel?.("sort");
+          }
         }
       });
     } catch (e) {
@@ -3418,6 +3443,86 @@ setTimeout(() => {
       this.gridApi.setFilterModel(null);
     }
   },
+  setSort(sortInput) {
+    if (!this.gridApi) return;
+
+    let payload = sortInput;
+
+    if (typeof payload === "string") {
+      try {
+        payload = JSON.parse(payload);
+      } catch (error) {
+        console.warn("[GridViewDinamica] Failed to parse sort payload", error);
+        return;
+      }
+    }
+
+    if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+      if (Array.isArray(payload.Sort)) {
+        payload = payload.Sort;
+      } else if (Array.isArray(payload.sort)) {
+        payload = payload.sort;
+      }
+    }
+
+    if (!Array.isArray(payload)) {
+      console.warn("[GridViewDinamica] Invalid sort payload", payload);
+      return;
+    }
+
+    const normalized = payload
+      .map((entry, idx) => {
+        const colId = entry?.colId ?? entry?.id ?? entry?.field ?? entry?.fieldId;
+        if (!colId) return null;
+
+        let direction = entry?.sort;
+        if (!direction) {
+          if (entry?.isASC === true) direction = "asc";
+          else if (entry?.isASC === false) direction = "desc";
+        }
+
+        if (!direction) return null;
+
+        const normalizedEntry = {
+          colId: String(colId),
+          sort: String(direction).toLowerCase() === "desc" ? "desc" : "asc",
+          sortIndex: Number.isFinite(entry?.sortIndex) ? Number(entry.sortIndex) : idx,
+        };
+
+        return normalizedEntry;
+      })
+      .filter(Boolean);
+
+    if (!normalized.length) return;
+
+    const sortModel = normalized.map(({ colId, sort }) => ({ colId, sort }));
+
+    const colApi = this.gridApi?.getColumnApi ? this.gridApi.getColumnApi() : null;
+
+    if (colApi?.applyColumnState) {
+      colApi.applyColumnState({
+        state: normalized,
+        defaultState: { sort: null },
+        applyOrder: false,
+      });
+    }
+
+    if (typeof this.gridApi?.setSortModel === "function") {
+      this.gridApi.setSortModel(sortModel);
+    } else {
+      // Fallback para ambientes sem setSortModel na API
+      colApi?.applyColumnState?.({
+        state: normalized,
+        defaultState: { sort: null },
+        applyOrder: false,
+      });
+      this.gridApi?.refreshClientSideRowModel?.("sort");
+    }
+
+    if (typeof this.saveGridState === "function") {
+      this.saveGridState();
+    }
+  },
   setFilters(filters) {
     if (this.gridApi) {
       this.gridApi.setFilterModel(filters || null);
@@ -3918,7 +4023,23 @@ forceClearSelection() {
           try {
             const currentSort = this.gridApi.getSortModel?.() || [];
             if (currentSort.length) {
-              this.gridApi.setSortModel(currentSort);
+              if (typeof this.gridApi?.setSortModel === "function") {
+                this.gridApi.setSortModel(currentSort);
+              } else {
+                const colApi = this.gridApi.getColumnApi?.();
+                const state = currentSort.map((entry, idx) => ({
+                  colId: entry.colId,
+                  sort: entry.sort,
+                  sortIndex: Number.isFinite(entry.sortIndex) ? entry.sortIndex : idx
+                }));
+
+                colApi?.applyColumnState?.({
+                  state,
+                  defaultState: { sort: null },
+                  applyOrder: false
+                });
+                this.gridApi?.refreshClientSideRowModel?.("sort");
+              }
             } else if (this.content.initialSort) {
               this.gridApi.applyColumnState({
                 state: this.content.initialSort,
