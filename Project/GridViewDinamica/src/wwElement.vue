@@ -2984,6 +2984,26 @@ setTimeout(() => {
             if (baseCellStyle) {
               result.cellStyle = baseCellStyle;
             }
+            // Use editor numérico para impedir caracteres não numéricos durante a edição
+            if ((colCopy.cellDataType === 'number' || colCopy.cellDataType === 'integer') && colCopy.editable) {
+              if (colCopy.cellDataType === 'integer') {
+                result.cellEditor = 'agTextCellEditor';
+                result.cellEditorParams = {
+                  ...(result.cellEditorParams || {}),
+                  allowedCharPattern: '\\d'
+                };
+              } else {
+                result.cellEditor = 'agNumberCellEditor';
+              }
+              result.valueParser = params => {
+                const raw = params.newValue;
+                if (raw === null || raw === undefined || raw === '') return null;
+                const parsed = Number(raw);
+                if (!Number.isFinite(parsed)) return null;
+                if (colCopy.cellDataType === 'integer' && !Number.isInteger(parsed)) return null;
+                return parsed;
+              };
+            }
             // Add header alignment style that affects all content in the header
             if (colCopy.headerAlign) {
               result.headerClass = `ag-header-align-${colCopy.headerAlign}`;
@@ -3333,6 +3353,23 @@ setTimeout(() => {
   "--ag-header-font-size": baseFontSize,
   fontFamily: this.resolvedFontFamily,
   fontSize: baseFontSize,
+  ...(this.content.selectionCheckboxColor
+    ? {
+      '--grid-view-dinamica-selection-checkbox-color':
+        this.content.selectionCheckboxColor,
+      '--ag-checkbox-checked-color': this.content.selectionCheckboxColor,
+      '--ag-checkbox-checked-background-color':
+        this.content.selectionCheckboxColor,
+    }
+    : {}),
+  ...(this.content.checkboxUncheckedBorderColor
+    ? {
+      '--grid-view-dinamica-checkbox-unchecked-border-color':
+        this.content.checkboxUncheckedBorderColor,
+      '--ag-checkbox-unchecked-color':
+        this.content.checkboxUncheckedBorderColor,
+    }
+    : {}),
   };
   },
   theme() {
@@ -3992,6 +4029,25 @@ forceClearSelection() {
         align-items: center !important;
         width: auto !important;
         height: auto !important;
+
+        .ag-checkbox-input-wrapper {
+          border-color: var(
+            --grid-view-dinamica-checkbox-unchecked-border-color,
+            var(--ag-checkbox-unchecked-color)
+          ) !important;
+        }
+
+        .ag-checkbox-input-wrapper.ag-checked,
+        .ag-checkbox-input-wrapper.ag-indeterminate {
+          background-color: var(
+            --grid-view-dinamica-selection-checkbox-color,
+            var(--ag-checkbox-checked-background-color)
+          ) !important;
+          border-color: var(
+            --grid-view-dinamica-selection-checkbox-color,
+            var(--ag-checkbox-checked-color)
+          ) !important;
+        }
       }
 
       // Garantir que o conteúdo do header esteja centralizado
@@ -4020,6 +4076,16 @@ forceClearSelection() {
         justify-content: center !important;
         width: 100% !important;
         height: 100% !important;
+
+        .ag-checkbox-input-wrapper {
+          border-color: var(--grid-view-dinamica-checkbox-unchecked-border-color, var(--ag-checkbox-unchecked-color)) !important;
+        }
+
+        .ag-checkbox-input-wrapper.ag-checked,
+        .ag-checkbox-input-wrapper.ag-indeterminate {
+          background-color: var(--grid-view-dinamica-selection-checkbox-color, var(--ag-checkbox-checked-background-color)) !important;
+          border-color: var(--grid-view-dinamica-selection-checkbox-color, var(--ag-checkbox-checked-color)) !important;
+        }
       }
     }
 
