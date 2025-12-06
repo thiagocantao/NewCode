@@ -3428,6 +3428,55 @@ setTimeout(() => {
       this.gridApi.setFilterModel(filters || null);
     }
   },
+  setSort(sortInput) {
+    if (!this.gridApi) return;
+
+    let payload = sortInput;
+    if (typeof payload === "string") {
+      try {
+        payload = JSON.parse(payload);
+      } catch (error) {
+        console.warn("[GridViewDinamica] Failed to parse sort JSON payload", error);
+        return;
+      }
+    }
+
+    let sortArray = Array.isArray(payload)
+      ? payload
+      : payload?.Sort || payload?.sort || payload?.[0]?.Sort || [];
+
+    if (!Array.isArray(sortArray)) {
+      console.warn("[GridViewDinamica] Invalid sort payload for setSort action", payload);
+      return;
+    }
+
+    const normalized = sortArray
+      .filter(item => item && (item.id || item.colId))
+      .map((item, index) => ({
+        colId: String(item.id ?? item.colId),
+        sort: item.isASC ? "asc" : "desc",
+        sortIndex: index,
+      }));
+
+    if (!normalized.length) return;
+
+    const sortModel = normalized.map(({ colId, sort }) => ({ colId, sort }));
+
+    try {
+      this.columnApi?.applyColumnState?.({
+        state: normalized,
+        defaultState: { sort: null },
+        applyOrder: false,
+      });
+    } catch (error) {
+      console.warn("[GridViewDinamica] Failed to apply column state for sort", error);
+    }
+
+    this.gridApi.setSortModel(sortModel);
+    if (typeof this.saveGridState === "function") {
+      this.saveGridState();
+    }
+  },
   getRowId(params) {
   return this.resolveMappingFormula(this.content.idFormula, params.data);
   },
