@@ -701,7 +701,7 @@
                     <div class="activity-added-card__title">{{ item.Title }}</div>
                   </div>
 
-                  <dl class="activity-added-card__list">
+                  <dl class="activity-added-card__list message-sent-list">
                     <div class="row">
                       <dt>From:</dt>
                       <dd>{{ getFromEmails(item) }}</dd>
@@ -710,15 +710,17 @@
                       <dt>To:</dt>
                       <dd>{{ getToEmails(item) }}</dd>
                     </div>
-                    <div class="view-link" @click.stop="viewMessage(item)">
-                      <i class="material-symbols-outlined">open_in_new</i>
-                      <span>View</span>
+                    <div class="row">
+                      <dt>Subject:</dt>
+                      <dd>{{ getMessageSubject(item) }}</dd>
                     </div>
                   </dl>
+
+                  <div class="comment-content message-sent-body" v-html="getMessageBodyHtml(item)"></div>
                 </div>
 
                 <div class="activity-added-card__right">
-                  <div class="activity-added-card__created-by">{{ item.Title }}</div>
+                  <div class="activity-added-card__created-by">{{ item.CreatedByName }}</div>
                   <div class="activity-added-card__created-date">{{ formatDateDash(item.CreatedDate) }}</div>
                 </div>
               </div>
@@ -1473,6 +1475,17 @@ const getAssigneeTooltip = (item, side) => {
       return list.join(", ");
     };
 
+    const getMessageSubject = (item) => {
+      const o = getActivityObj(item) || {};
+      return o?.Subject || o?.subject || "";
+    };
+
+    const getMessageBodyHtml = (item) => {
+      const o = getActivityObj(item) || {};
+      const body = o?.Message || o?.message || "";
+      return sanitizeHtml(body);
+    };
+
     /* ========= Data source ========= */
     function handleDataSource() {
       let data = [];
@@ -1876,17 +1889,6 @@ const getAssigneeTooltip = (item, side) => {
       closeAllMenus();
     }
 
-    /* ========= Message view ========= */
-    function viewMessage(item) {
-      setVar("6c7b4f3b-7eb8-44c5-bad0-21d40809c902", item);
-      setVar("7e74a253-7a6b-407b-95ed-14d3723a9d30", false);
-      setVar("774a34ff-ffde-414b-8e09-70a002854353", false);
-      setVar("2e18d504-5152-4f25-804b-9ec53a12f260", true);
-      setVar("528fb0fb-dab3-41ae-8861-3e303bb217be", false);
-      setVar("1a931019-8209-484a-b172-73ef2c8f5675", false);
-      setVar("fbb7b2ff-0120-447c-bc51-af613bffc9c0", false);
-    }
-
     /* ========= Ícones ========= */
     function getFileIcon(name) {
       const ext = (name.split(".").pop() || "").toLowerCase();
@@ -1984,7 +1986,6 @@ const getAssigneeTooltip = (item, side) => {
       // MessageSent
       getFromEmails,
       getToEmails,
-      viewMessage,
       // Icons
       getFileIcon,
       getTicketLinkedLabel,
@@ -2259,6 +2260,20 @@ const getAssigneeTooltip = (item, side) => {
       border-radius: 4px;
       padding: 0 4px;
       display: inline-block;
+    }
+
+    .message-sent-list {
+      .row {
+        margin: 0 0 8px 0;
+      }
+
+      .row:last-child {
+        margin-bottom: 8px;
+      }
+    }
+
+    .message-sent-body {
+      margin-top: 8px;
     }
 
     .ticket-closed-solution {
