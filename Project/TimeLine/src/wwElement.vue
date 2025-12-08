@@ -366,8 +366,19 @@
                     </button>
                   </div>
 
-                  <div class="comment-content" :class="{ 'is-deleted': isCommentDeleted(item) }"
+                  <div
+                    class="comment-content collapsible-content"
+                    :class="{ 'is-deleted': isCommentDeleted(item), 'is-collapsed': isCollapsed(item) }"
+                    :ref="(el) => registerCollapsibleEl(item, el)"
                     v-html="getCommentHtml(item)"></div>
+
+                  <button
+                    v-if="shouldShowToggle(item)"
+                    class="collapsible-toggle"
+                    @click.stop="toggleCollapse(item)"
+                  >
+                    {{ isCollapsed(item) ? "Show more" : "Show less" }}
+                  </button>
                 </div>
 
                 <div class="activity-added-card__right">
@@ -716,7 +727,19 @@
                     </div>
                   </dl>
 
-                  <div class="comment-content message-sent-body" v-html="getMessageBodyHtml(item)"></div>
+                  <div
+                    class="comment-content message-sent-body collapsible-content"
+                    :class="{ 'is-collapsed': isCollapsed(item) }"
+                    :ref="(el) => registerCollapsibleEl(item, el)"
+                    v-html="getMessageBodyHtml(item)"></div>
+
+                  <button
+                    v-if="shouldShowToggle(item)"
+                    class="collapsible-toggle"
+                    @click.stop="toggleCollapse(item)"
+                  >
+                    {{ isCollapsed(item) ? "Show more" : "Show less" }}
+                  </button>
                 </div>
 
                 <div class="activity-added-card__right">
@@ -894,7 +917,7 @@
 </template>
 
 <script>
-  import { computed, ref, watch, onMounted, onBeforeUnmount } from "vue";
+  import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 import { useElementSize } from "@vueuse/core";
 import { SUPABASE_IMAGE_BUCKET } from "./components/supabaseBuckets";
 
@@ -909,6 +932,7 @@ export default {
     const containerRef = ref(null);
     const { width: containerWidth } = useElementSize(containerRef);
     const events = ref([]);
+    const COLLAPSED_MAX_HEIGHT = 150;
 
     const parseMaybeJSON = (val) => {
       if (typeof val === "string") {
@@ -1847,6 +1871,38 @@ const getAssigneeTooltip = (item, side) => {
       }
     }
 
+    /* ========= Conteúdo expansível ========= */
+    const expandedContent = ref({});
+    const overflowingContent = ref({});
+    const collapsibleKey = (item) =>
+      item?.EventID || `${item?.CreatedDate || ""}-${item?.Title || ""}-${item?.TagControl || item?.tagControl || ""}`;
+
+    function isExpanded(item) {
+      return !!expandedContent.value[collapsibleKey(item)];
+    }
+
+    function isCollapsed(item) {
+      return !isExpanded(item);
+    }
+
+    function toggleCollapse(item) {
+      const key = collapsibleKey(item);
+      expandedContent.value = { ...expandedContent.value, [key]: !expandedContent.value[key] };
+    }
+
+    function registerCollapsibleEl(item, el) {
+      if (!el) return;
+      nextTick(() => {
+        const key = collapsibleKey(item);
+        const hasOverflow = el.scrollHeight > COLLAPSED_MAX_HEIGHT;
+        overflowingContent.value = { ...overflowingContent.value, [key]: hasOverflow };
+      });
+    }
+
+    function shouldShowToggle(item) {
+      return !!overflowingContent.value[collapsibleKey(item)];
+    }
+
     /* ========= Menu de comentários ========= */
     const openMenuKey = ref(null);
     const menuKey = (item) => item?.EventID || `${item?.CreatedDate || ""}-${item?.Title || ""}`;
@@ -2247,6 +2303,14 @@ const getAssigneeTooltip = (item, side) => {
       color: var(--card-text-color, #333);
     }
 
+    .collapsible-content {
+      overflow: hidden;
+    }
+
+    .collapsible-content.is-collapsed {
+      max-height: 150px;
+    }
+
     .comment-content :deep(p) {
       margin: 0 0 6px 0;
       font-size: 13.5px;
@@ -2276,6 +2340,19 @@ const getAssigneeTooltip = (item, side) => {
 
     .message-sent-body {
       margin-top: 8px;
+    }
+
+    .collapsible-toggle {
+      margin-top: 6px;
+      padding: 0;
+      background: none;
+      border: none;
+      color: #2563eb;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: underline;
+      align-self: flex-start;
     }
 
     .ticket-closed-solution {
