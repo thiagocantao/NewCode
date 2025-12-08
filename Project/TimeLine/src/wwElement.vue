@@ -2075,6 +2075,8 @@ const getAssigneeTooltip = (item, side) => {
       getMessageBodyHtml,
       isCollapsed,
       shouldShowToggle,
+      toggleCollapse,
+      registerCollapsibleEl,
     };
   },
   methods: {
@@ -3218,3 +3220,4 @@ font-size: 22px;
 color: #9ca3af;
 }
 </style>
+
