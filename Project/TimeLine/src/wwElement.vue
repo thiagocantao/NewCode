@@ -2058,6 +2058,8 @@ const getAssigneeTooltip = (item, side) => {
       remount,
       getMessageSubject,
       getMessageBodyHtml,
+      isCollapsed,
+      t.shouldShowToggle,
     };
   },
   methods: {
