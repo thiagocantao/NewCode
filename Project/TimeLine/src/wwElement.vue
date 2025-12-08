@@ -701,7 +701,7 @@
                     <div class="activity-added-card__title">{{ item.Title }}</div>
                   </div>
 
-                  <dl class="activity-added-card__list">
+                  <dl class="activity-added-card__list message-sent-list">
                     <div class="row">
                       <dt>From:</dt>
                       <dd>{{ getFromEmails(item) }}</dd>
@@ -716,7 +716,7 @@
                     </div>
                   </dl>
 
-                  <div class="comment-content" v-html="getMessageBodyHtml(item)"></div>
+                  <div class="comment-content message-sent-body" v-html="getMessageBodyHtml(item)"></div>
                 </div>
 
                 <div class="activity-added-card__right">
@@ -2262,6 +2262,20 @@ const getAssigneeTooltip = (item, side) => {
       border-radius: 4px;
       padding: 0 4px;
       display: inline-block;
+    }
+
+    .message-sent-list {
+      .row {
+        margin: 0 0 8px 0;
+      }
+
+      .row:last-child {
+        margin-bottom: 8px;
+      }
+    }
+
+    .message-sent-body {
+      margin-top: 8px;
     }
 
     .ticket-closed-solution {
