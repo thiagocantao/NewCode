@@ -1877,8 +1877,19 @@ const getAssigneeTooltip = (item, side) => {
     const collapsibleKey = (item) =>
       item?.EventID || `${item?.CreatedDate || ""}-${item?.Title || ""}-${item?.TagControl || item?.tagControl || ""}`;
 
+    const shouldDefaultExpand = (item) => {
+      const tag = item?.TagControl || item?.tagControl;
+      const isMessageCard = tag === "MessageSent" || tag === "InternalCommentAdded";
+      if (!isMessageCard) return false;
+      return props.content?.collapseMessagesInitially === false;
+    };
+
     function isExpanded(item) {
-      return !!expandedContent.value[collapsibleKey(item)];
+      const key = collapsibleKey(item);
+      if (Object.prototype.hasOwnProperty.call(expandedContent.value, key)) {
+        return !!expandedContent.value[key];
+      }
+      return shouldDefaultExpand(item);
     }
 
     function isCollapsed(item) {
@@ -1887,7 +1898,8 @@ const getAssigneeTooltip = (item, side) => {
 
     function toggleCollapse(item) {
       const key = collapsibleKey(item);
-      expandedContent.value = { ...expandedContent.value, [key]: !expandedContent.value[key] };
+      const currentlyExpanded = isExpanded(item);
+      expandedContent.value = { ...expandedContent.value, [key]: !currentlyExpanded };
     }
 
     function registerCollapsibleEl(item, el) {

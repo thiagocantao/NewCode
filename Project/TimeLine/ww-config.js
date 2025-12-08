@@ -339,6 +339,21 @@ export default {
       /* wwEditor:end */
     },
 
+    collapseMessagesInitially: {
+      label: { en: "Collapse messages initially" },
+      type: "OnOff",
+      section: "settings",
+      bindable: true,
+      defaultValue: true,
+      /* wwEditor:start */
+      bindingValidation: {
+        type: "boolean",
+        tooltip:
+          "Whether MessageSent and InternalCommentAdded cards should start collapsed. Boolean (true/false)",
+      },
+      /* wwEditor:end */
+    },
+
     // Hidden elements for child components
     timelineElement: {
       hidden: true,
