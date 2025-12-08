@@ -67,8 +67,6 @@ export default {
       { mime: "image/jpeg", exts: ["jpg", "jpeg"] },
       { mime: "image/gif", exts: ["gif"] },
       { mime: "image/webp", exts: ["webp"] },
-      { mime: "image/bmp", exts: ["bmp"] },
-      { mime: "image/svg+xml", exts: ["svg"] },
     ];
 
     const allowedExtensions = new Set(
@@ -207,20 +205,16 @@ export default {
       const seg = String(name).split(".").pop() || "";
       return seg.toLowerCase();
     }
+    const mimeByExtension = SUPPORTED_FILES.reduce((acc, { mime, exts }) => {
+      exts.forEach((ext) => acc.set(ext.toLowerCase(), mime));
+      return acc;
+    }, new Map());
+
     function guessContentType(name, fallback = "application/octet-stream") {
       const ext = extOf(name);
-      if (ext === "pdf") return "application/pdf";
-      if (ext === "doc") return "application/msword";
-      if (ext === "docx") return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-      if (ext === "xls") return "application/vnd.ms-excel";
-      if (ext === "xlsx") return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-      if (["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg"].includes(ext)) {
-        return `image/${ext === "jpg" ? "jpeg" : ext}`;
-      }
-      if (ext === "txt" || ext === "log") return "text/plain";
-      if (ext === "json") return "application/json";
-      if (ext === "csv") return "text/csv";
-      return fallback;
+      if (!ext) return fallback;
+      const mapped = mimeByExtension.get(ext);
+      return mapped || fallback;
     }
 
     function isSupportedFile(file) {
@@ -235,10 +229,7 @@ export default {
     function getPublicUrl(bucket, storagePath) {
       if (!bucket || !storagePath || !supabase?.storage) return null;
       try {
-        // Você pode manter transform para servir redimensionado pela Image CDN
-        const { data } = supabase.storage.from(bucket).getPublicUrl(storagePath, {
-          transform: { width: 1600, resize: "contain" },
-        });
+        const { data } = supabase.storage.from(bucket).getPublicUrl(storagePath);
         return data?.publicUrl || null;
       } catch (e) {
         console.warn("[ImageUpload] getPublicUrl error:", e);
