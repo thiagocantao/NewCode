@@ -2000,6 +2000,8 @@ const getAssigneeTooltip = (item, side) => {
       ftModalItem,
       getFormattedHtml,
       remount,
+      getMessageSubject,
+      getMessageBodyHtml,
     };
   },
   methods: {
