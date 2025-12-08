@@ -711,16 +711,16 @@
                       <dd>{{ getToEmails(item) }}</dd>
                     </div>
                     <div class="row">
-                      <dt>Comment:</dt>
-                      <dd>
-                        <div class="comment-content" v-html="getCommentHtml(item)"></div>
-                      </dd>
+                      <dt>Subject:</dt>
+                      <dd>{{ getMessageSubject(item) }}</dd>
                     </div>
                   </dl>
+
+                  <div class="comment-content" v-html="getMessageBodyHtml(item)"></div>
                 </div>
 
                 <div class="activity-added-card__right">
-                  <div class="activity-added-card__created-by">{{ item.Title }}</div>
+                  <div class="activity-added-card__created-by">{{ item.CreatedByName }}</div>
                   <div class="activity-added-card__created-date">{{ formatDateDash(item.CreatedDate) }}</div>
                 </div>
               </div>
@@ -1473,6 +1473,17 @@ const getAssigneeTooltip = (item, side) => {
       const found = cands.find((v) => v && (Array.isArray(v) || typeof v === "string"));
       const list = normalizeEmails(found);
       return list.join(", ");
+    };
+
+    const getMessageSubject = (item) => {
+      const o = getActivityObj(item) || {};
+      return o?.Subject || o?.subject || "";
+    };
+
+    const getMessageBodyHtml = (item) => {
+      const o = getActivityObj(item) || {};
+      const body = o?.Message || o?.message || "";
+      return sanitizeHtml(body);
     };
 
     /* ========= Data source ========= */
