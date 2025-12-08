@@ -710,9 +710,11 @@
                       <dt>To:</dt>
                       <dd>{{ getToEmails(item) }}</dd>
                     </div>
-                    <div class="view-link" @click.stop="viewMessage(item)">
-                      <i class="material-symbols-outlined">open_in_new</i>
-                      <span>View</span>
+                    <div class="row">
+                      <dt>Comment:</dt>
+                      <dd>
+                        <div class="comment-content" v-html="getCommentHtml(item)"></div>
+                      </dd>
                     </div>
                   </dl>
                 </div>
@@ -1876,17 +1878,6 @@ const getAssigneeTooltip = (item, side) => {
       closeAllMenus();
     }
 
-    /* ========= Message view ========= */
-    function viewMessage(item) {
-      setVar("6c7b4f3b-7eb8-44c5-bad0-21d40809c902", item);
-      setVar("7e74a253-7a6b-407b-95ed-14d3723a9d30", false);
-      setVar("774a34ff-ffde-414b-8e09-70a002854353", false);
-      setVar("2e18d504-5152-4f25-804b-9ec53a12f260", true);
-      setVar("528fb0fb-dab3-41ae-8861-3e303bb217be", false);
-      setVar("1a931019-8209-484a-b172-73ef2c8f5675", false);
-      setVar("fbb7b2ff-0120-447c-bc51-af613bffc9c0", false);
-    }
-
     /* ========= Ícones ========= */
     function getFileIcon(name) {
       const ext = (name.split(".").pop() || "").toLowerCase();
@@ -1984,7 +1975,6 @@ const getAssigneeTooltip = (item, side) => {
       // MessageSent
       getFromEmails,
       getToEmails,
-      viewMessage,
       // Icons
       getFileIcon,
       getTicketLinkedLabel,
