@@ -2061,6 +2061,8 @@ const getAssigneeTooltip = (item, side) => {
       remount,
       getMessageSubject,
       getMessageBodyHtml,
+      isCollapsed,
+      shouldShowToggle,
     };
   },
   methods: {
@@ -2343,6 +2345,19 @@ const getAssigneeTooltip = (item, side) => {
 
     .message-sent-body {
       margin-top: 8px;
+    }
+
+    .collapsible-toggle {
+      margin-top: 6px;
+      padding: 0;
+      background: none;
+      border: none;
+      color: #2563eb;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: underline;
+      align-self: flex-start;
     }
 
     .collapsible-toggle {
