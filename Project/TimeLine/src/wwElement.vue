@@ -1894,7 +1894,10 @@ const getAssigneeTooltip = (item, side) => {
       if (!el) return;
       nextTick(() => {
         const key = collapsibleKey(item);
+        const wasCollapsed = el.classList.contains("is-collapsed");
+        if (wasCollapsed) el.classList.remove("is-collapsed");
         const hasOverflow = el.scrollHeight > COLLAPSED_MAX_HEIGHT;
+        if (wasCollapsed) el.classList.add("is-collapsed");
         overflowingContent.value = { ...overflowingContent.value, [key]: hasOverflow };
       });
     }
@@ -2342,6 +2345,19 @@ const getAssigneeTooltip = (item, side) => {
 
     .message-sent-body {
       margin-top: 8px;
+    }
+
+    .collapsible-toggle {
+      margin-top: 6px;
+      padding: 0;
+      background: none;
+      border: none;
+      color: #2563eb;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: underline;
+      align-self: flex-start;
     }
 
     .collapsible-toggle {
