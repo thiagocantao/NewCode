@@ -123,7 +123,7 @@
         </div>
       </template>
 
-      <div class="user-selector__list">
+      <div class="user-selector__list" :style="listStyle">
         <template v-if="groupBy && !currentGroup">
           <div class="user-selector__group" v-for="group in groupedUsers.groups" :key="group.label || 'g'">
             <div class="user-selector__group-label" :style="nameStyle">
@@ -235,6 +235,7 @@ export default {
     selectedUserId:    [String, Number, Object],
     uid:               String,
     maxWidth:          [String, Number],
+    dropdownListMaxHeight: [String, Number],
     supabaseUrl:       String,
     apiKey:            String,
     authToken:         String
@@ -307,6 +308,15 @@ export default {
     containerStyle: function() {
       if (!this.maxWidth) return {};
       return { maxWidth: (typeof this.maxWidth === 'number' ? this.maxWidth + 'px' : this.maxWidth) };
+    },
+    listStyle: function() {
+      if (!this.dropdownListMaxHeight) return {};
+      return {
+        maxHeight:
+          typeof this.dropdownListMaxHeight === 'number'
+            ? this.dropdownListMaxHeight + 'px'
+            : this.dropdownListMaxHeight
+      };
     },
     currentGroupCountLabel: function() {
       var count = (this.currentGroup && this.currentGroup.groupUsers) ? this.currentGroup.groupUsers.length : 0;

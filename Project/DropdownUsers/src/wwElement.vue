@@ -19,6 +19,7 @@
       :initial-selected-id="content.initialSelectedId"
       :selected-user-id="selectedUserId"
       :max-width="content.maxWidth"
+      :dropdown-list-max-height="content.dropdownListMaxHeight"
       :table-name="content.tableName"
       :column-name="content.columnName"
       :supabase-url="content.supabaseUrl"

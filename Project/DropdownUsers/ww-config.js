@@ -172,6 +172,23 @@ export default {
             bindable: true,
             description: 'Maximum width for the selector button (e.g., 150px, 10em, 100%)',
         },
+        dropdownListMaxHeight: {
+            label: { en: 'Dropdown list max-height' },
+            type: 'Length',
+            options: {
+                unitChoices: [
+                    { value: 'px', label: 'px', min: 1, max: 500 },
+                    { value: '%', label: '%', min: 1, max: 100 },
+                ],
+                noRange: true,
+                useVar: true,
+            },
+            defaultValue: '',
+            bindable: true,
+            responsive: true,
+            classes: true,
+            states: true,
+        },
         required: {
             label: { en: 'Required' },
             type: 'OnOff',
