@@ -75,6 +75,7 @@ export default {
                 'boundOffset',
                 'dropdownWidth',
                 'dropdownMaxHeight',
+                'dropdownListMaxHeight',
                 'dropdownBorder',
                 'dropdownBorderAll',
                 'dropdownBorderTop',
@@ -1845,6 +1846,24 @@ export default {
             bindable: true,
             responsive: true,
             bindable: true,
+        },
+        dropdownListMaxHeight: {
+            type: 'Length',
+            label: {
+                en: 'Dropdown list max-height',
+            },
+            options: {
+                unitChoices: [
+                    { value: 'px', label: 'px', min: 1, max: 500 },
+                    { value: '%', label: '%', min: 1, max: 100 },
+                ],
+                noRange: true,
+                useVar: true,
+            },
+            states: true,
+            classes: true,
+            bindable: true,
+            responsive: true,
         },
         dropdownBorder: {
             type: 'TextRadioGroup',
