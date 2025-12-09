@@ -71,6 +71,19 @@ export default {
             bindable: true,
             description: 'Property name used to group users in the dropdown',
         },
+        groupClickBehavior: {
+            label: { en: 'Group click behavior' },
+            type: 'TextSelect',
+            options: {
+                options: [
+                    { value: 'open', label: 'Open group users' },
+                    { value: 'select', label: 'Select group only' },
+                ],
+            },
+            defaultValue: 'open',
+            bindable: true,
+            description: 'Choose whether clicking a group opens its users or selects the group directly.',
+        },
         valueColumn: {
             label: { en: 'Value column' },
             type: 'ObjectPropertyPath',

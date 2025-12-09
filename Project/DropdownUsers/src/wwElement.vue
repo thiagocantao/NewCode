@@ -21,6 +21,7 @@
       :max-width="content.maxWidth"
       :group-list-height="content.groupListHeight"
       :user-list-height="content.userListHeight"
+      :group-click-behavior="content.groupClickBehavior"
       :dropdown-list-max-height="content.dropdownListMaxHeight"
       :table-name="content.tableName"
       :column-name="content.columnName"
