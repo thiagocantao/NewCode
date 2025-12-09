@@ -39,17 +39,19 @@
                     inherit-component-style
                 >
                     <div :style="[dropdownStyles]">
-                        <SelectDropdown :content="content" :wwEditorState="wwEditorState">
-                            <SelectSearch v-if="showSearch" :content="content" :wwEditorState="wwEditorState" />
-                            <div class="ww-select-close" @click="closeDropdown">x</div>
-                            <div class="ww-select-separator"></div>
-                            <!-- List mode -->
-                            <SelectOptionList :content="content" :wwEditorState="wwEditorState" />
-                        </SelectDropdown>
+                            <SelectDropdown :content="content" :wwEditorState="wwEditorState">
+                                <SelectSearch v-if="showSearch" :content="content" :wwEditorState="wwEditorState" />
+                                <div class="ww-select-close" @click="closeDropdown">x</div>
+                                <div class="ww-select-separator"></div>
+                                <!-- List mode -->
+                                <div class="ww-select__options-wrapper" :style="dropdownListStyles">
+                                    <SelectOptionList :content="content" :wwEditorState="wwEditorState" />
+                                </div>
+                            </SelectDropdown>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </teleport>
+            </teleport>
 
         <input
             type="input"
@@ -460,6 +462,13 @@ export default {
                 'box-shadow': props.content.dropdownShadows,
                 overflow: 'auto',
                 ...dropdownBorderCss,
+            };
+        });
+
+        const dropdownListStyles = computed(() => {
+            return {
+                'max-height': props.content.dropdownListMaxHeight,
+                overflow: 'auto',
             };
         });
 
@@ -1210,6 +1219,7 @@ export default {
             dropdownElement,
             floatingStyles,
             dropdownStyles,
+            dropdownListStyles,
             dropdownId,
             activeDescendant,
             isDisabled,
