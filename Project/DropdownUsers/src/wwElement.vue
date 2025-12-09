@@ -19,6 +19,8 @@
       :initial-selected-id="content.initialSelectedId"
       :selected-user-id="selectedUserId"
       :max-width="content.maxWidth"
+      :group-list-height="content.groupListHeight"
+      :user-list-height="content.userListHeight"
       :dropdown-list-max-height="content.dropdownListMaxHeight"
       :table-name="content.tableName"
       :column-name="content.columnName"

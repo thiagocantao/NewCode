@@ -172,6 +172,42 @@ export default {
             bindable: true,
             description: 'Maximum width for the selector button (e.g., 150px, 10em, 100%)',
         },
+        groupListHeight: {
+            label: { en: 'Groups list height' },
+            type: 'Length',
+            options: {
+                unitChoices: [
+                    { value: 'px', label: 'px', min: 1, max: 500 },
+                    { value: '%', label: '%', min: 1, max: 100 },
+                ],
+                noRange: true,
+                useVar: true,
+            },
+            defaultValue: '',
+            bindable: true,
+            responsive: true,
+            classes: true,
+            states: true,
+            description: 'Optional height (max-height) for the groups list within the dropdown.',
+        },
+        userListHeight: {
+            label: { en: 'Users list height' },
+            type: 'Length',
+            options: {
+                unitChoices: [
+                    { value: 'px', label: 'px', min: 1, max: 500 },
+                    { value: '%', label: '%', min: 1, max: 100 },
+                ],
+                noRange: true,
+                useVar: true,
+            },
+            defaultValue: '',
+            bindable: true,
+            responsive: true,
+            classes: true,
+            states: true,
+            description: 'Optional height (max-height) for the users list within the dropdown.',
+        },
         dropdownListMaxHeight: {
             label: { en: 'Dropdown list max-height' },
             type: 'Length',

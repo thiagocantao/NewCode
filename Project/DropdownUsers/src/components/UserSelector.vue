@@ -123,14 +123,14 @@
         </div>
       </template>
 
-      <div class="user-selector__list" :style="listStyle">
+      <div class="user-selector__list" :style="userListStyle">
         <template v-if="groupBy && !currentGroup">
           <div class="user-selector__group" v-for="group in groupedUsers.groups" :key="group.label || 'g'">
             <div class="user-selector__group-label" :style="nameStyle">
               {{ group.label && group.label.toUpperCase() !== 'USERS' && group.label.toUpperCase() !== 'USER' && group.label.toUpperCase() !== 'USUARIOS' ? group.label : '' }}
             </div>
 
-            <div class="user-selector__group-items">
+            <div class="user-selector__group-items" :style="groupListStyle">
               <div
                 v-for="user in group.items"
                 :key="user.id || 'u'"
@@ -235,6 +235,8 @@ export default {
     selectedUserId:    [String, Number, Object],
     uid:               String,
     maxWidth:          [String, Number],
+    groupListHeight:   [String, Number],
+    userListHeight:    [String, Number],
     dropdownListMaxHeight: [String, Number],
     supabaseUrl:       String,
     apiKey:            String,
@@ -309,13 +311,25 @@ export default {
       if (!this.maxWidth) return {};
       return { maxWidth: (typeof this.maxWidth === 'number' ? this.maxWidth + 'px' : this.maxWidth) };
     },
-    listStyle: function() {
-      if (!this.dropdownListMaxHeight) return {};
+    userListStyle: function() {
+      var height = this.userListHeight;
+      if (height === undefined || height === null || height === '') height = this.dropdownListMaxHeight;
+      if (height === undefined || height === null || height === '') return {};
       return {
         maxHeight:
-          typeof this.dropdownListMaxHeight === 'number'
-            ? this.dropdownListMaxHeight + 'px'
-            : this.dropdownListMaxHeight
+          typeof height === 'number'
+            ? height + 'px'
+            : height
+      };
+    },
+    groupListStyle: function() {
+      var height = this.groupListHeight;
+      if (height === undefined || height === null || height === '') return {};
+      return {
+        maxHeight:
+          typeof height === 'number'
+            ? height + 'px'
+            : height
       };
     },
     currentGroupCountLabel: function() {
