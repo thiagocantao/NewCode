@@ -136,7 +136,7 @@
                 :key="user.id || 'u'"
                 class="user-selector__item"
                 :class="{ disabled: user.isEnabled === false }"
-                @click.stop="user.isEnabled === false ? null : isGroupLabel(group.label) ? openGroup(user) : selectUser(user)"
+                @click.stop="user.isEnabled === false ? null : isGroupLabel(group.label) ? handleGroupClick(user) : selectUser(user)"
               >
                 <div class="avatar-outer">
                   <div class="avatar-middle">
@@ -152,7 +152,13 @@
                   </div>
                 </div>
                 <span class="user-selector__name" :style="nameStyle">{{ user.name }}</span>
-                <span v-if="user.groupUsers && user.groupUsers.length" class="material-symbols-outlined user-selector__chevron" @click.stop="openGroup(user)">chevron_right</span>
+                <span
+                  v-if="user.groupUsers && user.groupUsers.length && groupClickBehavior !== 'select'"
+                  class="material-symbols-outlined user-selector__chevron"
+                  @click.stop="openGroup(user)"
+                >
+                  chevron_right
+                </span>
               </div>
             </div>
           </div>
@@ -162,7 +168,13 @@
             :key="user.id || 'uu'"
             class="user-selector__item"
             :class="{ disabled: user.isEnabled === false }"
-            @click.stop="user.isEnabled === false ? null : selectUser(user)"
+            @click.stop="
+              user.isEnabled === false
+                ? null
+                : user.groupUsers && user.groupUsers.length
+                  ? handleGroupClick(user)
+                  : selectUser(user)
+            "
           >
             <div class="avatar-outer">
               <div class="avatar-middle">
@@ -177,7 +189,13 @@
               </div>
             </div>
             <span class="user-selector__name" :style="nameStyle">{{ user.name }}</span>
-            <span v-if="user.groupUsers && user.groupUsers.length" class="material-symbols-outlined user-selector__chevron" @click.stop="openGroup(user)">chevron_right</span>
+            <span
+              v-if="user.groupUsers && user.groupUsers.length && groupClickBehavior !== 'select'"
+              class="material-symbols-outlined user-selector__chevron"
+              @click.stop="openGroup(user)"
+            >
+              chevron_right
+            </span>
           </div>
         </template>
 
@@ -187,7 +205,13 @@
             :key="user.id !== null ? user.id : 'assign'"
             class="user-selector__item"
             :class="{ disabled: user.isEnabled === false }"
-            @click.stop="user.isEnabled === false || (user.groupUsers && user.groupUsers.length) ? null : selectUser(user)"
+            @click.stop="
+              user.isEnabled === false
+                ? null
+                : user.groupUsers && user.groupUsers.length
+                  ? handleGroupClick(user)
+                  : selectUser(user)
+            "
           >
             <div class="avatar-outer">
               <div class="avatar-middle">
@@ -203,7 +227,13 @@
               </div>
             </div>
             <span class="user-selector__name" :style="nameStyle">{{ user.name }}</span>
-            <span v-if="user.groupUsers && user.groupUsers.length" class="material-symbols-outlined user-selector__chevron" @click.stop="openGroup(user)">chevron_right</span>
+            <span
+              v-if="user.groupUsers && user.groupUsers.length && groupClickBehavior !== 'select'"
+              class="material-symbols-outlined user-selector__chevron"
+              @click.stop="openGroup(user)"
+            >
+              chevron_right
+            </span>
           </div>
         </template>
 
@@ -240,7 +270,14 @@ export default {
     dropdownListMaxHeight: [String, Number],
     supabaseUrl:       String,
     apiKey:            String,
-    authToken:         String
+    authToken:         String,
+    groupClickBehavior: {
+      type: String,
+      default: 'open',
+      validator: function(value) {
+        return ['open', 'select'].indexOf(value) !== -1;
+      }
+    }
   },
   data: function() {
     return {
@@ -478,12 +515,28 @@ export default {
       this.updateComponentVariable();
     },
     openGroup: function(group) {
+      if (this.groupClickBehavior === 'select') return;
       if (group.groupUsers && group.groupUsers.length) {
         this.groupStack.push(this.currentGroup);
         this.currentGroup = group;
         this.currentGroupUsers = [{ id: null, name: 'Assign to team', isAssignToTeam: true }].concat(group.groupUsers);
         this.search = '';
       }
+    },
+    handleGroupClick: function(group) {
+      if (this.groupClickBehavior === 'select') {
+        this.selectGroup(group);
+      } else {
+        this.openGroup(group);
+      }
+    },
+    selectGroup: function(group) {
+      this.selectedGroup = group;
+      this.selectedUser = null;
+      this.isOpen = false;
+      this.resetDropdownState();
+      this.emitSelection({ userid: null, groupid: group ? group.id : null });
+      this.updateComponentVariable();
     },
     backToRoot: function() {
       this.currentGroup = this.groupStack.length ? this.groupStack.pop() : null;
