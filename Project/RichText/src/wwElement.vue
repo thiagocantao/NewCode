@@ -472,7 +472,7 @@ import { computed, inject } from 'vue';
 import suggestion from './suggestion.js';
 import { Markdown } from 'tiptap-markdown';
 import TableIcon from './icons/table-icon.vue';
-import { SUPABASE_IMAGE_BUCKET } from '../../supabaseBuckets';
+import { SUPABASE_IMAGE_BUCKET } from './supabaseBuckets';
 
 const AlignableImage = Image.extend({
     addAttributes() {
