@@ -1074,6 +1074,15 @@ export default {
 
       await Promise.all(
         images.map(async (img) => {
+          const supabaseLocation = extractSupabaseImageLocation(img);
+          if (supabaseLocation) {
+            const signed = await getFreshSignedUrl({ ...supabaseLocation, isImage: true }, richTextTransformOptions);
+            if (signed) {
+              img.setAttribute("src", signed);
+              return;
+            }
+          }
+
           const src = img.getAttribute("src") || "";
           const inboundPath = extractInboundTicketPath(src);
           if (!inboundPath) return;
@@ -1295,16 +1304,73 @@ async function confirmActDelete() {
       return out;
     };
 
+    const richTextTransformOptions = { transformImage: { width: 1200, resize: "contain" } };
+
+    function extractSupabaseImageLocation(imgEl) {
+      if (!imgEl) return null;
+
+      const bucket = imgEl.getAttribute("data-supabase-bucket") || null;
+      const path = imgEl.getAttribute("data-supabase-path") || null;
+      const storageObject = imgEl.getAttribute("data-supabase-object") || null;
+
+      let resolvedBucket = bucket;
+      let resolvedPath = path;
+
+      if ((!resolvedBucket || !resolvedPath) && storageObject) {
+        const [maybeBucket, ...rest] = storageObject.split("/");
+        if (maybeBucket && rest.length) {
+          resolvedBucket = resolvedBucket || maybeBucket;
+          resolvedPath = resolvedPath || rest.join("/");
+        }
+      }
+
+      if (resolvedBucket && resolvedPath) {
+        return { bucket: resolvedBucket, storagePath: resolvedPath };
+      }
+
+      return null;
+    }
+
+    async function applySupabaseSigning(htmlContent, options = {}) {
+      if (!htmlContent || typeof htmlContent !== "string") return htmlContent || "";
+      if (typeof document === "undefined") return htmlContent;
+      if (!supabase?.storage) return htmlContent;
+
+      const container = document.createElement("div");
+      container.innerHTML = htmlContent;
+      const images = Array.from(container.querySelectorAll("img"));
+      if (!images.length) return htmlContent;
+
+      await Promise.all(
+        images.map(async (img) => {
+          const location = extractSupabaseImageLocation(img);
+          if (!location) return;
+
+          const signedUrl = await getFreshSignedUrl({ ...location, isImage: true }, options);
+          if (signedUrl) {
+            img.setAttribute("src", signedUrl);
+          }
+        })
+      );
+
+      return container.innerHTML;
+    }
+
+    async function processSupabaseRichText(htmlContent) {
+      const sanitized = sanitizeHtml(htmlContent);
+      return applySupabaseSigning(sanitized, richTextTransformOptions);
+    }
+
     const getTicketClosedSolution = (item) => {
       const obj = getTicketClosedObj(item);
       const html =
         obj?.Solution ?? obj?.solution ?? obj?.Resolution ?? obj?.resolution ?? obj?.NewValueTitle ?? "";
-      return sanitizeHtml(html);
+      return item?.__ticketSolutionHtml ?? sanitizeHtml(html);
     };
     const getCommentHtml = (item) => {
       const obj = getActivityObj(item);
       const raw = obj?.Comment ?? obj?.comment ?? "";
-      return sanitizeHtml(raw);
+      return item?.__commentHtml ?? sanitizeHtml(raw);
     };
     const getCommentPlain = (item) => {
       const obj = getActivityObj(item);
@@ -1326,7 +1392,8 @@ async function confirmActDelete() {
     };
     const getSideCommentHtml = (item, side) => {
       const obj = getSideObj(item, side);
-      return sanitizeHtml(obj?.Comment ?? obj?.comment ?? "");
+      const key = side === "old" ? "__sideCommentOldHtml" : "__sideCommentNewHtml";
+      return item?.[key] ?? sanitizeHtml(obj?.Comment ?? obj?.comment ?? "");
     };
 
     // ===== NOVO: helpers para "deleted" nos comentários =====
@@ -1345,6 +1412,39 @@ async function confirmActDelete() {
     function isCommentDeletedSide(item, side) {
       const obj = getSideObj(item, side);
       return isDeletedFlag(obj);
+    }
+
+    async function prepareRichTextFields(item) {
+      if (!item) return;
+
+      const activityObj = getActivityObj(item) || {};
+      const baseComment = activityObj?.Comment ?? activityObj?.comment ?? "";
+      item.__commentHtml = await processSupabaseRichText(baseComment);
+
+      const oldSide = getSideObj(item, "old");
+      const newSide = getSideObj(item, "new");
+      const oldComment = oldSide?.Comment ?? oldSide?.comment ?? "";
+      const newComment = newSide?.Comment ?? newSide?.comment ?? "";
+      item.__sideCommentOldHtml = await processSupabaseRichText(oldComment);
+      item.__sideCommentNewHtml = await processSupabaseRichText(newComment);
+
+      const ticketClosedObj = getTicketClosedObj(item);
+      const solutionHtml =
+        ticketClosedObj?.Solution ??
+        ticketClosedObj?.solution ??
+        ticketClosedObj?.Resolution ??
+        ticketClosedObj?.resolution ??
+        ticketClosedObj?.NewValueTitle ??
+        "";
+      item.__ticketSolutionHtml = await processSupabaseRichText(solutionHtml);
+
+      const messageBody = activityObj?.Message || activityObj?.message || "";
+      item.__messageBodyHtml = await processSupabaseRichText(messageBody);
+    }
+
+    async function prepareEventsRichText(list) {
+      if (!Array.isArray(list)) return;
+      await Promise.all(list.map((item) => prepareRichTextFields(item)));
     }
 
     // ===== AssigneeChanged (grupo + responsável) =====
@@ -1507,11 +1607,22 @@ const getAssigneeTooltip = (item, side) => {
     const getMessageBodyHtml = (item) => {
       const o = getActivityObj(item) || {};
       const body = o?.Message || o?.message || "";
-      return sanitizeHtml(body);
+      return item?.__messageBodyHtml ?? sanitizeHtml(body);
     };
 
+    let sb = window?.wwLib?.wwPlugins?.supabase;
+    let supabase = sb?.instance || null;
+    let auth = window?.wwLib?.wwPlugins?.supabaseAuth?.publicInstance || null;
+
+    function remount() {
+      sb = window?.wwLib?.wwPlugins?.supabase;
+      supabase = sb?.instance || null;
+      auth = window?.wwLib?.wwPlugins?.supabaseAuth?.publicInstance || null;
+      handleDataSource();
+    }
+
     /* ========= Data source ========= */
-    function handleDataSource() {
+    async function handleDataSource() {
       let data = [];
       const ds = props.dataSource ?? props.content?.dataSource ?? props.content?.data;
       try {
@@ -1525,6 +1636,7 @@ const getAssigneeTooltip = (item, side) => {
         console.error("Failed to parse dataSource", e);
         data = [];
       }
+      await prepareEventsRichText(data);
       events.value = data;
     }
 
@@ -1554,17 +1666,6 @@ const getAssigneeTooltip = (item, side) => {
     });
 
     /* ========= Attachment ========= */
-    let sb = window?.wwLib?.wwPlugins?.supabase;
-    let supabase = sb?.instance || null;
-    let auth = window?.wwLib?.wwPlugins?.supabaseAuth?.publicInstance || null;
-
-    function remount() {
-      sb = window?.wwLib?.wwPlugins?.supabase;
-      supabase = sb?.instance || null;
-      auth = window?.wwLib?.wwPlugins?.supabaseAuth?.publicInstance || null;
-      handleDataSource();
-    }
-
     const privateTicketImageCache = new Map();
     const formattedHtmlCache = ref({});
 
