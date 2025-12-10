@@ -477,6 +477,9 @@ import { SUPABASE_IMAGE_BUCKET } from './supabaseBuckets';
 const buildStorageObject = (bucket, storagePath) =>
     bucket && storagePath ? `${bucket}/${storagePath}` : null;
 
+const buildStorageObject = (bucket, storagePath) =>
+    bucket && storagePath ? `${bucket}/${storagePath}` : null;
+
 const AlignableImage = Image.extend({
     addAttributes() {
         const parentAttributes = this.parent?.() ?? {};
