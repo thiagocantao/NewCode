@@ -15,6 +15,7 @@
       :input-font-weight="content.inputFontWeight"
       :unassigned-label="content.unassignedLabel"
       :search-placeholder="content.searchPlaceholder"
+      :show-clear-button="content.showClearButton"
       :initial-group-id="content.initialGroupId"
       :initial-selected-id="content.initialSelectedId"
       :selected-user-id="selectedUserId"

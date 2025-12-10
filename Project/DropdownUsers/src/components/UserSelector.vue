@@ -121,6 +121,14 @@
           />
           <span class="material-symbols-outlined user-selector__icon">search</span>
         </div>
+        <div
+          v-if="showClearButton"
+          class="user-selector__clear"
+          title="Clear selection"
+          @click.stop="clearSelection"
+        >
+          ✕
+        </div>
       </template>
 
       <div class="user-selector__list" :style="userListStyle">
@@ -249,6 +257,7 @@ export default {
   props: {
     datasource:        { type: Array, default: function() { return []; } },
     groupBy:           String,
+    showClearButton:   { type: Boolean, default: false },
     nameFontFamily:    String,
     nameFontSize:      String,
     nameFontWeight:    [String, Number],
@@ -492,6 +501,15 @@ export default {
     },
 
     /* ------- Clique ------- */
+    clearSelection: function() {
+      this.selectedGroup = null;
+      this.selectedUser = null;
+      this.currentGroup = null;
+      this.currentGroupUsers = [];
+      this.groupStack = [];
+      this.emitSelection({ userid: null, groupid: null });
+      this.updateComponentVariable();
+    },
     selectUser: function(user) {
       var value;
       if (this.currentGroup) {
@@ -701,6 +719,8 @@ export default {
 .user-selector__list::-webkit-scrollbar{width:6px;background:transparent;border-radius:12px}
 .user-selector__list::-webkit-scrollbar-thumb{background:#bdbdbd;border-radius:12px}
 .user-selector__search{display:flex;align-items:center;margin-bottom:8px;position:relative;padding:0 12px;width:100%;box-sizing:border-box}
+.user-selector__clear{text-align:right;padding:0 16px 8px;font-size:14px;color:#888;cursor:pointer;user-select:none}
+.user-selector__clear:hover{color:#555}
 .user-selector__input{flex:1;width:100%;padding:8px 36px 8px 12px;border-radius:20px;font-size:15px;border:1px solid #E0E0E0!important;background:#fff;outline:none!important;box-shadow:none!important;transition:border .2s;box-sizing:border-box}
 .user-selector__input:focus{border:1.5px solid #E0E0E0!important;outline:none!important;box-shadow:none!important}
 .user-selector__icon{position:absolute;right:22px;top:50%;transform:translateY(-50%);font-size:22px;color:#888;pointer-events:none;display:flex;align-items:center;justify-content:center}

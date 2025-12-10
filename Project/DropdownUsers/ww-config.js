@@ -166,6 +166,13 @@ export default {
             defaultValue: 'Pesquisar usuário...',
             bindable: true,
         },
+        showClearButton: {
+            label: { en: 'Show clear button' },
+            type: 'OnOff',
+            defaultValue: false,
+            bindable: true,
+            description: 'Display a small clear control below the search field to reset the selection.',
+        },
         initialSelectedId: {
             label: { en: 'Initial selected user ID' },
             type: 'text',
