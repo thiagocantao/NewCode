@@ -121,7 +121,7 @@
           />
           <span class="material-symbols-outlined user-selector__icon">search</span>
         </div>
-        <div v-if="showClearButton" class="user-selector__clear" @click.stop="clearSelection">✕</div>
+        <div v-if="showClearButton" class="user-selector__clear" @click.stop="clearSelection" title="Clear selection">✕</div>
       </template>
 
       <div class="user-selector__list" :style="userListStyle">
