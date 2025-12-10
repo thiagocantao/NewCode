@@ -699,6 +699,20 @@
               </div>
             </template>
 
+            <!-- TicketReopened -->
+            <template v-else-if="(item.TagControl || item.tagControl) === 'TicketReopened'">
+              <div class="activity-added-card">
+                <div class="activity-added-card__left">
+                  <div class="activity-added-card__title">{{ item.Title }}</div>
+                </div>
+
+                <div class="activity-added-card__right">
+                  <div class="activity-added-card__created-by">{{ item.CreatedByName }}</div>
+                  <div class="activity-added-card__created-date">{{ formatDateDash(item.CreatedDate) }}</div>
+                </div>
+              </div>
+            </template>
+
             <!-- MessageSent -->
             <template v-else-if="(item.TagControl || item.tagControl) === 'MessageSent'">
               <div class="activity-added-card">
