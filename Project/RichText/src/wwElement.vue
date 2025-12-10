@@ -763,6 +763,7 @@ export default {
         },
         imageSelectionRetries: 0,
         isEditingImageSize: false,
+        imageRefreshTimer: null,
 
     }),
 
@@ -1669,6 +1670,28 @@ export default {
                 });
             }
         },
+        startSupabaseImageRefreshLoop(intervalMs = 45 * 60 * 1000) {
+            this.stopSupabaseImageRefreshLoop();
+            if (typeof window === 'undefined') return;
+
+            const tick = async () => {
+                try {
+                    await this.refreshSupabaseImageUrls();
+                } catch (e) {
+                    console.warn('[RichText] periodic refresh failed:', e);
+                }
+            };
+
+            this.imageRefreshTimer = window.setInterval(tick, intervalMs);
+            // Do an initial refresh without waiting for the first interval
+            tick();
+        },
+        stopSupabaseImageRefreshLoop() {
+            if (this.imageRefreshTimer) {
+                clearInterval(this.imageRefreshTimer);
+                this.imageRefreshTimer = null;
+            }
+        },
         loadEditor() {
             if (this.loading) return;
             this.loading = true;
@@ -2054,6 +2077,7 @@ export default {
         this.refreshSupabaseInstances();
         this.loadEditor();
         this.loadIcons();
+        this.startSupabaseImageRefreshLoop();
     },
     beforeUnmount() {
         if (this.richEditor) {
@@ -2067,6 +2091,7 @@ export default {
             this.debounce = null;
         }
         this.clearSelectedImage({ force: true });
+        this.stopSupabaseImageRefreshLoop();
 
     },
 };
