@@ -474,6 +474,9 @@ import { Markdown } from 'tiptap-markdown';
 import TableIcon from './icons/table-icon.vue';
 import { SUPABASE_IMAGE_BUCKET } from '../../supabaseBuckets';
 
+const buildStorageObject = (bucket, storagePath) =>
+    bucket && storagePath ? `${bucket}/${storagePath}` : null;
+
 const AlignableImage = Image.extend({
     addAttributes() {
         const parentAttributes = this.parent?.() ?? {};
@@ -514,6 +517,14 @@ const AlignableImage = Image.extend({
                 renderHTML: attributes => {
                     if (!attributes.supabaseAttachmentId) return {};
                     return { 'data-supabase-attachment': attributes.supabaseAttachmentId };
+                },
+            },
+            supabaseStorageObject: {
+                default: null,
+                parseHTML: element => element.getAttribute('data-supabase-object') || null,
+                renderHTML: attributes => {
+                    if (!attributes.supabaseStorageObject) return {};
+                    return { 'data-supabase-object': attributes.supabaseStorageObject };
                 },
             },
             width: {
@@ -562,6 +573,114 @@ const WORKSPACE_VAR_ID = '744511f1-3309-41da-a9fd-0721e7dd2f99';
 const TICKET_VAR_ID = '7bebd888-f31e-49e7-bef2-4052c8cb6cf5';
 
 const IMAGE_BUCKET = SUPABASE_IMAGE_BUCKET;
+
+function isHttpUrl(value) {
+    return typeof value === 'string' && /^https?:\/\//i.test(value);
+}
+
+function sanitizeBucket(value, fallback = null) {
+    const bucket = typeof value === 'string' ? value.trim() : '';
+    return bucket || (typeof fallback === 'string' && fallback ? fallback : null);
+}
+
+function sanitizeStoragePath(value, bucket) {
+    let path = typeof value === 'string' ? value.trim() : '';
+    if (!path) return null;
+    path = path.replace(/^\/+/u, '');
+    if (bucket) {
+        const prefix = `${bucket}/`;
+        if (path.startsWith(prefix)) path = path.slice(prefix.length);
+    }
+    return path || null;
+}
+
+function extractFromSupabaseUrl(url) {
+    if (!isHttpUrl(url)) return { bucket: null, storagePath: null };
+    try {
+        const parsed = new URL(url);
+        const segments = parsed.pathname.split('/').filter(Boolean);
+        const objectIdx = segments.indexOf('object');
+        if (objectIdx !== -1) {
+            const mode = segments[objectIdx + 1];
+            if (mode === 'sign' || mode === 'public') {
+                const bucket = segments[objectIdx + 2] || null;
+                const pathSegments = segments.slice(objectIdx + 3);
+                if (bucket && pathSegments.length) {
+                    return { bucket, storagePath: pathSegments.join('/') };
+                }
+            }
+        }
+    } catch (e) {}
+    return { bucket: null, storagePath: null };
+}
+
+function resolveStorageLocation(source = {}, { fallbackBucket = null } = {}) {
+    const bucketCandidate =
+        sanitizeBucket(source.bucket) ||
+        sanitizeBucket(source.supabaseBucket) ||
+        sanitizeBucket(source.bucketname) ||
+        sanitizeBucket(source.bucket_name) ||
+        sanitizeBucket(source.bucketName) ||
+        sanitizeBucket(source.storageBucket) ||
+        null;
+
+    const urlCandidate =
+        source.src ||
+        source.url ||
+        source.fileUrl ||
+        source.fileurl ||
+        source.publicUrl ||
+        source.publicurl ||
+        source.signedUrl ||
+        source.signedurl ||
+        null;
+
+    const rawPathCandidate =
+        source.storagePath ??
+        source.storagepath ??
+        source.objectpath ??
+        source.objectPath ??
+        source.path ??
+        source.filepath ??
+        source.filePath ??
+        source.object_key ??
+        source.supabasePath ??
+        (!isHttpUrl(urlCandidate) ? urlCandidate : null);
+
+    const extracted = extractFromSupabaseUrl(urlCandidate);
+
+    let bucket = bucketCandidate || extracted.bucket || fallbackBucket || null;
+    let storagePath = sanitizeStoragePath(rawPathCandidate, bucket);
+
+    if (!storagePath && extracted.storagePath) {
+        storagePath = sanitizeStoragePath(extracted.storagePath, bucket);
+    }
+
+    if (storagePath && storagePath.includes('/')) {
+        const [maybeBucketRaw, ...rest] = storagePath.split('/');
+        const restPath = rest.join('/');
+        const maybeBucket = sanitizeBucket(maybeBucketRaw || '');
+        const hasRest = rest.length > 0 && restPath;
+
+        if (hasRest) {
+            const shouldUsePathBucket =
+                (!!bucket && maybeBucket && bucket === maybeBucket) ||
+                (!!bucketCandidate && maybeBucket && bucketCandidate === maybeBucket) ||
+                (!!extracted.bucket && maybeBucket && extracted.bucket === maybeBucket) ||
+                (!bucket && !fallbackBucket);
+
+            if (shouldUsePathBucket) {
+                bucket = maybeBucket || bucket;
+                storagePath = restPath;
+            } else if (!bucket && fallbackBucket && maybeBucket === fallbackBucket) {
+                bucket = fallbackBucket;
+                storagePath = restPath;
+            }
+        }
+    }
+
+    return { bucket, storagePath };
+}
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -655,6 +774,7 @@ export default {
         },
         imageSelectionRetries: 0,
         isEditingImageSize: false,
+        imageRefreshTimer: null,
 
     }),
 
@@ -1389,15 +1509,16 @@ export default {
             return fallback;
         },
         async getFreshSignedUrl(file, { forceDownloadName, transformImage } = {}) {
-            if (!file?.bucket || !file?.storagePath || !this.supabase?.storage) return null;
+            const location = resolveStorageLocation(file, { fallbackBucket: IMAGE_BUCKET });
+            if (!location.bucket || !location.storagePath || !this.supabase?.storage) return null;
             await this.ensureAuthReady();
             const options = {};
             if (transformImage && file.isImage) options.transform = transformImage;
             if (forceDownloadName) options.download = forceDownloadName;
             try {
                 const { data, error } = await this.supabase.storage
-                    .from(file.bucket)
-                    .createSignedUrl(file.storagePath, 60 * 60, options);
+                    .from(location.bucket)
+                    .createSignedUrl(location.storagePath, 60 * 60, options);
                 if (error) {
                     console.warn('[RichText] createSignedUrl failed:', error);
                     return null;
@@ -1496,7 +1617,7 @@ export default {
                 url: signedUrl,
                 bucket: IMAGE_BUCKET,
                 storagePath: pathObject,
-
+                storageObject: buildStorageObject(IMAGE_BUCKET, pathObject),
             };
         },
         notifyError(message) {
@@ -1514,10 +1635,16 @@ export default {
             const nodes = [];
             this.richEditor.state.doc.descendants((node, pos) => {
                 if (node.type.name !== 'image') return;
-                const bucket = node.attrs.supabaseBucket;
-                const storagePath = node.attrs.supabasePath;
-                if (bucket && storagePath) {
-                    nodes.push({ pos, bucket, storagePath });
+                const location = resolveStorageLocation(
+                    {
+                        bucket: node.attrs.supabaseBucket,
+                        storagePath: node.attrs.supabasePath,
+                        src: node.attrs.src,
+                    },
+                    { fallbackBucket: IMAGE_BUCKET }
+                );
+                if (location.bucket && location.storagePath) {
+                    nodes.push({ pos, ...location });
                 }
             });
 
@@ -1540,13 +1667,48 @@ export default {
                 this.richEditor.commands.command(({ state, tr, dispatch }) => {
                     const node = state.doc.nodeAt(nodeInfo.pos);
                     if (!node) return false;
-                    if (node.attrs.src === signedUrl) return true;
-                    const newAttrs = { ...node.attrs, src: signedUrl };
+                    const newAttrs = {
+                        ...node.attrs,
+                        src: signedUrl,
+                        supabaseBucket: nodeInfo.bucket,
+                        supabasePath: nodeInfo.storagePath,
+                        supabaseStorageObject: buildStorageObject(nodeInfo.bucket, nodeInfo.storagePath),
+                    };
+
+                    const alreadyUpdated =
+                        node.attrs.src === newAttrs.src &&
+                        node.attrs.supabaseBucket === newAttrs.supabaseBucket &&
+                        node.attrs.supabasePath === newAttrs.supabasePath &&
+                        node.attrs.supabaseStorageObject === newAttrs.supabaseStorageObject;
+
+                    if (alreadyUpdated) return true;
                     tr.setNodeMarkup(nodeInfo.pos, undefined, newAttrs);
                     if (!dispatch) return false;
                     dispatch(tr);
                     return true;
                 });
+            }
+        },
+        startSupabaseImageRefreshLoop(intervalMs = 45 * 60 * 1000) {
+            this.stopSupabaseImageRefreshLoop();
+            if (typeof window === 'undefined') return;
+
+            const tick = async () => {
+                try {
+                    await this.refreshSupabaseImageUrls();
+                } catch (e) {
+                    console.warn('[RichText] periodic refresh failed:', e);
+                }
+            };
+
+            this.imageRefreshTimer = window.setInterval(tick, intervalMs);
+            // Do an initial refresh without waiting for the first interval
+            tick();
+        },
+        stopSupabaseImageRefreshLoop() {
+            if (this.imageRefreshTimer) {
+                clearInterval(this.imageRefreshTimer);
+                this.imageRefreshTimer = null;
             }
         },
         loadEditor() {
@@ -1710,7 +1872,7 @@ export default {
 
             this.isUploadingImage = true;
             try {
-                const { url, bucket, storagePath } = await this.uploadImageToSupabase(imageFile);
+                const { url, bucket, storagePath, storageObject } = await this.uploadImageToSupabase(imageFile);
 
                 const imageOptions = {
                     src: url,
@@ -1718,6 +1880,7 @@ export default {
                     title: options.title || '',
                     supabaseBucket: bucket,
                     supabasePath: storagePath,
+                    supabaseStorageObject: storageObject,
                 };
 
 
@@ -1934,6 +2097,7 @@ export default {
         this.refreshSupabaseInstances();
         this.loadEditor();
         this.loadIcons();
+        this.startSupabaseImageRefreshLoop();
     },
     beforeUnmount() {
         if (this.richEditor) {
@@ -1947,6 +2111,7 @@ export default {
             this.debounce = null;
         }
         this.clearSelectedImage({ force: true });
+        this.stopSupabaseImageRefreshLoop();
 
     },
 };
