@@ -2,6 +2,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
   <div class="dropdown-wrapper" ref="wrapperRef">
     <UserSelector
+      ref="userSelectorRef"
       :datasource="content.userDatasource"
       :group-by="content.groupBy"
       :name-font-family="content.nameFontFamily"
@@ -293,6 +294,16 @@ export default {
     },
     hideErrorPopup() { this.errorPopupVisible = false; this.clearPopupTimer(); },
     clearPopupTimer() { if (this.popupTimer) { clearTimeout(this.popupTimer); this.popupTimer = null; } },
+
+    // === Component actions ===
+    resetSelection() {
+      const selector = this.$refs.userSelectorRef;
+      if (selector && typeof selector.clearSelection === 'function') {
+        selector.clearSelection();
+      } else {
+        this.onUserSelected({ userId: '', groupId: '' });
+      }
+    },
   },
 };
 </script>
