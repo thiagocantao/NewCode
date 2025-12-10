@@ -632,12 +632,23 @@ export default {
               + '|'
               + (this.selectedUser ? String(this.selectedUser.id) : 'null');
 
+      var shouldForceEmit = Boolean(allowEmit && (gId !== null || uId !== null));
+
       if (sig !== this.lastAppliedSig) {
         this.lastAppliedSig = sig;
         if (allowEmit) {
           this.emitSelection();
           this.updateComponentVariable();
         }
+      } else if (shouldForceEmit) {
+        // Mesmo estado visual, mas precisamos sincronizar variáveis
+        this.emitSelection();
+        this.updateComponentVariable();
+      }
+
+      if (shouldForceEmit) {
+        this.pendingInit.groupId = null;
+        this.pendingInit.userId = null;
       }
       return true;
     },
