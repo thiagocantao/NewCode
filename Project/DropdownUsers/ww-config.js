@@ -307,4 +307,11 @@ export default {
             event: { value: '' }
         }
     ],
+    actions: [
+        {
+            label: { en: 'Reset selection', pt: 'Resetar seleção' },
+            action: 'resetSelection',
+            args: []
+        }
+    ],
 };
