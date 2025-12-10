@@ -366,11 +366,9 @@
                     </button>
                   </div>
 
-                  <div
-                    class="comment-content collapsible-content"
+                  <div class="comment-content collapsible-content"
                     :class="{ 'is-deleted': isCommentDeleted(item), 'is-collapsed': isCollapsed(item) }"
-                    :ref="(el) => registerCollapsibleEl(item, el)"
-                    v-html="getCommentHtml(item)"></div>
+                    :ref="(el) => registerCollapsibleEl(item, el)" v-html="getCommentHtml(item)"></div>
 
                   <button
                     v-if="shouldShowToggle(item)"
@@ -539,8 +537,8 @@
                             <i class="material-symbols-outlined avatar-icon">groups</i>
                           </span>
 
-                          <!-- user (na frente) -->
-                          <span
+                    <!-- user (na frente) -->
+                    <span
                             v-if="hasUser(item, 'old')"
                             class="avatar-badge avatar-badge--user"
                             :title="getAssigneeName(item, 'old')"
@@ -553,19 +551,19 @@
                             <span v-else class="avatar-initial">
                               {{ getFirstInitial(getAssigneeName(item, 'old')) }}
                             </span>
-                          </span>
-                        </span>
+                    </span>
+                    </span>
 
-                        <span class="avatar-labels">
+                    <span class="avatar-labels">
                           <span v-if="hasGroup(item, 'old')" class="avatar-label">{{ getGroupName(item, 'old') }}</span>
-                          <span v-if="hasUser(item, 'old')" class="avatar-label">{{ getAssigneeName(item, 'old') }}</span>
-                        </span>
-                      </span>
+                    <span v-if="hasUser(item, 'old')" class="avatar-label">{{ getAssigneeName(item, 'old') }}</span>
+                    </span>
+                    </span>
 
-                      <i class="material-symbols-outlined arrow">arrow_forward</i>
+                    <i class="material-symbols-outlined arrow">arrow_forward</i>
 
-                      <!-- NEW side -->
-                      <span class="assignee-side">
+                    <!-- NEW side -->
+                    <span class="assignee-side">
                         <span class="avatar-stack" :aria-label="getAssigneeTooltip(item, 'new')" tabindex="0">
                           <!-- group (atrás) -->
                           <span
@@ -576,8 +574,8 @@
                             <i class="material-symbols-outlined avatar-icon">groups</i>
                           </span>
 
-                          <!-- user (na frente) -->
-                          <span
+                    <!-- user (na frente) -->
+                    <span
                             v-if="hasUser(item, 'new')"
                             class="avatar-badge avatar-badge--user"
                             :title="getAssigneeName(item, 'new')"
@@ -590,14 +588,14 @@
                             <span v-else class="avatar-initial">
                               {{ getFirstInitial(getAssigneeName(item, 'new')) }}
                             </span>
-                          </span>
-                        </span>
+                    </span>
+                    </span>
 
-                        <span class="avatar-labels">
+                    <span class="avatar-labels">
                           <span v-if="hasGroup(item, 'new')" class="avatar-label">{{ getGroupName(item, 'new') }}</span>
-                          <span v-if="hasUser(item, 'new')" class="avatar-label">{{ getAssigneeName(item, 'new') }}</span>
-                        </span>
-                      </span>
+                    <span v-if="hasUser(item, 'new')" class="avatar-label">{{ getAssigneeName(item, 'new') }}</span>
+                    </span>
+                    </span>
                     </span>
                   </div>
                 </div>
@@ -690,25 +688,8 @@
               <div class="activity-added-card">
                 <div class="activity-added-card__left">
                   <div class="activity-added-card__title">{{ item.Title }}</div>
-                  <div
-                    v-if="getTicketClosedSolution(item)"
-                    class="comment-content ticket-closed-solution"
-                    v-html="getTicketClosedSolution(item)"
-                  ></div>
-                </div>
-
-                <div class="activity-added-card__right">
-                  <div class="activity-added-card__created-by">{{ item.CreatedByName }}</div>
-                  <div class="activity-added-card__created-date">{{ formatDateDash(item.CreatedDate) }}</div>
-                </div>
-              </div>
-            </template>
-
-            <!-- TicketReopened -->
-            <template v-else-if="(item.TagControl || item.tagControl) === 'TicketReopened'">
-              <div class="activity-added-card">
-                <div class="activity-added-card__left">
-                  <div class="activity-added-card__title">{{ item.Title }}</div>
+                  <div v-if="getTicketClosedSolution(item)" class="comment-content ticket-closed-solution"
+                    v-html="getTicketClosedSolution(item)"></div>
                 </div>
 
                 <div class="activity-added-card__right">
@@ -741,10 +722,8 @@
                     </div>
                   </dl>
 
-                  <div
-                    class="comment-content message-sent-body collapsible-content"
-                    :class="{ 'is-collapsed': isCollapsed(item) }"
-                    :ref="(el) => registerCollapsibleEl(item, el)"
+                  <div class="comment-content message-sent-body collapsible-content"
+                    :class="{ 'is-collapsed': isCollapsed(item) }" :ref="(el) => registerCollapsibleEl(item, el)"
                     v-html="getMessageBodyHtml(item)"></div>
 
                   <button
@@ -796,35 +775,35 @@
         </div>
       </div>
     </div>
-  <!-- Modal FieldUpdated FORMATED_TEXT -->
-  <div v-if="ftModalOpen" class="ft-modal-overlay" @click.self="closeFtModal">
-    <div class="ft-modal">
-      <div class="ft-modal__header">
-        <div class="ft-modal__title">
-          {{ ftModalItem?.NameFieldModified || 'Details' }}
-        </div>
-        <button class="ft-modal__close" @click="closeFtModal">
+    <!-- Modal FieldUpdated FORMATED_TEXT -->
+    <div v-if="ftModalOpen" class="ft-modal-overlay" @click.self="closeFtModal">
+      <div class="ft-modal">
+        <div class="ft-modal__header">
+          <div class="ft-modal__title">
+            {{ ftModalItem?.NameFieldModified || 'Details' }}
+          </div>
+          <button class="ft-modal__close" @click="closeFtModal">
           <i class="material-symbols-outlined">close</i>
         </button>
-      </div>
-  
-      <div class="ft-modal__body ft-vertical">
-        <div class="ft-col">
-          <div class="ft-col__label"></div>
-          <div class="ft-col__content" v-html="getFormattedHtml(ftModalItem, 'old')"></div>
         </div>
-  
-        <div class="ft-arrow vertical">
-          <i class="material-symbols-outlined">arrow_downward</i>
-        </div>
-  
-        <div class="ft-col">
-          <div class="ft-col__label"></div>
-          <div class="ft-col__content" v-html="getFormattedHtml(ftModalItem, 'new')"></div>
+
+        <div class="ft-modal__body ft-vertical">
+          <div class="ft-col">
+            <div class="ft-col__label"></div>
+            <div class="ft-col__content" v-html="getFormattedHtml(ftModalItem, 'old')"></div>
+          </div>
+
+          <div class="ft-arrow vertical">
+            <i class="material-symbols-outlined">arrow_downward</i>
+          </div>
+
+          <div class="ft-col">
+            <div class="ft-col__label"></div>
+            <div class="ft-col__content" v-html="getFormattedHtml(ftModalItem, 'new')"></div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
     <!-- Modal AttachmentAdded (viewer) -->
     <div v-if="attModalOpen" class="tl-modal-overlay" @click.self="closeAttModal">
@@ -1929,7 +1908,7 @@ const getAssigneeTooltip = (item, side) => {
     }
 
     function shouldShowToggle(item) {
-      return !!overflowingContent.value[collapsibleKey(item)];
+      return true//!!overflowingContent.value[collapsibleKey(item)];
     }
 
     /* ========= Menu de comentários ========= */
@@ -2676,562 +2655,656 @@ const getAssigneeTooltip = (item, side) => {
     text-decoration: underline;
   }
 
-/* ===== Attachment (thumb + ações) ===== */
-.attachment-box {
-  width: 160px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-.attach-thumb-wrap {
-  position: relative;
-  width: 160px;
-  height: 120px;
-}
-.attach-thumb {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  background: #f5f6fa;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  cursor: pointer;
-}
-.attach-icon-wrap {
-  width: 100%;
-  height: 100%;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-.attach-icon {
-  font-size: 64px;
-  color: #6b7280;
-}
-.attach-actions {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  display: flex;
-  gap: 6px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s ease;
-}
-.attach-thumb-wrap:hover .attach-actions {
-  opacity: 1;
-  pointer-events: auto;
-}
-.attach-action-btn {
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: 6px;
-  background: rgba(0, 0, 0, 0.6);
-  color: #fff;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-}
-.attach-action-btn i.material-symbols-outlined {
-  font-size: 18px;
-  color: #fff;
-  line-height: 1;
-}
-.attach-action-btn.danger {
-  background: rgba(220, 38, 38, 0.85);
-}
-.attach-name {
-  max-width: 100%;
-  font-size: 12px;
-  color: #374151;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.attachment-box.loading .attach-skeleton {
-  width: 160px;
-  height: 120px;
-  border-radius: 6px;
-  background: #f3f4f6;
-  animation: pulse 1s ease-in-out infinite;
-}
-.skeleton-line {
-  width: 80%;
-  height: 10px;
-  background: #f3f4f6;
-  border-radius: 4px;
-}
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 0.7;
+  /* ===== Attachment (thumb + ações) ===== */
+  .attachment-box {
+    width: 160px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
   }
-  50% {
+
+  .attach-thumb-wrap {
+    position: relative;
+    width: 160px;
+    height: 120px;
+  }
+
+  .attach-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #f5f6fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
+  .attach-icon-wrap {
+    width: 100%;
+    height: 100%;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .attach-icon {
+    font-size: 64px;
+    color: #6b7280;
+  }
+
+  .attach-actions {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: flex;
+    gap: 6px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+  }
+
+  .attach-thumb-wrap:hover .attach-actions {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .attach-action-btn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .attach-action-btn i.material-symbols-outlined {
+    font-size: 18px;
+    color: #fff;
+    line-height: 1;
+  }
+
+  .attach-action-btn.danger {
+    background: rgba(220, 38, 38, 0.85);
+  }
+
+  .attach-name {
+    max-width: 100%;
+    font-size: 12px;
+    color: #374151;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .attachment-box.loading .attach-skeleton {
+    width: 160px;
+    height: 120px;
+    border-radius: 6px;
+    background: #f3f4f6;
+    animation: pulse 1s ease-in-out infinite;
+  }
+
+  .skeleton-line {
+    width: 80%;
+    height: 10px;
+    background: #f3f4f6;
+    border-radius: 4px;
+  }
+
+  @keyframes pulse {
+
+    0%,
+    100% {
+      opacity: 0.7;
+    }
+
+    50% {
+      opacity: 1;
+    }
+  }
+
+  /* ===== Attachment viewer modal ===== */
+  .tl-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+  }
+
+  .tl-modal-content {
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    max-width: 80%;
+    max-height: 80%;
+    display: flex;
+    align-items: center;
+    position: relative;
+  }
+
+  .tl-modal-content.pdf-viewer {
+    max-width: none;
+    max-height: none;
+    width: 95vw;
+    height: 95vh;
+  }
+
+  .tl-modal-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    max-height: 100%;
+    margin: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .tl-modal-image {
+    width: 600px;
+    height: 400px;
+    object-fit: contain;
+    position: relative;
+    z-index: 1;
+  }
+
+  .tl-modal-pdf {
+    width: 100%;
+    height: 100%;
+    flex: 1;
+    border: none;
+    position: relative;
+    z-index: 1;
+  }
+
+  .tl-modal-txt {
+    max-width: 80vw;
+    max-height: 65vh;
+    overflow: auto;
+    background: #0b0b0b;
+    color: #eaeaea;
+    padding: 12px 14px;
+    border-radius: 6px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .tl-modal-file-name {
+    margin-top: 8px;
+    color: #fff;
+    position: relative;
+    z-index: 2;
+  }
+
+  .tl-zoom-controls {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 4px;
+    padding: 5px;
+    align-items: center;
+    text-align: center;
+    z-index: 100;
+    position: relative;
+  }
+
+  .tl-zoom-button {
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    font-size: 22px !important;
+  }
+
+  .tl-modal-top-actions {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 8px;
+    z-index: 2;
+  }
+
+  .tl-modal-action-button {
+    width: 40px;
+    height: 40px;
+    background: #3c3c3c;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .tl-modal-action-button i.material-symbols-outlined {
+    font-size: 22px;
+    color: #fff;
+  }
+
+  /* Link "Details" */
+  .details-link {
+    border: none;
+    background: transparent;
+    color: #2563eb;
+    text-decoration: underline;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  /* View link */
+  .view-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  .view-link i.material-symbols-outlined {
+    font-size: 12px;
+  }
+
+  /* Modal FORMATED_TEXT */
+  .ft-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1100;
+  }
+
+  .ft-modal {
+    width: min(980px, 96vw);
+    max-height: 80vh;
+    max-height: 80dvh;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    box-shadow: 0 20px 48px rgba(16, 24, 40, 0.18);
+    padding: 14px;
+    background: #fff;
+    overflow: hidden;
+  }
+
+  .ft-modal__header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    margin-bottom: 10px;
+    flex: 0 0 auto;
+  }
+
+  .ft-modal__body {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 6px;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .ft-arrow i.material-symbols-outlined {
+    font-size: 22px;
+    color: #9ca3af;
+    align-self: center;
+  }
+
+  .ft-col {
+    min-width: 0;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #fff;
+    padding: 10px;
+  }
+
+  .ft-col__label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #6b7280;
+    margin-bottom: 6px;
+  }
+
+  .ft-col__content {
+    max-height: none;
+    overflow: visible;
+    font-size: 13.5px;
+    color: #111827;
+  }
+
+  .ft-col__content :deep(img) {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .ft-col__content :deep(table) {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .ft-col__content :deep(iframe) {
+    max-width: 100%;
+  }
+
+  /* ===== POPUPS PADRÃO (confirm) — igual ao print ===== */
+  .dlg-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1200;
+  }
+
+  .dlg {
+    width: min(520px, 92vw);
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    box-shadow: 0 20px 48px rgba(16, 24, 40, 0.18);
+    padding: 16px;
+  }
+
+  .dlg-header {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .dlg-header-icon {
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  .dlg-header-icon.danger {
+    color: #d35454;
+    /* vermelho suave, como no print */
+  }
+
+  .dlg-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .dlg-close {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 4px;
+    color: #6b7280;
+    border-radius: 6px;
+  }
+
+  .dlg-close:hover {
+    background: #f3f4f6;
+  }
+
+  .dlg-body {
+    margin: 14px 4px 6px;
+    font-size: 14px;
+    color: #374151;
+  }
+
+  .dlg-error {
+    margin-top: 8px;
+    color: #b91c1c;
+    font-size: 13px;
+  }
+
+  .dlg-actions {
+    margin-top: 18px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  .dlg-btn {
+    border: none;
+    padding: 8px 18px;
+    font-size: 14px;
+    border-radius: 9999px;
+    /* pílula */
+    cursor: pointer;
+    min-width: 100px;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    transition: filter 0.15s ease, opacity 0.15s ease;
+  }
+
+  .dlg-btn.ghost {
+    background: #f3f4f6;
+    color: #475569;
+  }
+
+  .dlg-btn.ghost:hover {
+    filter: brightness(0.98);
+  }
+
+  .dlg-btn.primary {
+    background: #5aa196;
+    /* verde/azulado como no print */
+    color: #ffffff;
+    font-weight: 600;
+  }
+
+  .dlg-btn.primary:hover {
+    filter: brightness(0.97);
+  }
+
+  .dlg-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  /* spinner para o botão "Ok" quando carregando */
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.7);
+    border-bottom-color: transparent;
+    border-radius: 50%;
+    display: inline-block;
+    animation: spin 0.8s linear infinite;
+    margin-right: 6px;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Ajustes de alinhamento com o marcador */
+  .ww-timeline--vertical .ww-timeline__marker {
+    top: 0;
+  }
+
+  .activity-added-card__title {
+    min-height: 30px;
+    display: inline-flex;
+    align-items: center;
+    margin-bottom: 8px;
+    margin-top: 5px;
+    margin-right: 20px;
+  }
+
+  /* Chip link (TicketLinked) */
+  .link-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    border-radius: 6px;
+    background: #e5e7eb;
+    color: #374151;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .avatar-stack {
+    position: relative;
+    display: inline-flex;
+    align-items: right;
+    width: 35px
+  }
+
+  .avatar-badge {
+    width: 28px;
+    height: 28px;
+    border-radius: 9999px;
+    background: #4b6cb7;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    box-shadow: 0 0 0 2px #fff, 0 0 0 3px #333;
+    /* anel branco + borda #333 */
+  }
+
+  .avatar-badge--group {
+    z-index: 1;
+    margin-right: -6px;
+  }
+
+  /* menos escondido */
+  .avatar-badge--user {
+    z-index: 2;
+  }
+
+  .avatar-icon {
+    font-size: 16px;
+    line-height: 1;
+    color: #fff;
+  }
+
+  .avatar-badge img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .avatar-initial {
+    font-weight: 700;
+    font-size: 15px;
+    line-height: 1;
+  }
+
+
+
+
+
+
+
+  /* acessibilidade do stack com teclado */
+  .avatar-stack:focus-within .avatar-hint,
+  .avatar-stack:hover .avatar-hint {
+    opacity: 1;
+    transform: translate(-50%, 0);
+    pointer-events: auto;
+  }
+
+  .activity-added-card__left {
+    position: relative;
+    /* necessário para ancorar o botão */
+  }
+
+  .activity-trash-btn {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: #9ca3af;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 6px;
+    opacity: 0;
+    transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+  }
+
+  .activity-added-card__left:hover .activity-trash-btn {
     opacity: 1;
   }
-}
 
-/* ===== Attachment viewer modal ===== */
-.tl-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 99999;
-}
-.tl-modal-content {
-  background: transparent;
-  padding: 0;
-  border-radius: 0;
-  max-width: 80%;
-  max-height: 80%;
-  display: flex;
-  align-items: center;
-  position: relative;
-}
-.tl-modal-content.pdf-viewer {
-  max-width: none;
-  max-height: none;
-  width: 95vw;
-  height: 95vh;
-}
-.tl-modal-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  max-height: 100%;
-  margin: 0;
-  width: 100%;
-  height: 100%;
-}
-.tl-modal-image {
-  width: 600px;
-  height: 400px;
-  object-fit: contain;
-  position: relative;
-  z-index: 1;
-}
-.tl-modal-pdf {
-  width: 100%;
-  height: 100%;
-  flex: 1;
-  border: none;
-  position: relative;
-  z-index: 1;
-}
-.tl-modal-txt {
-  max-width: 80vw;
-  max-height: 65vh;
-  overflow: auto;
-  background: #0b0b0b;
-  color: #eaeaea;
-  padding: 12px 14px;
-  border-radius: 6px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-  font-size: 12px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-.tl-modal-file-name {
-  margin-top: 8px;
-  color: #fff;
-  position: relative;
-  z-index: 2;
-}
-.tl-zoom-controls {
-  margin-top: 8px;
-  display: flex;
-  gap: 8px;
-  background: rgba(0, 0, 0, 0.6);
-  border-radius: 4px;
-  padding: 5px;
-  align-items: center;
-  text-align: center;
-  z-index: 100;
-  position: relative;
-}
-.tl-zoom-button {
-  border: none;
-  color: #fff;
-  cursor: pointer;
-  font-size: 22px !important;
-}
-.tl-modal-top-actions {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  display: flex;
-  gap: 8px;
-  z-index: 2;
-}
-.tl-modal-action-button {
-  width: 40px;
-  height: 40px;
-  background: #3c3c3c;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-.tl-modal-action-button i.material-symbols-outlined {
-  font-size: 22px;
-  color: #fff;
-}
-
-/* Link "Details" */
-.details-link {
-  border: none;
-  background: transparent;
-  color: #2563eb;
-  text-decoration: underline;
-  font-size: 13px;
-  cursor: pointer;
-  padding: 0;
-}
-
-/* View link */
-.view-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: inherit;
-  cursor: pointer;
-}
-.view-link i.material-symbols-outlined {
-  font-size: 12px;
-}
-
-/* Modal FORMATED_TEXT */
-.ft-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1100;
-}
-.ft-modal {
-  width: min(980px, 96vw);
-  max-height: 80vh;
-  max-height: 80dvh;
-  display: flex;
-  flex-direction: column;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  box-shadow: 0 20px 48px rgba(16, 24, 40, 0.18);
-  padding: 14px;
-  background: #fff;
-  overflow: hidden;
-}
-.ft-modal__header {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  margin-bottom: 10px;
-  flex: 0 0 auto;
-}
-.ft-modal__body {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 6px;
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: auto;
-  -webkit-overflow-scrolling: touch;
-}
-.ft-arrow i.material-symbols-outlined {
-  font-size: 22px;
-  color: #9ca3af;
-  align-self: center;
-}
-.ft-col {
-  min-width: 0;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  background: #fff;
-  padding: 10px;
-}
-.ft-col__label {
-  font-size: 11px;
-  font-weight: 600;
-  color: #6b7280;
-  margin-bottom: 6px;
-}
-.ft-col__content {
-  max-height: none;
-  overflow: visible;
-  font-size: 13.5px;
-  color: #111827;
-}
-.ft-col__content :deep(img) {
-  max-width: 100%;
-  height: auto;
-}
-.ft-col__content :deep(table) {
-  width: 100%;
-  border-collapse: collapse;
-}
-.ft-col__content :deep(iframe) {
-  max-width: 100%;
-}
-
-/* ===== POPUPS PADRÃO (confirm) — igual ao print ===== */
-.dlg-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1200;
-}
-.dlg {
-  width: min(520px, 92vw);
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  box-shadow: 0 20px 48px rgba(16, 24, 40, 0.18);
-  padding: 16px;
-}
-.dlg-header {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 8px;
-}
-.dlg-header-icon {
-  font-size: 18px;
-  line-height: 1;
-}
-.dlg-header-icon.danger {
-  color: #d35454; /* vermelho suave, como no print */
-}
-.dlg-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #111827;
-}
-.dlg-close {
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  padding: 4px;
-  color: #6b7280;
-  border-radius: 6px;
-}
-.dlg-close:hover {
-  background: #f3f4f6;
-}
-.dlg-body {
-  margin: 14px 4px 6px;
-  font-size: 14px;
-  color: #374151;
-}
-.dlg-error {
-  margin-top: 8px;
-  color: #b91c1c;
-  font-size: 13px;
-}
-.dlg-actions {
-  margin-top: 18px;
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
-.dlg-btn {
-  border: none;
-  padding: 8px 18px;
-  font-size: 14px;
-  border-radius: 9999px; /* pílula */
-  cursor: pointer;
-  min-width: 100px;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  transition: filter 0.15s ease, opacity 0.15s ease;
-}
-.dlg-btn.ghost {
-  background: #f3f4f6;
-  color: #475569;
-}
-.dlg-btn.ghost:hover {
-  filter: brightness(0.98);
-}
-.dlg-btn.primary {
-  background: #5aa196; /* verde/azulado como no print */
-  color: #ffffff;
-  font-weight: 600;
-}
-.dlg-btn.primary:hover {
-  filter: brightness(0.97);
-}
-.dlg-btn:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-
-/* spinner para o botão "Ok" quando carregando */
-.spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.7);
-  border-bottom-color: transparent;
-  border-radius: 50%;
-  display: inline-block;
-  animation: spin 0.8s linear infinite;
-  margin-right: 6px;
-}
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+  .activity-trash-btn:hover {
+    background: #f3f4f6;
+    color: #b91c1c;
   }
-}
 
-/* Ajustes de alinhamento com o marcador */
-.ww-timeline--vertical .ww-timeline__marker {
-  top: 0;
-}
-.activity-added-card__title {
-  min-height: 30px;
-  display: inline-flex;
-  align-items: center;
-  margin-bottom: 8px;
-  margin-top: 5px;
-  margin-right: 20px;
-}
+  .activity-trash-btn i.material-symbols-outlined {
+    font-size: 18px;
+    line-height: 1;
+  }
 
-/* Chip link (TicketLinked) */
-.link-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 10px;
-  border-radius: 6px;
-  background: #e5e7eb;
-  color: #374151;
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.2;
-  white-space: nowrap;
-}
+  .comment-content.is-deleted :deep(*) {
+    text-decoration: line-through;
+    opacity: 0.7;
+  }
 
-.avatar-stack { position: relative; display: inline-flex; align-items: center; width: 25px}
-
-.avatar-badge {
-  width: 28px; height: 28px; border-radius: 9999px;
-  background: #4b6cb7; color: #fff; display: inline-flex; align-items: center; justify-content: center;
-  overflow: hidden;
-  box-shadow: 0 0 0 2px #fff, 0 0 0 3px #333; /* anel branco + borda #333 */
-}
-
-.avatar-badge--group { z-index: 1; margin-right: -6px; } /* menos escondido */
-.avatar-badge--user  { z-index: 2; }
-
-.avatar-icon { font-size: 16px; line-height: 1; color: #fff; }
-.avatar-badge img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.avatar-initial { font-weight: 700; font-size: 15px; line-height: 1; }
+  .comment-bubble.is-deleted :deep(*) {
+    text-decoration: line-through;
+    opacity: 0.7;
+  }
 
 
+  /* Layout vertical para o modal de FORMATED_TEXT */
+  .ft-modal__body.ft-vertical {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 6px;
+    min-height: 0;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 
+  /* Seta centralizada e com espaçamento confortável */
+  .ft-arrow.vertical {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-
-
-
-/* acessibilidade do stack com teclado */
-.avatar-stack:focus-within .avatar-hint,
-.avatar-stack:hover .avatar-hint {
-  opacity: 1;
-  transform: translate(-50%, 0);
-  pointer-events: auto;
-}
-
-.activity-added-card__left {
-  position: relative; /* necessário para ancorar o botão */
-}
-
-.activity-trash-btn {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: transparent;
-  color: #9ca3af;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  border-radius: 6px;
-  opacity: 0;
-  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
-}
-
-.activity-added-card__left:hover .activity-trash-btn {
-  opacity: 1;
-}
-
-.activity-trash-btn:hover {
-  background: #f3f4f6;
-  color: #b91c1c;
-}
-
-.activity-trash-btn i.material-symbols-outlined {
-  font-size: 18px;
-  line-height: 1;
-}
-
-.comment-content.is-deleted :deep(*) {
-text-decoration: line-through;
-opacity: 0.7;
-}
-.comment-bubble.is-deleted :deep(*) {
-text-decoration: line-through;
-opacity: 0.7;
-}
-
-
-/* Layout vertical para o modal de FORMATED_TEXT */
-.ft-modal__body.ft-vertical {
-display: flex;
-flex-direction: column;
-align-items: stretch;
-gap: 12px;
-padding: 6px;
-min-height: 0;
-overflow: auto;
--webkit-overflow-scrolling: touch;
-}
-
-/* Seta centralizada e com espaçamento confortável */
-.ft-arrow.vertical {
-display: flex;
-align-items: center;
-justify-content: center;
-}
-
-.ft-arrow.vertical i.material-symbols-outlined {
-font-size: 22px;
-color: #9ca3af;
-}
+  .ft-arrow.vertical i.material-symbols-outlined {
+    font-size: 22px;
+    color: #9ca3af;
+  }
 </style>
-
