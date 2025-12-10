@@ -474,6 +474,9 @@ import { Markdown } from 'tiptap-markdown';
 import TableIcon from './icons/table-icon.vue';
 import { SUPABASE_IMAGE_BUCKET } from './supabaseBuckets';
 
+const buildStorageObject = (bucket, storagePath) =>
+    bucket && storagePath ? `${bucket}/${storagePath}` : null;
+
 const AlignableImage = Image.extend({
     addAttributes() {
         const parentAttributes = this.parent?.() ?? {};
@@ -514,6 +517,14 @@ const AlignableImage = Image.extend({
                 renderHTML: attributes => {
                     if (!attributes.supabaseAttachmentId) return {};
                     return { 'data-supabase-attachment': attributes.supabaseAttachmentId };
+                },
+            },
+            supabaseStorageObject: {
+                default: null,
+                parseHTML: element => element.getAttribute('data-supabase-object') || null,
+                renderHTML: attributes => {
+                    if (!attributes.supabaseStorageObject) return {};
+                    return { 'data-supabase-object': attributes.supabaseStorageObject };
                 },
             },
             width: {
@@ -1606,7 +1617,7 @@ export default {
                 url: signedUrl,
                 bucket: IMAGE_BUCKET,
                 storagePath: pathObject,
-
+                storageObject: buildStorageObject(IMAGE_BUCKET, pathObject),
             };
         },
         notifyError(message) {
@@ -1656,13 +1667,21 @@ export default {
                 this.richEditor.commands.command(({ state, tr, dispatch }) => {
                     const node = state.doc.nodeAt(nodeInfo.pos);
                     if (!node) return false;
-                    if (node.attrs.src === signedUrl) return true;
                     const newAttrs = {
                         ...node.attrs,
                         src: signedUrl,
                         supabaseBucket: nodeInfo.bucket,
                         supabasePath: nodeInfo.storagePath,
+                        supabaseStorageObject: buildStorageObject(nodeInfo.bucket, nodeInfo.storagePath),
                     };
+
+                    const alreadyUpdated =
+                        node.attrs.src === newAttrs.src &&
+                        node.attrs.supabaseBucket === newAttrs.supabaseBucket &&
+                        node.attrs.supabasePath === newAttrs.supabasePath &&
+                        node.attrs.supabaseStorageObject === newAttrs.supabaseStorageObject;
+
+                    if (alreadyUpdated) return true;
                     tr.setNodeMarkup(nodeInfo.pos, undefined, newAttrs);
                     if (!dispatch) return false;
                     dispatch(tr);
@@ -1853,7 +1872,7 @@ export default {
 
             this.isUploadingImage = true;
             try {
-                const { url, bucket, storagePath } = await this.uploadImageToSupabase(imageFile);
+                const { url, bucket, storagePath, storageObject } = await this.uploadImageToSupabase(imageFile);
 
                 const imageOptions = {
                     src: url,
@@ -1861,6 +1880,7 @@ export default {
                     title: options.title || '',
                     supabaseBucket: bucket,
                     supabasePath: storagePath,
+                    supabaseStorageObject: storageObject,
                 };
 
 
