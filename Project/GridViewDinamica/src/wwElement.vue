@@ -2627,16 +2627,17 @@ setTimeout(() => {
           return undefined;
         }
         
-        const minWidth = toNumber(colCopy.minWidth) || toNumber(colCopy.MinWidth) || 80;
+        const minWidth = toNumber(colCopy.minWidth) ?? toNumber(colCopy.MinWidth) ?? 80;
         const isFlex = colCopy.widthAlgo === 'flex';
-        const width = isFlex ? undefined : minWidth;
+        const explicitWidth = toNumber(colCopy.width) ?? toNumber(colCopy.Width);
+        const width = isFlex ? undefined : (explicitWidth ?? minWidth);
         const flex = isFlex ? (colCopy.flex ?? 1) : undefined;
-        const maxWidth = toNumber(colCopy.maxWidth) || undefined;
+        const maxWidth = toNumber(colCopy.maxWidth) ?? toNumber(colCopy.MaxWidth);
         const commonProperties = {
           minWidth,
-          ...(width ? { width } : {}),
+          ...(width !== undefined ? { width } : {}),
           ...(isFlex ? { flex } : {}),
-          ...(maxWidth ? { maxWidth } : {}),
+          ...(maxWidth !== undefined ? { maxWidth } : {}),
           pinned: colCopy.pinned === "none" ? false : colCopy.pinned,
           hide: !!colCopy.hide,
           editable: !!colCopy.editable, // <-- garantir editable
