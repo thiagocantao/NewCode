@@ -431,12 +431,10 @@ export default {
                 'flex-direction: column',
                 'gap: 8px',
                 'align-items: flex-start',
+                'width: 100%'
             ].join('; ');
 
-            const itemStyle = [
-                'display: flex',
-                'align-items: center',
-                'gap: 10px',
+            const baseItemStyle = [
                 'width: 280px',
                 'max-width: 280px',
                 'padding: 8px 10px',
@@ -444,12 +442,23 @@ export default {
                 'border-radius: 10px',
                 'background: #f9fafb',
                 'box-sizing: border-box',
+            ];
+
+            const imageItemStyle = [
+                'display: block',
+                ...baseItemStyle,
+            ].join('; ');
+
+            const fileItemStyle = [
+                'display: flex',
+                'align-items: center',
+                'gap: 10px',
+                ...baseItemStyle,
             ].join('; ');
 
             const thumbStyle = [
                 'width: 100%',
                 'height: auto',
-                'max-height: 50px',
                 'object-fit: contain',
                 'border-radius: 8px',
                 'display: block',
@@ -464,7 +473,7 @@ export default {
 
                     if (item.type === 'image' || item.type === 'message') {
                         return `
-                            <div class="ci-attachment ci-attachment--image" style="${itemStyle}">
+                            <div class="ci-attachment ci-attachment--image" style="${imageItemStyle}">
                                 <img src="${url}" alt="${safeName}" style="${thumbStyle}" />
                             </div>
                         `.trim();
@@ -476,7 +485,7 @@ export default {
                     const iconStyleAttr = iconStyle?.color ? ` style="color: ${iconStyle.color};"` : '';
 
                     return `
-                        <div class="ci-attachment ci-attachment--file" style="${itemStyle}">
+                        <div class="ci-attachment ci-attachment--file" style="${fileItemStyle}">
                             <span class="ci-attachment__icon"><i class="${iconClass}"${iconStyleAttr}></i></span>
                             <a href="${url}" target="_blank" rel="noopener noreferrer">${displayName}</a>
                         </div>
