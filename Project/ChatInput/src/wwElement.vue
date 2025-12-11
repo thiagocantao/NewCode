@@ -232,8 +232,10 @@ export default {
         }
 
         function buildPayload() {
+            const attachment = attachments.value.map(item => item.previewUrl);
             const base = {
                 message: message.value.trim(),
+                attachment,
                 attachments: attachments.value.map(item => ({
                     id: item.id,
                     name: item.name,
