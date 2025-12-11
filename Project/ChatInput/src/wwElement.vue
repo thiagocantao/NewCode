@@ -1,7 +1,13 @@
 <template>
     <div class="chat-input" data-capture>
         <div class="chat-input__bar" :class="{ '-disabled': isReadonly, '-multiline': isMultiline }">
-            <button class="chat-input__add" type="button" :disabled="isReadonly" @click="triggerFilePicker">
+            <button
+                class="chat-input__add"
+                type="button"
+                :disabled="isReadonly"
+                :style="addButtonStyle"
+                @click="triggerFilePicker"
+            >
                 <i class="fa-solid fa-plus" aria-hidden="true"></i>
             </button>
 
@@ -40,6 +46,7 @@
                 class="chat-input__send"
                 type="button"
                 :disabled="isReadonly || !canSend"
+                :style="sendButtonStyle"
                 @click="handleSend"
             >
                 <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
@@ -82,6 +89,13 @@ export default {
 
         const isReadonly = computed(() => !!props.content.readonly);
         const placeholder = computed(() => props.content.placeholder || 'Digite sua mensagem...');
+        const sendButtonStyle = computed(() => ({
+            '--send-button-bg': props.content.sendButtonBackgroundColor || '#10a37f',
+            '--send-icon-color': props.content.sendIconColor || '#ffffff',
+        }));
+        const addButtonStyle = computed(() => ({
+            '--add-icon-color': props.content.addIconColor || '#3d3d3f',
+        }));
         const allowedExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'png', 'jpg', 'jpeg', 'gif', 'webp'];
         const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
         const accept = computed(
@@ -271,6 +285,7 @@ export default {
 
         return {
             accept,
+            addButtonStyle,
             attachments,
             canSend,
             fileInputRef,
@@ -282,6 +297,7 @@ export default {
             onFilesSelected,
             placeholder,
             removeAttachment,
+            sendButtonStyle,
             fileIconClass,
             fileIconStyle,
             textareaRef,
@@ -395,21 +411,24 @@ export default {
         cursor: pointer;
         transition: background 0.2s ease, color 0.2s ease;
         align-self: flex-end;
+        background: var(--send-button-bg, #10a37f);
+        color: var(--send-icon-color, #ffffff);
+        box-shadow: 0 4px 12px rgba(16, 163, 127, 0.3);
     }
 
     .chat-input__add {
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 19px;
-    font-weight: 400;
-    cursor: pointer;
-    transition: background 0.2s ease, color 0.2s ease;
-    align-self: flex-end;
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 19px;
+        font-weight: 400;
+        cursor: pointer;
+        transition: background 0.2s ease, color 0.2s ease;
+        align-self: flex-end;
     }
 
     .chat-input__bar.-multiline .chat-input__add,
@@ -419,17 +438,11 @@ export default {
     }
 
     .chat-input__add {
-        color: #3d3d3f;
+        color: var(--add-icon-color, #3d3d3f);
     }
 
     .chat-input__add:hover {
         cursor: pointer
-    }
-
-    .chat-input__send {
-        background: #10a37f;
-        color: #ffffff;
-        box-shadow: 0 4px 12px rgba(16, 163, 127, 0.3);
     }
 
     .chat-input__send:disabled {
