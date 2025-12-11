@@ -435,8 +435,8 @@ export default {
             ].join('; ');
 
             const baseItemStyle = [
-                'width: 280px',
-                'max-width: 280px',
+                'width: 100%',
+                'max-width: 100%',
                 'padding: 8px 10px',
                 'border: 1px solid #e5e5ec',
                 'border-radius: 10px',
@@ -464,6 +464,21 @@ export default {
                 'display: block',
             ].join('; ');
 
+            const fileNameStyle = [
+                'display: inline-block',
+                'flex: 1',
+                'min-width: 0',
+                'max-width: 100%',
+                'overflow: hidden',
+                'text-overflow: ellipsis',
+                'white-space: nowrap',
+                'color: #111827',
+                'font-weight: 500',
+                'font-size: 14px',
+                'text-decoration: none',
+                'line-height: 1.4'
+            ].join('; ');
+
             const itemsHtml = valid
                 .map(item => {
                     const url = attachmentThumbnailUrl(item);
@@ -487,7 +502,7 @@ export default {
                     return `
                         <div class="ci-attachment ci-attachment--file" style="${fileItemStyle}">
                             <span class="ci-attachment__icon"><i class="${iconClass}"${iconStyleAttr}></i></span>
-                            <a href="${url}" target="_blank" rel="noopener noreferrer">${displayName}</a>
+                            <a href="${url}" target="_blank" rel="noopener noreferrer" style="${fileNameStyle}">${displayName}</a>
                         </div>
                     `.trim();
                 })
