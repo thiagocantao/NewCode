@@ -402,18 +402,16 @@ export default {
 
 .chat-input__bar.-multiline .chat-input__add,
 .chat-input__bar.-multiline .chat-input__send {
-    align-self: flex-start;
+    align-self: end;
     margin-top: 2px;
 }
 
 .chat-input__add {
-    background: #f7f7f8;
     color: #3d3d3f;
-    border: 1px solid #e5e5e7;
 }
 
 .chat-input__add:hover {
-    background: #ededf0;
+    cursor: pointer
 }
 
 .chat-input__send {
@@ -448,9 +446,9 @@ export default {
     background: transparent;
     outline: none;
     font-size: 15px;
-    line-height: 1.4;
+    line-height: 36px;
     color: #171717;
-    min-height: 24px;
+    min-height: 40px;
     max-height: 200px;
     overflow-y: auto;
 }
@@ -461,7 +459,7 @@ export default {
 
 .chat-input__attachment.is-image {
     width: 56px;
-    height: 48px;
+    height: 56px;
     max-width: 56px;
     padding: 4px;
     justify-content: center;
