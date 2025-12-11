@@ -14,6 +14,7 @@ export default {
             event: {
                 message: '',
                 attachments: [],
+                attachmentsHtml: '',
                 json: '',
             },
         },
