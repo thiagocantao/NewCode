@@ -16,7 +16,11 @@
                     <div v-for="item in attachments" :key="item.id" class="chat-input__attachment"
                         :class="{ 'is-image': item.type === 'image' }">
                         <div class="chat-input__attachment-thumb">
-                            <img v-if="item.type === 'image'" :src="item.previewUrl" :alt="item.name" />
+                            <img
+                                v-if="item.type === 'image'"
+                                :src="attachmentThumbnailUrl(item)"
+                                :alt="item.name"
+                            />
                             <div v-else class="chat-input__file-icon">
                                 <i :class="fileIconClass(item.kind)" :style="fileIconStyle(item.kind)" aria-hidden="true"></i>
                             </div>
@@ -181,6 +185,14 @@ export default {
             readonly: true,
         });
 
+        const { setValue: setAttachmentsHtmlVariable } = wwLib.wwVariable.useComponentVariable({
+            uid: props.uid,
+            name: 'attachmentsHtml',
+            type: 'string',
+            defaultValue: '',
+            readonly: true,
+        });
+
         const isUploading = computed(() => attachments.value.some(item => item.status === 'uploading'));
         const canSend = computed(() => {
             const hasMessage = !!message.value.trim();
@@ -248,6 +260,10 @@ export default {
             if (ext === 'xls' || ext === 'xlsx') return 'spreadsheet';
             if (ext === 'txt') return 'text';
             return 'file';
+        }
+
+        function attachmentThumbnailUrl(item) {
+            return item?.publicUrl || item?.previewUrl || '';
         }
 
         function normalizeAttachment(file) {
@@ -387,15 +403,72 @@ export default {
             }
         }
 
+        function escapeHtml(text = '') {
+            return String(text).replace(/[&<>"']/g, char => {
+                switch (char) {
+                    case '&':
+                        return '&amp;';
+                    case '<':
+                        return '&lt;';
+                    case '>':
+                        return '&gt;';
+                    case '"':
+                        return '&quot;';
+                    case "'":
+                        return '&#39;';
+                    default:
+                        return char;
+                }
+            });
+        }
+
+        function buildAttachmentsHtml(list = attachments.value) {
+            const valid = (list || []).filter(item => item?.publicUrl);
+            if (!valid.length) return '';
+
+            const itemsHtml = valid
+                .map(item => {
+                    const url = attachmentThumbnailUrl(item);
+                    if (!url) return '';
+
+                    const safeName = escapeHtml(item.name || '');
+
+                    if (item.type === 'image' || item.type === 'message') {
+                        return `<div class="ci-attachment ci-attachment--image"><img src="${url}" alt="${safeName}" style="max-height: 50px; height: auto; width: auto; object-fit: contain;" /></div>`;
+                    }
+
+                    const displayName = safeName || 'Arquivo';
+                    const iconClass = fileIconClass(item.kind);
+                    const iconStyle = fileIconStyle(item.kind);
+                    const iconStyleAttr = iconStyle?.color ? ` style="color: ${iconStyle.color};"` : '';
+
+                    return `
+                        <div class="ci-attachment ci-attachment--file">
+                            <span class="ci-attachment__icon"><i class="${iconClass}"${iconStyleAttr}></i></span>
+                            <a href="${url}" target="_blank" rel="noopener noreferrer">${displayName}</a>
+                        </div>
+                    `.trim();
+                })
+                .filter(Boolean)
+                .join('');
+
+            return `<div class="ci-attachments">${itemsHtml}</div>`;
+        }
+
         function buildPayload() {
+            const uploadedAttachments = attachments.value.filter(item => item.publicUrl);
+
             const payload = {
                 message: message.value.trim(),
-                attachments: attachments.value.filter(item => item.publicUrl).map(item => item.publicUrl),
+                attachments: uploadedAttachments.map(item => item.publicUrl),
             };
+
+            const attachmentsHtml = buildAttachmentsHtml(uploadedAttachments);
 
             return {
                 ...payload,
-                json: JSON.stringify(payload, null, 2),
+                attachmentsHtml,
+                json: JSON.stringify({ ...payload, attachmentsHtml }, null, 2),
             };
         }
 
@@ -403,12 +476,15 @@ export default {
             const payload = buildPayload();
             setPayloadVariable(payload);
             setJsonVariable(payload.json);
+            setAttachmentsHtmlVariable(payload.attachmentsHtml);
         }
 
         function handleSend() {
             if (!canSend.value) return;
             const payload = buildPayload();
-            emit('trigger-event', { name: 'onSend', event: payload });
+            const eventPayload = { ...payload, attachmentsHtml: payload.attachmentsHtml };
+
+            emit('trigger-event', { name: 'onSend', event: eventPayload });
             message.value = '';
             attachments.value.splice(0);
             attachmentFiles.clear();
@@ -452,6 +528,7 @@ export default {
             fileIconClass,
             fileIconStyle,
             textareaRef,
+            attachmentThumbnailUrl,
             triggerFilePicker,
         };
     },
