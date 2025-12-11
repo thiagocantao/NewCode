@@ -398,6 +398,7 @@ export default {
     font-weight: 700;
     cursor: pointer;
     transition: background 0.2s ease, color 0.2s ease;
+    align-self: flex-end;
 }
 
 .chat-input__bar.-multiline .chat-input__add,
