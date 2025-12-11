@@ -473,7 +473,9 @@ export default {
         function handleSend() {
             if (!canSend.value) return;
             const payload = buildPayload();
-            emit('trigger-event', { name: 'onSend', event: payload });
+            const eventPayload = { ...payload, attachmentsHtml: payload.attachmentsHtml };
+
+            emit('trigger-event', { name: 'onSend', event: eventPayload });
             message.value = '';
             attachments.value.splice(0);
             attachmentFiles.clear();
