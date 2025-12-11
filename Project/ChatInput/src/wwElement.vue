@@ -7,12 +7,8 @@
 
             <div class="chat-input__content">
                 <div v-if="attachments.length" class="chat-input__attachments">
-                    <div
-                        v-for="item in attachments"
-                        :key="item.id"
-                        class="chat-input__attachment"
-                        :class="{ 'is-image': item.type === 'image' }"
-                    >
+                    <div v-for="item in attachments" :key="item.id" class="chat-input__attachment"
+                        :class="{ 'is-image': item.type === 'image' }">
                         <div class="chat-input__attachment-thumb">
                             <img v-if="item.type === 'image'" :src="item.previewUrl" :alt="item.name" />
                             <div v-else class="chat-input__file-icon">
@@ -63,7 +59,7 @@
 </template>
 
 <script>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+    import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 export default {
     name: 'ChatInput',
@@ -296,183 +292,183 @@ export default {
 </script>
 
 <style scoped>
-.chat-input {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-}
+    .chat-input {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
 
-.chat-input__attachment {
-    display: flex;
-    align-items: center;
-    padding: 6px 10px;
-    border-radius: 12px;
-    background: #f7f7f8;
-    border: 1px solid #e5e5e7;
-    gap: 10px;
-    position: relative;
-    max-width: 200px;
-    min-height: 48px;
-}
+    .chat-input__attachment {
+        display: flex;
+        align-items: center;
+        padding: 0px 10px;
+        border-radius: 12px;
+        background: #f7f7f8;
+        border: 1px solid #e5e5e7;
+        gap: 10px;
+        position: relative;
+        max-width: 260px;
+        min-height: 48px;
+    }
 
-.chat-input__attachment-thumb {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    overflow: hidden;
-    background: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid #e5e5e7;
-}
+    .chat-input__attachment-thumb {
+        width: 55px;
+        height: 48px;
+        /* border-radius: 10px; */
+        overflow: hidden;
+        /* background: #fff; */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        /* border: 1px solid #e5e5e7; */
+    }
 
-.chat-input__attachment-thumb img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
+    .chat-input__attachment-thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
 
-.chat-input__file-icon {
-    font-size: 20px;
-}
+    .chat-input__file-icon {
+        font-size: 30px;
+    }
 
-.chat-input__attachment-info {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-}
+    .chat-input__attachment-info {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
 
-.chat-input__attachment-name {
-    font-size: 14px;
-    font-weight: 600;
-    color: #161616;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
+    .chat-input__attachment-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: #161616;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
 
-.chat-input__remove {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    background: transparent;
-    border: none;
-    color: #8a8a8e;
-    cursor: pointer;
-    font-size: 14px;
-}
+    .chat-input__remove {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        background: transparent;
+        border: none;
+        color: #8a8a8e;
+        cursor: pointer;
+        font-size: 14px;
+    }
 
-.chat-input__bar {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: #ffffff;
-    border: 1px solid #d9d9e3;
-    border-radius: 999px;
-    padding: 10px 14px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-}
+    .chat-input__bar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: #ffffff;
+        border: 1px solid #d9d9e3;
+        border-radius: 999px;
+        padding: 10px 14px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    }
 
-.chat-input__bar.-multiline {
-    border-radius: 28px;
-    align-items: flex-start;
-}
+    .chat-input__bar.-multiline {
+        border-radius: 28px;
+        align-items: flex-start;
+    }
 
-.chat-input__bar.-disabled {
-    opacity: 0.6;
-    pointer-events: none;
-}
+    .chat-input__bar.-disabled {
+        opacity: 0.6;
+        pointer-events: none;
+    }
 
-.chat-input__add,
-.chat-input__send {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background 0.2s ease, color 0.2s ease;
-    align-self: flex-end;
-}
+    .chat-input__add,
+    .chat-input__send {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background 0.2s ease, color 0.2s ease;
+        align-self: flex-end;
+    }
 
-.chat-input__bar.-multiline .chat-input__add,
-.chat-input__bar.-multiline .chat-input__send {
-    align-self: end;
-    margin-top: 2px;
-}
+    .chat-input__bar.-multiline .chat-input__add,
+    .chat-input__bar.-multiline .chat-input__send {
+        align-self: end;
+        margin-top: 2px;
+    }
 
-.chat-input__add {
-    color: #3d3d3f;
-}
+    .chat-input__add {
+        color: #3d3d3f;
+    }
 
-.chat-input__add:hover {
-    cursor: pointer
-}
+    .chat-input__add:hover {
+        cursor: pointer
+    }
 
-.chat-input__send {
-    background: #10a37f;
-    color: #ffffff;
-    box-shadow: 0 4px 12px rgba(16, 163, 127, 0.3);
-}
+    .chat-input__send {
+        background: #10a37f;
+        color: #ffffff;
+        box-shadow: 0 4px 12px rgba(16, 163, 127, 0.3);
+    }
 
-.chat-input__send:disabled {
-    background: #c8c8cc;
-    box-shadow: none;
-    cursor: not-allowed;
-}
+    .chat-input__send:disabled {
+        background: #c8c8cc;
+        box-shadow: none;
+        cursor: not-allowed;
+    }
 
-.chat-input__content {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    flex: 1;
-}
+    .chat-input__content {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        flex: 1;
+    }
 
-.chat-input__attachments {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-}
+    .chat-input__attachments {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
 
-.chat-input__textarea {
-    width: 100%;
-    border: none;
-    resize: none;
-    background: transparent;
-    outline: none;
-    font-size: 15px;
-    line-height: 36px;
-    color: #171717;
-    min-height: 40px;
-    max-height: 200px;
-    overflow-y: auto;
-}
+    .chat-input__textarea {
+        width: 100%;
+        border: none;
+        resize: none;
+        background: transparent;
+        outline: none;
+        font-size: 15px;
+        line-height: 36px;
+        color: #171717;
+        min-height: 40px;
+        max-height: 200px;
+        overflow-y: auto;
+    }
 
-.chat-input__file-input {
-    display: none;
-}
+    .chat-input__file-input {
+        display: none;
+    }
 
-.chat-input__attachment.is-image {
-    width: 56px;
-    height: 56px;
-    max-width: 56px;
-    padding: 4px;
-    justify-content: center;
-}
+    .chat-input__attachment.is-image {
+        width: 56px;
+        height: 56px;
+        max-width: 56px;
+        padding: 4px;
+        justify-content: center;
+    }
 
-.chat-input__attachment.is-image .chat-input__attachment-thumb {
-    width: 100%;
-    height: 100%;
-}
+    .chat-input__attachment.is-image .chat-input__attachment-thumb {
+        width: 100%;
+        height: 100%;
+    }
 
-.chat-input__attachment.is-image .chat-input__remove {
-    top: 4px;
-    right: 4px;
-}
+    .chat-input__attachment.is-image .chat-input__remove {
+        top: 4px;
+        right: 4px;
+    }
 </style>
