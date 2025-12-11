@@ -428,17 +428,26 @@ export default {
 
             const itemsHtml = valid
                 .map(item => {
-                    const url = item.publicUrl;
+                    const url = attachmentThumbnailUrl(item);
                     if (!url) return '';
 
                     const safeName = escapeHtml(item.name || '');
 
-                    if (item.type === 'image') {
+                    if (item.type === 'image' || item.type === 'message') {
                         return `<div class="ci-attachment ci-attachment--image"><img src="${url}" alt="${safeName}" /></div>`;
                     }
 
                     const displayName = safeName || 'Arquivo';
-                    return `<div class="ci-attachment ci-attachment--file"><a href="${url}" target="_blank" rel="noopener noreferrer">${displayName}</a></div>`;
+                    const iconClass = fileIconClass(item.kind);
+                    const iconStyle = fileIconStyle(item.kind);
+                    const iconStyleAttr = iconStyle?.color ? ` style="color: ${iconStyle.color};"` : '';
+
+                    return `
+                        <div class="ci-attachment ci-attachment--file">
+                            <span class="ci-attachment__icon"><i class="${iconClass}"${iconStyleAttr}></i></span>
+                            <a href="${url}" target="_blank" rel="noopener noreferrer">${displayName}</a>
+                        </div>
+                    `.trim();
                 })
                 .filter(Boolean)
                 .join('');
