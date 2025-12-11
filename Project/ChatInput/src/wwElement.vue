@@ -1,40 +1,42 @@
 <template>
     <div class="chat-input" data-capture>
-        <div v-if="attachments.length" class="chat-input__attachments">
-            <div
-                v-for="item in attachments"
-                :key="item.id"
-                class="chat-input__attachment"
-                :class="{ 'is-image': item.type === 'image' }"
-            >
-                <div class="chat-input__attachment-thumb">
-                    <img v-if="item.type === 'image'" :src="item.previewUrl" :alt="item.name" />
-                    <div v-else class="chat-input__file-icon">📄</div>
-                </div>
-                <div class="chat-input__attachment-info">
-                    <span class="chat-input__attachment-name">{{ item.name }}</span>
-                    <small class="chat-input__attachment-meta">{{ item.mime || 'Arquivo' }}</small>
-                </div>
-                <button type="button" class="chat-input__remove" @click="removeAttachment(item.id)">
-                    ✕
-                </button>
-            </div>
-        </div>
-
         <div class="chat-input__bar" :class="{ '-disabled': isReadonly }">
             <button class="chat-input__add" type="button" :disabled="isReadonly" @click="triggerFilePicker">
                 +
             </button>
 
-            <textarea
-                ref="textareaRef"
-                class="chat-input__textarea"
-                :placeholder="placeholder"
-                v-model="message"
-                :disabled="isReadonly"
-                rows="1"
-                @keydown.enter.exact.prevent="handleSend"
-            ></textarea>
+            <div class="chat-input__content">
+                <div v-if="attachments.length" class="chat-input__attachments">
+                    <div
+                        v-for="item in attachments"
+                        :key="item.id"
+                        class="chat-input__attachment"
+                        :class="{ 'is-image': item.type === 'image' }"
+                    >
+                        <div class="chat-input__attachment-thumb">
+                            <img v-if="item.type === 'image'" :src="item.previewUrl" :alt="item.name" />
+                            <div v-else class="chat-input__file-icon">📄</div>
+                        </div>
+                        <div v-if="item.type !== 'image'" class="chat-input__attachment-info">
+                            <span class="chat-input__attachment-name">{{ item.name }}</span>
+                            <small class="chat-input__attachment-meta">{{ item.mime || 'Arquivo' }}</small>
+                        </div>
+                        <button type="button" class="chat-input__remove" @click="removeAttachment(item.id)">
+                            ✕
+                        </button>
+                    </div>
+                </div>
+
+                <textarea
+                    ref="textareaRef"
+                    class="chat-input__textarea"
+                    :placeholder="placeholder"
+                    v-model="message"
+                    :disabled="isReadonly"
+                    rows="1"
+                    @keydown.enter.exact.prevent="handleSend"
+                ></textarea>
+            </div>
 
             <button
                 class="chat-input__send"
@@ -204,30 +206,26 @@ export default {
 .chat-input {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-}
-
-.chat-input__attachments {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 8px;
 }
 
 .chat-input__attachment {
     display: flex;
     align-items: center;
-    padding: 8px;
+    padding: 6px 10px;
     border-radius: 12px;
     background: #f7f7f8;
     border: 1px solid #e5e5e7;
     gap: 10px;
     position: relative;
+    max-width: 200px;
+    min-height: 48px;
 }
 
 .chat-input__attachment-thumb {
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
     border-radius: 10px;
     overflow: hidden;
     background: #fff;
@@ -279,10 +277,9 @@ export default {
 }
 
 .chat-input__bar {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
+    display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
     background: #ffffff;
     border: 1px solid #d9d9e3;
     border-radius: 999px;
@@ -347,5 +344,37 @@ export default {
 
 .chat-input__file-input {
     display: none;
+}
+
+.chat-input__content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.chat-input__attachments {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.chat-input__attachment.is-image {
+    width: 56px;
+    height: 48px;
+    max-width: 56px;
+    padding: 4px;
+    justify-content: center;
+}
+
+.chat-input__attachment.is-image .chat-input__attachment-thumb {
+    width: 100%;
+    height: 100%;
+}
+
+.chat-input__attachment.is-image .chat-input__remove {
+    top: 4px;
+    right: 4px;
 }
 </style>
