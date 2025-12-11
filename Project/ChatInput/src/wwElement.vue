@@ -434,7 +434,7 @@ export default {
                     const safeName = escapeHtml(item.name || '');
 
                     if (item.type === 'image' || item.type === 'message') {
-                        return `<div class="ci-attachment ci-attachment--image"><img src="${url}" alt="${safeName}" /></div>`;
+                        return `<div class="ci-attachment ci-attachment--image"><img src="${url}" alt="${safeName}" style="max-height: 50px; height: auto; width: auto; object-fit: contain;" /></div>`;
                     }
 
                     const displayName = safeName || 'Arquivo';
