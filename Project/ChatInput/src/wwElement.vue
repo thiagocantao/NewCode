@@ -1,6 +1,6 @@
 <template>
     <div class="chat-input" data-capture>
-        <div class="chat-input__bar" :class="{ '-disabled': isReadonly }">
+        <div class="chat-input__bar" :class="{ '-disabled': isReadonly, '-multiline': isMultiline }">
             <button class="chat-input__add" type="button" :disabled="isReadonly" @click="triggerFilePicker">
                 <i class="fa-solid fa-paperclip" aria-hidden="true"></i>
             </button>
@@ -16,12 +16,11 @@
                         <div class="chat-input__attachment-thumb">
                             <img v-if="item.type === 'image'" :src="item.previewUrl" :alt="item.name" />
                             <div v-else class="chat-input__file-icon">
-                                <i :class="fileIconClass(item.kind)" aria-hidden="true"></i>
+                                <i :class="fileIconClass(item.kind)" :style="fileIconStyle(item.kind)" aria-hidden="true"></i>
                             </div>
                         </div>
                         <div v-if="item.type !== 'image'" class="chat-input__attachment-info">
                             <span class="chat-input__attachment-name">{{ item.name }}</span>
-                            <small class="chat-input__attachment-meta">{{ item.mime || 'Arquivo' }}</small>
                         </div>
                         <button type="button" class="chat-input__remove" @click="removeAttachment(item.id)">
                             <i class="fa-solid fa-xmark" aria-hidden="true"></i>
@@ -36,6 +35,7 @@
                     v-model="message"
                     :disabled="isReadonly"
                     rows="1"
+                    @input="handleInput"
                     @keydown.enter.exact.prevent="handleSend"
                 ></textarea>
             </div>
@@ -63,7 +63,7 @@
 </template>
 
 <script>
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 export default {
     name: 'ChatInput',
@@ -82,6 +82,7 @@ export default {
         const fileInputRef = ref(null);
         const textareaRef = ref(null);
         const objectUrls = new Set();
+        const isMultiline = ref(false);
 
         const isReadonly = computed(() => !!props.content.readonly);
         const placeholder = computed(() => props.content.placeholder || 'Digite sua mensagem...');
@@ -127,6 +128,21 @@ export default {
             }
         }
 
+        function fileIconStyle(kind) {
+            switch (kind) {
+                case 'pdf':
+                    return { color: '#e63946' };
+                case 'spreadsheet':
+                    return { color: '#217346' };
+                case 'document':
+                    return { color: '#2b579a' };
+                case 'text':
+                    return { color: '#6f6f73' };
+                default:
+                    return { color: '#3d3d3f' };
+            }
+        }
+
         function removeAttachment(id) {
             const index = attachments.value.findIndex(item => item.id === id);
             if (index === -1) return;
@@ -167,6 +183,20 @@ export default {
                 kind,
                 previewUrl,
             };
+        }
+
+        function adjustTextareaHeight() {
+            const el = textareaRef.value;
+            if (!el) return;
+            el.style.height = 'auto';
+            const newHeight = el.scrollHeight;
+            el.style.height = `${newHeight}px`;
+            const lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 20;
+            isMultiline.value = newHeight > lineHeight + 2;
+        }
+
+        function handleInput() {
+            adjustTextareaHeight();
         }
 
         function isAllowedFile(file) {
@@ -226,10 +256,17 @@ export default {
             textareaRef.value?.focus();
         }
 
-        watch(message, syncVariables);
+        watch(message, () => {
+            syncVariables();
+            nextTick(adjustTextareaHeight);
+        });
         watch(attachments, syncVariables, { deep: true });
 
         syncVariables();
+
+        onMounted(() => {
+            adjustTextareaHeight();
+        });
 
         onBeforeUnmount(() => {
             objectUrls.forEach(url => URL.revokeObjectURL(url));
@@ -242,12 +279,15 @@ export default {
             canSend,
             fileInputRef,
             handleSend,
+            handleInput,
             isReadonly,
+            isMultiline,
             message,
             onFilesSelected,
             placeholder,
             removeAttachment,
             fileIconClass,
+            fileIconStyle,
             textareaRef,
             triggerFilePicker,
         };
@@ -313,11 +353,6 @@ export default {
     white-space: nowrap;
 }
 
-.chat-input__attachment-meta {
-    color: #6f6f73;
-    font-size: 12px;
-}
-
 .chat-input__remove {
     position: absolute;
     top: 6px;
@@ -340,6 +375,11 @@ export default {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 
+.chat-input__bar.-multiline {
+    border-radius: 28px;
+    align-items: flex-start;
+}
+
 .chat-input__bar.-disabled {
     opacity: 0.6;
     pointer-events: none;
@@ -358,6 +398,12 @@ export default {
     font-weight: 700;
     cursor: pointer;
     transition: background 0.2s ease, color 0.2s ease;
+}
+
+.chat-input__bar.-multiline .chat-input__add,
+.chat-input__bar.-multiline .chat-input__send {
+    align-self: flex-start;
+    margin-top: 2px;
 }
 
 .chat-input__add {
@@ -382,6 +428,19 @@ export default {
     cursor: not-allowed;
 }
 
+.chat-input__content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+}
+
+.chat-input__attachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
 .chat-input__textarea {
     width: 100%;
     border: none;
@@ -391,26 +450,13 @@ export default {
     font-size: 15px;
     line-height: 1.4;
     color: #171717;
+    min-height: 24px;
     max-height: 200px;
     overflow-y: auto;
 }
 
 .chat-input__file-input {
     display: none;
-}
-
-.chat-input__content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.chat-input__attachments {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
 }
 
 .chat-input__attachment.is-image {
