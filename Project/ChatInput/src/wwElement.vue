@@ -397,10 +397,10 @@ export default {
         pointer-events: none;
     }
 
-    
+
     .chat-input__send {
-        width: 36px;
-        height: 36px;
+        width: 40px;
+        height: 40px;
         border-radius: 50%;
         border: none;
         display: flex;
@@ -417,8 +417,8 @@ export default {
     }
 
     .chat-input__add {
-        width: 45px;
-        height: 45px;
+        width: 40px;
+        height: 40px;
         border-radius: 50%;
         border: none;
         display: flex;
@@ -465,17 +465,17 @@ export default {
     }
 
     .chat-input__textarea {
-        width: 100%;
-        border: none;
-        resize: none;
-        background: transparent;
-        outline: none;
-        font-size: 14px;
-        line-height: 36px;
-        color: #171717;
-        min-height: 40px;
-        max-height: 280px;
-        overflow-y: auto;
+            width: 100%;
+            border: none;
+            resize: none;
+            background: rgba(0,0,0,0);
+            outline: none;
+            font-size: 14px;
+            line-height: 40px;
+            color: #171717;
+            min-height: 44px;
+            max-height: 280px;
+            overflow-y: auto;
     }
 
     .chat-input__file-input {
