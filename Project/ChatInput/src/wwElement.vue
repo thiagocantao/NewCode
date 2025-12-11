@@ -426,6 +426,35 @@ export default {
             const valid = (list || []).filter(item => item?.publicUrl);
             if (!valid.length) return '';
 
+            const containerStyle = [
+                'display: flex',
+                'flex-direction: column',
+                'gap: 8px',
+                'align-items: flex-start',
+            ].join('; ');
+
+            const itemStyle = [
+                'display: flex',
+                'align-items: center',
+                'gap: 10px',
+                'width: 280px',
+                'max-width: 280px',
+                'padding: 8px 10px',
+                'border: 1px solid #e5e5ec',
+                'border-radius: 10px',
+                'background: #f9fafb',
+                'box-sizing: border-box',
+            ].join('; ');
+
+            const thumbStyle = [
+                'width: 100%',
+                'height: auto',
+                'max-height: 50px',
+                'object-fit: contain',
+                'border-radius: 8px',
+                'display: block',
+            ].join('; ');
+
             const itemsHtml = valid
                 .map(item => {
                     const url = attachmentThumbnailUrl(item);
@@ -434,7 +463,11 @@ export default {
                     const safeName = escapeHtml(item.name || '');
 
                     if (item.type === 'image' || item.type === 'message') {
-                        return `<div class="ci-attachment ci-attachment--image"><img src="${url}" alt="${safeName}" style="max-height: 50px; height: auto; width: auto; object-fit: contain;" /></div>`;
+                        return `
+                            <div class="ci-attachment ci-attachment--image" style="${itemStyle}">
+                                <img src="${url}" alt="${safeName}" style="${thumbStyle}" />
+                            </div>
+                        `.trim();
                     }
 
                     const displayName = safeName || 'Arquivo';
@@ -443,7 +476,7 @@ export default {
                     const iconStyleAttr = iconStyle?.color ? ` style="color: ${iconStyle.color};"` : '';
 
                     return `
-                        <div class="ci-attachment ci-attachment--file">
+                        <div class="ci-attachment ci-attachment--file" style="${itemStyle}">
                             <span class="ci-attachment__icon"><i class="${iconClass}"${iconStyleAttr}></i></span>
                             <a href="${url}" target="_blank" rel="noopener noreferrer">${displayName}</a>
                         </div>
@@ -452,7 +485,7 @@ export default {
                 .filter(Boolean)
                 .join('');
 
-            return `<div class="ci-attachments">${itemsHtml}</div>`;
+            return `<div class="ci-attachments" style="${containerStyle}">${itemsHtml}</div>`;
         }
 
         function buildPayload() {
