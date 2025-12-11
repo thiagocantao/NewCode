@@ -67,7 +67,7 @@
 
 <script>
     import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-    import { SUPABASE_IMAGE_BUCKET } from '../../supabaseBuckets.js';
+    import { SUPABASE_IMAGE_BUCKET } from './supabaseBuckets.js';
 
 export default {
     name: 'ChatInput',
