@@ -1,40 +1,44 @@
 <template>
     <div class="chat-input" data-capture>
-        <div v-if="attachments.length" class="chat-input__attachments">
-            <div
-                v-for="item in attachments"
-                :key="item.id"
-                class="chat-input__attachment"
-                :class="{ 'is-image': item.type === 'image' }"
-            >
-                <div class="chat-input__attachment-thumb">
-                    <img v-if="item.type === 'image'" :src="item.previewUrl" :alt="item.name" />
-                    <div v-else class="chat-input__file-icon">📄</div>
-                </div>
-                <div class="chat-input__attachment-info">
-                    <span class="chat-input__attachment-name">{{ item.name }}</span>
-                    <small class="chat-input__attachment-meta">{{ item.mime || 'Arquivo' }}</small>
-                </div>
-                <button type="button" class="chat-input__remove" @click="removeAttachment(item.id)">
-                    ✕
-                </button>
-            </div>
-        </div>
-
         <div class="chat-input__bar" :class="{ '-disabled': isReadonly }">
             <button class="chat-input__add" type="button" :disabled="isReadonly" @click="triggerFilePicker">
-                +
+                <i class="fa-solid fa-paperclip" aria-hidden="true"></i>
             </button>
 
-            <textarea
-                ref="textareaRef"
-                class="chat-input__textarea"
-                :placeholder="placeholder"
-                v-model="message"
-                :disabled="isReadonly"
-                rows="1"
-                @keydown.enter.exact.prevent="handleSend"
-            ></textarea>
+            <div class="chat-input__content">
+                <div v-if="attachments.length" class="chat-input__attachments">
+                    <div
+                        v-for="item in attachments"
+                        :key="item.id"
+                        class="chat-input__attachment"
+                        :class="{ 'is-image': item.type === 'image' }"
+                    >
+                        <div class="chat-input__attachment-thumb">
+                            <img v-if="item.type === 'image'" :src="item.previewUrl" :alt="item.name" />
+                            <div v-else class="chat-input__file-icon">
+                                <i :class="fileIconClass(item.kind)" aria-hidden="true"></i>
+                            </div>
+                        </div>
+                        <div v-if="item.type !== 'image'" class="chat-input__attachment-info">
+                            <span class="chat-input__attachment-name">{{ item.name }}</span>
+                            <small class="chat-input__attachment-meta">{{ item.mime || 'Arquivo' }}</small>
+                        </div>
+                        <button type="button" class="chat-input__remove" @click="removeAttachment(item.id)">
+                            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <textarea
+                    ref="textareaRef"
+                    class="chat-input__textarea"
+                    :placeholder="placeholder"
+                    v-model="message"
+                    :disabled="isReadonly"
+                    rows="1"
+                    @keydown.enter.exact.prevent="handleSend"
+                ></textarea>
+            </div>
 
             <button
                 class="chat-input__send"
@@ -42,7 +46,7 @@
                 :disabled="isReadonly || !canSend"
                 @click="handleSend"
             >
-                ▶
+                <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
             </button>
 
             <input
@@ -81,7 +85,11 @@ export default {
 
         const isReadonly = computed(() => !!props.content.readonly);
         const placeholder = computed(() => props.content.placeholder || 'Digite sua mensagem...');
-        const accept = computed(() => props.content.accept || 'image/*,application/pdf,.doc,.docx,.txt');
+        const allowedExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'png', 'jpg', 'jpeg', 'gif', 'webp'];
+        const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
+        const accept = computed(
+            () => props.content.accept || '.pdf,.doc,.docx,.xls,.xlsx,.txt,.png,.jpg,.jpeg,.gif,.webp',
+        );
 
         const { setValue: setPayloadVariable } = wwLib.wwVariable.useComponentVariable({
             uid: props.uid,
@@ -104,6 +112,21 @@ export default {
             fileInputRef.value?.click();
         }
 
+        function fileIconClass(kind) {
+            switch (kind) {
+                case 'pdf':
+                    return 'fa-solid fa-file-pdf';
+                case 'document':
+                    return 'fa-solid fa-file-word';
+                case 'spreadsheet':
+                    return 'fa-solid fa-file-excel';
+                case 'text':
+                    return 'fa-solid fa-file-lines';
+                default:
+                    return 'fa-solid fa-file';
+            }
+        }
+
         function removeAttachment(id) {
             const index = attachments.value.findIndex(item => item.id === id);
             if (index === -1) return;
@@ -115,8 +138,24 @@ export default {
             syncVariables();
         }
 
+        function getExtension(name = '') {
+            return name.split('.').pop()?.toLowerCase();
+        }
+
+        function detectKind(file) {
+            const ext = getExtension(file.name);
+            const mime = file.type;
+            if (mime?.startsWith('image/') || imageExtensions.includes(ext)) return 'image';
+            if (ext === 'pdf') return 'pdf';
+            if (ext === 'doc' || ext === 'docx') return 'document';
+            if (ext === 'xls' || ext === 'xlsx') return 'spreadsheet';
+            if (ext === 'txt') return 'text';
+            return 'file';
+        }
+
         function normalizeAttachment(file) {
-            const isImage = file.type?.startsWith('image/');
+            const kind = detectKind(file);
+            const isImage = kind === 'image';
             const previewUrl = URL.createObjectURL(file);
             objectUrls.add(previewUrl);
             return {
@@ -125,14 +164,29 @@ export default {
                 mime: file.type,
                 size: file.size,
                 type: isImage ? 'image' : 'file',
+                kind,
                 previewUrl,
             };
+        }
+
+        function isAllowedFile(file) {
+            const ext = getExtension(file.name);
+            const mime = file.type;
+            if (mime?.startsWith('image/')) return imageExtensions.includes(ext);
+            return allowedExtensions.includes(ext);
         }
 
         function onFilesSelected(event) {
             const files = Array.from(event.target.files || []);
             if (!files.length) return;
-            attachments.value.push(...files.map(normalizeAttachment));
+            const allowed = files.filter(isAllowedFile);
+            const rejected = files.filter(file => !allowed.includes(file));
+
+            if (rejected.length) {
+                wwLib?.wwLog?.warn?.('Arquivos não permitidos ignorados:', rejected.map(file => file.name));
+            }
+
+            attachments.value.push(...allowed.map(normalizeAttachment));
             event.target.value = '';
             syncVariables();
         }
@@ -193,6 +247,7 @@ export default {
             onFilesSelected,
             placeholder,
             removeAttachment,
+            fileIconClass,
             textareaRef,
             triggerFilePicker,
         };
@@ -204,30 +259,26 @@ export default {
 .chat-input {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-}
-
-.chat-input__attachments {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 8px;
 }
 
 .chat-input__attachment {
     display: flex;
     align-items: center;
-    padding: 8px;
+    padding: 6px 10px;
     border-radius: 12px;
     background: #f7f7f8;
     border: 1px solid #e5e5e7;
     gap: 10px;
     position: relative;
+    max-width: 200px;
+    min-height: 48px;
 }
 
 .chat-input__attachment-thumb {
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
     border-radius: 10px;
     overflow: hidden;
     background: #fff;
@@ -279,10 +330,9 @@ export default {
 }
 
 .chat-input__bar {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
+    display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
     background: #ffffff;
     border: 1px solid #d9d9e3;
     border-radius: 999px;
@@ -347,5 +397,37 @@ export default {
 
 .chat-input__file-input {
     display: none;
+}
+
+.chat-input__content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.chat-input__attachments {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.chat-input__attachment.is-image {
+    width: 56px;
+    height: 48px;
+    max-width: 56px;
+    padding: 4px;
+    justify-content: center;
+}
+
+.chat-input__attachment.is-image .chat-input__attachment-thumb {
+    width: 100%;
+    height: 100%;
+}
+
+.chat-input__attachment.is-image .chat-input__remove {
+    top: 4px;
+    right: 4px;
 }
 </style>
