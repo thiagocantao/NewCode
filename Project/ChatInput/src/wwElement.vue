@@ -341,8 +341,8 @@ export default {
     }
 
     .chat-input__attachment-name {
-        font-size: 14px;
-        font-weight: 600;
+        font-size: 13px;
+        font-weight: 400;
         color: #161616;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -442,11 +442,11 @@ export default {
         resize: none;
         background: transparent;
         outline: none;
-        font-size: 15px;
+        font-size: 14px;
         line-height: 36px;
         color: #171717;
         min-height: 40px;
-        max-height: 200px;
+        max-height: 280px;
         overflow-y: auto;
     }
 
@@ -458,7 +458,7 @@ export default {
         width: 56px;
         height: 56px;
         max-width: 56px;
-        padding: 4px;
+        padding: 1px;
         justify-content: center;
     }
 
