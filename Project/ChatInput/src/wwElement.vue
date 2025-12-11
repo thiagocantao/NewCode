@@ -182,9 +182,12 @@ export default {
         });
 
         const isUploading = computed(() => attachments.value.some(item => item.status === 'uploading'));
-        const canSend = computed(
-            () => !isUploading.value && (message.value.trim() || attachments.value.some(item => item.publicUrl)),
-        );
+        const canSend = computed(() => {
+            const hasMessage = !!message.value.trim();
+            const hasUploadedAttachments = attachments.value.some(item => item.publicUrl);
+            if (hasMessage) return true;
+            return !isUploading.value && hasUploadedAttachments;
+        });
 
         function triggerFilePicker() {
             fileInputRef.value?.click();
