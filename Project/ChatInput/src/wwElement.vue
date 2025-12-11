@@ -431,7 +431,8 @@ export default {
                 'flex-direction: column',
                 'gap: 8px',
                 'align-items: flex-start',
-                'width: 100%'
+                'width: 100%',
+                'margin-bottom: 8px'
             ].join('; ');
 
             const baseItemStyle = [
@@ -498,10 +499,19 @@ export default {
                     const iconClass = fileIconClass(item.kind);
                     const iconStyle = fileIconStyle(item.kind);
                     const iconStyleAttr = iconStyle?.color ? ` style="color: ${iconStyle.color};"` : '';
+                    const iconBoxStyle = [
+                        'width: 24px',
+                        'height: 24px',
+                        'display: inline-flex',
+                        'align-items: center',
+                        'justify-content: center',
+                        'font-size: 24px',
+                        'flex-shrink: 0'
+                    ].join('; ');
 
                     return `
                         <div class="ci-attachment ci-attachment--file" style="${fileItemStyle}">
-                            <span class="ci-attachment__icon"><i class="${iconClass}"${iconStyleAttr}></i></span>
+                            <span class="ci-attachment__icon" style="${iconBoxStyle}"><i class="${iconClass}"${iconStyleAttr}></i></span>
                             <a href="${url}" target="_blank" rel="noopener noreferrer" style="${fileNameStyle}">${displayName}</a>
                         </div>
                     `.trim();
