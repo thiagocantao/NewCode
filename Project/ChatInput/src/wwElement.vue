@@ -88,7 +88,7 @@ export default {
         const isMultiline = ref(false);
 
         const isReadonly = computed(() => !!props.content.readonly);
-        const placeholder = computed(() => props.content.placeholder || 'Digite sua mensagem...');
+        const placeholder = computed(() => props.content.placeholder || 'Type your message...');
         const sendButtonStyle = computed(() => ({
             '--send-button-bg': props.content.sendButtonBackgroundColor || '#10a37f',
             '--send-icon-color': props.content.sendIconColor || '#ffffff',
@@ -223,7 +223,7 @@ export default {
             const rejected = files.filter(file => !allowed.includes(file));
 
             if (rejected.length) {
-                wwLib?.wwLog?.warn?.('Arquivos não permitidos ignorados:', rejected.map(file => file.name));
+                wwLib?.wwLog?.warn?.('Unsupported files ignored:', rejected.map(file => file.name));
             }
 
             attachments.value.push(...allowed.map(normalizeAttachment));
