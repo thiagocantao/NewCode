@@ -67,6 +67,7 @@
 
 <script>
     import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+    import { SUPABASE_IMAGE_BUCKET } from '../../supabaseBuckets.js';
 
 export default {
     name: 'ChatInput',
@@ -102,11 +103,74 @@ export default {
             () => props.content.accept || '.pdf,.doc,.docx,.xls,.xlsx,.txt,.png,.jpg,.jpeg,.gif,.webp',
         );
 
+        const attachmentFiles = new Map();
+
+        // variáveis do projeto
+        const getVar = id => window?.wwLib?.wwVariable?.getValue?.(id);
+        const workspaceVarId = '744511f1-3309-41da-a9fd-0721e7dd2f99';
+        const ticketVarId = '7bebd888-f31e-49e7-bef2-4052c8cb6cf5';
+
+        // plugins supabase
+        let sb = window?.wwLib?.wwPlugins?.supabase;
+        let supabase = sb?.instance || null;
+        let auth = window?.wwLib?.wwPlugins?.supabaseAuth?.publicInstance || null;
+
+        const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+        async function ensureAuthReady(maxMs = 4000) {
+            try {
+                if (!auth?.auth?.getUser) return true;
+                const start = Date.now();
+                while (Date.now() - start < maxMs) {
+                    const { data, error } = await auth.auth.getUser();
+                    if (data?.user && !error) return true;
+                    await sleep(200);
+                }
+            } catch (_) {}
+            return true;
+        }
+
+        async function waitForStorage(maxMs = 4000) {
+            const start = Date.now();
+            while (Date.now() - start < maxMs) {
+                if (supabase && supabase.storage) return true;
+                await sleep(100);
+            }
+            return false;
+        }
+
+        function extOf(name = '') {
+            const seg = String(name).split('.').pop() || '';
+            return seg.toLowerCase();
+        }
+
+        function guessContentType(name, fallback = 'application/octet-stream') {
+            const ext = extOf(name);
+            if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(ext)) {
+                return `image/${ext === 'jpg' ? 'jpeg' : ext}`;
+            }
+            if (ext === 'txt' || ext === 'log') return 'text/plain';
+            if (ext === 'json') return 'application/json';
+            if (ext === 'csv') return 'text/csv';
+            return fallback;
+        }
+
+        function getPublicUrl(bucket, storagePath) {
+            if (!bucket || !storagePath || !supabase?.storage) return null;
+            try {
+                const { data } = supabase.storage.from(bucket).getPublicUrl(storagePath);
+                return data?.publicUrl || null;
+            } catch (e) {
+                console.warn('[ChatInput] getPublicUrl error:', e);
+                return null;
+            }
+        }
+
         const { setValue: setPayloadVariable } = wwLib.wwVariable.useComponentVariable({
             uid: props.uid,
             name: 'chatPayload',
             type: 'object',
-            defaultValue: {},
+            defaultValue: { message: '', attachments: [] },
         });
 
         const { setValue: setJsonVariable } = wwLib.wwVariable.useComponentVariable({
@@ -117,7 +181,10 @@ export default {
             readonly: true,
         });
 
-        const canSend = computed(() => message.value.trim() || attachments.value.length);
+        const isUploading = computed(() => attachments.value.some(item => item.status === 'uploading'));
+        const canSend = computed(
+            () => !isUploading.value && (message.value.trim() || attachments.value.some(item => item.publicUrl)),
+        );
 
         function triggerFilePicker() {
             fileInputRef.value?.click();
@@ -157,6 +224,7 @@ export default {
             const index = attachments.value.findIndex(item => item.id === id);
             if (index === -1) return;
             const [removed] = attachments.value.splice(index, 1);
+            attachmentFiles.delete(id);
             if (removed?.previewUrl && objectUrls.has(removed.previewUrl)) {
                 URL.revokeObjectURL(removed.previewUrl);
                 objectUrls.delete(removed.previewUrl);
@@ -192,6 +260,10 @@ export default {
                 type: isImage ? 'image' : 'file',
                 kind,
                 previewUrl,
+                publicUrl: '',
+                storagePath: '',
+                status: 'pending',
+                error: null,
             };
         }
 
@@ -226,29 +298,101 @@ export default {
                 wwLib?.wwLog?.warn?.('Unsupported files ignored:', rejected.map(file => file.name));
             }
 
-            attachments.value.push(...allowed.map(normalizeAttachment));
+            allowed.forEach(file => {
+                const attachment = normalizeAttachment(file);
+                attachments.value.push(attachment);
+                attachmentFiles.set(attachment.id, file);
+                uploadAttachmentFile(attachment, file);
+            });
             event.target.value = '';
             syncVariables();
         }
 
+        async function uploadAttachmentFile(attachment, file) {
+            if (!attachment || !file) return;
+            attachment.status = 'uploading';
+            attachment.error = null;
+
+            try {
+                await ensureAuthReady();
+                const okStorage = await waitForStorage(4000);
+                if (!okStorage || !supabase?.storage) {
+                    throw new Error('Supabase Storage não está pronto. Tente novamente.');
+                }
+
+                const { data: userData, error: authErr } = auth?.auth?.getUser
+                    ? await auth.auth.getUser()
+                    : { data: { user: null }, error: null };
+                if (auth && (authErr || !userData?.user)) {
+                    throw new Error(
+                        authErr
+                            ? `Erro ao obter usuário do Supabase Auth: ${authErr.message || authErr}`
+                            : 'Usuário não autenticado no Supabase.',
+                    );
+                }
+
+                const workspace = getVar(workspaceVarId) || 'no-workspace';
+                const ticket = getVar(ticketVarId) || 'no-ticket';
+                const bucket = SUPABASE_IMAGE_BUCKET;
+
+                const extension = extOf(file.name);
+                const uniqueId = window.crypto?.randomUUID
+                    ? window.crypto.randomUUID()
+                    : `${Date.now().toString(36)}-${Math.random().toString(16).slice(2)}`;
+                const objectPath = `${workspace}/${ticket}/chat/${uniqueId}${extension ? `.${extension}` : ''}`;
+
+                try {
+                    const { data: allowed, error: rpcError } = sb?.callPostgresFunction
+                        ? await supabase.rpc('rls_user_in_path_workspace', { obj_name: objectPath })
+                        : { data: true, error: null };
+                    if (rpcError) {
+                        console.warn('[ChatInput] RLS check failed:', rpcError);
+                    } else if (allowed === false) {
+                        throw new Error('Você não tem permissão para salvar este arquivo.');
+                    }
+                } catch (rlsError) {
+                    if (rlsError instanceof Error) throw rlsError;
+                    throw new Error(String(rlsError));
+                }
+
+                const contentType = guessContentType(file.name, file.type || 'application/octet-stream');
+                const { error: uploadError } = await supabase.storage.from(bucket).upload(objectPath, file, {
+                    cacheControl: '3600',
+                    upsert: false,
+                    contentType,
+                });
+                if (uploadError) {
+                    throw new Error(uploadError.message || uploadError);
+                }
+
+                const publicUrl = getPublicUrl(bucket, objectPath);
+                if (!publicUrl) {
+                    throw new Error('Unable to get public URL for uploaded file.');
+                }
+
+                attachment.status = 'done';
+                attachment.publicUrl = publicUrl;
+                attachment.storagePath = objectPath;
+                syncVariables();
+            } catch (error) {
+                console.warn('[ChatInput] Upload failed:', error);
+                attachment.status = 'error';
+                attachment.error = error?.message || String(error);
+                syncVariables();
+            } finally {
+                attachmentFiles.delete(attachment.id);
+            }
+        }
+
         function buildPayload() {
-            const attachment = attachments.value.map(item => item.previewUrl);
-            const base = {
+            const payload = {
                 message: message.value.trim(),
-                attachment,
-                attachments: attachments.value.map(item => ({
-                    id: item.id,
-                    name: item.name,
-                    mime: item.mime,
-                    size: item.size,
-                    type: item.type,
-                    previewUrl: item.previewUrl,
-                })),
+                attachments: attachments.value.filter(item => item.publicUrl).map(item => item.publicUrl),
             };
 
             return {
-                ...base,
-                json: JSON.stringify(base, null, 2),
+                ...payload,
+                json: JSON.stringify(payload, null, 2),
             };
         }
 
@@ -264,6 +408,7 @@ export default {
             emit('trigger-event', { name: 'onSend', event: payload });
             message.value = '';
             attachments.value.splice(0);
+            attachmentFiles.clear();
             syncVariables();
             textareaRef.value?.focus();
         }
@@ -283,6 +428,7 @@ export default {
         onBeforeUnmount(() => {
             objectUrls.forEach(url => URL.revokeObjectURL(url));
             objectUrls.clear();
+            attachmentFiles.clear();
         });
 
         return {
