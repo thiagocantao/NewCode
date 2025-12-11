@@ -2,7 +2,7 @@
     <div class="chat-input" data-capture>
         <div class="chat-input__bar" :class="{ '-disabled': isReadonly, '-multiline': isMultiline }">
             <button class="chat-input__add" type="button" :disabled="isReadonly" @click="triggerFilePicker">
-                <i class="fa-solid fa-paperclip" aria-hidden="true"></i>
+                <i class="fa-solid fa-plus" aria-hidden="true"></i>
             </button>
 
             <div class="chat-input__content">
@@ -381,7 +381,7 @@ export default {
         pointer-events: none;
     }
 
-    .chat-input__add,
+    
     .chat-input__send {
         width: 36px;
         height: 36px;
@@ -395,6 +395,21 @@ export default {
         cursor: pointer;
         transition: background 0.2s ease, color 0.2s ease;
         align-self: flex-end;
+    }
+
+    .chat-input__add {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 19px;
+    font-weight: 400;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+    align-self: flex-end;
     }
 
     .chat-input__bar.-multiline .chat-input__add,
