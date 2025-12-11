@@ -432,7 +432,7 @@ export default {
                 'gap: 8px',
                 'align-items: flex-start',
                 'width: 100%',
-                'margin-bottom: 8px'
+                'margin-bottom: 12px'
             ].join('; ');
 
             const baseItemStyle = [
@@ -453,7 +453,7 @@ export default {
             const fileItemStyle = [
                 'display: flex',
                 'align-items: center',
-                'gap: 10px',
+                'gap: 8px',
                 ...baseItemStyle,
             ].join('; ');
 
@@ -466,8 +466,9 @@ export default {
             ].join('; ');
 
             const fileNameStyle = [
-                'display: inline-block',
+                'display: block',
                 'flex: 1',
+                'width: 100%',
                 'min-width: 0',
                 'max-width: 100%',
                 'overflow: hidden',
