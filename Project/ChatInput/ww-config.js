@@ -26,5 +26,12 @@ export default {
         initialValue: { label: { en: 'Initial value' }, type: 'Text', bindable: true },
         readonly: { label: { en: 'Readonly' }, type: 'OnOff', bindable: true },
         accept: { label: { en: 'Accepted files' }, type: 'Text', bindable: true },
+        sendButtonBackgroundColor: {
+            label: { en: 'Send button background' },
+            type: 'Color',
+            bindable: true,
+        },
+        sendIconColor: { label: { en: 'Send icon color' }, type: 'Color', bindable: true },
+        addIconColor: { label: { en: 'Add icon color' }, type: 'Color', bindable: true },
     },
 };
