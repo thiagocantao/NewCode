@@ -196,9 +196,9 @@ export default {
         const isUploading = computed(() => attachments.value.some(item => item.status === 'uploading'));
         const canSend = computed(() => {
             const hasMessage = !!message.value.trim();
-            const hasUploadedAttachments = attachments.value.some(item => item.publicUrl);
+            const hasAttachments = attachments.value.length > 0;
             if (hasMessage) return true;
-            return !isUploading.value && hasUploadedAttachments;
+            return hasAttachments;
         });
 
         function triggerFilePicker() {
