@@ -422,122 +422,94 @@ export default {
             });
         }
 
-        function buildAttachmentsHtml(list = attachments.value) {
-            const valid = (list || []).filter(item => item?.publicUrl);
-            if (!valid.length) return '';
+        function buildAttachmentsHtml(list = attachments.value, textMessage = message.value) {
+    const valid = (list || []).filter(item => item?.publicUrl);
+    const text = (textMessage || '').trim();
 
-            const containerStyle = [
-                'display: flex',
-                'flex-direction: column',
-                'gap: 8px',
-                'align-items: flex-start',
-                'width: 100%',
-                'margin-bottom: 12px'
-            ].join('; ');
+    if (!valid.length && !text) return '';
 
-            const baseItemStyle = [
-                'width: 100%',
-                'max-width: 100%',
-                'padding: 8px 10px',
-                'border: 1px solid #e5e5ec',
-                'border-radius: 10px',
-                'background: #f9fafb',
-                'box-sizing: border-box',
-            ];
+    let html = '';
 
-            const imageItemStyle = [
-                'display: block',
-                ...baseItemStyle,
-            ].join('; ');
+    valid.forEach(item => {
+        const url = attachmentThumbnailUrl(item);
+        if (!url) return;
 
-            const fileItemStyle = [
-                'display: flex',
-                'align-items: center',
-                'gap: 8px',
-                ...baseItemStyle,
-            ].join('; ');
+        const safeName = escapeHtml(item.name || '');
 
-            const thumbStyle = [
-                'width: 100%',
-                'height: auto',
-                'object-fit: contain',
-                'border-radius: 8px',
-                'display: block',
-            ].join('; ');
-
-            const fileNameStyle = [
-                'display: block',
-                'flex: 1',
-                'width: 100%',
-                'min-width: 0',
-                'max-width: 100%',
-                'overflow: hidden',
-                'text-overflow: ellipsis',
-                'white-space: nowrap',
-                'color: #111827',
-                'font-weight: 500',
-                'font-size: 14px',
-                'text-decoration: none',
-                'line-height: 1.4'
-            ].join('; ');
-
-            const itemsHtml = valid
-                .map(item => {
-                    const url = attachmentThumbnailUrl(item);
-                    if (!url) return '';
-
-                    const safeName = escapeHtml(item.name || '');
-
-                    if (item.type === 'image' || item.type === 'message') {
-                        return `
-                            <div class="ci-attachment ci-attachment--image" style="${imageItemStyle}">
-                                <img src="${url}" alt="${safeName}" style="${thumbStyle}" />
-                            </div>
-                        `.trim();
-                    }
-
-                    const displayName = safeName || 'Arquivo';
-                    const iconClass = fileIconClass(item.kind);
-                    const iconStyle = fileIconStyle(item.kind);
-                    const iconStyleAttr = iconStyle?.color ? ` style="color: ${iconStyle.color};"` : '';
-                    const iconBoxStyle = [
-                        'width: 24px',
-                        'height: 24px',
-                        'display: inline-flex',
-                        'align-items: center',
-                        'justify-content: center',
-                        'font-size: 24px',
-                        'flex-shrink: 0'
-                    ].join('; ');
-
-                    return `
-                        <div class="ci-attachment ci-attachment--file" style="${fileItemStyle}">
-                            <span class="ci-attachment__icon" style="${iconBoxStyle}"><i class="${iconClass}"${iconStyleAttr}></i></span>
-                            <a href="${url}" target="_blank" rel="noopener noreferrer" style="${fileNameStyle}">${displayName}</a>
-                        </div>
-                    `.trim();
-                })
-                .filter(Boolean)
-                .join('');
-
-            return `<div class="ci-attachments" style="${containerStyle}">${itemsHtml}</div>`;
+        // ===== IMAGENS: uma por linha =====
+        if (item.type === 'image') {
+            html += [
+                '<p class="ci-attachment ci-attachment--image" ',
+                    'style="margin:4px 0;">',
+                    '<img src="', url, '" alt="', safeName, '" ',
+                        'style="max-width:40%;height:auto;object-fit:contain;',
+                               'border-radius:8px;display:block;" />',
+                '</p>'
+            ].join('');
+            return;
         }
 
+        // ===== ARQUIVOS (PDF, DOC, XLS, etc.) =====
+        const iconClass = fileIconClass(item.kind);
+        const iconStyle = fileIconStyle(item.kind);
+        const color = iconStyle?.color || '#3d3d3f';
+
+        html += [
+            '<p class="ci-attachment ci-attachment--file" ',
+                'style="margin:4px 0;display:flex;align-items:center;gap:6px;',
+                       'width:100%;box-sizing:border-box;',
+                       'border:1px solid #f4f4f4;padding:10px;border-radius:10px;">',
+
+                '<span class="ci-attachment__icon" ',
+                    'style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;',
+                           'font-size:22px;color:', color, ';">',
+                    '<i class="', iconClass, '"></i>',
+                '</span>',
+
+                '<a href="', url, '" target="_blank" rel="noopener noreferrer" ',
+                    'style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;',
+                           'font-size:14px;font-weight:500;color:#111827;text-decoration:none;">',
+                    safeName,
+                '</a>',
+
+            '</p>'
+        ].join('');
+    });
+
+    // ===== MENSAGEM ABAIXO DOS ANEXOS =====
+    if (text) {
+        html += [
+            '<p class="ci-message" ',
+                'style="margin-top:18px;font-size:14px;line-height:1.5;',
+                       'color:#111827;white-space:pre-wrap;">',
+                escapeHtml(text),
+            '</p>'
+        ].join('');
+    }
+
+    return html;
+}
+
+
+
         function buildPayload() {
-            const uploadedAttachments = attachments.value.filter(item => item.publicUrl);
-
-            const payload = {
-                message: message.value.trim(),
-                attachments: uploadedAttachments.map(item => item.publicUrl),
-            };
-
-            const attachmentsHtml = buildAttachmentsHtml(uploadedAttachments);
-
-            return {
-                ...payload,
-                attachmentsHtml,
-                json: JSON.stringify({ ...payload, attachmentsHtml }, null, 2),
-            };
+        const uploadedAttachments = attachments.value.filter(item => item.publicUrl);
+        const trimmedMessage = message.value.trim();
+        
+        const payload = {
+        // continua tendo o texto puro, se você precisar em outro lugar
+        message: trimmedMessage,
+        attachments: uploadedAttachments.map(item => item.publicUrl),
+        };
+        
+        // HTML já contém anexos + mensagem
+        const attachmentsHtml = buildAttachmentsHtml(uploadedAttachments, trimmedMessage);
+        
+        return {
+        ...payload,
+        attachmentsHtml,
+        json: JSON.stringify({ ...payload, attachmentsHtml }, null, 2),
+        };
         }
 
         function syncVariables() {
@@ -765,17 +737,17 @@ export default {
     }
 
     .chat-input__textarea {
-            width: 100%;
-            border: none;
-            resize: none;
-            background: rgba(0,0,0,0);
-            outline: none;
-            font-size: 14px;
-            line-height: 40px;
-            color: #171717;
-            min-height: 44px;
-            max-height: 280px;
-            overflow-y: auto;
+        width: 100%;
+        border: none;
+        resize: none;
+        background: rgba(0, 0, 0, 0);
+        outline: none;
+        font-size: 14px;
+        line-height: 40px;
+        color: #171717;
+        min-height: 44px;
+        max-height: 280px;
+        overflow-y: auto;
     }
 
     .chat-input__file-input {
