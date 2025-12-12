@@ -1,9 +1,6 @@
 <template>
     <div class="chat-input" data-capture>
-        <div
-            class="chat-input__bar"
-            :class="{ '-disabled': isReadonly, '-multiline': isMultiline || attachments.length }"
-        >
+        <div class="chat-input__bar" :class="{ '-disabled': isReadonly, '-multiline': isMultiline }">
             <button
                 class="chat-input__add"
                 type="button"
@@ -508,7 +505,7 @@ export default {
     if (text) {
         html += [
             '<p class="ci-message" ',
-                'style="margin-top:18px;font-size:14px;line-height:1.5;',
+                'style="margin-top:9px;margin-bottom:9px;font-size:14px;line-height:1.5;',
                        'color:#111827;white-space:pre-wrap;">',
                 escapeHtml(text),
             '</p>'
