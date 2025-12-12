@@ -197,8 +197,9 @@ export default {
         const canSend = computed(() => {
             const hasMessage = !!message.value.trim();
             const hasAttachments = attachments.value.length > 0;
-            if (hasMessage) return true;
-            return hasAttachments;
+            const hasQueuedAttachments = attachmentFiles.size > 0;
+
+            return hasMessage || hasAttachments || hasQueuedAttachments;
         });
 
         function triggerFilePicker() {
