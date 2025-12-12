@@ -610,7 +610,7 @@ export default {
     .chat-input__attachment-thumb {
         width: 55px;
         height: 48px;
-        /* border-radius: 10px; */
+        border-radius: 10px;
         overflow: hidden;
         /* background: #fff; */
         display: flex;
