@@ -1,6 +1,9 @@
 <template>
     <div class="chat-input" data-capture>
-        <div class="chat-input__bar" :class="{ '-disabled': isReadonly, '-multiline': isMultiline }">
+        <div
+            class="chat-input__bar"
+            :class="{ '-disabled': isReadonly, '-multiline': isMultiline || attachments.length }"
+        >
             <button
                 class="chat-input__add"
                 type="button"
