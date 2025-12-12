@@ -776,9 +776,9 @@ export default {
     }
 
     .chat-input__attachment.is-image {
-        width: 56px;
-        height: 56px;
-        max-width: 56px;
+        width: 80px;
+        height: 80px;
+        max-width: 80px;
         padding: 1px;
         justify-content: center;
     }
