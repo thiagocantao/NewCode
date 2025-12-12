@@ -29,7 +29,7 @@
                             <span class="chat-input__attachment-name">{{ item.name }}</span>
                         </div>
                         <button type="button" class="chat-input__remove" @click="removeAttachment(item.id)">
-                            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                            <i class="fa-solid fa-trash" aria-hidden="true"></i>
                         </button>
                     </div>
                 </div>
@@ -642,11 +642,25 @@ export default {
         position: absolute;
         top: 6px;
         right: 6px;
-        background: transparent;
+        background: #000;
         border: none;
-        color: #8a8a8e;
+        color: #fff;
         cursor: pointer;
-        font-size: 14px;
+        font-size: 12px;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.2s ease, visibility 0.2s ease;
+    }
+
+    .chat-input__attachment:hover .chat-input__remove {
+        opacity: 1;
+        visibility: visible;
     }
 
     .chat-input__bar {
