@@ -27,6 +27,12 @@ export default {
         initialValue: { label: { en: 'Initial value' }, type: 'Text', bindable: true },
         readonly: { label: { en: 'Readonly' }, type: 'OnOff', bindable: true },
         accept: { label: { en: 'Accepted files' }, type: 'Text', bindable: true },
+        allowMultipleAttachments: {
+            label: { en: 'Allow multiple attachments' },
+            type: 'OnOff',
+            defaultValue: true,
+            bindable: true,
+        },
         sendButtonBackgroundColor: {
             label: { en: 'Send button background' },
             type: 'Color',

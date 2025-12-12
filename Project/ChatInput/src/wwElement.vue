@@ -66,7 +66,7 @@
                 ref="fileInputRef"
                 class="chat-input__file-input"
                 type="file"
-                multiple
+                :multiple="allowMultipleAttachments"
                 :accept="accept"
                 :disabled="isReadonly"
                 @change="onFilesSelected"
@@ -107,6 +107,7 @@ export default {
         const addButtonStyle = computed(() => ({
             '--add-icon-color': props.content.addIconColor || '#3d3d3f',
         }));
+        const allowMultipleAttachments = computed(() => props.content.allowMultipleAttachments !== false);
         const allowedExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'png', 'jpg', 'jpeg', 'gif', 'webp'];
         const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
         const accept = computed(
@@ -254,6 +255,17 @@ export default {
             syncVariables();
         }
 
+        function clearAttachments() {
+            attachments.value.forEach(item => {
+                attachmentFiles.delete(item.id);
+                if (item?.previewUrl && objectUrls.has(item.previewUrl)) {
+                    URL.revokeObjectURL(item.previewUrl);
+                    objectUrls.delete(item.previewUrl);
+                }
+            });
+            attachments.value.splice(0);
+        }
+
         function getExtension(name = '') {
             return name.split('.').pop()?.toLowerCase();
         }
@@ -324,7 +336,13 @@ export default {
                 wwLib?.wwLog?.warn?.('Unsupported files ignored:', rejected.map(file => file.name));
             }
 
-            allowed.forEach(file => {
+            const filesToProcess = allowMultipleAttachments.value ? allowed : allowed.slice(-1);
+
+            if (!allowMultipleAttachments.value && attachments.value.length) {
+                clearAttachments();
+            }
+
+            filesToProcess.forEach(file => {
                 const attachment = normalizeAttachment(file);
                 attachments.value.push(attachment);
                 attachmentFiles.set(attachment.id, file);
@@ -561,6 +579,7 @@ export default {
             accept,
             addButtonStyle,
             attachments,
+            allowMultipleAttachments,
             canSend,
             fileInputRef,
             handleSend,
