@@ -28,7 +28,13 @@
                         <div v-if="item.type !== 'image'" class="chat-input__attachment-info">
                             <span class="chat-input__attachment-name">{{ item.name }}</span>
                         </div>
-                        <button type="button" class="chat-input__remove" @click="removeAttachment(item.id)">
+                        <button
+                            type="button"
+                            class="chat-input__remove"
+                            title="Delete"
+                            aria-label="Delete"
+                            @click="removeAttachment(item.id)"
+                        >
                             <i class="fa-solid fa-trash" aria-hidden="true"></i>
                         </button>
                     </div>
