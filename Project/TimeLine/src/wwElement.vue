@@ -599,7 +599,6 @@
                     </span>
                   </div>
                 </div>
-                </div>
 
                 <div class="activity-added-card__right">
                   <div class="activity-added-card__created-by">{{ item.CreatedByName }}</div>
