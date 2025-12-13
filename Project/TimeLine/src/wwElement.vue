@@ -2337,11 +2337,6 @@ const getAssigneeTooltip = (item, side) => {
     word-break: break-word;
     overflow-wrap: anywhere;
 
-    * {
-      word-break: inherit;
-      overflow-wrap: inherit;
-    }
-
     &--vertical {
       .ww-timeline__container {
         padding: 20px 0;
@@ -3099,9 +3094,9 @@ const getAssigneeTooltip = (item, side) => {
     max-width: 100%;
     font-size: 12px;
     color: #374151;
-    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    word-break: break-word;
   }
 
   .attachment-box.loading .attach-skeleton {
@@ -3527,7 +3522,7 @@ const getAssigneeTooltip = (item, side) => {
     font-size: 13px;
     font-weight: 500;
     line-height: 1.2;
-    white-space: nowrap;
+    word-break: break-word;
   }
 
   .avatar-stack {
