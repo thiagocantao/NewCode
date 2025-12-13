@@ -2711,6 +2711,25 @@ const getAssigneeTooltip = (item, side) => {
       gap: 4px;
     }
 
+    .assignee-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+      color: var(--card-text-color);
+    }
+
+    .assignee-row .arrow {
+      font-size: 18px;
+      color: #9ca3af;
+    }
+
+    .assignee-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
     .assignee-side {
       display: inline-flex;
       align-items: center;
