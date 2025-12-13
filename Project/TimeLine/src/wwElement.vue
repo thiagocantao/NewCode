@@ -1660,10 +1660,16 @@ const getAssigneeTooltip = (item, side) => {
       return parsed || {};
     };
 
+    const convertNewlinesToBreaks = (text) => {
+      if (typeof text !== "string") return text ?? "";
+      return text.replace(/\r\n|\n|\r/g, "<br />");
+    };
+
     const simpleMarkdownToHtml = (text) => {
       if (typeof text !== "string") return text ?? "";
-      if (!text.includes("**")) return text;
-      return text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+      const withBreaks = convertNewlinesToBreaks(text);
+      if (!withBreaks.includes("**")) return withBreaks;
+      return withBreaks.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
     };
 
     const withAlpha = (color, alpha = 0.7) => {
