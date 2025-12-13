@@ -756,6 +756,36 @@
               </div>
             </template>
 
+            <!-- AIChat -->
+            <template v-else-if="(item.TagControl || item.tagControl) === 'AIChat'">
+              <div class="activity-added-card ai-chat-card">
+                <div class="activity-added-card__left">
+                  <div class="activity-added-card__title title-row">
+                    <div class="activity-added-card__title">{{ item.Title }}</div>
+                  </div>
+
+                  <div class="ai-chat-card__messages">
+                    <div
+                      v-if="getAiUserHtml(item)"
+                      class="ai-chat-card__bubble ai-chat-card__bubble--user"
+                      :style="getAiUserBubbleStyle(item)"
+                    >
+                      <div class="ai-chat-card__bubble-content" v-html="getAiUserHtml(item)"></div>
+                    </div>
+
+                    <div v-if="getAiResponseHtml(item)" class="ai-chat-card__bubble ai-chat-card__bubble--assistant">
+                      <div class="ai-chat-card__bubble-content" v-html="getAiResponseHtml(item)"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="activity-added-card__right">
+                  <div class="activity-added-card__created-by">{{ item.CreatedByName }}</div>
+                  <div class="activity-added-card__created-date">{{ formatDateDash(item.CreatedDate) }}</div>
+                </div>
+              </div>
+            </template>
+
             <!-- Conteúdo padrão -->
             <template v-else>
               <wwElement v-bind="content.timelineElement" class="ww-timeline__content-element" />
@@ -1447,6 +1477,12 @@ async function confirmActDelete() {
 
       const messageBody = activityObj?.Message || activityObj?.message || "";
       item.__messageBodyHtml = await processSupabaseRichText(messageBody);
+
+      const aiObj = getAiChatObj(item) || {};
+      const userMessage = simpleMarkdownToHtml(aiObj?.AIUserMessage ?? aiObj?.aiUserMessage ?? "");
+      const aiMessage = simpleMarkdownToHtml(aiObj?.AIResponse ?? aiObj?.aiResponse ?? "");
+      item.__aiUserHtml = await processSupabaseRichText(userMessage);
+      item.__aiResponseHtml = await processSupabaseRichText(aiMessage);
     }
 
     async function prepareEventsRichText(list) {
@@ -1615,6 +1651,73 @@ const getAssigneeTooltip = (item, side) => {
       const o = getActivityObj(item) || {};
       const body = o?.Message || o?.message || "";
       return item?.__messageBodyHtml ?? sanitizeHtml(body);
+    };
+
+    /* ========= AIChat ========= */
+    const getAiChatObj = (item) => {
+      if (item?.FieldNewValue && typeof item.FieldNewValue === "object") return item.FieldNewValue;
+      const parsed = parseMaybeJSON(item?.NewValueTitle);
+      return parsed || {};
+    };
+
+    const convertNewlinesToBreaks = (text) => {
+      if (typeof text !== "string") return text ?? "";
+      return text.replace(/\r\n|\n|\r/g, "<br />");
+    };
+
+    const simpleMarkdownToHtml = (text) => {
+      if (typeof text !== "string") return text ?? "";
+      const withBreaks = convertNewlinesToBreaks(text);
+      if (!withBreaks.includes("**")) return withBreaks;
+      return withBreaks.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    };
+
+    const withAlpha = (color, alpha = 0.7) => {
+      if (!color || typeof color !== "string") return "";
+      const hexMatch = color.trim().match(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
+      if (hexMatch) {
+        let hex = hexMatch[1];
+        if (hex.length === 3) {
+          hex = hex
+            .split("")
+            .map((c) => c + c)
+            .join("");
+        }
+        const intVal = parseInt(hex, 16);
+        const r = (intVal >> 16) & 255;
+        const g = (intVal >> 8) & 255;
+        const b = intVal & 255;
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+      }
+
+      const rgbMatch = color.trim().match(/^rgb\s*\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/i);
+      if (rgbMatch) {
+        const [, r, g, b] = rgbMatch;
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+      }
+
+      return color;
+    };
+
+    const getAiUserBubbleStyle = (item) => {
+      const ai = getAiChatObj(item) || {};
+      const bg = ai?.Markup?.background || ai?.Markup?.Background || ai?.markup?.background || ai?.background;
+      const style = {};
+      const resolved = withAlpha(bg, 0.7);
+      if (resolved) style.backgroundColor = resolved;
+      return style;
+    };
+
+    const getAiUserHtml = (item) => {
+      const ai = getAiChatObj(item) || {};
+      const raw = ai?.AIUserMessage ?? ai?.aiUserMessage ?? "";
+      return item?.__aiUserHtml ?? sanitizeHtml(simpleMarkdownToHtml(raw));
+    };
+
+    const getAiResponseHtml = (item) => {
+      const ai = getAiChatObj(item) || {};
+      const raw = ai?.AIResponse ?? ai?.aiResponse ?? "";
+      return item?.__aiResponseHtml ?? sanitizeHtml(simpleMarkdownToHtml(raw));
     };
 
     let sb = window?.wwLib?.wwPlugins?.supabase;
@@ -2181,6 +2284,9 @@ const getAssigneeTooltip = (item, side) => {
       remount,
       getMessageSubject,
       getMessageBodyHtml,
+      getAiUserBubbleStyle,
+      getAiUserHtml,
+      getAiResponseHtml,
       isCollapsed,
       shouldShowToggle,
       toggleCollapse,
@@ -2467,6 +2573,54 @@ const getAssigneeTooltip = (item, side) => {
 
     .message-sent-body {
       margin-top: 8px;
+    }
+
+    .ai-chat-card {
+      &__messages {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+      }
+
+      &__bubble {
+        max-width: 80%;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: none;
+        word-break: break-word;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      }
+
+      &__bubble--user {
+        margin-left: auto;
+        text-align: left;
+        background: #eef2ffb3;
+      }
+
+      &__bubble--assistant {
+        margin-right: auto;
+        background: transparent;
+        box-shadow: none;
+      }
+
+      &__bubble-content {
+        font-size: 13.5px;
+        color: var(--card-text-color, #333);
+
+        :deep(p) {
+          margin: 0 0 8px 0;
+          &:last-child {
+            margin-bottom: 0;
+          }
+        }
+
+        :deep(img) {
+          max-width: 100%;
+          height: auto;
+          display: block;
+        }
+      }
     }
 
     .collapsible-toggle {
