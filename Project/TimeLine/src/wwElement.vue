@@ -765,11 +765,8 @@
                   </div>
 
                   <div class="ai-chat-card__messages">
-                    <div
-                      v-if="getAiUserHtml(item)"
-                      class="ai-chat-card__bubble ai-chat-card__bubble--user"
-                      :style="getAiUserBubbleStyle(item)"
-                    >
+                    <div v-if="getAiUserHtml(item)" class="ai-chat-card__bubble ai-chat-card__bubble--user"
+                      :style="getAiUserBubbleStyle(item)">
                       <div class="ai-chat-card__bubble-content" v-html="getAiUserHtml(item)"></div>
                     </div>
 
@@ -2312,7 +2309,7 @@ const getAssigneeTooltip = (item, side) => {
     font-family: "Material Symbols Outlined";
     font-weight: normal;
     font-style: normal;
-    font-size: 16px;
+    font-size: 20px;
     line-height: 1;
     display: inline-block;
     -webkit-font-feature-settings: "liga";
@@ -2418,7 +2415,7 @@ const getAssigneeTooltip = (item, side) => {
     width: 100%;
     height: 100%;
     color: var(--marker-icon-color, #344767);
-    font-size: 16px;
+    font-size: 20px;
     line-height: 1;
   }
 
@@ -2610,6 +2607,7 @@ const getAssigneeTooltip = (item, side) => {
 
         :deep(p) {
           margin: 0 0 8px 0;
+
           &:last-child {
             margin-bottom: 0;
           }
