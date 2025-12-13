@@ -526,9 +526,7 @@
                   <div class="activity-added-card__title">{{ item.Title }}</div>
 
                   <div class="activity-added-card__subtitle assignee-row">
-                    <span class="assignee-label">{{ getAssigneeLineText(item, 'old') }}</span>
-                    <i class="material-symbols-outlined arrow">arrow_forward</i>
-                    <span class="assignee-label">{{ getAssigneeLineText(item, 'new') }}</span>
+                    
                   </div>
 
                   <div class="assignee-avatars">
@@ -3661,4 +3659,3 @@ const getAssigneeTooltip = (item, side) => {
     color: #9ca3af;
   }
 </style>
-
