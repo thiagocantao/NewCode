@@ -2437,8 +2437,8 @@ const getAssigneeTooltip = (item, side) => {
   .activity-added-card {
     width: 100%;
     display: grid;
-    grid-template-columns: 1fr auto;
-    column-gap: 16px;
+    grid-template-columns: 1fr;
+    column-gap: 0;
     row-gap: 6px;
     padding: 6px 0;
     color: var(--card-text-color, #333);
@@ -2449,12 +2449,16 @@ const getAssigneeTooltip = (item, side) => {
     }
 
     &__right {
-      text-align: right;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: flex-end;
-      gap: 2px;
+      text-align: left;
+      display: inline-flex;
+      flex-direction: row;
+      justify-content: flex-start;
+      align-items: center;
+      gap: 20px;
+      align-self: flex-end;
+      justify-self: flex-start;
+      font-style: italic;
+      font-size: 10px;
     }
 
     &__title {
@@ -2473,16 +2477,12 @@ const getAssigneeTooltip = (item, side) => {
       gap: 10px;
     }
 
-    &__created-by {
+    &__created-by,
+    &__created-date {
       font-weight: 400;
       color: var(--card-text-color, #333);
-      font-size: 12px;
-      margin-bottom: 15px;
-    }
-
-    &__created-date {
-      color: var(--card-text-color, #333);
-      font-size: 13px;
+      font-size: 10px;
+      margin: 0;
     }
 
     &__list {
