@@ -525,7 +525,10 @@
                 <div class="activity-added-card__left">
                   <div class="activity-added-card__title">{{ item.Title }}</div>
 
-                  <div class="activity-added-card__subtitle assignee-row">                    
+                  <div class="activity-added-card__subtitle assignee-row">
+                    <span class="assignee-label">{{ getAssigneeLineText(item, 'old') }}</span>
+                    <i class="material-symbols-outlined arrow">arrow_forward</i>
+                    <span class="assignee-label">{{ getAssigneeLineText(item, 'new') }}</span>
                   </div>
 
                   <div class="assignee-avatars">
@@ -2448,7 +2451,7 @@ const getAssigneeTooltip = (item, side) => {
   .activity-added-card {
     width: 100%;
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr;
     column-gap: 12px;
     row-gap: 6px;
     padding: 6px 0;
@@ -2460,16 +2463,15 @@ const getAssigneeTooltip = (item, side) => {
     }
 
     &__right {
-      text-align: right;
-      display: inline-flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 2px;
-      align-self: flex-end;
-      justify-self: flex-end;
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: flex-end;
+      align-items: baseline;
+      gap: 6px;
       margin-top: 4px;
       font-style: italic;
       font-size: 12px;
+      text-align: right;
     }
 
     &__title {
@@ -2687,6 +2689,25 @@ const getAssigneeTooltip = (item, side) => {
       display: inline-flex;
       align-items: center;
       gap: 8px;
+    }
+
+    .assignee-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+      color: var(--card-text-color);
+    }
+
+    .assignee-row .arrow {
+      font-size: 18px;
+      color: #9ca3af;
+    }
+
+    .assignee-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
 
     .assignee-row {
