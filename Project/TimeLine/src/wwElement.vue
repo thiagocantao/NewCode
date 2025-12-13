@@ -80,9 +80,10 @@
               <template v-if="isFormattedText(item)">
                 <div class="activity-added-card">
                   <div class="activity-added-card__left">
-                    <div class="activity-added-card__title title-row">
-                      <div class="activity-added-card__title">
-                        {{ item.Title }} - {{ item.NameFieldModified }}
+                    <div class="activity-added-card__title">{{ item.Title }}</div>
+                    <div class="activity-added-card__subtitle title-row">
+                      <div class="activity-added-card__subtitle-text">
+                        {{ item.NameFieldModified }}
                       </div>
                       <button class="details-link" @click.stop="openFtModal(item)">Details</button>
                     </div>
@@ -98,8 +99,9 @@
               <template v-else>
                 <div class="activity-added-card">
                   <div class="activity-added-card__left">
-                    <div class="activity-added-card__title">
-                      {{ item.Title }} - {{ item.NameFieldModified }}
+                    <div class="activity-added-card__title">{{ item.Title }}</div>
+                    <div class="activity-added-card__subtitle">
+                      {{ item.NameFieldModified }}
                     </div>
                     <dl class="activity-added-card__list">
                       <div class="row value-change">
@@ -521,83 +523,82 @@
             <template v-else-if="(item.TagControl || item.tagControl) === 'AssigneeChanged'">
               <div class="activity-added-card">
                 <div class="activity-added-card__left">
-                  <div class="activity-added-card__title title-row">
-                    <span>{{ item.Title }}</span>
+                  <div class="activity-added-card__title">{{ item.Title }}</div>
 
-                    <span class="assignee-avatars">
-                      <!-- OLD side -->
-                      <span class="assignee-side">
-                        <span class="avatar-stack" :aria-label="getAssigneeTooltip(item, 'old')" tabindex="0">
-                          <!-- group (atrás) -->
-                          <span
-                            v-if="hasGroup(item, 'old')"
-                            class="avatar-badge avatar-badge--group"
-                            :title="getGroupName(item, 'old')"
-                          >
-                            <i class="material-symbols-outlined avatar-icon">groups</i>
+                  <div class="assignee-avatars">
+                    <!-- OLD side -->
+                    <span class="assignee-side">
+                      <span class="avatar-stack" :aria-label="getAssigneeTooltip(item, 'old')" tabindex="0">
+                        <!-- group (atrás) -->
+                        <span
+                          v-if="hasGroup(item, 'old')"
+                          class="avatar-badge avatar-badge--group"
+                          :title="getGroupName(item, 'old')"
+                        >
+                          <i class="material-symbols-outlined avatar-icon">groups</i>
+                        </span>
+
+                        <!-- user (na frente) -->
+                        <span
+                          v-if="hasUser(item, 'old')"
+                          class="avatar-badge avatar-badge--user"
+                          :title="getAssigneeName(item, 'old')"
+                        >
+                          <img
+                            v-if="getAssigneeAvatar(item, 'old')"
+                            :src="getAssigneeAvatar(item, 'old')"
+                            :alt="getAssigneeName(item, 'old')"
+                          />
+                          <span v-else class="avatar-initial">
+                            {{ getFirstInitial(getAssigneeName(item, 'old')) }}
                           </span>
+                        </span>
+                      </span>
 
-                    <!-- user (na frente) -->
-                    <span
-                            v-if="hasUser(item, 'old')"
-                            class="avatar-badge avatar-badge--user"
-                            :title="getAssigneeName(item, 'old')"
-                          >
-                            <img
-                              v-if="getAssigneeAvatar(item, 'old')"
-                              :src="getAssigneeAvatar(item, 'old')"
-                              :alt="getAssigneeName(item, 'old')"
-                            />
-                            <span v-else class="avatar-initial">
-                              {{ getFirstInitial(getAssigneeName(item, 'old')) }}
-                            </span>
-                    </span>
-                    </span>
-
-                    <span class="avatar-labels">
-                          <span v-if="hasGroup(item, 'old')" class="avatar-label">{{ getGroupName(item, 'old') }}</span>
-                    <span v-if="hasUser(item, 'old')" class="avatar-label">{{ getAssigneeName(item, 'old') }}</span>
-                    </span>
+                      <span class="avatar-labels">
+                        <span v-if="hasGroup(item, 'old')" class="avatar-label">{{ getGroupName(item, 'old') }}</span>
+                        <span v-if="hasUser(item, 'old')" class="avatar-label">{{ getAssigneeName(item, 'old') }}</span>
+                      </span>
                     </span>
 
                     <i class="material-symbols-outlined arrow">arrow_forward</i>
 
                     <!-- NEW side -->
                     <span class="assignee-side">
-                        <span class="avatar-stack" :aria-label="getAssigneeTooltip(item, 'new')" tabindex="0">
-                          <!-- group (atrás) -->
-                          <span
-                            v-if="hasGroup(item, 'new')"
-                            class="avatar-badge avatar-badge--group"
-                            :title="getGroupName(item, 'new')"
-                          >
-                            <i class="material-symbols-outlined avatar-icon">groups</i>
+                      <span class="avatar-stack" :aria-label="getAssigneeTooltip(item, 'new')" tabindex="0">
+                        <!-- group (atrás) -->
+                        <span
+                          v-if="hasGroup(item, 'new')"
+                          class="avatar-badge avatar-badge--group"
+                          :title="getGroupName(item, 'new')"
+                        >
+                          <i class="material-symbols-outlined avatar-icon">groups</i>
+                        </span>
+
+                        <!-- user (na frente) -->
+                        <span
+                          v-if="hasUser(item, 'new')"
+                          class="avatar-badge avatar-badge--user"
+                          :title="getAssigneeName(item, 'new')"
+                        >
+                          <img
+                            v-if="getAssigneeAvatar(item, 'new')"
+                            :src="getAssigneeAvatar(item, 'new')"
+                            :alt="getAssigneeName(item, 'new')"
+                          />
+                          <span v-else class="avatar-initial">
+                            {{ getFirstInitial(getAssigneeName(item, 'new')) }}
                           </span>
+                        </span>
+                      </span>
 
-                    <!-- user (na frente) -->
-                    <span
-                            v-if="hasUser(item, 'new')"
-                            class="avatar-badge avatar-badge--user"
-                            :title="getAssigneeName(item, 'new')"
-                          >
-                            <img
-                              v-if="getAssigneeAvatar(item, 'new')"
-                              :src="getAssigneeAvatar(item, 'new')"
-                              :alt="getAssigneeName(item, 'new')"
-                            />
-                            <span v-else class="avatar-initial">
-                              {{ getFirstInitial(getAssigneeName(item, 'new')) }}
-                            </span>
-                    </span>
-                    </span>
-
-                    <span class="avatar-labels">
-                          <span v-if="hasGroup(item, 'new')" class="avatar-label">{{ getGroupName(item, 'new') }}</span>
-                    <span v-if="hasUser(item, 'new')" class="avatar-label">{{ getAssigneeName(item, 'new') }}</span>
-                    </span>
-                    </span>
+                      <span class="avatar-labels">
+                        <span v-if="hasGroup(item, 'new')" class="avatar-label">{{ getGroupName(item, 'new') }}</span>
+                        <span v-if="hasUser(item, 'new')" class="avatar-label">{{ getAssigneeName(item, 'new') }}</span>
+                      </span>
                     </span>
                   </div>
+                </div>
                 </div>
 
                 <div class="activity-added-card__right">
@@ -611,9 +612,9 @@
             <template v-else-if="(item.TagControl || item.tagControl) === 'TicketCloned'">
               <div class="activity-added-card">
                 <div class="activity-added-card__left">
-                  <div class="activity-added-card__title title-row">
-                    <span>{{ item.Title }}</span>
-                    <span class="link-badge" v-if="getTicketClonedLabel(item)">
+                  <div class="activity-added-card__title">{{ item.Title }}</div>
+                  <div v-if="getTicketClonedLabel(item)" class="activity-added-card__subtitle">
+                    <span class="link-badge">
                       {{ getTicketClonedLabel(item) }}
                     </span>
                   </div>
@@ -630,9 +631,9 @@
             <template v-else-if="(item.TagControl || item.tagControl) === 'TicketLinked'">
               <div class="activity-added-card">
                 <div class="activity-added-card__left">
-                  <div class="activity-added-card__title title-row">
-                    <span>{{ item.Title }}</span>
-                    <span class="link-badge" v-if="getTicketLinkedLabel(item)">
+                  <div class="activity-added-card__title">{{ item.Title }}</div>
+                  <div v-if="getTicketLinkedLabel(item)" class="activity-added-card__subtitle">
+                    <span class="link-badge">
                       {{ getTicketLinkedLabel(item) }}
                     </span>
                   </div>
@@ -649,9 +650,9 @@
             <template v-else-if="(item.TagControl || item.tagControl) === 'TicketUnlinked'">
               <div class="activity-added-card">
                 <div class="activity-added-card__left">
-                  <div class="activity-added-card__title title-row">
-                    <span>{{ item.Title }}</span>
-                    <span class="link-badge" v-if="getTicketLinkedLabel(item)">
+                  <div class="activity-added-card__title">{{ item.Title }}</div>
+                  <div v-if="getTicketLinkedLabel(item)" class="activity-added-card__subtitle">
+                    <span class="link-badge">
                       {{ getTicketLinkedLabel(item) }}
                     </span>
                   </div>
@@ -668,9 +669,9 @@
             <template v-else-if="(item.TagControl || item.tagControl) === 'TicketCreated'">
               <div class="activity-added-card">
                 <div class="activity-added-card__left">
-                  <div class="activity-added-card__title title-row">
-                    <span>{{ item.Title }}</span>
-                    <span class="link-badge" v-if="getTicketCreatedTitle(item)">
+                  <div class="activity-added-card__title">{{ item.Title }}</div>
+                  <div v-if="getTicketCreatedTitle(item)" class="activity-added-card__subtitle">
+                    <span class="link-badge">
                       {{ getTicketCreatedTitle(item) }}
                     </span>
                   </div>
@@ -2467,6 +2468,22 @@ const getAssigneeTooltip = (item, side) => {
       color: var(--card-title-color, #8c8c8d);
       margin-bottom: 8px;
       display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    &__subtitle {
+      font-weight: 500;
+      font-size: 13px;
+      color: var(--card-title-color, #8c8c8d);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    &__subtitle-text {
+      display: inline-flex;
       align-items: center;
       gap: 8px;
     }
