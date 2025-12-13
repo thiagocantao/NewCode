@@ -2252,6 +2252,7 @@ const getAssigneeTooltip = (item, side) => {
       getAssigneeTooltip,
       getFirstInitial,
       hasUser,
+      getAssigneeLineText,
       // Attachments
       getAttachment,
       openAttachmentModal,
@@ -2450,8 +2451,8 @@ const getAssigneeTooltip = (item, side) => {
   .activity-added-card {
     width: 100%;
     display: grid;
-    grid-template-columns: 1fr;
-    column-gap: 0;
+    grid-template-columns: 1fr auto;
+    column-gap: 12px;
     row-gap: 6px;
     padding: 6px 0;
     color: var(--card-text-color, #333);
@@ -2462,16 +2463,16 @@ const getAssigneeTooltip = (item, side) => {
     }
 
     &__right {
-      text-align: left;
+      text-align: right;
       display: inline-flex;
-      flex-direction: row;
-      justify-content: flex-start;
-      align-items: center;
-      gap: 20px;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
       align-self: flex-end;
-      justify-self: flex-start;
+      justify-self: flex-end;
+      margin-top: 4px;
       font-style: italic;
-      font-size: 10px;
+      font-size: 12px;
     }
 
     &__title {
@@ -2689,6 +2690,25 @@ const getAssigneeTooltip = (item, side) => {
       display: inline-flex;
       align-items: center;
       gap: 8px;
+    }
+
+    .assignee-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+      color: var(--card-text-color);
+    }
+
+    .assignee-row .arrow {
+      font-size: 18px;
+      color: #9ca3af;
+    }
+
+    .assignee-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
 
     .assignee-row {
