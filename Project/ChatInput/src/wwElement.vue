@@ -320,7 +320,8 @@ export default {
             const newHeight = el.scrollHeight;
             el.style.height = `${newHeight}px`;
             const lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 20;
-            isMultiline.value = newHeight > lineHeight + 2;
+            const hasAttachments = attachments.value.length > 0;
+            isMultiline.value = hasAttachments || newHeight > lineHeight + 2;
         }
 
         function handleInput() {
@@ -570,7 +571,14 @@ export default {
             syncVariables();
             nextTick(adjustTextareaHeight);
         });
-        watch(attachments, syncVariables, { deep: true });
+        watch(
+            attachments,
+            () => {
+                syncVariables();
+                nextTick(adjustTextareaHeight);
+            },
+            { deep: true },
+        );
 
         syncVariables();
 
