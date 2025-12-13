@@ -126,9 +126,16 @@ export default {
         let supabase = sb?.instance || null;
         let auth = window?.wwLib?.wwPlugins?.supabaseAuth?.publicInstance || null;
 
+        function refreshSupabaseClients() {
+            sb = window?.wwLib?.wwPlugins?.supabase || sb;
+            supabase = sb?.instance || supabase;
+            auth = window?.wwLib?.wwPlugins?.supabaseAuth?.publicInstance || auth;
+        }
+
         const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
         async function ensureAuthReady(maxMs = 4000) {
+            refreshSupabaseClients();
             try {
                 if (!auth?.auth?.getUser) return true;
                 const start = Date.now();
@@ -144,6 +151,7 @@ export default {
         async function waitForStorage(maxMs = 4000) {
             const start = Date.now();
             while (Date.now() - start < maxMs) {
+                refreshSupabaseClients();
                 if (supabase && supabase.storage) return true;
                 await sleep(100);
             }
@@ -358,6 +366,7 @@ export default {
             attachment.error = null;
 
             try {
+                refreshSupabaseClients();
                 await ensureAuthReady();
                 const okStorage = await waitForStorage(4000);
                 if (!okStorage || !supabase?.storage) {
