@@ -525,6 +525,12 @@
                 <div class="activity-added-card__left">
                   <div class="activity-added-card__title">{{ item.Title }}</div>
 
+                  <div class="activity-added-card__subtitle assignee-row">
+                    <span class="assignee-label">{{ getAssigneeLineText(item, 'old') }}</span>
+                    <i class="material-symbols-outlined arrow">arrow_forward</i>
+                    <span class="assignee-label">{{ getAssigneeLineText(item, 'new') }}</span>
+                  </div>
+
                   <div class="assignee-avatars">
                     <!-- OLD side -->
                     <span class="assignee-side">
@@ -1566,6 +1572,13 @@ const getAssigneeName = (item, side) => {
 const getAssigneeAvatar = (item, side) => {
   const u = getUserObj(item, side);
   return u.Photo || u.AvatarUrl || u.PhotoUrl || "";
+};
+
+const getAssigneeLineText = (item, side) => {
+  const group = getGroupName(item, side);
+  const user = getAssigneeName(item, side);
+  if (group && user) return `${group} · ${user}`;
+  return group || user || "—";
 };
 
 // Tooltip com ambos os nomes
@@ -2676,6 +2689,25 @@ const getAssigneeTooltip = (item, side) => {
       display: inline-flex;
       align-items: center;
       gap: 8px;
+    }
+
+    .assignee-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+      color: var(--card-text-color);
+    }
+
+    .assignee-row .arrow {
+      font-size: 18px;
+      color: #9ca3af;
+    }
+
+    .assignee-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
 
     .assignee-side {
