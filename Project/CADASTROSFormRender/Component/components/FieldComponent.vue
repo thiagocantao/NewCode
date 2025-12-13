@@ -373,8 +373,8 @@ export default {
       immediate: true
     },
     localValue(newVal) {
-      if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte && this.$refs.rte.innerHTML !== newVal) {
-        this.$refs.rte.innerHTML = newVal || '';
+      if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
+        this.renderFormattedTextContent(newVal || '');
       }
     },
     searchTerm() { if (this.dropdownOpen) this.$nextTick(this.updateDropdownDirection); },
@@ -408,6 +408,33 @@ export default {
         return this.parseBoolean(val);
       }
       return val ?? '';
+    },
+    convertFormattedTextToHtml(content) {
+      if (!content) return '';
+
+      const containsHtml = /<\/?[a-z][\s\S]*>/i.test(content);
+      if (containsHtml) return content;
+
+      let html = content
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+      html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/__(.+?)__/g, '<u>$1</u>');
+      html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+      html = html.replace(/_(.+?)_/g, '<em>$1</em>');
+      html = html.replace(/~~(.+?)~~/g, '<s>$1</s>');
+      html = html.replace(/\n/g, '<br>');
+
+      return html;
+    },
+    renderFormattedTextContent(content) {
+      if (!this.$refs.rte) return;
+      const html = this.convertFormattedTextToHtml(content);
+      if (this.$refs.rte.innerHTML !== html) {
+        this.$refs.rte.innerHTML = html;
+      }
     },
     updateValue(event) {
       const rawValue = this.field.fieldType === 'FORMATED_TEXT'
@@ -731,7 +758,7 @@ export default {
   mounted() {
     console.log(wwLib);
     if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
-      this.$refs.rte.innerHTML = this.localValue || '';
+      this.renderFormattedTextContent(this.localValue || '');
     }
     if (this.field.fieldType === 'YES_NO') {
       const parsed = this.parseBoolean(this.field.value);
