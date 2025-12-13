@@ -2334,6 +2334,13 @@ const getAssigneeTooltip = (item, side) => {
     width: 100%;
     font-family: "Roboto", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
     color: #0f172a;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+
+    * {
+      word-break: inherit;
+      overflow-wrap: inherit;
+    }
 
     &--vertical {
       .ww-timeline__container {
