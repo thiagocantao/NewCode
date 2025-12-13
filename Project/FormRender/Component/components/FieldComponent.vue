@@ -785,9 +785,30 @@ export default {
 
       return container.innerHTML;
     },
+    convertFormattedTextToHtml(content) {
+      if (!content) return '';
+
+      const containsHtml = /<\/?[a-z][\s\S]*>/i.test(content);
+      if (containsHtml) return content;
+
+      let html = content
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+      html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/__(.+?)__/g, '<u>$1</u>');
+      html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+      html = html.replace(/_(.+?)_/g, '<em>$1</em>');
+      html = html.replace(/~~(.+?)~~/g, '<s>$1</s>');
+      html = html.replace(/\n/g, '<br>');
+
+      return html;
+    },
     async renderFormattedTextContent(htmlContent) {
       if (!this.$refs.rte) return;
-      const processed = await this.processInboundTicketImages(htmlContent);
+      const formattedHtml = this.convertFormattedTextToHtml(htmlContent);
+      const processed = await this.processInboundTicketImages(formattedHtml);
       if (this.$refs.rte.innerHTML !== processed) {
         this.$refs.rte.innerHTML = processed;
       }
