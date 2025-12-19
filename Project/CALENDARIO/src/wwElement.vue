@@ -1,5 +1,5 @@
 <template>
-  <div class="corporate-calendar">
+  <div class="corporate-calendar" :style="styleVars">
     <div class="shift-config">
       <table class="shift-table">
         <thead>
@@ -268,6 +268,17 @@ export default {
       String(formatStyleRaw).toLowerCase() === "american" ? "american" : "european";
     const timeZone =
       ww?.getValue("7509df4b-d0bc-40c3-a542-bfe0e22f5ec6") || "America/Sao_Paulo";
+    const themeTokens = computed(() => {
+      if (typeof window !== "undefined" && window.wwLib?.wwVariable?.getValue) {
+        const value = window.wwLib.wwVariable.getValue("61c1b425-10e8-40dc-8f1f-b117c08b9726");
+        if (value && typeof value === "object") return value;
+      }
+      return {};
+    });
+    const primaryColor = computed(() => themeTokens.value?.primary || "#689d8c");
+    const styleVars = computed(() => ({
+      "--calendar-primary": primaryColor.value,
+    }));
 
     // ===== Locale/PT fallbacks =====
     const isPt = computed(() => String(lang || "").toLowerCase().startsWith("pt"));
@@ -928,6 +939,7 @@ export default {
 
       // configs
       lang, timeZone, formatStyle,
+      themeTokens, styleVars,
 
       // refs tabela excluídos
       excludedRoot, excludedBodyEl, excludedHasScroll,
@@ -954,7 +966,7 @@ export default {
 
 .corporate-calendar { font-family: "Roboto", sans-serif; font-size: 13px; color: #333; font-weight: 400; max-width: 450px; }
 
-.buttonFormat { padding: 5px; width: 80px; color: #ffffff; background-color: #689d8c; border-radius: 15px; cursor: pointer; }
+.buttonFormat { padding: 5px; width: 80px; color: #ffffff; background-color: var(--calendar-primary); border-radius: 15px; cursor: pointer; }
 
 .warning-icon { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); color: #d9534f; font-size: 10px; cursor: help; }
 
@@ -1049,8 +1061,8 @@ export default {
 .dp-cell { border: 0; background: transparent; border-radius: 6px; padding: 6px 0; cursor: pointer; }
 .dp-cell:hover { background: #f0f0f0; }
 .dp-cell.is-muted { color: #aaa; cursor: default; }
-.dp-cell.is-selected { background: #689d8c; color: #fff; }
-.dp-cell.is-today { outline: 1px dashed #689d8c; }
+.dp-cell.is-selected { background: var(--calendar-primary); color: #fff; }
+.dp-cell.is-today { outline: 1px dashed var(--calendar-primary); }
 
 .dp-actions { display: flex; justify-content: space-between; margin-top: 6px; }
 .dp-action { border: 1px solid #ccc; background: #f7f7f7; border-radius: 6px; padding: 4px 8px; cursor: pointer; }
