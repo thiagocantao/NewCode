@@ -530,9 +530,10 @@ export default {
       this.updateValue({ target: { value } });
     },
     async updateValue(event) {
+      const eventValue = event?.target?.value ?? event?.value;
       const rawValue = this.field.fieldType === 'FORMATED_TEXT'
         ? this.localValue
-        : event?.target?.value;
+        : (eventValue !== undefined ? eventValue : this.localValue);
 
       let value = rawValue;
       let apiValue = value;
