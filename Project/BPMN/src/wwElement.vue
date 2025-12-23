@@ -233,14 +233,14 @@ export default {
             '--bpmn-button-hover-border': props.content.buttonHoverBorderColor || '#2563eb',
             '--bpmn-button-disabled-bg': props.content.buttonDisabledBackgroundColor || '#111827',
             '--bpmn-action-icon': props.content.actionIconColor || '#f8fafc',
-            '--bpmn-action-background': props.content.actionBackgroundColor || '#111827',
+            '--bpmn-action-background': props.content.actionBackgroundColor || '#717171',
             '--bpmn-action-border': props.content.actionBorderColor || '#334155',
             '--bpmn-action-hover-background': props.content.actionHoverBackgroundColor || '#2563eb',
             '--bpmn-action-hover-border': props.content.actionHoverBorderColor || '#2563eb',
             '--bpmn-action-hover-icon': props.content.actionHoverIconColor || '#f8fafc',
-            '--bpmn-popup-background': props.content.popupBackgroundColor || '#0b1220',
+            '--bpmn-popup-background': props.content.popupBackgroundColor || '#e5e5e5',
             '--bpmn-popup-border': props.content.popupBorderColor || '#1e293b',
-            '--bpmn-popup-text': props.content.popupTextColor || '#e2e8f0',
+            '--bpmn-popup-text': props.content.popupTextColor || '#1a1a1a',
             '--bpmn-popup-shadow': props.content.popupShadow || '0 12px 40px rgba(0, 0, 0, 0.55)',
             '--bpmn-status-bg': props.content.statusBackgroundColor || '#0b1220',
             '--bpmn-status-border': props.content.statusBorderColor || '#1f2937',
@@ -649,12 +649,32 @@ export default {
     height: 100%;
 }
 
+.djs-context-pad .entry{
+    width: 30px;
+    height: 30px;
+    /* padding: 3px; */
+    display: inline-block;
+    font-size: 22px;
+    margin: 0 3px 3px 0;
+    border-radius: 3px;
+    cursor: default;
+    background-color: var(--context-pad-entry-background-color);
+    box-shadow: 0 0 2px 1px var(--context-pad-entry-background-color);
+    pointer-events: all;
+    vertical-align: middle;
+}
+
 .bpmn-tool :deep(.djs-context-pad .entry) {
     color: var(--bpmn-action-icon);
     background: var(--bpmn-action-background);
     border: 1px solid var(--bpmn-action-border);
     box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
     border-radius: 6px;
+    width: 30px;
+    height: 30px;
+    text-align: center;
+    justify-content: center;
+    padding: 3px;
 }
 
 .bpmn-tool :deep(.djs-context-pad .entry:hover),
@@ -690,6 +710,13 @@ export default {
 .bpmn-tool :deep(.bjs-popup .entry:hover) {
     background: var(--bpmn-action-hover-background);
     color: var(--bpmn-action-hover-icon);
+}
+
+.djs-popup-body .entry, .djs-popup-body .entry-header
+{
+    font-weight: var(--popup-header-font-weight);
+    color: hsl(0deg 0% 19.83%);
+    padding-left: 0;
 }
 
 .bpmn-tool :deep(.djs-popup .entry svg),
