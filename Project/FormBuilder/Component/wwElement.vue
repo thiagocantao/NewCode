@@ -2181,29 +2181,36 @@ return;
       const normalizedSections = formSections.value.map((section, index) => ({
         ...section,
         position: index + 1,
-        fields: (section.fields || []).map(field => ({
-          id: field.id === field.field_id ? null : field.id || null,
-          field_id: field.field_id || field.ID,
-          position: field.position || 1,
-          columns: parseInt(field.columns) || 1,
-          is_mandatory: normalizeBoolean(field.is_mandatory),
-          is_readonly: normalizeBoolean(field.is_readonly),
-          is_hide_legend: normalizeBoolean(field.is_hide_legend),
-          show_only: normalizeBoolean(field.show_only),
-          show_only_groups: normalizeStringArray(field.show_only_groups),
-          IsHiddenInEndUserNewTicket: normalizeBoolean(field.IsHiddenInEndUserNewTicket),
-          IsHiddenInEndUserViewTicket: normalizeBoolean(field.IsHiddenInEndUserViewTicket),
-          tip_translations: field.tip_translations || { 'en-US': field.tip || '' },
-          deleted: false,
-          name: field.name,
-          fieldType: field.fieldType,
-          default_value:
-            field.default_value !== undefined
-              ? field.default_value
-              : field.defaultValue !== undefined
-                ? field.defaultValue
-                : field.value ?? null
-        }))
+          fields: (section.fields || []).map(field => {
+            const normalizedFieldType = (field.fieldType || field.FieldType || field.type || '')
+              .toString()
+              .toUpperCase();
+            const resolvedDefaultValue =
+              field.default_value !== undefined
+                ? field.default_value
+                : field.defaultValue !== undefined
+                  ? field.defaultValue
+                  : field.value ?? null;
+
+            return {
+              id: field.id === field.field_id ? null : field.id || null,
+              field_id: field.field_id || field.ID,
+              position: field.position || 1,
+              columns: parseInt(field.columns) || 1,
+              is_mandatory: normalizeBoolean(field.is_mandatory),
+              is_readonly: normalizeBoolean(field.is_readonly),
+              is_hide_legend: normalizeBoolean(field.is_hide_legend),
+              show_only: normalizeBoolean(field.show_only),
+              show_only_groups: normalizeStringArray(field.show_only_groups),
+              IsHiddenInEndUserNewTicket: normalizeBoolean(field.IsHiddenInEndUserNewTicket),
+              IsHiddenInEndUserViewTicket: normalizeBoolean(field.IsHiddenInEndUserViewTicket),
+              tip_translations: field.tip_translations || { 'en-US': field.tip || '' },
+              deleted: false,
+              name: field.name,
+              fieldType: field.fieldType,
+              default_value: normalizedFieldType === 'DEADLINE' ? null : resolvedDefaultValue
+            };
+          })
       }));
 
       const formDataValue = {

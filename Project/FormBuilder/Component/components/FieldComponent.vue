@@ -343,18 +343,24 @@ function normalizeBoolean(value, defaultValue = false) {
 function computeInitialValue(field) {
   if (!field) return '';
 
+  const normalizedType = (field.fieldType || field.FieldType || field.type || '')
+    .toString()
+    .toUpperCase();
+
   const baseValue =
     field.value !== undefined && field.value !== null && field.value !== ''
       ? field.value
-      : field.default_value !== undefined
-        ? field.default_value
-        : field.defaultValue !== undefined
-          ? field.defaultValue
-          : field.DefaultValue !== undefined
-            ? field.DefaultValue
-            : '';
+      : normalizedType === 'DEADLINE'
+        ? ''
+        : field.default_value !== undefined
+          ? field.default_value
+          : field.defaultValue !== undefined
+            ? field.defaultValue
+            : field.DefaultValue !== undefined
+              ? field.DefaultValue
+              : '';
 
-  switch (field.fieldType) {
+  switch (normalizedType) {
     case 'YES_NO': {
       if (baseValue === '' || baseValue === undefined) {
         return null;
@@ -925,8 +931,13 @@ export default {
 
       if (!this.error) {
         if (this.field) {
-          this.field.default_value = value;
-          this.field.defaultValue = value;
+          if (this.field.fieldType !== 'DEADLINE') {
+            this.field.default_value = value;
+            this.field.defaultValue = value;
+          } else {
+            this.field.default_value = null;
+            this.field.defaultValue = null;
+          }
           this.field.value = value;
         }
         this.$emit('update:value', value);
