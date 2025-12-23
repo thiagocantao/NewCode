@@ -83,7 +83,7 @@
 
 <script>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { DEFAULT_BPMN_XML } from './ww-config';
+import { DEFAULT_BPMN_XML } from '../ww-config';
 
 const BPMN_SCRIPT_URL = 'https://unpkg.com/bpmn-js@11.5.0/dist/bpmn-modeler.production.min.js';
 const BPMN_STYLE_URLS = [
