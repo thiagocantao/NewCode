@@ -745,11 +745,13 @@ if (!evt || !evt.to) return;
               const normalizedFieldTypeValue = normalizeFieldType(
                 getFieldTypeValue(clonedFieldData) || 'text'
               );
-              const resolvedDefaultValue = clonedFieldData.default_value !== undefined
-                ? clonedFieldData.default_value
-                : clonedFieldData.defaultValue !== undefined
-                  ? clonedFieldData.defaultValue
-                  : clonedFieldData.value ?? null;
+              const resolvedDefaultValue = normalizedFieldTypeValue === 'DEADLINE'
+                ? null
+                : clonedFieldData.default_value !== undefined
+                  ? clonedFieldData.default_value
+                  : clonedFieldData.defaultValue !== undefined
+                    ? clonedFieldData.defaultValue
+                    : clonedFieldData.value ?? null;
 
               // Create a new field for the form section
               const newField = {
@@ -781,7 +783,11 @@ if (!evt || !evt.to) return;
                 type: normalizedFieldTypeValue,
                 default_value: resolvedDefaultValue,
                 defaultValue: resolvedDefaultValue,
-                value: clonedFieldData.value !== undefined ? clonedFieldData.value : resolvedDefaultValue,
+                value: clonedFieldData.value !== undefined
+                  ? clonedFieldData.value
+                  : normalizedFieldTypeValue === 'DEADLINE'
+                    ? null
+                    : resolvedDefaultValue,
                 dataSource: normalizedDataSource,
                 DataSource: normalizedDataSource,
                 FieldInUseOnForm: true,
