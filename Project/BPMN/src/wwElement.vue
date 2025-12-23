@@ -232,6 +232,16 @@ export default {
             '--bpmn-button-hover-bg': props.content.buttonHoverBackgroundColor || '#2563eb',
             '--bpmn-button-hover-border': props.content.buttonHoverBorderColor || '#2563eb',
             '--bpmn-button-disabled-bg': props.content.buttonDisabledBackgroundColor || '#111827',
+            '--bpmn-action-icon': props.content.actionIconColor || '#f8fafc',
+            '--bpmn-action-background': props.content.actionBackgroundColor || '#111827',
+            '--bpmn-action-border': props.content.actionBorderColor || '#334155',
+            '--bpmn-action-hover-background': props.content.actionHoverBackgroundColor || '#2563eb',
+            '--bpmn-action-hover-border': props.content.actionHoverBorderColor || '#2563eb',
+            '--bpmn-action-hover-icon': props.content.actionHoverIconColor || '#f8fafc',
+            '--bpmn-popup-background': props.content.popupBackgroundColor || '#0b1220',
+            '--bpmn-popup-border': props.content.popupBorderColor || '#1e293b',
+            '--bpmn-popup-text': props.content.popupTextColor || '#e2e8f0',
+            '--bpmn-popup-shadow': props.content.popupShadow || '0 12px 40px rgba(0, 0, 0, 0.55)',
             '--bpmn-status-bg': props.content.statusBackgroundColor || '#0b1220',
             '--bpmn-status-border': props.content.statusBorderColor || '#1f2937',
             '--bpmn-status-text': props.content.statusTextColor || '#a5b4fc',
@@ -637,6 +647,54 @@ export default {
 
 .bpmn-tool__canvas :deep(.djs-container) {
     height: 100%;
+}
+
+.bpmn-tool :deep(.djs-context-pad .entry) {
+    color: var(--bpmn-action-icon);
+    background: var(--bpmn-action-background);
+    border: 1px solid var(--bpmn-action-border);
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
+    border-radius: 6px;
+}
+
+.bpmn-tool :deep(.djs-context-pad .entry:hover),
+.bpmn-tool :deep(.djs-context-pad .entry:focus) {
+    color: var(--bpmn-action-hover-icon);
+    background: var(--bpmn-action-hover-background);
+    border-color: var(--bpmn-action-hover-border);
+}
+
+.bpmn-tool :deep(.djs-context-pad .entry svg),
+.bpmn-tool :deep(.djs-context-pad .entry i),
+.bpmn-tool :deep(.djs-context-pad .entry:before) {
+    fill: currentColor;
+    color: currentColor;
+}
+
+.bpmn-tool :deep(.djs-popup),
+.bpmn-tool :deep(.bjs-popup) {
+    background: var(--bpmn-popup-background);
+    border: 1px solid var(--bpmn-popup-border);
+    box-shadow: var(--bpmn-popup-shadow);
+    color: var(--bpmn-popup-text);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.bpmn-tool :deep(.djs-popup .entry),
+.bpmn-tool :deep(.bjs-popup .entry) {
+    color: var(--bpmn-popup-text);
+}
+
+.bpmn-tool :deep(.djs-popup .entry:hover),
+.bpmn-tool :deep(.bjs-popup .entry:hover) {
+    background: var(--bpmn-action-hover-background);
+    color: var(--bpmn-action-hover-icon);
+}
+
+.bpmn-tool :deep(.djs-popup .entry svg),
+.bpmn-tool :deep(.bjs-popup .entry svg) {
+    fill: currentColor;
 }
 
 .bpmn-tool :deep(.djs-element .djs-visual > rect),
