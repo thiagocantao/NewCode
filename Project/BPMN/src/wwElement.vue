@@ -86,6 +86,8 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { DEFAULT_BPMN_XML } from '../ww-config';
 
 const BPMN_SCRIPT_URL = 'https://unpkg.com/bpmn-js@11.5.0/dist/bpmn-modeler.production.min.js';
+const MATERIAL_SYMBOLS_URL =
+    'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0';
 const BPMN_STYLE_URLS = [
     'https://unpkg.com/bpmn-js@11.5.0/dist/assets/diagram-js.css',
     'https://unpkg.com/bpmn-js@11.5.0/dist/assets/bpmn-font/css/bpmn.css',
@@ -98,10 +100,13 @@ let bpmnLoaderPromise = null;
 function ensureStyles() {
     if (typeof document === 'undefined') return;
 
-    BPMN_STYLE_URLS.forEach((href, index) => {
-        const id = `bpmn-style-${index}`;
-        if (document.getElementById(id)) return;
+    const styles = [
+        ...BPMN_STYLE_URLS.map((href, index) => ({ id: `bpmn-style-${index}`, href })),
+        { id: 'material-symbols-outlined', href: MATERIAL_SYMBOLS_URL },
+    ];
 
+    styles.forEach(({ id, href }) => {
+        if (document.getElementById(id)) return;
         const link = document.createElement('link');
         link.id = id;
         link.rel = 'stylesheet';
@@ -519,6 +524,8 @@ export default {
 .bpmn-tool {
     position: relative;
     width: 100%;
+    height: 100%;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     background: #0f172a;
@@ -590,10 +597,15 @@ export default {
 }
 
 .bpmn-tool__canvas {
-    flex: 1;
-    min-height: 320px;
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
     background: #0f172a;
     position: relative;
+}
+
+.bpmn-tool__canvas :deep(.djs-container) {
+    height: 100%;
 }
 
 .bpmn-tool__canvas.-loading {
