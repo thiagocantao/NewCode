@@ -218,8 +218,39 @@ export default {
         const allowExports = computed(() => props.content.allowExports !== false);
         const showToolbar = computed(() => props.wwElementState?.props?.isFixed !== true);
         const readOnly = computed(() => !!props.content.readOnly);
+        const themeStyles = computed(() => ({
+            '--bpmn-bg': props.content.backgroundColor || '#0f172a',
+            '--bpmn-border': props.content.borderColor || '#1e293b',
+            '--bpmn-text': props.content.textColor || '#e2e8f0',
+            '--bpmn-toolbar-bg': props.content.toolbarBackgroundColor || '#111827',
+            '--bpmn-toolbar-border': props.content.toolbarBorderColor || '#1e293b',
+            '--bpmn-group-bg': props.content.groupBackgroundColor || '#0b1220',
+            '--bpmn-group-border': props.content.groupBorderColor || '#1f2937',
+            '--bpmn-button-bg': props.content.buttonBackgroundColor || '#1f2937',
+            '--bpmn-button-text': props.content.buttonTextColor || '#e2e8f0',
+            '--bpmn-button-border': props.content.buttonBorderColor || '#334155',
+            '--bpmn-button-hover-bg': props.content.buttonHoverBackgroundColor || '#2563eb',
+            '--bpmn-button-hover-border': props.content.buttonHoverBorderColor || '#2563eb',
+            '--bpmn-button-disabled-bg': props.content.buttonDisabledBackgroundColor || '#111827',
+            '--bpmn-status-bg': props.content.statusBackgroundColor || '#0b1220',
+            '--bpmn-status-border': props.content.statusBorderColor || '#1f2937',
+            '--bpmn-status-text': props.content.statusTextColor || '#a5b4fc',
+            '--bpmn-status-error-bg': props.content.statusErrorBackgroundColor || '#2d0c0c',
+            '--bpmn-status-error-border': props.content.statusErrorBorderColor || '#7f1d1d',
+            '--bpmn-status-error-text': props.content.statusErrorTextColor || '#fca5a5',
+            '--bpmn-overlay-bg': props.content.overlayBackgroundColor || 'rgba(15, 23, 42, 0.75)',
+            '--bpmn-overlay-text': props.content.overlayTextColor || '#e2e8f0',
+            '--bpmn-canvas-bg': props.content.canvasBackgroundColor || '#0f172a',
+            '--bpmn-element-fill': props.content.elementFillColor || '#ffffff',
+            '--bpmn-element-stroke': props.content.elementStrokeColor || '#000000',
+            '--bpmn-connection-color': props.content.connectionColor || '#000000',
+            '--bpmn-connection-hover': props.content.connectionHoverColor || '#2563eb',
+            '--bpmn-connection-label': props.content.connectionLabelColor || '#0f172a',
+        }));
+
         const wrapperStyle = computed(() => ({
             height: props.content.height || '640px',
+            ...themeStyles.value,
         }));
 
         const { setValue: setDiagramXml } =
@@ -528,11 +559,11 @@ export default {
     min-height: 0;
     display: flex;
     flex-direction: column;
-    background: #0f172a;
-    border: 1px solid #1e293b;
+    background: var(--bpmn-bg);
+    border: 1px solid var(--bpmn-border);
     border-radius: 8px;
     overflow: hidden;
-    color: #e2e8f0;
+    color: var(--bpmn-text);
 }
 
 .bpmn-tool__toolbar {
@@ -541,8 +572,8 @@ export default {
     align-items: center;
     gap: 8px;
     padding: 10px;
-    background: #111827;
-    border-bottom: 1px solid #1e293b;
+    background: var(--bpmn-toolbar-bg);
+    border-bottom: 1px solid var(--bpmn-toolbar-border);
     z-index: 2;
 }
 
@@ -550,9 +581,9 @@ export default {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: #0b1220;
+    background: var(--bpmn-group-bg);
     padding: 6px;
-    border: 1px solid #1f2937;
+    border: 1px solid var(--bpmn-group-border);
     border-radius: 6px;
 }
 
@@ -561,9 +592,9 @@ export default {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: #1f2937;
-    color: #e2e8f0;
-    border: 1px solid #334155;
+    background: var(--bpmn-button-bg);
+    color: var(--bpmn-button-text);
+    border: 1px solid var(--bpmn-button-border);
     border-radius: 6px;
     padding: 8px 10px;
     font-size: 13px;
@@ -579,15 +610,15 @@ export default {
 
 .bpmn-tool__button:hover,
 .bpmn-tool__icon:hover {
-    background: #2563eb;
-    border-color: #2563eb;
+    background: var(--bpmn-button-hover-bg);
+    border-color: var(--bpmn-button-hover-border);
 }
 
 .bpmn-tool__button:disabled,
 .bpmn-tool__icon:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-    background: #111827;
+    background: var(--bpmn-button-disabled-bg);
 }
 
 .bpmn-tool__zoom {
@@ -600,12 +631,39 @@ export default {
     flex: 1 1 auto;
     min-height: 0;
     height: 100%;
-    background: #0f172a;
+    background: var(--bpmn-canvas-bg);
     position: relative;
 }
 
 .bpmn-tool__canvas :deep(.djs-container) {
     height: 100%;
+}
+
+.bpmn-tool :deep(.djs-element .djs-visual > rect),
+.bpmn-tool :deep(.djs-element .djs-visual > circle),
+.bpmn-tool :deep(.djs-element .djs-visual > ellipse),
+.bpmn-tool :deep(.djs-element .djs-visual > polygon),
+.bpmn-tool :deep(.djs-element .djs-visual > path) {
+    fill: var(--bpmn-element-fill);
+    stroke: var(--bpmn-element-stroke);
+}
+
+.bpmn-tool :deep(.djs-connection .djs-visual > path) {
+    stroke: var(--bpmn-connection-color);
+}
+
+.bpmn-tool :deep(.djs-connection .djs-outline) {
+    stroke: var(--bpmn-connection-hover);
+}
+
+.bpmn-tool :deep(.djs-connection:hover .djs-visual > path),
+.bpmn-tool :deep(.djs-connection.selected .djs-visual > path) {
+    stroke: var(--bpmn-connection-hover);
+}
+
+.bpmn-tool :deep(.djs-label) {
+    color: var(--bpmn-connection-label);
+    fill: var(--bpmn-connection-label);
 }
 
 .bpmn-tool__canvas.-loading {
@@ -619,8 +677,8 @@ export default {
     gap: 10px;
     align-items: center;
     justify-content: center;
-    background: rgba(15, 23, 42, 0.75);
-    color: #e2e8f0;
+    background: var(--bpmn-overlay-bg);
+    color: var(--bpmn-overlay-text);
     font-weight: 600;
     z-index: 3;
 }
@@ -636,15 +694,15 @@ export default {
 .bpmn-tool__status {
     padding: 8px 12px;
     font-size: 13px;
-    background: #0b1220;
-    border-top: 1px solid #1f2937;
-    color: #a5b4fc;
+    background: var(--bpmn-status-bg);
+    border-top: 1px solid var(--bpmn-status-border);
+    color: var(--bpmn-status-text);
 }
 
 .bpmn-tool__status.-error {
-    color: #fca5a5;
-    background: #2d0c0c;
-    border-top-color: #7f1d1d;
+    color: var(--bpmn-status-error-text);
+    background: var(--bpmn-status-error-bg);
+    border-top-color: var(--bpmn-status-error-border);
 }
 
 .bpmn-tool.-readonly :deep(.djs-palette) {
