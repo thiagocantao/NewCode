@@ -147,6 +147,21 @@ export default {
   getTestEvent: "getCellClickedTestEvent"
 },
   {
+    name: "cellHovered",
+    label: { en: "On Cell Hovered" },
+    event: {
+      row: null,
+      id: 0,
+      index: 0,
+      displayIndex: 0,
+      fieldDB: null,
+      fieldID: null,
+      colId: null,
+      rowKey: null
+    },
+    getTestEvent: "getCellHoveredTestEvent"
+  },
+  {
     name: "gridLoaded",
     label: { en: "On Grid Loaded" },
     event: { rows: [], totalRows: 0 },

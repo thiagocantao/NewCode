@@ -11,7 +11,8 @@
       @selection-changed="onSelectionChanged" @cell-value-changed="onCellValueChanged" @filter-changed="onFilterChanged"
       @sort-changed="onSortChanged" @column-moved="onColumnMoved" @row-clicked="onRowClicked"
       @row-data-changed="onRowDataChanged" @row-data-updated="onRowDataUpdated"
-      @first-data-rendered="onFirstDataRendered" @cell-clicked="onCellClicked">
+      @first-data-rendered="onFirstDataRendered" @cell-clicked="onCellClicked"
+      @cell-mouse-over="onCellMouseOver">
     </ag-grid-vue>
   </div>
 </template>
@@ -3791,6 +3792,45 @@ setTimeout(() => {
     },
   });
 },
+  onCellMouseOver(event) {
+  if (!event) return;
+
+  const colId = event.column?.getColId?.();
+  let fieldDB = null;
+  let fieldID = null;
+
+  if (colId) {
+    const colConfig = this.content.columns.find(col =>
+      col.id == colId || col.field == colId || col.colId == colId
+    );
+    if (colConfig) {
+      fieldDB = colConfig.FieldDB;
+      fieldID = colConfig.id;
+    }
+  }
+
+  let rowKey = null;
+  if (typeof this.resolveRowId === "function" && event.data) {
+    rowKey = this.resolveRowId(event.data, event.rowIndex ?? event.node?.rowIndex ?? null);
+  }
+  if (!rowKey && event.node?.id != null) {
+    rowKey = event.node.id;
+  }
+
+  this.$emit("trigger-event", {
+    name: "cellHovered",
+    event: {
+      row: event.data,
+      id: event.node?.id || null,
+      index: event.node?.sourceRowIndex || null,
+      displayIndex: event.rowIndex != null ? event.rowIndex : null,
+      fieldDB,
+      fieldID,
+      colId,
+      rowKey
+    },
+  });
+},
   onCellClicked(event) {
   const colId = event.column?.getColId?.();
 
@@ -3893,6 +3933,27 @@ setTimeout(() => {
     fieldDB: col?.FieldDB || null,
     fieldID: col?.id || null,
     colId: col?.colId || col?.id || col?.field || null
+  };
+},
+  getCellHoveredTestEvent() {
+  const data = this.rowData;
+  const col = this.content?.columns?.[0];
+  const row = data?.[0] || null;
+
+  let rowKey = null;
+  if (row && typeof this.resolveRowId === "function") {
+    rowKey = this.resolveRowId(row, 0);
+  }
+
+  return {
+    row,
+    id: 0,
+    index: 0,
+    displayIndex: 0,
+    fieldDB: col?.FieldDB || null,
+    fieldID: col?.id || null,
+    colId: col?.colId || col?.id || col?.field || null,
+    rowKey
   };
 },
 clearSelection() {
