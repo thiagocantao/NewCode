@@ -130,6 +130,16 @@ export default {
             },
         },
         {
+            name: 'onElementClick',
+            label: { en: 'On element click', pt: 'Ao clicar em elemento' },
+            event: {
+                id: '',
+                type: '',
+                name: '',
+                documentation: '',
+            },
+        },
+        {
             name: 'onExport',
             label: { en: 'On export', pt: 'Ao exportar' },
             event: {
