@@ -109,6 +109,26 @@ export default {
                 xml: '',
             },
         },
+        { 
+            name: 'onElementClick',
+            label: { en: 'On element click', pt: 'Ao clicar em elemento' },
+            event: {
+                id: '',
+                type: '',
+                name: '',
+                documentation: '',
+            },
+        },
+        {
+            name: 'onCustomMenuClick',
+            label: { en: 'On custom menu click', pt: 'Ao clicar no menu personalizado' },
+            event: {
+                id: '',
+                type: '',
+                name: '',
+                documentation: '',
+            },
+        },
         {
             name: 'onElementClick',
             label: { en: 'On element click', pt: 'Ao clicar em elemento' },

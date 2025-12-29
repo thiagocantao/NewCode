@@ -318,6 +318,19 @@ export default {
             });
         };
 
+        const emitCustomMenuClick = element => {
+            const businessObject = element?.businessObject || {};
+            emit('trigger-event', {
+                name: 'onCustomMenuClick',
+                event: {
+                    id: element?.id,
+                    type: element?.type,
+                    name: businessObject.name,
+                    documentation: businessObject.documentation?.[0]?.text || '',
+                },
+            });
+        };
+
         const updateHistoryState = () => {
             if (!modeler.value) return;
             const commandStack = modeler.value.get('commandStack');
@@ -397,6 +410,23 @@ export default {
                 modeler.value.on('commandStack.changed', handleCommandStackChange);
                 modeler.value.on('import.done', updateHistoryState);
                 modeler.value.get('eventBus').on('element.click', handleElementClick);
+
+                if (!readOnly.value) {
+                    const contextPad = modeler.value.get('contextPad');
+                    const translate = modeler.value.get('translate');
+                    contextPad.registerProvider(900, {
+                        getContextPadEntries: element => ({
+                            'custom-edit': {
+                                group: 'edit',
+                                className: 'custom-pencil-entry',
+                                title: translate ? translate('Editar') : 'Editar',
+                                action: {
+                                    click: () => emitCustomMenuClick(element),
+                                },
+                            },
+                        }),
+                    });
+                }
 
                 await importDiagram(lastXml.value || DEFAULT_BPMN_XML);
             } catch (error) {
@@ -710,6 +740,14 @@ export default {
 .bpmn-tool :deep(.djs-context-pad .entry:before) {
     fill: currentColor;
     color: currentColor;
+}
+
+.bpmn-tool :deep(.custom-pencil-entry:before) {
+    content: 'edit';
+    font-family: 'Material Symbols Outlined';
+    font-size: 20px;
+    line-height: 24px;
+    display: block;
 }
 
 .bpmn-tool :deep(.djs-popup),
