@@ -305,6 +305,19 @@ export default {
             });
         };
 
+        const emitElementClick = element => {
+            const businessObject = element?.businessObject || {};
+            emit('trigger-event', {
+                name: 'onElementClick',
+                event: {
+                    id: element?.id,
+                    type: element?.type,
+                    name: businessObject.name,
+                    documentation: businessObject.documentation?.[0]?.text || '',
+                },
+            });
+        };
+
         const updateHistoryState = () => {
             if (!modeler.value) return;
             const commandStack = modeler.value.get('commandStack');
@@ -358,11 +371,17 @@ export default {
             }, 250);
         };
 
+        const handleElementClick = event => {
+            if (!event?.element) return;
+            emitElementClick(event.element);
+        };
+
         const buildModeler = async () => {
             isLoading.value = true;
             resetStatus();
 
             if (modeler.value) {
+                modeler.value.get('eventBus')?.off('element.click', handleElementClick);
                 modeler.value.destroy();
                 modeler.value = null;
             }
@@ -377,6 +396,7 @@ export default {
 
                 modeler.value.on('commandStack.changed', handleCommandStackChange);
                 modeler.value.on('import.done', updateHistoryState);
+                modeler.value.get('eventBus').on('element.click', handleElementClick);
 
                 await importDiagram(lastXml.value || DEFAULT_BPMN_XML);
             } catch (error) {
@@ -512,6 +532,7 @@ export default {
                 clearTimeout(pendingSave.value);
             }
             if (modeler.value) {
+                modeler.value.get('eventBus')?.off('element.click', handleElementClick);
                 modeler.value.destroy();
                 modeler.value = null;
             }
