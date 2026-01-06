@@ -260,6 +260,7 @@ export default {
       onSortChanged,
       onFirstDataRendered,
       gridVisible,
+      showGrid,
       rootRef,
       localeText: computed(() => {
         switch (props.content.lang) {
@@ -704,6 +705,12 @@ export default {
           field,
         },
       });
+    },
+    remountGrid() {
+      this.gridApi = null;
+      this.gridVisible = false;
+      this.gridKey += 1;
+      this.showGrid();
     },
     deselectAllRows() {
       if (this.gridApi) {
