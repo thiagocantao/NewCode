@@ -26,7 +26,7 @@
 
                         </div>
                     </template>
-                    <span :style="selectedValueStyle">{{ selectedLabel }}</span>
+                    <span :style="selectedValueStyle" v-html="selectedLabel || ''"></span>
                 </div>
             </template>
             <span v-else :style="placeholderStyle">{{ data.placeholder }}</span>
@@ -48,7 +48,7 @@
                     @click="e => handleChipClick(e, option.value)"
                     :style="chipStyle"
                 >
-                    <span>{{ option.label }}</span>
+                    <span v-html="option.label || ''"></span>
                     <div v-html="chipIconUnselect" :style="chipIconStyle" aria-hidden="true"></div>
                 </div>
                 <div

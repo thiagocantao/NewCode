@@ -40,7 +40,7 @@
 
                     </div>
                 </template>
-                <span :style="optionTextStyles">{{ data.label }}</span>
+                <span :style="optionTextStyles" v-html="data.label || ''"></span>
             </div>
         </label>
         <template v-else>
@@ -63,7 +63,7 @@
 
                     </div>
                 </template>
-                <span :style="optionTextStyles">{{ data.label }}</span>
+                <span :style="optionTextStyles" v-html="data.label || ''"></span>
             </div>
             <div v-if="data.isSelected" v-html="optionIcon" :style="optionIconStyle" aria-hidden="true"></div>
         </template>
