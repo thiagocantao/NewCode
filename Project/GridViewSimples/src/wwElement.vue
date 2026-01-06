@@ -1,5 +1,5 @@
 <template>
-  <div class="ww-datagrid" :class="{ editing: isEditing, 'grid-hidden': !gridVisible }" :style="cssVars">
+  <div ref="rootRef" class="ww-datagrid" :class="{ editing: isEditing, 'grid-hidden': !gridVisible }" :style="cssVars">
     <ag-grid-vue :key="gridKey" :rowData="rowData" :columnDefs="columnDefs" :defaultColDef="defaultColDef"
       :domLayout="content.layout === 'auto' ? 'autoHeight' : 'normal'" :style="style" :rowSelection="rowSelection"
       :selection-column-def="{ pinned: true }" :theme="theme" :getRowId="getRowId" :pagination="content.pagination"
@@ -16,7 +16,7 @@
 </template>
 
 <script>
-  import { shallowRef, watchEffect, computed, ref, watch } from "vue";
+  import { onMounted, onUnmounted, shallowRef, watchEffect, computed, ref, watch } from "vue";
 import { AgGridVue } from "ag-grid-vue3";
 import {
   AllCommunityModule,
@@ -200,7 +200,9 @@ export default {
     /* wwEditor:end */
 
     const gridKey = ref(0);
+    const rootRef = ref(null);
     const gridVisible = ref(false);
+    let resizeObserver = null;
 
     const showGrid = () => {
       // Wait two frames to let flex columns settle before revealing the grid
@@ -229,6 +231,25 @@ export default {
       showGrid();
     };
 
+    const refreshLayout = () => {
+      if (!gridApi.value) return;
+      requestAnimationFrame(() => {
+        gridApi.value.doLayout();
+      });
+    };
+
+    onMounted(() => {
+      resizeObserver = new ResizeObserver(() => refreshLayout());
+      if (rootRef.value) resizeObserver.observe(rootRef.value);
+    });
+
+    onUnmounted(() => {
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+        resizeObserver = null;
+      }
+    });
+
     return {
       resolveMappingFormula,
       onGridReady,
@@ -239,6 +260,7 @@ export default {
       onSortChanged,
       onFirstDataRendered,
       gridVisible,
+      rootRef,
       localeText: computed(() => {
         switch (props.content.lang) {
           case "fr":
