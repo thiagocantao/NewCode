@@ -138,6 +138,11 @@ export default {
       label: { en: "Deselect All Rows" },
       args: [],
     },
+    {
+      action: "remountGrid",
+      label: { en: "Remount Grid" },
+      args: [],
+    },
   ],
   properties: {
     headerTitle: {
