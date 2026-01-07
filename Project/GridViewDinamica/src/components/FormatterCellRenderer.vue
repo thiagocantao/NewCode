@@ -20,7 +20,7 @@ function getRoundedSpanColor(value, colorArray, fieldName, isBold) {
   const matchingStyle = colorArray.find(item => item.Valor === value);
   if (!matchingStyle) return value;
   // O border-radius será definido dinamicamente no formatter
-  const borderRadius = fieldName === 'StatusID' ? '4px' : '12px';
+  const borderRadius = fieldName === 'StatusID' || fieldName === 'CategoryLevel3ID' || fieldName === 'CategoryID' || fieldName === 'SubCategoryID' ? '4px' : '12px';
   const fontweight = fieldName === 'ImpactID' ? "" : 'font-weight:bold;';
   return `<span style="height:25px; color: ${matchingStyle.CorFonte}; background:${matchingStyle.CorFundo}; border: 1px solid ${matchingStyle.CorFundo}; border-radius: ${borderRadius}; ${fontweight} display: inline-flex; align-items: center; padding: 0 12px;">${value}</span>`;
 }
@@ -151,16 +151,19 @@ if (
           );
           if (match) displayValue = match.label;
         }
+
+        const colorCategory = window.wwLib?.wwVariable?.getValue('61c1b425-10e8-40dc-8f1f-b117c08b9726').categoryColor;
+
         const tag = (this.params.colDef?.TagControl || this.params.colDef?.tagControl || this.params.colDef?.tagcontrol || '').toString().toUpperCase();
         const identifier = (this.params.colDef?.FieldDB || '').toString().toUpperCase();
         const categoryTags = ['CATEGORYID','SUBCATEGORYID','CATEGORYLEVEL3ID'];
         if (categoryTags.includes(tag) || categoryTags.includes(identifier)) {
           const hasValue = displayValue != null && String(displayValue).trim() !== '';
-          const background = hasValue ? '#c9edf9' : '#ffffff';
-          const borderColor = hasValue ? '#c9edf9' : '#bdbdbd';
+          const background = hasValue ? colorCategory : '#ffffff';
+          const borderColor = hasValue ? colorCategory : '#bdbdbd';
           const textColor = hasValue ? '#303030' : '#9e9e9e';
           const content = hasValue ? displayValue : '';
-          return `<span style="height:25px; color:${textColor}; background:${background}; border:1px solid ${borderColor}; border-radius:12px; font-weight:normal; font-family:${fontFamily}; display:inline-flex; align-items:center; justify-content:center; padding:0 12px;">${content}</span>`;
+          return `<span style="height:25px; color:${textColor}; background:${background}; border:1px solid ${borderColor}; border-radius:5px; font-weight:normal; font-family:${fontFamily}; display:inline-flex; align-items:center; justify-content:center; padding:0 12px;">${content}</span>`;
         }
         // DEADLINE: barra proporcional
         if (this.params.colDef?.TagControl === 'DEADLINE' || this.params.colDef?.tagControl === 'DEADLINE') {
@@ -272,7 +275,7 @@ if (
           if (styleArray && Array.isArray(styleArray)) {
             // Defina o raio de acordo com o FieldDB
             let borderRadius = '12px';
-            if (this.params.colDef?.FieldDB === 'StatusID') borderRadius = '5px';
+            if (this.params.colDef?.FieldDB === 'StatusID' || this.params.colDef?.FieldDB === 'CategoryID' || this.params.colDef?.FieldDB === 'SubCategoryID' || this.params.colDef?.FieldDB === 'CategoryLevel3ID') borderRadius = '5px';
             // Função inline para aplicar o raio
             function getRoundedSpanColorWithRadius(matchVal, textVal, colorArray) {
               if (!colorArray || !Array.isArray(colorArray) || !matchVal) return textVal;
