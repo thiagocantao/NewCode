@@ -59,7 +59,7 @@ export default {
   "idFormula",
   "generateColumns",
   "columns",
-  ["pagination", "paginationPageSize", "paginationPosition", "paginationPadding"],
+  ["pagination", "paginationPageSize", "paginationPosition", "paginationPadding", "paginationBackgroundColor"],
   [
   "rowSelection",
   "enableClickSelection",
@@ -1414,6 +1414,19 @@ export default {
   bindingValidation: {
   type: "string",
   tooltip: "Padding for the pagination area (e.g. 8px 16px)",
+  },
+  hidden: (content) => !content.pagination,
+  /* wwEditor:end */
+  },
+  paginationBackgroundColor: {
+  label: { en: "Pagination Background Color" },
+  type: "Color",
+  section: "settings",
+  bindable: true,
+  /* wwEditor:start */
+  bindingValidation: {
+  type: "string",
+  tooltip: "Background color for the pagination area",
   },
   hidden: (content) => !content.pagination,
   /* wwEditor:end */

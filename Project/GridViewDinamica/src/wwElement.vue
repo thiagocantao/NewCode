@@ -3381,6 +3381,12 @@ setTimeout(() => {
   "--ag-header-font-size": baseFontSize,
   fontFamily: this.resolvedFontFamily,
   fontSize: baseFontSize,
+  ...(this.content.paginationBackgroundColor
+    ? {
+      "--grid-view-dinamica-pagination-background-color":
+        this.content.paginationBackgroundColor,
+    }
+    : {}),
   ...(this.content.paginationPadding
     ? { "--grid-view-dinamica-pagination-padding": this.content.paginationPadding }
     : {}),
@@ -4502,6 +4508,7 @@ forceClearSelection() {
   }
 
   :deep(.ag-paging-panel) {
+    background-color: var(--grid-view-dinamica-pagination-background-color, transparent) !important;
     padding: var(--grid-view-dinamica-pagination-padding, 0) !important;
   }
 
