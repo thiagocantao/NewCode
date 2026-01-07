@@ -67,6 +67,7 @@ export default class ResponsibleUserCellEditor {
     // DOM
     this.eGui = document.createElement('div');
     this.eGui.className = 'user-selector-dropdown'; // wrapper (mesmas classes)
+    this.applyAvatarTheme();
     this.eGui.innerHTML = `
       <div class="user-selector__dropdown" data-role="dropdown">
         <div class="user-selector__search" data-role="search-row">
@@ -563,6 +564,15 @@ export default class ResponsibleUserCellEditor {
     }
   }
 
+  applyAvatarTheme() {
+    if (!this.eGui) return;
+    const theme = window?.wwLib?.wwVariable?.getValue?.('61c1b425-10e8-40dc-8f1f-b117c08b9726') || {};
+    const avatarBackground = theme?.bgButtonPrimary || '#4B6CB7';
+    const avatarShadow = theme?.primary || '#3A4663';
+    this.eGui.style.setProperty('--grid-view-dinamica-avatar-bg', avatarBackground);
+    this.eGui.style.setProperty('--grid-view-dinamica-avatar-shadow', avatarShadow);
+  }
+
   getGui() {
     return this.eGui;
   }
@@ -762,6 +772,7 @@ export default class ResponsibleUserCellEditor {
   align-items: center;
   justify-content: center;
   background: #fff;
+  box-shadow: 0 0 0 1px var(--grid-view-dinamica-avatar-shadow, #3A4663);
 }
 .avatar-middle {
   width: 30px;
@@ -777,7 +788,7 @@ export default class ResponsibleUserCellEditor {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: #4B6CB7;
+  background: var(--grid-view-dinamica-avatar-bg, #4B6CB7);
   display: flex;
   align-items: center;
   justify-content: center;
