@@ -3381,6 +3381,9 @@ setTimeout(() => {
   "--ag-header-font-size": baseFontSize,
   fontFamily: this.resolvedFontFamily,
   fontSize: baseFontSize,
+  ...(this.content.paginationPadding
+    ? { "--grid-view-dinamica-pagination-padding": this.content.paginationPadding }
+    : {}),
   ...(this.content.selectionCheckboxColor
     ? {
       '--grid-view-dinamica-selection-checkbox-color':
@@ -4496,6 +4499,10 @@ forceClearSelection() {
     :deep(.ag-paging-panel) {
       order: -1;
     }
+  }
+
+  :deep(.ag-paging-panel) {
+    padding: var(--grid-view-dinamica-pagination-padding, 0) !important;
   }
 
   // Fonte da paginação igual à das linhas da grid

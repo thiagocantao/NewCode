@@ -59,7 +59,7 @@ export default {
   "idFormula",
   "generateColumns",
   "columns",
-  ["pagination", "paginationPageSize", "paginationPosition"],
+  ["pagination", "paginationPageSize", "paginationPosition", "paginationPadding"],
   [
   "rowSelection",
   "enableClickSelection",
@@ -1400,6 +1400,20 @@ export default {
   bindingValidation: {
   type: "string",
   tooltip: "Choose whether pagination is displayed at the top or bottom",
+  },
+  hidden: (content) => !content.pagination,
+  /* wwEditor:end */
+  },
+  paginationPadding: {
+  label: { en: "Pagination Padding" },
+  type: "Text",
+  section: "settings",
+  bindable: true,
+  defaultValue: "",
+  /* wwEditor:start */
+  bindingValidation: {
+  type: "string",
+  tooltip: "Padding for the pagination area (e.g. 8px 16px)",
   },
   hidden: (content) => !content.pagination,
   /* wwEditor:end */
