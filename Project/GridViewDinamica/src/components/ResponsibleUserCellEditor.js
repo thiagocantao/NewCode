@@ -772,7 +772,7 @@ export default class ResponsibleUserCellEditor {
   align-items: center;
   justify-content: center;
   background: #fff;
-  box-shadow: 0 0 0 1px var(--grid-view-dinamica-avatar-shadow, #3A4663);
+  box-shadow: 0 0 0 0.3px var(--grid-view-dinamica-avatar-shadow, #3A4663);
 }
 .avatar-middle {
   width: 30px;
