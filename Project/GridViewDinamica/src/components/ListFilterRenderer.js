@@ -90,8 +90,8 @@ export default class ListFilterRenderer {
     if (!colorArray || !Array.isArray(colorArray) || !value) return value;
     const matchingStyle = colorArray.find(item => item.Valor === value);
     if (!matchingStyle) return value;
-    const borderRadius = fieldName === 'StatusID' ? '4px' : '12px';
-    const fontweight = "font-weight:bold;";
+    const borderRadius = fieldName === 'StatusID' || fieldName === 'CategoryLevel3ID' || fieldName === 'CategoryID' || fieldName === 'SubCategoryID' ? '4px' : '12px';
+    const fontweight = fieldName === 'ImpactID' ? "" : 'font-weight:bold;';
     return `<span style="height:25px; color: ${matchingStyle.CorFonte}; background:${matchingStyle.CorFundo}; border: 1px solid ${matchingStyle.CorFundo}; border-radius: ${borderRadius}; ${fontweight} display: inline-flex; align-items: center; padding: 0 12px;">${value}</span>`;
   }
 
@@ -437,7 +437,8 @@ export default class ListFilterRenderer {
       let formatted = display;
       try {
         if (this.isCategoryField) {
-          formatted = `<span style="height:25px; color:#303030; background:#c9edf9; border:1px solid #c9edf9; border-radius:12px; font-weight:normal; display:inline-flex; align-items:center; padding:0 12px;">${display}</span>`;
+          const colorCategory = window.wwLib?.wwVariable?.getValue('61c1b425-10e8-40dc-8f1f-b117c08b9726').categoryColor;
+          formatted = `<span style="height:25px; color:#303030; background:${colorCategory}; border:1px solid ${colorCategory}; border-radius:8px; font-weight:normal; display:inline-flex; align-items:center; padding:0 12px;">${display}</span>`;
         } else if (rendererParams.useCustomFormatter && typeof rendererParams.formatter === 'string') {
           const formatterFn = new Function(
             'value',
@@ -569,7 +570,8 @@ export default class ListFilterRenderer {
     let formatted = this.ensureDisplayText(display);
     try {
       if (this.isCategoryField) {
-        formatted = `<span style="height:25px; color:#303030; background:#c9edf9; border:1px solid #c9edf9; border-radius:12px; font-weight:normal; display:inline-flex; align-items:center; padding:0 12px;">${display}</span>`;
+        const colorCategory = window.wwLib?.wwVariable?.getValue('61c1b425-10e8-40dc-8f1f-b117c08b9726').categoryColor;
+        formatted = `<span style="height:25px; color:#303030; background:${colorCategory}; border:1px solid ${colorCategory}; border-radius:8px; font-weight:normal; display:inline-flex; align-items:center; padding:0 12px;">${display}</span>`;
       } else if (this.rendererConfig.useCustomFormatter && typeof this.rendererConfig.formatter === 'string') {
         const formatterFn = new Function(
           'value',
@@ -721,7 +723,8 @@ export default class ListFilterRenderer {
 
     try {
       if (this.isCategoryField) {
-        formatted = `<span style="height:25px; color:#303030; background:#c9edf9; border:1px solid #c9edf9; border-radius:12px; font-weight:normal; display:inline-flex; align-items:center; padding:0 12px;">${display}</span>`;
+        const colorCategory = window.wwLib?.wwVariable?.getValue('61c1b425-10e8-40dc-8f1f-b117c08b9726').categoryColor;
+        formatted = `<span style="height:25px; color:#303030; background:${colorCategory}; border:1px solid ${colorCategory}; border-radius:8px; font-weight:normal; display:inline-flex; align-items:center; padding:0 12px;">${display}</span>`;
       } else if (this.rendererConfig.useCustomFormatter && typeof this.rendererConfig.formatter === 'string') {
         const formatterFn = new Function(
           'value',
@@ -967,4 +970,3 @@ export default class ListFilterRenderer {
     }
   }
 }
-
