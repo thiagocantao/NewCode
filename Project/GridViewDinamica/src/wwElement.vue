@@ -4512,6 +4512,10 @@ forceClearSelection() {
     padding: var(--grid-view-dinamica-pagination-padding, 0) !important;
   }
 
+  :deep(.ag-paging-row-summary-panel) {
+    display: none !important;
+  }
+
   // Fonte da paginação igual à das linhas da grid
   :deep(.ag-paging-panel),
   :deep(.ag-paging-panel *),
