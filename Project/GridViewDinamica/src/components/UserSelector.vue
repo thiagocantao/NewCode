@@ -643,7 +643,7 @@ export default {
   align-items: center;
   justify-content: center;
   background: #fff;
-  box-shadow: 0 0 0 0.3px var(--grid-view-dinamica-avatar-shadow, #3A4663);
+  box-shadow: 0 0 0 0.5px var(--grid-view-dinamica-avatar-shadow, #3A4663);
 }
 .group-avatar-wrapper {
   position: relative;

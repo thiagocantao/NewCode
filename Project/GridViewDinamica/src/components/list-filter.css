@@ -273,7 +273,7 @@
 :is(.list-filter, .list-editor) .avatar-outer {
   width: 24px; height: 24px; border-radius: 50%; border: 1px solid #3A4663;
   display: flex; align-items: center; justify-content: center; background: #fff; flex-shrink: 0;
-  box-shadow: 0 0 0 0.3px var(--grid-view-dinamica-avatar-shadow, #3A4663);
+  box-shadow: 0 0 0 0.5px var(--grid-view-dinamica-avatar-shadow, #3A4663);
 }
 :is(.list-filter, .list-editor) .avatar-middle {
   width: 22px; height: 22px; border-radius: 50%; border: 2px solid #fff;
