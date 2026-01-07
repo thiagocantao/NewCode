@@ -4496,7 +4496,7 @@ forceClearSelection() {
     filter: drop-shadow(0 0 2px rgb(105, 157, 140));
   }
 
-  &.pagination-top {
+  .pagination-top {
     :deep(.ag-root-wrapper) {
       display: flex;
       flex-direction: column;
