@@ -1,5 +1,5 @@
 <template>
-  <div class="ww-datagrid" :class="{ editing: isEditing }" :style="cssVars">
+  <div class="ww-datagrid" :class="[{ editing: isEditing }, paginationPositionClass]" :style="cssVars">
     <ag-grid-vue :key="componentKey" ref="agGridRef" :rowData="rowData" :columnDefs="finalColumnDefs"
       :defaultColDef="defaultColDef" :domLayout="content.layout === 'auto' ? 'autoHeight' : 'normal'" :style="style"
       :rowSelection="rowSelection" :suppressMovableColumns="!content.movableColumns" :alwaysShowHorizontalScroll="false"
@@ -2565,6 +2565,9 @@ setTimeout(() => {
         return tag === normalized;
       });
     },
+    paginationPositionClass() {
+      return this.content.paginationPosition === "top" ? "pagination-top" : "pagination-bottom";
+    },
     defaultColDef() {
       return {
         editable: false,
@@ -3378,6 +3381,15 @@ setTimeout(() => {
   "--ag-header-font-size": baseFontSize,
   fontFamily: this.resolvedFontFamily,
   fontSize: baseFontSize,
+  ...(this.content.paginationBackgroundColor
+    ? {
+      "--grid-view-dinamica-pagination-background-color":
+        this.content.paginationBackgroundColor,
+    }
+    : {}),
+  ...(this.content.paginationPadding
+    ? { "--grid-view-dinamica-pagination-padding": this.content.paginationPadding }
+    : {}),
   ...(this.content.selectionCheckboxColor
     ? {
       '--grid-view-dinamica-selection-checkbox-color':
@@ -4482,6 +4494,22 @@ forceClearSelection() {
   :deep(.ag-header-cell.ag-header-cell-filtered .ag-header-icon) {
     color: rgb(105, 157, 140) !important;
     filter: drop-shadow(0 0 2px rgb(105, 157, 140));
+  }
+
+  &.pagination-top {
+    :deep(.ag-root-wrapper) {
+      display: flex;
+      flex-direction: column;
+    }
+
+    :deep(.ag-paging-panel) {
+      order: -1;
+    }
+  }
+
+  :deep(.ag-paging-panel) {
+    background-color: var(--grid-view-dinamica-pagination-background-color, transparent) !important;
+    padding: var(--grid-view-dinamica-pagination-padding, 0) !important;
   }
 
   // Fonte da paginação igual à das linhas da grid
