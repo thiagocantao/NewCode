@@ -3,7 +3,7 @@
     v-if="selectedLabel"
     class="user-cell"
     :class="{ 'user-cell--group-user': selectedGroup && selectedUser }"
-    :style="pointerStyle"
+    :style="[pointerStyle, avatarThemeStyle]"
   >
     <!-- CASO: Grupo + Responsável (stack) -->
     <template v-if="selectedGroup && selectedUser">
@@ -281,6 +281,13 @@ export default {
     },
     pointerStyle() {
       return this.isEditable ? { cursor: 'pointer' } : {};
+    },
+    avatarThemeStyle() {
+      const theme = window?.wwLib?.wwVariable?.getValue?.('61c1b425-10e8-40dc-8f1f-b117c08b9726') || {};
+      return {
+        '--grid-view-dinamica-avatar-bg': theme?.bgButtonPrimary || '#4B6CB7',
+        '--grid-view-dinamica-avatar-shadow': theme?.primary || '#3A4663'
+      };
     }
   },
   methods: {
@@ -459,6 +466,7 @@ export default {
   align-items: center;
   justify-content: center;
   background: #fff;
+  box-shadow: 0 0 0 0.5px var(--grid-view-dinamica-avatar-shadow, #3A4663);
 }
 .avatar-middle {
   width: 30px;
@@ -474,7 +482,7 @@ export default {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: #4B6CB7;
+  background: var(--grid-view-dinamica-avatar-bg, #4B6CB7);
   display: flex;
   align-items: center;
   justify-content: center;

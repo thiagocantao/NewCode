@@ -20,6 +20,7 @@ export default class ResponsibleUserFilterRenderer {
   createGui() {
     this.eGui = document.createElement('div');
     this.eGui.className = 'list-filter';
+    this.applyAvatarTheme();
     this.eGui.innerHTML = `
       <div class="field-search">
         <input type="text" placeholder="Search..." class="search-input" />
@@ -42,6 +43,15 @@ export default class ResponsibleUserFilterRenderer {
 
     this.setupEventListeners();
     this.renderFilterList();
+  }
+
+  applyAvatarTheme() {
+    if (!this.eGui) return;
+    const theme = window?.wwLib?.wwVariable?.getValue?.('61c1b425-10e8-40dc-8f1f-b117c08b9726') || {};
+    const avatarBackground = theme?.bgButtonPrimary || '#4B6CB7';
+    const avatarShadow = theme?.primary || '#3A4663';
+    this.eGui.style.setProperty('--grid-view-dinamica-avatar-bg', avatarBackground);
+    this.eGui.style.setProperty('--grid-view-dinamica-avatar-shadow', avatarShadow);
   }
 
   setupEventListeners() {
