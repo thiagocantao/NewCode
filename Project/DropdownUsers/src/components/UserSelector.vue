@@ -1,5 +1,5 @@
 <template>
-  <div ref="dropdownRoot" class="user-selector-dropdown">
+  <div ref="dropdownRoot" class="user-selector-dropdown" :style="avatarThemeStyle">
     <div
       class="user-selector__selected"
       @click="toggleDropdown"
@@ -357,6 +357,17 @@ export default {
       if (!this.maxWidth) return {};
       return { maxWidth: (typeof this.maxWidth === 'number' ? this.maxWidth + 'px' : this.maxWidth) };
     },
+    avatarThemeStyle: function() {
+      var theme =
+        window && window.wwLib && window.wwLib.wwVariable && window.wwLib.wwVariable.getValue
+          ? window.wwLib.wwVariable.getValue('61c1b425-10e8-40dc-8f1f-b117c08b9726')
+          : null;
+      theme = theme || {};
+      return {
+        '--grid-view-dinamica-avatar-bg': theme.bgButtonPrimary || '#4B6CB7',
+        '--grid-view-dinamica-avatar-shadow': theme.primary || '#3A4663'
+      };
+    },
     userListStyle: function() {
       var height = this.userListHeight;
       if (height === undefined || height === null || height === '') height = this.dropdownListMaxHeight;
@@ -701,7 +712,7 @@ export default {
 .user-selector-dropdown{position:relative;width:auto;display:inline-block;font-family:inherit}
 .user-selector__selected{display:flex;align-items:center;cursor:pointer;border-radius:24px;padding:6px 16px 6px 8px;background:transparent;min-height:44px;transition:box-shadow .2s;gap:10px;border:none;width:auto;min-width:0}
 .user-selector__selected:hover,.user-selector__selected:focus{box-shadow:none}
-.avatar-outer{width:32px;height:32px;border-radius:50%;border:1px solid #3A4663;display:flex;align-items:center;justify-content:center;background:#fff}
+.avatar-outer{width:32px;height:32px;border-radius:50%;border:1px solid #3A4663;display:flex;align-items:center;justify-content:center;background:#fff;box-shadow:0 0 0 0.5px var(--grid-view-dinamica-avatar-shadow, #3A4663)}
 .group-avatar-wrapper{position:relative}
 .user-selector__selected--group-user{gap:0}
 .user-selector__selected--group-user .selected-group-avatar{margin-right:-8px;position:relative;z-index:1}
@@ -709,7 +720,7 @@ export default {
 .user-selector__group-tooltip{position:absolute;top:35px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:6px 10px;border-radius:4px;font-size:16px;white-space:nowrap;z-index:101;text-align:center}
 .user-selector__group-tooltip-count{font-size:12px;color:#ddd}
 .avatar-middle{width:30px;height:30px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;background:#fff}
-.user-selector__avatar{width:26px;height:26px;border-radius:50%;background:#4B6CB7;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.user-selector__avatar{width:26px;height:26px;border-radius:50%;background:var(--grid-view-dinamica-avatar-bg, #4B6CB7);display:flex;align-items:center;justify-content:center;overflow:hidden}
 .user-selector__avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
 .user-selector__initial{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:400;background:transparent;color:#fff;border-radius:50%;letter-spacing:.5px}
 .user-selector__group-icon{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff}
