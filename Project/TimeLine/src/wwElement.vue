@@ -2,15 +2,7 @@
   <div class="ww-timeline" :class="[
       `ww-timeline--${content.timelineLayout}`,
       `ww-timeline--align-${validAlignment}`,
-    ]" :style="{
-      '--connector-color': content.connectorColor || '#E5E7EB',
-      '--connector-width': content.connectorWidth || '2px',
-      '--connector-full-width': `${connectorWidth}px`,
-      '--marker-background-color': content.markerBackgroundColor || '#d0e7df',
-      '--marker-icon-color': content.markerIconColor || '#344767',
-      '--card-title-color': content.cardTitleColor || '#8c8c8d',
-      '--card-text-color': content.cardTextColor || '#333',
-    }">
+    ]" :style="timelineStyle">
     <div ref="containerRef" class="ww-timeline__container">
       <div v-for="(item, index) in events" :key="index" class="ww-timeline__event" :class="{
           'ww-timeline__event--alternate':
@@ -1783,6 +1775,26 @@ const getAssigneeTooltip = (item, side) => {
       return 0;
     });
 
+    const avatarThemeStyle = computed(() => {
+      const theme =
+        window?.wwLib?.wwVariable?.getValue?.("61c1b425-10e8-40dc-8f1f-b117c08b9726") || {};
+      return {
+        "--grid-view-dinamica-avatar-bg": theme?.bgButtonPrimary || "#4B6CB7",
+        "--grid-view-dinamica-avatar-shadow": theme?.primary || "#3A4663",
+      };
+    });
+
+    const timelineStyle = computed(() => ({
+      "--connector-color": props.content.connectorColor || "#E5E7EB",
+      "--connector-width": props.content.connectorWidth || "2px",
+      "--connector-full-width": `${connectorWidth.value}px`,
+      "--marker-background-color": props.content.markerBackgroundColor || "#d0e7df",
+      "--marker-icon-color": props.content.markerIconColor || "#344767",
+      "--card-title-color": props.content.cardTitleColor || "#8c8c8d",
+      "--card-text-color": props.content.cardTextColor || "#333",
+      ...avatarThemeStyle.value,
+    }));
+
     /* ========= Attachment ========= */
     const privateTicketImageCache = new Map();
     const formattedHtmlCache = ref({});
@@ -2209,6 +2221,7 @@ const getAssigneeTooltip = (item, side) => {
       containerRef,
       connectorWidth,
       validAlignment,
+      timelineStyle,
       // commons
       getItemIcon,
       formatDateUS,
@@ -2785,15 +2798,14 @@ const getAssigneeTooltip = (item, side) => {
       width: 24px;
       height: 24px;
       border-radius: 9999px;
-      background: #4b6287;
+      background: var(--grid-view-dinamica-avatar-bg, #4B6CB7);
       color: #fff;
       font-weight: 700;
       font-size: 12px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 0 0 2px #fff;
-      outline: 1px solid #cbd5e1;
+      box-shadow: 0 0 0 2px #fff, 0 0 0 2.5px var(--grid-view-dinamica-avatar-shadow, #3A4663);
       overflow: hidden;
     }
 
@@ -3536,14 +3548,14 @@ const getAssigneeTooltip = (item, side) => {
     width: 28px;
     height: 28px;
     border-radius: 9999px;
-    background: #4b6cb7;
+    background: var(--grid-view-dinamica-avatar-bg, #4B6CB7);
     color: #fff;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    box-shadow: 0 0 0 2px #fff, 0 0 0 3px #333;
-    /* anel branco + borda #333 */
+    box-shadow: 0 0 0 2px #fff, 0 0 0 2.5px var(--grid-view-dinamica-avatar-shadow, #3A4663);
+    /* anel branco + borda temática */
   }
 
   .avatar-badge--group {
