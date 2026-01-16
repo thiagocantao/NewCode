@@ -285,7 +285,7 @@
             <div class="header-tags-rigth">
               <div class="assignee-wrapper" v-if="headerFieldPresence.assignee">
                 <span class="user-icon">
-                  <i class="material-symbols-outlined">{{ translateText('person') }}</i>
+                  <i class="material-symbols-outlined">person</i>
                 </span>
                 <div
                   class="select-wrapper assignee-select-wrapper"
