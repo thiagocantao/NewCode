@@ -1264,7 +1264,7 @@ async function confirmActDelete() {
         p_language: language,
       },
     });
-    if (error) console.log(error);
+    
 
     // remove localmente
     const idx = events.value.findIndex((e) => e === actPendingItem.value);
@@ -1743,7 +1743,6 @@ const getAssigneeTooltip = (item, side) => {
         else if (ds && typeof ds === "object") data = [ds];
         else data = [];
       } catch (e) {
-        console.error("Failed to parse dataSource", e);
         data = [];
       }
       await prepareEventsRichText(data);
