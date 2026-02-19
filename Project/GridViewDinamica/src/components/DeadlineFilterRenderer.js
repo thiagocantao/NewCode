@@ -68,7 +68,7 @@ const CustomDatePicker = (() => {
   const VueGlobal = getVueRuntime();
 
   if (!VueGlobal) {
-    console.warn("[CustomDatePicker] Vue global não encontrado.");
+    
     return null;
   }
 
