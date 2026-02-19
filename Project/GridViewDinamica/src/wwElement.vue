@@ -4,7 +4,7 @@
       :defaultColDef="defaultColDef" :domLayout="content.layout === 'auto' ? 'autoHeight' : 'normal'" :style="style"
       :rowSelection="rowSelection" :suppressMovableColumns="!content.movableColumns" :alwaysShowHorizontalScroll="false"
       :suppressColumnMoveAnimation="true" :suppressDragLeaveHidesColumns="true" :maintainColumnOrder="true"
-      :getMainMenuItems="getMainMenuItems" :isColumnMovable="isColumnMovable" :theme="theme" :getRowId="getRowId"
+      :suppressPropertyNamesCheck="true" :isColumnMovable="isColumnMovable" :theme="theme" :getRowId="getRowId"
       :pagination="content.pagination" :paginationPageSize="content.paginationPageSize || 10"
       :paginationPageSizeSelector="false" :columnHoverHighlight="content.columnHoverHighlight" :locale-text="localeText"
       :components="editorComponents" :singleClickEdit="true" @grid-ready="onGridReady" @row-selected="onRowSelected"
@@ -855,6 +855,15 @@
     return gridApi.value || null;
   };
 
+  const isGridApiActive = () => {
+    const api = gridApi.value;
+    if (!api) return false;
+    if (typeof api.isDestroyed === 'function') {
+      return !api.isDestroyed();
+    }
+    return true;
+  };
+
   const agGridRef = ref(null);
 
 // Executa após o AG Grid consolidar sort/columnState
@@ -981,7 +990,7 @@ else Promise.resolve().then(fn);
   };
 
   const getCurrentColumnOrder = () => {
-    if (!gridApi.value || typeof gridApi.value.getAllGridColumns !== 'function') return [];
+    if (!isGridApiActive() || typeof gridApi.value.getAllGridColumns !== 'function') return [];
     return gridApi.value
       .getAllGridColumns()
       .map(col => col?.getColId?.())
@@ -989,7 +998,7 @@ else Promise.resolve().then(fn);
   };
 
   const getNormalizedGridState = () => {
-    if (!gridApi.value) {
+    if (!isGridApiActive()) {
       return {
         filters: {},
         sort: [],
@@ -1402,7 +1411,7 @@ const asObject = (v) => (v && typeof v === 'object' ? v : {});
   };
 
   const applyColumnFiltersToRows = async (rows) => {
-    if (!gridApi.value || typeof gridApi.value.getFilterModel !== "function") return rows;
+    if (!isGridApiActive() || typeof gridApi.value.getFilterModel !== "function") return rows;
 
     const filterModel = gridApi.value.getFilterModel() || {};
     const filterIds = Object.keys(filterModel);
@@ -1479,7 +1488,7 @@ const asObject = (v) => (v && typeof v === 'object' ? v : {});
  */
 function applyExternalSortAndSync() {
   const colApi = getColApi();
-  if (!gridApi.value || !colApi) return;
+  if (!isGridApiActive() || !colApi) return;
   const external = getExternalSortFromWW();
   if (!external.length) return;
 
@@ -1576,7 +1585,7 @@ function applyExternalSortAndSync() {
 
   function saveGridState() {
     const colApi = getColApi();
-    if (!gridApi.value || !colApi) return;
+    if (!isGridApiActive() || !colApi) return;
     try {
       const state = {
         filterModel: gridApi.value.getFilterModel(),
@@ -1595,7 +1604,7 @@ function applyExternalSortAndSync() {
 
   function restoreGridState() {
     const colApi = getColApi();
-    if (!gridApi.value || !colApi) return;
+    if (!isGridApiActive() || !colApi) return;
     try {
       const state =
         getGridStateFromWWVariable() ||
@@ -1648,7 +1657,7 @@ function applyExternalSortAndSync() {
     } catch {}
     const colApi = getColApi();
     colApi?.resetColumnState?.();
-    if (gridApi.value) gridApi.value.setFilterModel(null);
+    if (isGridApiActive()) gridApi.value.setFilterModel(null);
   }
   // ================================================================
 
@@ -2114,7 +2123,7 @@ function applyExternalSortAndSync() {
   };
   
   function restorePinnedColumns() {
-    if (!getColApi()) return;
+    if (!isGridApiActive() || !getColApi()) return;
     const state = getColApi()?.getColumnState?.();
     // Restaurar pinned e ordem das colunas pinned
     const pinnedLeft = [];
@@ -2136,11 +2145,11 @@ function applyExternalSortAndSync() {
   
   // Função para forçar a coluna de seleção a ser a primeira
   function forceSelectionColumnFirst() {
-    if (!gridApi.value) return;
+    if (!isGridApiActive()) return;
 
     try {
       // Tentar reposicionar usando API do AG-Grid
-      const columnState = gridApi.value.getColumnState();
+      const columnState = getColApi()?.getColumnState?.() || [];
       const selectionColumnIndex = columnState.findIndex(col => 
         col.colId === 'ag-Grid-SelectionColumn'
       );
@@ -2184,7 +2193,7 @@ function applyExternalSortAndSync() {
 
   // Função para reposicionar a coluna de seleção diretamente no DOM
   function forceSelectionColumnFirstDOM() {
-    if (!gridApi.value) return;
+    if (!isGridApiActive()) return;
 
     try {
       const gridElement = agGridRef.value?.$el;
@@ -2217,7 +2226,7 @@ function applyExternalSortAndSync() {
   watch(
     [() => props.content.initialFilters, () => gridApi.value],
     ([filters]) => {
-      if (!gridApi.value) return;
+      if (!isGridApiActive()) return;
       runWithSuppressedReveal(() => {
         gridApi.value.setFilterModel(filters || null);
       }, { recaptureDelay: 50 });
@@ -2229,7 +2238,7 @@ function applyExternalSortAndSync() {
   watch(
     [() => props.content.initialSort, () => gridApi.value],
     ([sort]) => {
-      if (!gridApi.value) return;
+      if (!isGridApiActive()) return;
       runWithSuppressedReveal(() => {
         gridApi.value.applyColumnState({
           state: sort || [],
@@ -2250,7 +2259,7 @@ function applyExternalSortAndSync() {
   };
   
   const onSelectionChanged = (event) => {
-  if (!gridApi.value) return;
+  if (!isGridApiActive()) return;
   const selected = gridApi.value.getSelectedRows() || [];
   setSelectedRows(selected);
   };
@@ -2272,7 +2281,7 @@ function applyExternalSortAndSync() {
   };
   
   const onFilterChanged = (event) => {
-    if (!gridApi.value) return;
+    if (!isGridApiActive()) return;
     const filterModel = gridApi.value.getFilterModel();
     if (
       JSON.stringify(filterModel || {}) !==
@@ -2296,7 +2305,7 @@ function applyExternalSortAndSync() {
   };
   
   const onSortChanged = (event) => {
-    if (!gridApi.value) return;
+    if (!isGridApiActive()) return;
 
     if (suppressRevealUntilCapture) {
       updateHideSaveButtonVisibility(true);
@@ -2317,7 +2326,7 @@ function applyExternalSortAndSync() {
   };
 
   const onColumnMoved = (event) => {
-  if (!gridApi.value || !event?.finished) return;
+  if (!isGridApiActive() || !event?.finished) return;
   const prev = JSON.stringify(columnsPositionValue.value || []);
   updateColumnsPosition();
   const current = JSON.stringify(columnsPositionValue.value || []);
@@ -2421,7 +2430,7 @@ function applyExternalSortAndSync() {
     : (gridApi.value && typeof gridApi.value.getColumnState === 'function')
       ? gridApi.value
       : null;
-  if (!api) return;
+  if (!isGridApiActive() || !api) return;
   const sortArray = (api.getColumnState() || [])
     .filter(col => col.sort)
     .map(col => ({
@@ -4025,11 +4034,6 @@ forceClearSelection() {
       }
       // Caso contrário, segue a configuração global
       return this.content.movableColumns;
-    },
-      getMainMenuItems(params) {
-      const defaultItems = params.defaultItems;
-      // Remove opções de pin/unpin para todas as colunas
-      return defaultItems.filter(item => !item.toLowerCase().includes('pin'));
     }
   },
     /* wwEditor:start */
