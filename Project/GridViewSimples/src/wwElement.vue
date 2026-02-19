@@ -93,6 +93,13 @@ export default {
 
     const onGridReady = (params) => {
       gridApi.value = params.api;
+      if (
+        gridApi.value &&
+        typeof gridApi.value.doLayout !== "function" &&
+        typeof gridApi.value.onGridSizeChanged === "function"
+      ) {
+        gridApi.value.doLayout = () => gridApi.value.onGridSizeChanged();
+      }
       trySelectInitialRows();
     };
 
