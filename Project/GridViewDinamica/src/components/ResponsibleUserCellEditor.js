@@ -256,7 +256,7 @@ export default class ResponsibleUserCellEditor {
         if (styled) return styled;
       }
     } catch (e) {
-      console.error('Format option error', e);
+      
     }
     return value;
   }
@@ -560,7 +560,7 @@ export default class ResponsibleUserCellEditor {
         });
       }
     } catch (e) {
-      console.warn('postGroupAndUser failed', e);
+      
     }
   }
 
@@ -767,12 +767,12 @@ export default class ResponsibleUserCellEditor {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  border: 1px solid #3A4663;
+  border: 1px solid #FFFFFF;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #fff;
-  box-shadow: 0 0 0 0.3px var(--grid-view-dinamica-avatar-shadow, #3A4663);
+  box-shadow: 0 0 0 1px var(--grid-view-dinamica-avatar-shadow, #3A4663);
 }
 .avatar-middle {
   width: 30px;
