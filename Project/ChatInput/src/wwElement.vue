@@ -180,7 +180,6 @@ export default {
                 const { data } = supabase.storage.from(bucket).getPublicUrl(storagePath);
                 return data?.publicUrl || null;
             } catch (e) {
-                console.warn('[ChatInput] getPublicUrl error:', e);
                 return null;
             }
         }
@@ -371,7 +370,7 @@ export default {
                 await ensureAuthReady();
                 const okStorage = await waitForStorage(4000);
                 if (!okStorage || !supabase?.storage) {
-                    throw new Error('Supabase Storage não está pronto. Tente novamente.');
+                    throw new Error('Supabase Storage is not ready. Please try again.');
                 }
 
                 const { data: userData, error: authErr } = auth?.auth?.getUser
@@ -380,8 +379,8 @@ export default {
                 if (auth && (authErr || !userData?.user)) {
                     throw new Error(
                         authErr
-                            ? `Erro ao obter usuário do Supabase Auth: ${authErr.message || authErr}`
-                            : 'Usuário não autenticado no Supabase.',
+                            ? `Error retrieving user from Supabase Auth: ${authErr.message || authErr}`
+                            : 'Unauthenticated user on Supabase.',
                     );
                 }
 
@@ -400,9 +399,8 @@ export default {
                         ? await supabase.rpc('rls_user_in_path_workspace', { obj_name: objectPath })
                         : { data: true, error: null };
                     if (rpcError) {
-                        console.warn('[ChatInput] RLS check failed:', rpcError);
                     } else if (allowed === false) {
-                        throw new Error('Você não tem permissão para salvar este arquivo.');
+                        throw new Error('Not allowed.');
                     }
                 } catch (rlsError) {
                     if (rlsError instanceof Error) throw rlsError;
