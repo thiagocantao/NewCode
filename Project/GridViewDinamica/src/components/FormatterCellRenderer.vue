@@ -49,7 +49,6 @@ function dateFormatter(dateValue, lang) {
 
     return new Intl.DateTimeFormat(lang || 'en', dateOptions).format(date);
   } catch (error) {
-    console.error('Error formatting date:', error);
     return dateValue;
   }
 }
@@ -94,7 +93,7 @@ function resolveGridFontFamily() {
       }
     }
   } catch (error) {
-    console.warn('[FormatterCellRenderer] Failed to read grid font variable', error);
+    
   }
 
   const typographyFont = readTypographyVariable();
@@ -256,7 +255,7 @@ if (
             textColor = '#b71c1c';
             debugLabel += ' (vermelho)';
           }
-          console.log('DEADLINE BAR:', { percent, cor, label: debugLabel, value, diffDays });
+          
           // Barra HTML
           return `
             <div class="deadline-bar-bg" style="width:100%;height:22px;position:relative;background:#f5f5f5;border-radius:8px;overflow:hidden;display:block;">
@@ -308,7 +307,7 @@ if (
           dateFormatter
         );
       } catch (error) {
-        console.error('Error in custom formatter:', error);
+        
         return `Error: ${error.message}`;
       }
     },
