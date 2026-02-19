@@ -149,7 +149,7 @@ export default class ListFilterRenderer {
           }
         })
         .catch(error => {
-          console.warn('[GridViewDinamica] Failed to load filter options from data source', error);
+          
           this.populateFromRows(api, column, colDef);
         });
     }
@@ -168,7 +168,8 @@ export default class ListFilterRenderer {
       try {
         return filterParams.getFilterOptions(this.params);
       } catch (error) {
-        console.warn('[GridViewDinamica] Failed to resolve filter options from filterParams', error);
+
+        
       }
     }
     if (Array.isArray(filterParams.options)) {
@@ -279,7 +280,7 @@ export default class ListFilterRenderer {
 
       return mapped;
     } catch (error) {
-      console.warn('[GridViewDinamica] Failed to resolve StatusID filter options from collection', error);
+     
       return null;
     }
   }
@@ -438,7 +439,7 @@ export default class ListFilterRenderer {
       try {
         if (this.isCategoryField) {
           const colorCategory = window.wwLib?.wwVariable?.getValue('61c1b425-10e8-40dc-8f1f-b117c08b9726').categoryColor;
-          formatted = `<span style="height:25px; color:#303030; background:${colorCategory}; border:1px solid ${colorCategory}; border-radius:8px; font-weight:normal; display:inline-flex; align-items:center; padding:0 12px;">${display}</span>`;
+          formatted = `<span style="height:25px; color:#303030; background:${colorCategory}; border:1px solid ${colorCategory}; border-radius:5px; font-weight:normal; display:inline-flex; align-items:center; padding:0 12px;">${display}</span>`;
         } else if (rendererParams.useCustomFormatter && typeof rendererParams.formatter === 'string') {
           const formatterFn = new Function(
             'value',
@@ -571,7 +572,7 @@ export default class ListFilterRenderer {
     try {
       if (this.isCategoryField) {
         const colorCategory = window.wwLib?.wwVariable?.getValue('61c1b425-10e8-40dc-8f1f-b117c08b9726').categoryColor;
-        formatted = `<span style="height:25px; color:#303030; background:${colorCategory}; border:1px solid ${colorCategory}; border-radius:8px; font-weight:normal; display:inline-flex; align-items:center; padding:0 12px;">${display}</span>`;
+        formatted = `<span style="height:25px; color:#303030; background:${colorCategory}; border:1px solid ${colorCategory}; border-radius:5px; font-weight:normal; display:inline-flex; align-items:center; padding:0 12px;">${display}</span>`;
       } else if (this.rendererConfig.useCustomFormatter && typeof this.rendererConfig.formatter === 'string') {
         const formatterFn = new Function(
           'value',
@@ -724,7 +725,7 @@ export default class ListFilterRenderer {
     try {
       if (this.isCategoryField) {
         const colorCategory = window.wwLib?.wwVariable?.getValue('61c1b425-10e8-40dc-8f1f-b117c08b9726').categoryColor;
-        formatted = `<span style="height:25px; color:#303030; background:${colorCategory}; border:1px solid ${colorCategory}; border-radius:8px; font-weight:normal; display:inline-flex; align-items:center; padding:0 12px;">${display}</span>`;
+        formatted = `<span style="height:25px; color:#303030; background:${colorCategory}; border:1px solid ${colorCategory}; border-radius:5px; font-weight:normal; display:inline-flex; align-items:center; padding:0 12px;">${display}</span>`;
       } else if (this.rendererConfig.useCustomFormatter && typeof this.rendererConfig.formatter === 'string') {
         const formatterFn = new Function(
           'value',
