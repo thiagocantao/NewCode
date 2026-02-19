@@ -213,7 +213,6 @@ export default {
           return translated;
         }
       } catch (error) {
-        console.warn("[Anexos] Translation error:", error);
       }
       return value;
     }
@@ -557,7 +556,6 @@ export default {
           return fileItem.base64;
         }
       } catch (error) {
-        console.warn("[Anexos] Unable to get base64 content", error);
       } finally {
         fileItem._base64Loading = false;
       }
@@ -593,7 +591,6 @@ export default {
         .from(bucket)
         .createSignedUrl(storagePath, 60 * 60, options);
       if (error) {
-        console.warn("[Anexos] createSignedUrl falhou:", error);
         return location.directUrl || null;
       }
       if (file) {
@@ -607,7 +604,7 @@ export default {
     async function loadTxtIfNeeded(file) {
       if (!file || file.textContent) return;
       if (file.file instanceof File && file.isTxt) {
-        try { file.textContent = await file.file.text(); return; } catch (e) { console.warn(e); }
+        try { file.textContent = await file.file.text(); return; } catch (e) {  }
       }
       if (!file.url) {
         file.url = file.signedUrl = await getFreshSignedUrl(file);
@@ -618,7 +615,6 @@ export default {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         file.textContent = await res.text();
       } catch (e) {
-        console.warn(e);
         file.textContent = translate("(Unable to load this text)");
       }
     }
@@ -691,7 +687,7 @@ export default {
             } else if (directUrl) {
               info.url = directUrl;
             }
-          } catch (e) { console.warn(e); }
+          } catch (e) {  }
           return info;
         })
       );
@@ -818,8 +814,8 @@ export default {
         try {
           try {
             const { data: allowed, error: rpcCheckErr } = await sb?.callPostgresFunction ? await supabase.rpc("rls_user_in_path_workspace", { obj_name: pathObject }) : { data: true, error: null };
-            if (rpcCheckErr) { console.warn(rpcCheckErr); } else if (allowed === false) { console.error("RLS: sem acesso."); continue; }
-          } catch (e) { console.warn(e); }
+            if (rpcCheckErr) {  } else if (allowed === false) {  continue; }
+          } catch (e) {  }
 
           const contentType = guessContentType(file.name, file.type || "application/octet-stream");
 
@@ -974,7 +970,7 @@ export default {
         document.body.appendChild(a); a.click(); a.remove();
         URL.revokeObjectURL(blobUrl);
       } catch (e) {
-        console.warn("[Anexos] Download falhou:", e);
+        
         showError(`Falha no download: ${e.message || e}`);
       }
     }
