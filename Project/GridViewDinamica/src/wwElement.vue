@@ -4028,7 +4028,8 @@ forceClearSelection() {
       }
       // Checar configuração de draggable
       const field = colDef.field;
-      const columnConfig = this.content.columns.find(col => col.field === field);
+      const columns = Array.isArray(this.content?.columns) ? this.content.columns : [];
+      const columnConfig = columns.find(col => col.field === field);
       if (columnConfig && columnConfig.draggable === false) {
         return false;
       }
@@ -4045,12 +4046,15 @@ forceClearSelection() {
 
         if (this.wwEditorState.isACopy) return;
 
+        const columns = Array.isArray(this.content?.columns) ? this.content.columns : [];
+        if (!columns.length) return;
+
         // We assume there will only be one custom column each time
-        const columnIndex = (this.content.columns || []).findIndex(
+        const columnIndex = columns.findIndex(
           (col) => col.cellDataType === "custom" && !col.containerId
         );
         if (columnIndex === -1) return;
-        const newColumns = [...this.content.columns];
+        const newColumns = [...columns];
         let column = { ...newColumns[columnIndex] };
         column.containerId = await this.createElement("ww-flexbox", {
           _state: { name: `Cell ${column.headerName || column.field}` },
