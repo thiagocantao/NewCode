@@ -1,13 +1,13 @@
 /* Filtro customizado para campos do tipo list */
 .list-filter,
 .list-editor {
-  padding: 12px 12px 8px 12px;
+  padding: 25px 10px 8px 10px !important;
   min-width: 260px;
   max-width: 350px;
   max-height: 340px;
   background: #fff;
   border: 1px solid #ffffff;
-  border-radius: 15px;
+  border-radius: 8px;
   box-shadow: 0 2px 8px rgba(255, 255, 255, 0.067);
   font-size: 15px;
   font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif);
@@ -290,7 +290,7 @@
 }
 
 :is(.list-filter, .list-editor) .editor-close {
-  position: absolute; top: 2px; right: 3px; font-size: 18px; color: #888; cursor: pointer; line-height: 1;
+  position: absolute; top: 2px; right: 8px; font-size: 18px; color: #888; cursor: pointer; line-height: 1;
 }
 
 /* ---- DatePicker base ---- */
