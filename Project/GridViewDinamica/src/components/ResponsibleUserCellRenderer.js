@@ -8,6 +8,7 @@ export default class ResponsibleUserFilterRenderer {
     // key -> { type: 'responsible'|'group', id, name, photo }
 
     this.userInfo = {};
+    this.lookupByRawValue = new Map();
   }
 
   init(params) {
@@ -19,6 +20,7 @@ export default class ResponsibleUserFilterRenderer {
   createGui() {
     this.eGui = document.createElement('div');
     this.eGui.className = 'list-filter';
+    this.applyAvatarTheme();
     this.eGui.innerHTML = `
       <div class="field-search">
         <input type="text" placeholder="Search..." class="search-input" />
@@ -41,6 +43,15 @@ export default class ResponsibleUserFilterRenderer {
 
     this.setupEventListeners();
     this.renderFilterList();
+  }
+
+  applyAvatarTheme() {
+    if (!this.eGui) return;
+    const theme = window?.wwLib?.wwVariable?.getValue?.('61c1b425-10e8-40dc-8f1f-b117c08b9726') || {};
+    const avatarBackground = theme?.bgButtonPrimary || '#4B6CB7';
+    const avatarShadow = theme?.primary || '#3A4663';
+    this.eGui.style.setProperty('--grid-view-dinamica-avatar-bg', avatarBackground);
+    this.eGui.style.setProperty('--grid-view-dinamica-avatar-shadow', avatarShadow);
   }
 
   setupEventListeners() {
@@ -137,84 +148,351 @@ export default class ResponsibleUserFilterRenderer {
     return (options || []).map(normalize);
   }
 
-  loadValues() {
-    const api = this.params.api;
-    this.userInfo = {};
+  shouldUseResponsibleCollection(identifier, tag) {
+    const targets = new Set(['RESPONSIBLEUSERID', 'XXXXXX']);
+    return targets.has(identifier) || targets.has(tag);
+  }
 
-    const options = this.getOptionsArray();
-    options.forEach(opt => {
-      const type = String(opt.type || '').toLowerCase();
-      if (type === 'group') {
-        const groupId = opt.id;
-        const gKey = `group-${groupId}`;
-        if (!this.userInfo[gKey]) {
-          const photo = opt.photoUrl || opt.PhotoURL || opt.PhotoUrl || opt.photo || opt.image || opt.img || '';
-          this.userInfo[gKey] = { type: 'group', id: groupId, name: opt.name || '', photo };
+  getResponsibleCollectionOptions() {
+    const COLLECTION_ID = '0e41f029-e1c3-4302-82ca-16aceccdadb1';
+    try {
+      const collection = window?.wwLib?.wwCollection?.getCollection?.(COLLECTION_ID);
+      const data = collection?.data;
+      if (!Array.isArray(data)) {
+        return [];
+      }
+      return data
+        .map(item => this.normalizeCollectionEntry(item))
+        .filter(item => item);
+    } catch (error) {
+      
+      return [];
+    }
+  }
 
-        }
-        if (Array.isArray(opt.groupUsers)) {
-          opt.groupUsers.forEach(u => {
-            const uid = u.id ?? u.value ?? u.UserID;
-            if (uid !== undefined && uid !== null) {
-              const userName = u.name ?? u.label ?? u.DisplayName ?? '';
-              const userPhoto = u.photoUrl || u.PhotoURL || u.PhotoUrl || u.photo || u.image || u.img || '';
-              const uKey = `user-${uid}`;
-              if (!this.userInfo[uKey]) {
-                this.userInfo[uKey] = { type: 'responsible', id: uid, name: userName, photo: userPhoto };
-              }
-            }
-          });
-        }
+  normalizeCollectionEntry(item) {
+    if (item === undefined || item === null) {
+      return null;
+    }
 
-      } else {
-        const uid = opt.id;
-        const uKey = `user-${uid}`;
-        if (!this.userInfo[uKey]) {
-          const photo = opt.photoUrl || opt.PhotoURL || opt.PhotoUrl || opt.photo || opt.image || opt.img || '';
-          this.userInfo[uKey] = { type: 'responsible', id: uid, name: opt.name || '', photo };
-        }
+    if (typeof item !== 'object') {
+      const value = this.ensureDisplayText(item);
+      if (!value) return null;
+      return {
+        id: value,
+        name: value,
+        type: 'responsible',
+        photo: '',
+        matchCandidates: [value],
+      };
+    }
+
+    const name = this.ensureDisplayText(item.name ?? item.Name ?? item.label ?? item.Label);
+    if (!name) {
+      return null;
+    }
+
+    const id = item.id ?? item.Id ?? item.ID ?? item.value ?? item.Value ?? name;
+    const photo = item.photoUrl || item.PhotoUrl || item.PhotoURL || item.photo || item.image || item.img || '';
+    const type = item.type ?? item.Type ?? 'responsible';
+    const matchCandidates = this.extractCollectionMatchCandidates(item);
+
+    return {
+      id,
+      name,
+      type,
+      photo,
+      matchCandidates,
+    };
+  }
+
+  extractCollectionMatchCandidates(item) {
+    if (!item || typeof item !== 'object') return [];
+    const keys = [
+      'id',
+      'Id',
+      'ID',
+      'value',
+      'Value',
+      'name',
+      'Name',
+      'label',
+      'Label',
+      'username',
+      'Username',
+      'userName',
+      'UserName',
+      'displayName',
+      'DisplayName',
+      'userid',
+      'userId',
+      'user_id',
+      'email',
+      'Email',
+    ];
+    const candidates = [];
+    keys.forEach(key => {
+      if (Object.prototype.hasOwnProperty.call(item, key)) {
+        candidates.push(item[key]);
       }
     });
+    return candidates;
+  }
 
-    const field = this.params.column.getColDef().field || this.params.column.getColId();
-    // Guard against calling AG Grid APIs when the grid has already been
-    // destroyed which may happen if the filter component lives longer than the
-    // grid instance.
+  normalizeOptionType(type) {
+    const text = this.ensureDisplayText(type).toLowerCase();
+    if (!text) return 'responsible';
+    if (text.includes('group') || text === 'g' || text.includes('grupo')) {
+      return 'group';
+    }
+    return 'responsible';
+  }
+
+  buildEntryKey(type, id, name) {
+    const baseCandidate = id !== undefined && id !== null && id !== ''
+      ? this.ensureDisplayText(id)
+      : this.ensureDisplayText(name);
+    if (!baseCandidate) return null;
+    return `${type}-${baseCandidate}`;
+  }
+
+  ensureDisplayText(value) {
+    if (value === undefined || value === null) return '';
+    if (typeof value === 'string') {
+      return value.trim();
+    }
+    return String(value).trim();
+  }
+
+  normalizeLookupValue(value) {
+    if (value === undefined || value === null) return null;
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (!trimmed) return null;
+      return trimmed.toLowerCase();
+    }
+    try {
+      const str = String(value).trim();
+      if (!str) return null;
+      return str.toLowerCase();
+    } catch (error) {
+      return null;
+    }
+  }
+
+  pickFirstCandidate(candidates) {
+    if (!Array.isArray(candidates)) return '';
+    for (const candidate of candidates) {
+      const display = this.ensureDisplayText(candidate);
+      if (display) return display;
+    }
+    return '';
+  }
+
+  ingestOptionList(options) {
+    if (!Array.isArray(options)) return;
+    options.forEach(opt => this.ingestOption(opt));
+  }
+
+  ingestOption(opt) {
+    if (opt === undefined || opt === null) return;
+
+    if (typeof opt !== 'object') {
+      const value = this.ensureDisplayText(opt);
+      if (!value) return;
+      this.registerEntry({ type: 'responsible', id: value, name: value, photo: '' }, [value]);
+      return;
+    }
+
+    const type = this.normalizeOptionType(opt.type);
+    const idCandidate = opt.id ?? opt.Id ?? opt.ID ?? opt.value ?? opt.Value ?? opt.UserID ?? opt.UserId ?? opt.userid ?? opt.user_id;
+    const optionNames = [
+      opt.name,
+      opt.Name,
+      opt.label,
+      opt.Label,
+      opt.displayName,
+      opt.DisplayName,
+      opt.fullName,
+      opt.FullName,
+      opt.username,
+      opt.Username,
+      opt.userName,
+      opt.UserName,
+    ];
+    const name = this.pickFirstCandidate([...optionNames, idCandidate]);
+    const photo = opt.photoUrl || opt.PhotoUrl || opt.PhotoURL || opt.photo || opt.image || opt.img || '';
+    const extraMatches = Array.isArray(opt.matchCandidates) ? opt.matchCandidates : [];
+    const matchCandidates = [
+      idCandidate,
+      opt.id,
+      opt.Id,
+      opt.ID,
+      opt.value,
+      opt.Value,
+      opt.UserID,
+      opt.UserId,
+      opt.userid,
+      opt.user_id,
+      ...optionNames,
+      ...extraMatches,
+    ];
+
+    this.registerEntry({ type, id: idCandidate ?? name, name, photo }, matchCandidates);
+
+    if (type === 'group' && Array.isArray(opt.groupUsers)) {
+      opt.groupUsers.forEach(user => {
+        if (user === undefined || user === null) return;
+        if (typeof user === 'object') {
+          this.ingestOption({ ...user, type: 'responsible' });
+        } else {
+          const normalizedUser = this.ensureDisplayText(user);
+          if (normalizedUser) {
+            this.registerEntry({ type: 'responsible', id: normalizedUser, name: normalizedUser, photo: '' }, [normalizedUser]);
+          }
+        }
+      });
+    }
+  }
+
+  registerEntry(details, matchCandidates = []) {
+    if (!details) return;
+    const type = this.normalizeOptionType(details.type);
+    const key = this.buildEntryKey(type, details.id, details.name);
+    if (!key) return;
+
+    const resolvedName = this.ensureDisplayText(details.name) || this.ensureDisplayText(details.id);
+    if (!resolvedName) return;
+
+    if (!this.userInfo[key]) {
+      this.userInfo[key] = {
+        type,
+        id: details.id ?? resolvedName,
+        name: resolvedName,
+        photo: details.photo || '',
+        matchValues: new Set(),
+      };
+    } else {
+      const info = this.userInfo[key];
+      info.type = type;
+      if ((!info.name || !info.name.trim()) && resolvedName) info.name = resolvedName;
+      if ((info.id === undefined || info.id === null || info.id === '') && details.id !== undefined && details.id !== null && details.id !== '') {
+        info.id = details.id;
+      }
+      if (!info.photo && details.photo) info.photo = details.photo;
+      if (!info.matchValues) info.matchValues = new Set();
+    }
+
+    const info = this.userInfo[key];
+    const allMatches = [
+      details.id,
+      details.name,
+      resolvedName,
+      ...(Array.isArray(matchCandidates) ? matchCandidates : []),
+    ];
+    allMatches.forEach(value => this.addMatchValue(info, key, value));
+  }
+
+  addMatchValue(info, key, rawValue) {
+    if (!info || rawValue === undefined || rawValue === null) return;
+    if (Array.isArray(rawValue)) {
+      rawValue.forEach(value => this.addMatchValue(info, key, value));
+      return;
+    }
+
+    const normalized = this.normalizeLookupValue(rawValue);
+    if (!normalized) return;
+
+    if (!info.matchValues) info.matchValues = new Set();
+    info.matchValues.add(normalized);
+
+    let matches = this.lookupByRawValue.get(normalized);
+    if (!matches) {
+      matches = new Set();
+      this.lookupByRawValue.set(normalized, matches);
+    }
+    matches.add(key);
+  }
+
+  populateFromRowData(api, colDef) {
+    const field = colDef.field || this.params.column.getColId();
     if (!api || (api.isDestroyed && api.isDestroyed())) return;
+
     api.forEachNode(node => {
-      const data = node.data || {};
-      const userId = this.getNestedValue(data, field);
+      const data = node?.data;
+      if (!data) return;
 
-      const groupId = data.AssignedGroupID || data.GroupID || data.groupid;
+      const userValue = this.getNestedValue(data, field);
+      const userNameCandidates = [
+        data.ResponsibleUser,
+        data.ResponsibleUserName,
+        data.Username,
+        data.UserName,
+        data.UserFullName,
+        data.AssignedUser,
+        data.AssignedUserName,
+      ];
+      const userPhoto = data.photoUrl || data.PhotoUrl || data.PhotoURL || data.UserPhoto || '';
+      const userName = this.pickFirstCandidate([...userNameCandidates, userValue]);
+      this.registerEntry(
+        { type: 'responsible', id: userValue, name: userName, photo: userPhoto },
+        [userValue, ...userNameCandidates]
+      );
 
-      if (groupId !== undefined && groupId !== null) {
-        const gKey = `group-${groupId}`;
-        if (!this.userInfo[gKey]) {
-          const gName = data.AssignedGroupName || data.GroupName || data.Group || '';
-          const gPhoto = data.groupPhoto || data.GroupPhoto || data.GroupImage || '';
-          this.userInfo[gKey] = { type: 'group', id: groupId, name: gName, photo: gPhoto };
-        }
-
-      }
-
-      if (userId !== undefined && userId !== null) {
-        const uKey = `user-${userId}`;
-        if (!this.userInfo[uKey]) {
-          const uName = data.ResponsibleUser || data.Username || data.UserName || '';
-          const uPhoto = data.photoUrl || data.PhotoUrl || data.PhotoURL || data.UserPhoto || '';
-          this.userInfo[uKey] = { type: 'responsible', id: userId, name: uName, photo: uPhoto };
-        }
-      }
-
+      const groupIdCandidates = [data.AssignedGroupID, data.GroupID, data.groupid];
+      const groupNameCandidates = [
+        data.AssignedGroupName,
+        data.GroupName,
+        data.Group,
+        data.groupname,
+      ];
+      const groupId = this.pickFirstCandidate(groupIdCandidates);
+      const groupName = this.pickFirstCandidate([...groupNameCandidates, groupId]);
+      const groupPhoto = data.groupPhoto || data.GroupPhoto || data.GroupImage || '';
+      this.registerEntry(
+        { type: 'group', id: groupId, name: groupName, photo: groupPhoto },
+        [...groupIdCandidates, ...groupNameCandidates]
+      );
     });
+  }
 
-    const respKeys = Object.keys(this.userInfo).filter(k => this.userInfo[k].type === 'responsible');
+  collectMatchesFromValue(value, resultSet) {
+    if (!this.lookupByRawValue || !resultSet) return;
+    if (Array.isArray(value)) {
+      value.forEach(item => this.collectMatchesFromValue(item, resultSet));
+      return;
+    }
+    const normalized = this.normalizeLookupValue(value);
+    if (!normalized) return;
+    const matches = this.lookupByRawValue.get(normalized);
+    if (!matches) return;
+    matches.forEach(key => resultSet.add(key));
+  }
 
-    const groupKeys = Object.keys(this.userInfo).filter(k => this.userInfo[k].type === 'group');
+  finalizeUserInfo() {
+    const respKeys = [];
+    const groupKeys = [];
+    Object.keys(this.userInfo).forEach(key => {
+      const info = this.userInfo[key];
+      if (!info) return;
+      if (!info.matchValues) info.matchValues = new Set();
+      if (info.name) {
+        info.name = this.ensureDisplayText(info.name);
+      }
+      if (!info.name) {
+        const fallback = this.ensureDisplayText(info.id);
+        if (fallback) info.name = fallback;
+      }
+      this.addMatchValue(info, key, info.name);
+      this.addMatchValue(info, key, info.id);
+
+      if (info.type === 'group') groupKeys.push(key);
+      else respKeys.push(key);
+    });
 
     const sortByName = (a, b) => {
-      const na = (this.userInfo[a].name || '').toLowerCase();
-      const nb = (this.userInfo[b].name || '').toLowerCase();
+      const na = (this.userInfo[a]?.name || '').toLowerCase();
+      const nb = (this.userInfo[b]?.name || '').toLowerCase();
       return na.localeCompare(nb, undefined, { sensitivity: 'base' });
     };
 
@@ -222,8 +500,32 @@ export default class ResponsibleUserFilterRenderer {
     groupKeys.sort(sortByName);
 
     this.allValues = [...respKeys, ...groupKeys];
-
     this.filteredValues = [...this.allValues];
+    this.selectedValues = this.selectedValues.filter(value => this.userInfo[value]);
+  }
+
+  loadValues() {
+    const api = this.params.api;
+    this.userInfo = {};
+    this.lookupByRawValue = new Map();
+
+    const column = this.params.column;
+    const colDef = column?.getColDef?.() || {};
+    const identifier = (colDef.FieldDB || '').toString().toUpperCase();
+    const tag = (colDef.TagControl || colDef.tagControl || colDef.tagcontrol || '').toString().toUpperCase();
+
+    let options = [];
+    if (this.shouldUseResponsibleCollection(identifier, tag)) {
+      options = this.getResponsibleCollectionOptions();
+    }
+
+    if (!Array.isArray(options) || !options.length) {
+      options = this.getOptionsArray();
+    }
+
+    this.ingestOptionList(options);
+    this.populateFromRowData(api, colDef);
+    this.finalizeUserInfo();
   }
 
   filterValues() {
@@ -254,9 +556,10 @@ export default class ResponsibleUserFilterRenderer {
     this.filteredValues.forEach(key => {
       const info = this.userInfo[key] || {};
       const checked = selected.has(key) ? 'checked' : '';
-      const name = info.name || '';
+      const name = this.ensureDisplayText(info.name || info.id || '');
       const photo = info.photo;
-      const initial = name.trim().charAt(0).toUpperCase();
+      const initialSource = this.ensureDisplayText(name);
+      const initial = initialSource ? initialSource.charAt(0).toUpperCase() : '';
       const avatar = photo
 
         ? `<img src="${photo}" alt="" />`
@@ -269,7 +572,7 @@ export default class ResponsibleUserFilterRenderer {
         <label class="filter-item${selected.has(key) ? ' selected' : ''}">
           <input type="checkbox" value="${key}" ${checked} />
           <span class="user-option">
-            <span class="avatar-outer"><span class="avatar-middle"><span class="user-avatar${info.type === 'userGroup' ? ' user-group' : ''}">${avatar}</span></span></span>
+            <span class="avatar-outer"><span class="avatar-middle"><span class="user-avatar${info.type === 'group' ? ' user-group' : ''}">${avatar}</span></span></span>
             <span class="filter-label">${name}</span>
           </span>
         </label>
@@ -328,17 +631,68 @@ export default class ResponsibleUserFilterRenderer {
   doesFilterPass(params) {
     if (this.selectedValues.length === 0) return true;
     const row = params.data || {};
+    const colDef = this.params.column?.getColDef?.() || {};
+    const fieldName = colDef.field || this.params.column.getColId();
+
+    const matches = new Set();
+    this.collectMatchesFromValue(this.getNestedValue(row, fieldName), matches);
+
+    const userCandidates = [
+      row.ResponsibleUser,
+      row.ResponsibleUserName,
+      row.Username,
+      row.UserName,
+      row.UserFullName,
+      row.AssignedUser,
+      row.AssignedUserName,
+    ];
+    userCandidates.forEach(value => this.collectMatchesFromValue(value, matches));
+
+    const groupCandidates = [
+      row.AssignedGroupID,
+      row.GroupID,
+      row.groupid,
+      row.AssignedGroupName,
+      row.GroupName,
+      row.Group,
+      row.groupname,
+    ];
+    groupCandidates.forEach(value => this.collectMatchesFromValue(value, matches));
+
+    const selectedSet = new Set(this.selectedValues);
+    for (const key of matches) {
+      if (selectedSet.has(key)) {
+        return true;
+      }
+    }
+
     return this.selectedValues.some(key => {
       const info = this.userInfo[key];
       if (!info) return false;
-      if (info.type === 'group') {
-        const gid = row.AssignedGroupID || row.GroupID || row.groupid;
-        return String(gid) === String(info.id);
-      }
-      const fieldName = this.params.column.getColDef().field || this.params.column.getColId();
-      const val = this.getNestedValue(row, fieldName);
 
-      return String(val) === String(info.id);
+      const normalizedId = this.normalizeLookupValue(info.id);
+      const normalizedName = this.normalizeLookupValue(info.name);
+
+      if (info.type === 'group') {
+        return groupCandidates.some(candidate => {
+          const normalizedCandidate = this.normalizeLookupValue(candidate);
+          if (!normalizedCandidate) return false;
+          if (normalizedId && normalizedCandidate === normalizedId) return true;
+          if (normalizedName && normalizedCandidate === normalizedName) return true;
+          const fallbackMatches = new Set();
+          this.collectMatchesFromValue(candidate, fallbackMatches);
+          return fallbackMatches.has(key);
+        });
+      }
+
+      const fieldValue = this.getNestedValue(row, fieldName);
+      const normalizedField = this.normalizeLookupValue(fieldValue);
+      if (!normalizedField) return false;
+      if (normalizedId && normalizedField === normalizedId) return true;
+      if (normalizedName && normalizedField === normalizedName) return true;
+      const fallbackMatches = new Set();
+      this.collectMatchesFromValue(fieldValue, fallbackMatches);
+      return fallbackMatches.has(key);
     });
   }
 
