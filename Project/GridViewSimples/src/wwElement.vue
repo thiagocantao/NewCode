@@ -152,9 +152,14 @@ export default {
     });
 
     const onRowSelected = (event) => {
-      const name = event.node.isSelected() ? "rowSelected" : "rowDeselected";
+      const isSelected = event.node.isSelected();
+
+      if (!isSelected && gridApi.value) {
+        setSelectedRows(gridApi.value.getSelectedRows() || []);
+      }
+
       ctx.emit("trigger-event", {
-        name,
+        name: isSelected ? "rowSelected" : "rowDeselected",
         event: { row: event.data },
       });
     };
