@@ -53,6 +53,7 @@
   const GRID_BASE_FONT_SIZE = 12;
   const DEFAULT_GRID_FONT_SIZE = `${GRID_BASE_FONT_SIZE}px`;
   const PINNED_HEADER_DATASET_FLAG = 'wwPinnedHeaderBlockApplied';
+  const noopConsole = () => {};
   const stopPinnedHeaderMouseDown = event => {
     event.stopPropagation();
   };
@@ -229,7 +230,7 @@
           if (styled) return styled;
         }
       } catch (e) {
-        console.error('Format option error', e);
+        noopConsole('Format option error', e);
       }
       return value;
     }
@@ -372,7 +373,7 @@
         resolvedId = resolveMappingFormula(props.content.idFormula, row);
       }
     } catch (error) {
-      console.warn('[GridViewDinamica] Failed to resolve row id using formula', error);
+      noopConsole('[GridViewDinamica] Failed to resolve row id using formula', error);
     }
 
     if (resolvedId == null || resolvedId === '') {
@@ -780,7 +781,7 @@
           columnOptions.value[fieldKey][cacheKey] = opts;
         })
         .catch(error => {
-          console.warn('[GridViewDinamica] Failed to refresh list options for column', fieldKey, error);
+          noopConsole('[GridViewDinamica] Failed to refresh list options for column', fieldKey, error);
         });
       promises.push(promise);
       columnsToRefresh.push(fieldKey);
@@ -790,7 +791,7 @@
       try {
         await Promise.all(promises);
       } catch (error) {
-        console.warn('[GridViewDinamica] Failed to resolve list option refresh promises', error);
+        noopConsole('[GridViewDinamica] Failed to resolve list option refresh promises', error);
       }
     }
 
@@ -827,7 +828,7 @@
             const node = gridApi.value?.getRowNode ? gridApi.value.getRowNode(id) : null;
             await refreshRowListOptions(data, node, null);
           } catch (error) {
-            console.warn(
+            noopConsole(
               '[GridViewDinamica] Failed to refresh list options after dataset update',
               error
             );
@@ -836,7 +837,7 @@
       })
       .catch(error => {
         pendingRowListRefreshPromise = null;
-        console.warn('[GridViewDinamica] Failed to schedule list option refresh', error);
+        noopConsole('[GridViewDinamica] Failed to schedule list option refresh', error);
       });
   }
 
@@ -891,7 +892,7 @@ else Promise.resolve().then(fn);
         wwVariable.setComponentValue(HIDE_SAVE_BUTTON_VARIABLE_ID, value);
       }
     } catch (error) {
-      console.warn(
+      noopConsole(
         "[GridViewDinamica] Failed to update escondeBotaoSalvarGrid variable",
         error
       );
@@ -1090,7 +1091,6 @@ function defer(fn, delay = 0) {
       } else {
         suppressRevealUntilCapture = false;
       }
-         updateHideSaveButtonVisibility(pristine);
     };
 
 
@@ -1232,7 +1232,7 @@ function defer(fn, delay = 0) {
   }
   );
   } catch (error) {
-  console.warn(
+  noopConsole(
   "[GridViewDinamica] Failed to subscribe to typography variable",
   error
   );
@@ -1246,7 +1246,7 @@ function defer(fn, delay = 0) {
   try {
   typographyUnsubscribe();
   } catch (error) {
-  console.warn(
+  noopConsole(
   "[GridViewDinamica] Failed to unsubscribe typography listener",
   error
   );
@@ -1393,7 +1393,7 @@ const asObject = (v) => (v && typeof v === 'object' ? v : {});
       try {
         return await gridApi.value.getColumnFilterInstance(colId);
       } catch (error) {
-        console.warn("[GridViewDinamica] Failed to resolve column filter instance", error);
+        noopConsole("[GridViewDinamica] Failed to resolve column filter instance", error);
         return null;
       }
     }
@@ -1420,7 +1420,7 @@ const asObject = (v) => (v && typeof v === 'object' ? v : {});
           try {
             return filterInstance.doesFilterPass({ node: fakeNode, data: row });
           } catch (error) {
-            console.warn("[GridViewDinamica] Failed to evaluate filter for counts", error);
+            noopConsole("[GridViewDinamica] Failed to evaluate filter for counts", error);
             return true;
           }
         }
@@ -1439,7 +1439,7 @@ const asObject = (v) => (v && typeof v === 'object' ? v : {});
         setTicketTagCounts(buildTicketTagCounts(rowsAfterColumnFilters));
       })
       .catch(error => {
-        console.warn("[GridViewDinamica] Failed to refresh ticket tag counts", error);
+        noopConsole("[GridViewDinamica] Failed to refresh ticket tag counts", error);
         setTicketTagCounts(buildTicketTagCounts(rows));
       });
   };
@@ -1545,7 +1545,7 @@ function applyExternalSortAndSync() {
         wwVariable.setComponentValue(GRID_CONFIG_VARIABLE_ID, state);
       }
     } catch (error) {
-      console.warn("[GridViewDinamica] Failed to persist grid config", error);
+      noopConsole("[GridViewDinamica] Failed to persist grid config", error);
     }
   }
 
@@ -1559,7 +1559,7 @@ function applyExternalSortAndSync() {
         }
       }
     } catch (error) {
-      console.warn("[GridViewDinamica] Failed to read grid config", error);
+      noopConsole("[GridViewDinamica] Failed to read grid config", error);
     }
     return null;
   }
@@ -1589,7 +1589,7 @@ function applyExternalSortAndSync() {
       localStorage.setItem(storageKey, JSON.stringify(state));
       persistGridStateToWWVariable(state);
     } catch (e) {
-      console.warn('Failed to save grid state', e);
+      noopConsole('Failed to save grid state', e);
     }
   }
 
@@ -1637,7 +1637,7 @@ function applyExternalSortAndSync() {
         }
       });
     } catch (e) {
-      console.warn('Failed to restore grid state', e);
+      noopConsole('Failed to restore grid state', e);
     }
   }
 
@@ -1727,7 +1727,7 @@ function applyExternalSortAndSync() {
         })
         .filter(v => v);
     } catch (e) {
-      console.error('Failed to load options', e);
+      noopConsole('Failed to load options', e);
       return [];
     }
   };
@@ -2173,7 +2173,7 @@ function applyExternalSortAndSync() {
         });
       }
     } catch (error) {
-      console.warn('Erro ao reposicionar coluna de seleção:', error);
+      noopConsole('Erro ao reposicionar coluna de seleção:', error);
     }
 
     // Fallback: reposicionamento direto no DOM
@@ -2210,7 +2210,7 @@ function applyExternalSortAndSync() {
         }
       });
     } catch (error) {
-      console.warn('Erro ao reposicionar coluna de seleção no DOM:', error);
+      noopConsole('Erro ao reposicionar coluna de seleção no DOM:', error);
     }
   }
   
@@ -2292,7 +2292,7 @@ function applyExternalSortAndSync() {
       emitGridLoadedEvent();
     });
     saveGridState();
-    (() => { try { const pristine = isGridStatePristine(); updateHideSaveButtonVisibility(pristine); } catch(e) { console && console.warn && console.warn('[Grid Pristine inline] failed:', e); } })();
+    (() => { try { const pristine = isGridStatePristine(); updateHideSaveButtonVisibility(pristine); } catch (e) {} })();
   };
   
   const onSortChanged = (event) => {
@@ -2310,7 +2310,7 @@ function applyExternalSortAndSync() {
       saveGridState();
       const pristine = isGridStatePristine();
       updateHideSaveButtonVisibility(pristine);
-      (() => { try { const pristine = isGridStatePristine(); updateHideSaveButtonVisibility(pristine); } catch(e) { console && console.warn && console.warn('[Grid Pristine inline] failed:', e); } })();
+      (() => { try { const pristine = isGridStatePristine(); updateHideSaveButtonVisibility(pristine); } catch (e) {} })();
       ctx.emit("trigger-event", { name: "sortChanged", event: normalizedSort });
       emitGridLoadedEvent();
     });
@@ -2329,7 +2329,7 @@ function applyExternalSortAndSync() {
   event: columnsPositionValue.value,
   });
   }
-    (() => { try { const pristine = isGridStatePristine(); updateHideSaveButtonVisibility(pristine); } catch(e) { console && console.warn && console.warn('[Grid Pristine inline] failed:', e); } })();
+    (() => { try { const pristine = isGridStatePristine(); updateHideSaveButtonVisibility(pristine); } catch (e) {} })();
 };
 
   /* wwEditor:start */
@@ -2703,7 +2703,7 @@ setTimeout(() => {
                 useTicket ? ticketId : undefined,
                 { force: true }
               ).catch(error => {
-                console.warn('[GridViewDinamica] Failed to lazy load StatusID options', error);
+                noopConsole('[GridViewDinamica] Failed to lazy load StatusID options', error);
                 return this.buildLazyStatusFallbackOptions(colCopy);
               });
             }
@@ -2859,7 +2859,7 @@ setTimeout(() => {
                     useTicket ? ticketId : undefined,
                     { force: true }
                   ).catch(error => {
-                    console.warn('[GridViewDinamica] Failed to lazy load StatusID options', error);
+                    noopConsole('[GridViewDinamica] Failed to lazy load StatusID options', error);
                     return this.buildLazyStatusFallbackOptions(colCopy);
                   });
                 }
@@ -3248,7 +3248,7 @@ setTimeout(() => {
                   useTicket ? ticketId : undefined,
                   { force: true }
                 ).catch(error => {
-                  console.warn('[GridViewDinamica] Failed to lazy load StatusID options', error);
+                  noopConsole('[GridViewDinamica] Failed to lazy load StatusID options', error);
                   return this.buildLazyStatusFallbackOptions(colCopy);
                 });
               }
@@ -3469,7 +3469,7 @@ setTimeout(() => {
       try {
         payload = JSON.parse(payload);
       } catch (error) {
-        console.warn("[GridViewDinamica] Failed to parse sort payload", error);
+        noopConsole("[GridViewDinamica] Failed to parse sort payload", error);
         return;
       }
     }
@@ -3483,7 +3483,7 @@ setTimeout(() => {
     }
 
     if (!Array.isArray(payload)) {
-      console.warn("[GridViewDinamica] Invalid sort payload", payload);
+      noopConsole("[GridViewDinamica] Invalid sort payload", payload);
       return;
     }
 
@@ -3571,21 +3571,21 @@ setTimeout(() => {
     try {
       payload = JSON.parse(payload);
     } catch (error) {
-      console.warn("[GridViewDinamica] Failed to parse row JSON payload", error);
+      noopConsole("[GridViewDinamica] Failed to parse row JSON payload", error);
       return;
     }
   }
 
   if (Array.isArray(payload)) {
     if (!payload.length) {
-      console.warn("[GridViewDinamica] Received empty array payload for updateRow action");
+      noopConsole("[GridViewDinamica] Received empty array payload for updateRow action");
       return;
     }
     payload = payload[0];
   }
 
   if (!payload || typeof payload !== "object") {
-    console.warn("[GridViewDinamica] Invalid payload for updateRow action", payload);
+    noopConsole("[GridViewDinamica] Invalid payload for updateRow action", payload);
     return;
   }
 
@@ -3608,7 +3608,7 @@ setTimeout(() => {
   const sourceRows = Array.isArray(sourceRowsRaw) ? sourceRowsRaw : [];
 
   if (!sourceRows.length) {
-    console.warn("[GridViewDinamica] Cannot update row: grid has no data available");
+    noopConsole("[GridViewDinamica] Cannot update row: grid has no data available");
     return;
   }
 
@@ -3630,13 +3630,13 @@ setTimeout(() => {
   }
 
   if (matchedIndex === -1) {
-    console.warn("[GridViewDinamica] Failed to locate row to update", payload);
+    noopConsole("[GridViewDinamica] Failed to locate row to update", payload);
     return;
   }
 
   const matchedRow = sourceRows[matchedIndex];
   if (!matchedRow || typeof matchedRow !== "object") {
-    console.warn("[GridViewDinamica] Matched row is not an object", matchedRow);
+    noopConsole("[GridViewDinamica] Matched row is not an object", matchedRow);
     return;
   }
 
@@ -3689,7 +3689,7 @@ setTimeout(() => {
     try {
       this.refreshRowFromSource(matchedRow, rowNode || null);
     } catch (error) {
-      console.warn("[GridViewDinamica] Failed to refresh row metadata after update", error);
+      noopConsole("[GridViewDinamica] Failed to refresh row metadata after update", error);
     }
   }
 
@@ -3697,7 +3697,7 @@ setTimeout(() => {
     try {
       this.refreshRowListOptions(matchedRow, rowNode || null, null);
     } catch (error) {
-      console.warn("[GridViewDinamica] Failed to refresh list options after row update", error);
+      noopConsole("[GridViewDinamica] Failed to refresh list options after row update", error);
     }
   }
 
@@ -4037,7 +4037,7 @@ forceClearSelection() {
     columnDefs: {
       async handler() {
         if (this.wwEditorState?.boundProps?.columns) return;
-        this.gridApi.resetColumnState();
+        this.gridApi?.resetColumnState?.();
 
         if (this.wwEditorState.isACopy) return;
 
