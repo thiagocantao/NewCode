@@ -112,7 +112,6 @@ return;
 // Store the field data in the DOM element for drag operations
 onMounted(() => {
 if (!props.field) {
-console.warn('No field data provided to DraggableField');
 return;
 }
 
@@ -124,12 +123,10 @@ const sectionFieldId = props.field.id || 'null';
 
 // Add null checks
 if (!fieldId) {
-console.warn('Field ID is missing');
 return;
 }
 
 if (!fieldElement.value) {
-console.warn('Field element reference not found');
 return;
 }
 
@@ -155,7 +152,6 @@ fieldElement.value.dataset.fieldType = fieldData.fieldType;
 fieldElement.value.dataset.fieldName = fieldData.Name;
 fieldElement.value.dataset.columns = fieldData.columns;
 } catch (error) {
-console.error('Error setting draggable field data:', error);
 }
 });
 });
@@ -303,15 +299,15 @@ grid-column: span 1;
 }
 
 .col-span-2 {
-  grid-column: span 2;
+grid-column: span 1;
 }
 
 .col-span-3 {
-  grid-column: span 3;
+grid-column: span 1;
 }
 
 .col-span-4 {
-  grid-column: span 4;
+grid-column: span 1;
 }
 
 .material-symbols-outlined {
