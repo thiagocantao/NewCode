@@ -477,9 +477,6 @@ import { SUPABASE_IMAGE_BUCKET } from './supabaseBuckets';
 const buildStorageObject = (bucket, storagePath) =>
     bucket && storagePath ? `${bucket}/${storagePath}` : null;
 
-const buildStorageObject = (bucket, storagePath) =>
-    bucket && storagePath ? `${bucket}/${storagePath}` : null;
-
 const AlignableImage = Image.extend({
     addAttributes() {
         const parentAttributes = this.parent?.() ?? {};
@@ -1487,7 +1484,6 @@ export default {
                     await sleep(200);
                 }
             } catch (e) {
-                console.warn('[RichText] ensureAuthReady error:', e);
             }
             return true;
         },
@@ -1523,22 +1519,20 @@ export default {
                     .from(location.bucket)
                     .createSignedUrl(location.storagePath, 60 * 60, options);
                 if (error) {
-                    console.warn('[RichText] createSignedUrl failed:', error);
                     return null;
                 }
                 return data?.signedUrl || null;
             } catch (e) {
-                console.warn('[RichText] createSignedUrl error:', e);
                 return null;
             }
         },
         async uploadImageToSupabase(file) {
-            if (!file) throw new Error('Nenhuma imagem selecionada.');
+            if (!file) throw new Error('No images selected.');
 
             const extension = (file.name.split('.').pop() || '').toLowerCase();
             const isImage =
                 file.type?.startsWith('image/') || ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(extension);
-            if (!isImage) throw new Error('Selecione um arquivo de imagem.');
+            if (!isImage) throw new Error('Select an image file.');
 
             this.refreshSupabaseInstances();
 
@@ -1553,14 +1547,14 @@ export default {
             if (this.supabaseAuth && (authErr || !userData?.user)) {
                 throw new Error(
                     authErr
-                        ? `Erro ao obter usuário do Supabase Auth: ${authErr.message || authErr}`
-                        : 'Usuário não autenticado no Supabase.'
+                        ? `Error retrieving user from Supabase Auth: ${authErr.message || authErr}`
+                        : 'Unauthenticated user on Supabase.'
                 );
             }
 
             const storageReady = await this.waitForStorage(4000);
             if (!storageReady || !this.supabase?.storage) {
-                throw new Error('Supabase Storage não está pronto. Tente novamente em alguns segundos.');
+                throw new Error('Supabase Storage is not ready. Please try again in a few seconds.');
             }
 
             const unique =
@@ -1574,9 +1568,9 @@ export default {
                         obj_name: pathObject,
                     });
                     if (rpcCheckErr) {
-                        console.warn('[RichText] rls_user_in_path_workspace error:', rpcCheckErr);
+                        
                     } else if (allowed === false) {
-                        throw new Error('Você não tem permissão para salvar a imagem neste workspace.');
+                        throw new Error('Not allowed.');
                     }
                 }
             } catch (e) {
@@ -1594,7 +1588,7 @@ export default {
                     contentType,
                 });
             if (upErr) {
-                throw new Error(`Erro no upload para o Supabase Storage: ${upErr.message || upErr}`);
+                throw new Error(`Error uploading to Supabase Storage: ${upErr.message || upErr}`);
             }
 
 
@@ -1608,7 +1602,6 @@ export default {
                     const { data: publicData } = this.supabase.storage.from(IMAGE_BUCKET).getPublicUrl(pathObject);
                     if (publicData?.publicUrl) signedUrl = publicData.publicUrl;
                 } catch (e) {
-                    console.warn('[RichText] getPublicUrl failed:', e);
                 }
             }
 
@@ -1627,9 +1620,7 @@ export default {
             if (!message) return;
             if (wwLib?.wwNotification?.open) {
                 wwLib.wwNotification.open({ text: message, type: 'error', duration: 4000 });
-            } else {
-                console.error(message);
-            }
+            } 
         },
         async refreshSupabaseImageUrls() {
             if (!this.richEditor) return;
@@ -1700,7 +1691,7 @@ export default {
                 try {
                     await this.refreshSupabaseImageUrls();
                 } catch (e) {
-                    console.warn('[RichText] periodic refresh failed:', e);
+                    
                 }
             };
 
@@ -2070,8 +2061,6 @@ export default {
                     this.richEditor.commands.focus();
                 });
             } catch (error) {
-                // eslint-disable-next-line no-console
-                console.error(error);
             }
         },
         handleHtmlInput(event) {
