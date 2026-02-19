@@ -239,7 +239,11 @@ export default {
     const refreshLayout = () => {
       if (!gridApi.value) return;
       requestAnimationFrame(() => {
-        gridApi.value.doLayout();
+        if (typeof gridApi.value.onGridSizeChanged === "function") {
+          gridApi.value.onGridSizeChanged();
+        } else if (typeof gridApi.value.refreshHeader === "function") {
+          gridApi.value.refreshHeader();
+        }
       });
     };
 
@@ -261,6 +265,7 @@ export default {
       onRowSelected,
       onSelectionChanged,
       gridApi,
+      setSelectedRows,
       onFilterChanged,
       onSortChanged,
       onFirstDataRendered,
@@ -815,7 +820,7 @@ export default {
         this.gridApi.deselectAll();
         setTimeout(() => {
           this.gridApi.deselectAll(); // Garante que todas sejam desmarcadas
-          setSelectedRows([]);
+          this.setSelectedRows([]);
         }, 0);
       }
     },
