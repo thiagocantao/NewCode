@@ -261,6 +261,7 @@ export default {
       onRowSelected,
       onSelectionChanged,
       gridApi,
+      setSelectedRows,
       onFilterChanged,
       onSortChanged,
       onFirstDataRendered,
@@ -815,7 +816,7 @@ export default {
         this.gridApi.deselectAll();
         setTimeout(() => {
           this.gridApi.deselectAll(); // Garante que todas sejam desmarcadas
-          setSelectedRows([]);
+          this.setSelectedRows([]);
         }, 0);
       }
     },
