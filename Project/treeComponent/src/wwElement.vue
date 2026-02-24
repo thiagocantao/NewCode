@@ -27,6 +27,7 @@
                 v-for="row in visibleRows"
                 :key="`row-${row.id}`"
                 class="tree-row"
+                :class="{ 'tree-row--selected': selectedNodeId === row.id }"
                 :style="{ paddingLeft: `${row.depth * 16 + 8}px` }"
                 @click="onNodeClick(row)"
                 @contextmenu.prevent.stop
@@ -99,6 +100,7 @@ export default {
             searchText: '',
             expandedNodes: {},
             contextNodeId: null,
+            selectedNodeId: null,
         };
     },
     computed: {
@@ -177,6 +179,7 @@ export default {
                     const hasChildren = node.children.length > 0 && depth < this.normalizedMaxLevel - 1;
                     rows.push({
                         id: node.id,
+                        parentId: node.parentId,
                         label: node.label,
                         icon: node.icon,
                         depth,
@@ -198,6 +201,7 @@ export default {
                 width: this.content.width || '100%',
                 height: this.content.height || '420px',
                 '--tree-font-size': this.normalizedFontSize,
+                '--row-selected-bg': this.selectedItemBackground,
             };
         },
         normalizedFontSize() {
@@ -211,6 +215,15 @@ export default {
             }
 
             return '14px';
+        },
+
+        selectedItemBackground() {
+            const background = this.content.selectedItemBackground;
+            if (typeof background === 'string' && background.trim()) {
+                return background.trim();
+            }
+
+            return '#e7f1ff';
         },
         iconButtonStyle() {
             return {
@@ -310,9 +323,18 @@ export default {
         },
         onNodeClick(row) {
             this.contextNodeId = row.id;
+            this.selectedNodeId = row.id;
+
+            const nodeData = row.raw && typeof row.raw === 'object' ? row.raw : {};
+
             this.$emit('trigger-event', {
                 name: 'onNodeClick',
-                event: row.raw,
+                event: {
+                    ...nodeData,
+                    id: row.id ?? null,
+                    parentId: row.parentId ?? null,
+                    label: `${row.label ?? ''}`,
+                },
             });
         },
     },
@@ -409,6 +431,12 @@ export default {
     min-height: 32px;
     cursor: pointer;
     padding-right: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.tree-row:hover,
+.tree-row--selected {
+    background: var(--row-selected-bg);
 }
 
 .toggle-placeholder {
