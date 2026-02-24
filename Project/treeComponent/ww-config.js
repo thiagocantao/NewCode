@@ -1,57 +1,114 @@
 export default {
     options: {
         lazyHydrate: true,
-        displayAllowedValues: (content, wwProps) => wwProps?.overrideDisplayValues ?? [
-            'flex',
-            'block',
-            'grid',
-            'table-cell',
-            'table-row',
-            'table-header-group',
-            'inline-flex',
-            'inline-block',
-            'inline-grid',
-        ],
-        linkable: true,
+        displayAllowedValues: () => ['flex', 'block', 'inline-flex', 'inline-block'],
     },
-    inherit: [{ type: 'ww-layout' }, { type: 'ww-background-video' }],
+    inherit: [],
     editor: {
         label: {
-            en: 'Flexbox',
+            en: 'Tree file manager',
         },
-        icon: 'border',
+        icon: 'account_tree',
         bubble: {
-            icon: 'border',
+            icon: 'account_tree',
         },
-        customStylePropertiesOrder: ['children'],
     },
     properties: {
-        children: {
-            label: {
-                en: 'Items',
-                fr: 'Items',
-            },
-            type: 'Repeat',
-            options: {
-                text: { en: 'Elements to repeat' },
-            },
-            hidden: (content, sidePanelContent, boundProps, wwProps) => !!(wwProps && wwProps.isFixed) || wwProps.noDropzone,
-            bindable: 'repeatable',
+        data: {
+            label: { en: 'JSON data source' },
+            type: 'array',
+            bindable: true,
             defaultValue: [],
-            /* wwEditor:start */
-            bindingValidation: {
-                validations: [
-                    {
-                        type: 'array',
-                    },
-                    {
-                        type: 'object',
-                    },
-                ],
-                tooltip:
-                    'A collection or an array of data: \n\n`myCollection` or `[{}, {}, ...] || ["string1", "string2", ...] || [1, 2, ...]`',
-            },
-            /* wwEditor:end */
+        },
+        labelField: {
+            label: { en: 'Label field' },
+            type: 'text',
+            bindable: true,
+            defaultValue: 'label',
+        },
+        idField: {
+            label: { en: 'ID field' },
+            type: 'text',
+            bindable: true,
+            defaultValue: 'id',
+        },
+        parentIdField: {
+            label: { en: 'Parent ID field' },
+            type: 'text',
+            bindable: true,
+            defaultValue: 'parentId',
+        },
+        iconField: {
+            label: { en: 'Icon field (optional)' },
+            type: 'text',
+            bindable: true,
+            defaultValue: '',
+        },
+        width: {
+            label: { en: 'Width' },
+            type: 'text',
+            bindable: true,
+            defaultValue: '100%',
+        },
+        height: {
+            label: { en: 'Height' },
+            type: 'text',
+            bindable: true,
+            defaultValue: '420px',
+        },
+        iconButtonBackground: {
+            label: { en: 'Icon button background' },
+            type: 'text',
+            bindable: true,
+            defaultValue: '#f1f3f5',
+        },
+        iconButtonHoverBackground: {
+            label: { en: 'Icon button hover background' },
+            type: 'text',
+            bindable: true,
+            defaultValue: '#e2e6ea',
+        },
+        iconColor: {
+            label: { en: 'Icon color' },
+            type: 'text',
+            bindable: true,
+            defaultValue: '#263238',
+        },
+        iconHoverColor: {
+            label: { en: 'Icon hover color' },
+            type: 'text',
+            bindable: true,
+            defaultValue: '#0d6efd',
+        },
+        searchPlaceholder: {
+            label: { en: 'Search placeholder' },
+            type: 'text',
+            bindable: true,
+            defaultValue: 'Pesquisar...',
+        },
+        highlightColor: {
+            label: { en: 'Search highlight color' },
+            type: 'text',
+            bindable: true,
+            defaultValue: '#fff3bf',
+        },
+        maxLevel: {
+            label: { en: 'Max level' },
+            type: 'number',
+            bindable: true,
+            defaultValue: 99,
         },
     },
+    triggerEvents: [
+        {
+            name: 'onAdd',
+            label: { en: 'On add clicked' },
+            event: { value: { parentId: null } },
+        },
+        {
+            name: 'onNodeClick',
+            label: { en: 'On node clicked' },
+            event: { value: null },
+        },
+    ],
 };
