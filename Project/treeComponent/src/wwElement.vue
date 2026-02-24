@@ -101,7 +101,11 @@ export default {
             expandedNodes: {},
             contextNodeId: null,
             selectedNodeId: null,
+            setSelectedItemId: null,
         };
+    },
+    created() {
+        this.initializePublicVariables();
     },
     computed: {
         normalizedData() {
@@ -258,6 +262,22 @@ export default {
         },
     },
     methods: {
+        initializePublicVariables() {
+            if (typeof wwLib === 'undefined' || !wwLib?.wwVariable?.useComponentVariable) return;
+
+            const uid = this.uid || this.wwElementState?.uid;
+            if (!uid) return;
+
+            const selectedItemIdVariable = wwLib.wwVariable.useComponentVariable({
+                uid,
+                name: 'selectedItemId',
+                type: 'string',
+                defaultValue: null,
+                readonly: true,
+            });
+
+            this.setSelectedItemId = selectedItemIdVariable.setValue;
+        },
         isExpanded(id) {
             return this.expandedNodes[id] !== false;
         },
@@ -324,6 +344,7 @@ export default {
         onNodeClick(row) {
             this.contextNodeId = row.id;
             this.selectedNodeId = row.id;
+            this.setSelectedItemId?.(row.id ?? null);
 
             const nodeData = row.raw && typeof row.raw === 'object' ? row.raw : {};
 
