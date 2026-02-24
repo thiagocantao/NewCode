@@ -39,7 +39,7 @@ export default {
             defaultValue: 'parentId',
         },
         iconField: {
-            label: { en: 'Icon field (optional)' },
+            label: { en: 'Icon field (Material Symbols name)' },
             type: 'text',
             bindable: true,
             defaultValue: '',
@@ -68,14 +68,14 @@ export default {
             bindable: true,
             defaultValue: '#e2e6ea',
         },
-        iconColor: {
-            label: { en: 'Icon color' },
+        iconButtonColor: {
+            label: { en: 'Icon button color' },
             type: 'text',
             bindable: true,
             defaultValue: '#263238',
         },
-        iconHoverColor: {
-            label: { en: 'Icon hover color' },
+        iconButtonHoverColor: {
+            label: { en: 'Icon button hover color' },
             type: 'text',
             bindable: true,
             defaultValue: '#0d6efd',
@@ -108,6 +108,16 @@ export default {
         {
             name: 'onNodeClick',
             label: { en: 'On node clicked' },
+            event: { value: null },
+        },
+        {
+            name: 'onRename',
+            label: { en: 'On rename clicked' },
+            event: { value: null },
+        },
+        {
+            name: 'onDelete',
+            label: { en: 'On delete clicked' },
             event: { value: null },
         },
     ],

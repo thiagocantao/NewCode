@@ -1,18 +1,18 @@
 <template>
-    <div class="tree-manager" :style="containerStyle">
+    <div class="tree-manager" :style="containerStyle" @click="hideContextActions">
         <div class="tree-manager__toolbar">
             <button
                 class="icon-button"
                 type="button"
                 :style="iconButtonStyle"
-                @click="onAdd"
+                @click.stop="onAdd"
                 aria-label="Adicionar"
                 title="Adicionar"
             >
-                +
+                <span class="material-symbols-outlined">add</span>
             </button>
             <div class="search-box">
-                <span class="search-icon">🔍</span>
+                <span class="material-symbols-outlined search-icon">search</span>
                 <input
                     v-model="searchText"
                     class="search-input"
@@ -29,6 +29,7 @@
                 class="tree-row"
                 :style="{ paddingLeft: `${row.depth * 16 + 8}px` }"
                 @click="onNodeClick(row.raw)"
+                @contextmenu.prevent.stop="openContextActions(row.id)"
             >
                 <button
                     v-if="row.hasChildren"
@@ -37,20 +38,48 @@
                     :style="iconButtonStyle"
                     @click.stop="toggleNode(row.id)"
                     :disabled="row.depth >= normalizedMaxLevel - 1"
+                    :aria-label="isExpanded(row.id) ? 'Recolher' : 'Expandir'"
                 >
-                    {{ isExpanded(row.id) ? '▾' : '▸' }}
+                    <span class="material-symbols-outlined">
+                        {{ isExpanded(row.id) ? 'expand_more' : 'chevron_right' }}
+                    </span>
                 </button>
                 <span v-else class="toggle-placeholder"></span>
 
-                <span
-                    class="node-icon"
-                    :style="iconStyle"
-                    :title="row.icon"
-                >
-                    {{ row.icon }}
-                </span>
-
                 <span class="node-label" v-html="highlightLabel(row.label)"></span>
+
+                <div v-if="contextNodeId === row.id" class="row-actions" @click.stop>
+                    <button
+                        class="icon-button"
+                        type="button"
+                        :style="iconButtonStyle"
+                        title="Adicionar filho"
+                        aria-label="Adicionar filho"
+                        @click.stop="onAddChild(row.raw)"
+                    >
+                        <span class="material-symbols-outlined">add</span>
+                    </button>
+                    <button
+                        class="icon-button"
+                        type="button"
+                        :style="iconButtonStyle"
+                        title="Renomear"
+                        aria-label="Renomear"
+                        @click.stop="onRename(row.raw)"
+                    >
+                        <span class="material-symbols-outlined">edit</span>
+                    </button>
+                    <button
+                        class="icon-button"
+                        type="button"
+                        :style="iconButtonStyle"
+                        title="Excluir"
+                        aria-label="Excluir"
+                        @click.stop="onDelete(row.raw)"
+                    >
+                        <span class="material-symbols-outlined">delete</span>
+                    </button>
+                </div>
             </div>
             <div v-if="!visibleRows.length" class="empty-state">Nenhum item encontrado.</div>
         </div>
@@ -67,6 +96,7 @@ export default {
         return {
             searchText: '',
             expandedNodes: {},
+            contextNodeId: null,
         };
     },
     computed: {
@@ -83,7 +113,6 @@ export default {
                 label: this.content.labelField || 'label',
                 id: this.content.idField || 'id',
                 parentId: this.content.parentIdField || 'parentId',
-                icon: this.content.iconField || '',
             };
         },
         tree() {
@@ -97,7 +126,6 @@ export default {
                     id,
                     parentId: item?.[this.fieldMap.parentId],
                     label: `${item?.[this.fieldMap.label] ?? ''}`,
-                    customIcon: this.fieldMap.icon ? item?.[this.fieldMap.icon] : null,
                     raw: item,
                     children: [],
                 });
@@ -149,7 +177,6 @@ export default {
                         depth,
                         hasChildren,
                         raw: node.raw,
-                        icon: this.getNodeIcon(node, hasChildren),
                     });
 
                     if (hasChildren && (usingSearch || this.isExpanded(node.id))) {
@@ -171,13 +198,8 @@ export default {
             return {
                 '--icon-button-bg': this.content.iconButtonBackground || '#f1f3f5',
                 '--icon-button-hover-bg': this.content.iconButtonHoverBackground || '#e2e6ea',
-                '--icon-color': this.content.iconColor || '#263238',
-                '--icon-hover-color': this.content.iconHoverColor || '#0d6efd',
-            };
-        },
-        iconStyle() {
-            return {
-                color: this.content.iconColor || '#263238',
+                '--icon-color': this.content.iconButtonColor || '#263238',
+                '--icon-hover-color': this.content.iconButtonHoverColor || '#0d6efd',
             };
         },
     },
@@ -207,9 +229,11 @@ export default {
                 [id]: !this.isExpanded(id),
             };
         },
-        getNodeIcon(node, hasChildren) {
-            if (node.customIcon) return node.customIcon;
-            return hasChildren ? '📁' : '📄';
+        openContextActions(nodeId) {
+            this.contextNodeId = nodeId;
+        },
+        hideContextActions() {
+            this.contextNodeId = null;
         },
         escapeRegex(value) {
             return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -240,6 +264,27 @@ export default {
                 name: 'onAdd',
                 event: { parentId: null },
             });
+        },
+        onAddChild(node) {
+            this.$emit('trigger-event', {
+                name: 'onAdd',
+                event: { parentId: node?.[this.fieldMap.id] ?? null, node },
+            });
+            this.hideContextActions();
+        },
+        onRename(node) {
+            this.$emit('trigger-event', {
+                name: 'onRename',
+                event: node,
+            });
+            this.hideContextActions();
+        },
+        onDelete(node) {
+            this.$emit('trigger-event', {
+                name: 'onDelete',
+                event: node,
+            });
+            this.hideContextActions();
         },
         onNodeClick(node) {
             this.$emit('trigger-event', {
@@ -279,6 +324,9 @@ export default {
     height: 28px;
     cursor: pointer;
     transition: background-color 0.2s ease, color 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .icon-button:hover,
@@ -292,6 +340,11 @@ export default {
     opacity: 0.5;
 }
 
+.material-symbols-outlined {
+    font-size: 18px;
+    line-height: 1;
+}
+
 .search-box {
     display: flex;
     align-items: center;
@@ -301,6 +354,10 @@ export default {
     padding: 0 8px;
     gap: 6px;
     min-height: 32px;
+}
+
+.search-icon {
+    color: var(--icon-color);
 }
 
 .search-input {
@@ -322,10 +379,7 @@ export default {
     gap: 8px;
     min-height: 32px;
     cursor: pointer;
-}
-
-.tree-row:hover .node-icon {
-    color: var(--icon-hover-color);
+    padding-right: 8px;
 }
 
 .toggle-placeholder {
@@ -334,6 +388,12 @@ export default {
 
 .node-label {
     white-space: nowrap;
+    flex: 1;
+}
+
+.row-actions {
+    display: inline-flex;
+    gap: 4px;
 }
 
 .empty-state {
