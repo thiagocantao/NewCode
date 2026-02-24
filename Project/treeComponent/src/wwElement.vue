@@ -179,6 +179,7 @@ export default {
                     const hasChildren = node.children.length > 0 && depth < this.normalizedMaxLevel - 1;
                     rows.push({
                         id: node.id,
+                        parentId: node.parentId,
                         label: node.label,
                         icon: node.icon,
                         depth,
@@ -324,17 +325,15 @@ export default {
             this.contextNodeId = row.id;
             this.selectedNodeId = row.id;
 
-            const id = row.raw?.[this.fieldMap.id] ?? row.id ?? null;
-            const parentId = row.raw?.[this.fieldMap.parentId] ?? null;
-            const label = row.raw?.[this.fieldMap.label] ?? row.label ?? '';
+            const nodeData = row.raw && typeof row.raw === 'object' ? row.raw : {};
 
             this.$emit('trigger-event', {
                 name: 'onNodeClick',
                 event: {
-                    ...row.raw,
-                    id,
-                    parentId,
-                    label: `${label}`,
+                    ...nodeData,
+                    id: row.id ?? null,
+                    parentId: row.parentId ?? null,
+                    label: `${row.label ?? ''}`,
                 },
             });
         },
