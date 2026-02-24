@@ -86,11 +86,23 @@ export default {
             bindable: true,
             defaultValue: '#0d6efd',
         },
+        toggleButtonBackground: {
+            label: { en: 'Collapse/expand button background' },
+            type: 'text',
+            bindable: true,
+            defaultValue: 'transparent',
+        },
+        toggleButtonColor: {
+            label: { en: 'Collapse/expand button icon color' },
+            type: 'text',
+            bindable: true,
+            defaultValue: '#6c757d',
+        },
         searchPlaceholder: {
             label: { en: 'Search placeholder' },
             type: 'text',
             bindable: true,
-            defaultValue: 'Pesquisar...',
+            defaultValue: 'Search...',
         },
         highlightColor: {
             label: { en: 'Search highlight color' },

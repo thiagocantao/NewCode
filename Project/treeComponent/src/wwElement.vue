@@ -35,10 +35,11 @@
                     v-if="row.hasChildren"
                     class="toggle-button"
                     type="button"
-                    :style="iconButtonStyle"
+                    :style="toggleButtonStyle"
                     @click.stop="toggleNode(row.id)"
                     :disabled="row.depth >= normalizedMaxLevel - 1"
                     :aria-label="isExpanded(row.id) ? 'Collapse' : 'Expand'"
+                    :title="isExpanded(row.id) ? 'Collapse' : 'Expand'"
                 >
                     <span class="material-symbols-outlined">
                         {{ isExpanded(row.id) ? 'expand_more' : 'chevron_right' }}
@@ -54,8 +55,8 @@
                         class="icon-button"
                         type="button"
                         :style="iconButtonStyle"
-                        title="Adicionar filho"
-                        aria-label="Adicionar filho"
+                        title="Add child"
+                        aria-label="Add child"
                         @click.stop="onAddChild(row.raw)"
                     >
                         <span class="material-symbols-outlined">add</span>
@@ -64,8 +65,8 @@
                         class="icon-button"
                         type="button"
                         :style="iconButtonStyle"
-                        title="Renomear"
-                        aria-label="Renomear"
+                        title="Rename"
+                        aria-label="Rename"
                         @click.stop="onRename(row.raw)"
                     >
                         <span class="material-symbols-outlined">edit</span>
@@ -74,15 +75,15 @@
                         class="icon-button"
                         type="button"
                         :style="iconButtonStyle"
-                        title="Excluir"
-                        aria-label="Excluir"
+                        title="Delete"
+                        aria-label="Delete"
                         @click.stop="onDelete(row.raw)"
                     >
                         <span class="material-symbols-outlined">delete</span>
                     </button>
                 </div>
             </div>
-            <div v-if="!visibleRows.length" class="empty-state">Nenhum item encontrado.</div>
+            <div v-if="!visibleRows.length" class="empty-state">No items found.</div>
         </div>
     </div>
 </template>
@@ -219,6 +220,13 @@ export default {
                 '--icon-hover-color': this.content.iconButtonHoverColor || '#0d6efd',
             };
         },
+        toggleButtonStyle() {
+            return {
+                ...this.iconButtonStyle,
+                '--toggle-button-bg': this.content.toggleButtonBackground || 'transparent',
+                '--toggle-button-color': this.content.toggleButtonColor || '#6c757d',
+            };
+        },
     },
     watch: {
         tree: {
@@ -351,13 +359,9 @@ export default {
     color: var(--icon-hover-color);
 }
 
-.toggle-button[data-v-0df8d948] {
-    background: rgba(0, 0, 0, 0);
-    color: var(--icon-button-bg);
-}
-
-.toggle-button:hover {
-    background: transparent;
+.toggle-button {
+    background: var(--toggle-button-bg);
+    color: var(--toggle-button-color);
 }
 
 .toggle-button:disabled {
