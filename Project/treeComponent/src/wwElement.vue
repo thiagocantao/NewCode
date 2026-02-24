@@ -131,13 +131,20 @@ export default {
             this.normalizedData.forEach(item => {
                 const id = item?.[this.fieldMap.id];
                 if (id === undefined || id === null || id === '') return;
-                map.set(id, {
-                    id,
-                    parentId: item?.[this.fieldMap.parentId],
-                    label: `${item?.[this.fieldMap.label] ?? ''}`,
-                    icon: this.fieldMap.icon ? `${item?.[this.fieldMap.icon] ?? ''}`.trim() : '',
-                    raw: item,
-                    children: [],
+                
+                const parentIdRaw = item?.[this.fieldMap.parentId];
+                const parentId =
+                parentIdRaw === undefined || parentIdRaw === null || parentIdRaw === ''
+                ? null
+                : parentIdRaw;
+                
+                map.set(String(id), {
+                id: String(id),
+                parentId: parentId === null ? null : String(parentId),
+                label: `${item?.[this.fieldMap.label] ?? ''}`,
+                icon: this.fieldMap.icon ? `${item?.[this.fieldMap.icon] ?? ''}`.trim() : '',
+                raw: item,
+                children: [],
                 });
             });
 
@@ -342,21 +349,25 @@ export default {
             this.hideContextActions();
         },
         onNodeClick(row) {
-            this.contextNodeId = row.id;
-            this.selectedNodeId = row.id;
-            this.setSelectedItemId?.(row.id ?? null);
-
-            const nodeData = row.raw && typeof row.raw === 'object' ? row.raw : {};
-
-            this.$emit('trigger-event', {
-                name: 'onNodeClick',
-                event: {
-                    ...nodeData,
-                    id: row.id ?? null,
-                    parentId: row.parentId ?? null,
-                    label: `${row.label ?? ''}`,
-                },
-            });
+        this.contextNodeId = row.id;
+        this.selectedNodeId = row.id;
+        this.setSelectedItemId?.(row.id ?? null);
+        
+        const nodeData = row.raw && typeof row.raw === 'object' ? row.raw : {};
+        
+        const id = nodeData?.[this.fieldMap.id] ?? row.id ?? null;
+        const parentId = nodeData?.[this.fieldMap.parentId] ?? row.parentId ?? null;
+        const label = nodeData?.[this.fieldMap.label] ?? row.label ?? '';
+        
+        this.$emit('trigger-event', {
+        name: 'onNodeClick',
+        event: {
+        ...nodeData,
+        id,
+        parentId,
+        label: `${label}`,
+        },
+        });
         },
     },
 };
