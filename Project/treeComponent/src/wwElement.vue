@@ -6,8 +6,8 @@
                 type="button"
                 :style="iconButtonStyle"
                 @click.stop="onAdd"
-                aria-label="Adicionar"
-                title="Adicionar"
+                aria-label="Add"
+                title="Add"
             >
                 <span class="material-symbols-outlined">add</span>
             </button>
@@ -17,7 +17,7 @@
                     v-model="searchText"
                     class="search-input"
                     type="text"
-                    :placeholder="content.searchPlaceholder || 'Pesquisar...'"
+                    :placeholder="content.searchPlaceholder || 'Search...'"
                 />
             </div>
         </div>
@@ -38,7 +38,7 @@
                     :style="iconButtonStyle"
                     @click.stop="toggleNode(row.id)"
                     :disabled="row.depth >= normalizedMaxLevel - 1"
-                    :aria-label="isExpanded(row.id) ? 'Recolher' : 'Expandir'"
+                    :aria-label="isExpanded(row.id) ? 'Collapse' : 'Expand'"
                 >
                     <span class="material-symbols-outlined">
                         {{ isExpanded(row.id) ? 'expand_more' : 'chevron_right' }}
