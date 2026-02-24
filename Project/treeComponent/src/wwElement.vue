@@ -46,6 +46,7 @@
                 </button>
                 <span v-else class="toggle-placeholder"></span>
 
+                <span v-if="row.icon" class="material-symbols-outlined node-icon">{{ row.icon }}</span>
                 <span class="node-label" v-html="highlightLabel(row.label)"></span>
 
                 <div v-if="contextNodeId === row.id" class="row-actions" @click.stop>
@@ -113,6 +114,7 @@ export default {
                 label: this.content.labelField || 'label',
                 id: this.content.idField || 'id',
                 parentId: this.content.parentIdField || 'parentId',
+                icon: this.content.iconField || '',
             };
         },
         tree() {
@@ -126,6 +128,7 @@ export default {
                     id,
                     parentId: item?.[this.fieldMap.parentId],
                     label: `${item?.[this.fieldMap.label] ?? ''}`,
+                    icon: this.fieldMap.icon ? `${item?.[this.fieldMap.icon] ?? ''}`.trim() : '',
                     raw: item,
                     children: [],
                 });
@@ -174,6 +177,7 @@ export default {
                     rows.push({
                         id: node.id,
                         label: node.label,
+                        icon: node.icon,
                         depth,
                         hasChildren,
                         raw: node.raw,
@@ -411,6 +415,12 @@ export default {
     white-space: nowrap;
     flex: 1;
 }
+
+.node-icon {
+    font-size: 18px;
+    color: var(--icon-color);
+}
+
 
 .row-actions {
     display: inline-flex;
