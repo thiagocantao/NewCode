@@ -56,6 +56,12 @@ export default {
             bindable: true,
             defaultValue: '420px',
         },
+        fontSize: {
+            label: { en: 'Tree font size' },
+            type: 'text',
+            bindable: true,
+            defaultValue: '14px',
+        },
         iconButtonBackground: {
             label: { en: 'Icon button background' },
             type: 'text',
