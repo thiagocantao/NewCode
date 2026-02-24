@@ -347,8 +347,9 @@ export default {
     color: var(--icon-hover-color);
 }
 
-.toggle-button {
-    background: transparent;
+.toggle-button[data-v-0df8d948] {
+    background: rgba(0, 0, 0, 0);
+    color: var(--icon-button-bg);
 }
 
 .toggle-button:hover {
