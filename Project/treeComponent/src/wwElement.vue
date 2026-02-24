@@ -53,6 +53,7 @@
 
                 <div v-if="contextNodeId === row.id" class="row-actions" @click.stop>
                     <button
+                        v-if="row.canHaveChildren"
                         class="icon-button"
                         type="button"
                         :style="iconButtonStyle"
@@ -122,7 +123,33 @@ export default {
                 id: this.content.idField || 'id',
                 parentId: this.content.parentIdField || 'parentId',
                 icon: this.content.iconField || '',
+                type: this.content.typeField || 'type',
             };
+        },
+        allowedChildrenTypesSet() {
+            const source = this.content.allowedChildrenTypes;
+
+            if (Array.isArray(source)) {
+                return new Set(source.map(item => `${item}`.trim()).filter(Boolean));
+            }
+
+            if (typeof source === 'string' && source.trim()) {
+                const normalizedSource = source.replace(/\{/g, '[').replace(/\}/g, ']');
+
+                try {
+                    const parsed = JSON.parse(normalizedSource);
+                    if (Array.isArray(parsed)) {
+                        return new Set(parsed.map(item => `${item}`.trim()).filter(Boolean));
+                    }
+                } catch (error) {
+                    return new Set();
+                }
+            }
+
+            return new Set();
+        },
+        hasTypeRestriction() {
+            return this.allowedChildrenTypesSet.size > 0;
         },
         tree() {
             const map = new Map();
@@ -143,6 +170,7 @@ export default {
                 parentId: parentId === null ? null : String(parentId),
                 label: `${item?.[this.fieldMap.label] ?? ''}`,
                 icon: this.fieldMap.icon ? `${item?.[this.fieldMap.icon] ?? ''}`.trim() : '',
+                type: `${item?.[this.fieldMap.type] ?? ''}`.trim(),
                 raw: item,
                 children: [],
                 });
@@ -150,7 +178,7 @@ export default {
 
             map.forEach(node => {
                 const parent = map.get(node.parentId);
-                if (parent) {
+                if (parent && this.canNodeHaveChildren(parent)) {
                     parent.children.push(node);
                 } else {
                     roots.push(node);
@@ -193,8 +221,10 @@ export default {
                         parentId: node.parentId,
                         label: node.label,
                         icon: node.icon,
+                        type: node.type,
                         depth,
                         hasChildren,
+                        canHaveChildren: this.canNodeHaveChildren(node),
                         raw: node.raw,
                     });
 
@@ -328,6 +358,8 @@ export default {
             });
         },
         onAddChild(node) {
+            if (!this.canNodeHaveChildren(node)) return;
+
             this.$emit('trigger-event', {
                 name: 'onAdd',
                 event: { parentId: node?.[this.fieldMap.id] ?? null, node },
@@ -368,6 +400,12 @@ export default {
         label: `${label}`,
         },
         });
+        },
+        canNodeHaveChildren(node) {
+            if (!this.hasTypeRestriction) return true;
+
+            const itemType = `${node?.[this.fieldMap.type] ?? node?.type ?? ''}`.trim();
+            return this.allowedChildrenTypesSet.has(itemType);
         },
     },
 };

@@ -44,6 +44,18 @@ export default {
             bindable: true,
             defaultValue: '',
         },
+        typeField: {
+            label: { en: 'Type field' },
+            type: 'text',
+            bindable: true,
+            defaultValue: 'type',
+        },
+        allowedChildrenTypes: {
+            label: { en: 'Types allowed to have children (JSON: {"folder", "link"})' },
+            type: 'text',
+            bindable: true,
+            defaultValue: '',
+        },
         width: {
             label: { en: 'Width' },
             type: 'text',
