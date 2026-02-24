@@ -110,6 +110,12 @@ export default {
             bindable: true,
             defaultValue: '#fff3bf',
         },
+        selectedItemBackground: {
+            label: { en: 'Selected/hover item background' },
+            type: 'text',
+            bindable: true,
+            defaultValue: '#e7f1ff',
+        },
         maxLevel: {
             label: { en: 'Max level' },
             type: 'number',
@@ -126,7 +132,7 @@ export default {
         {
             name: 'onNodeClick',
             label: { en: 'On node clicked' },
-            event: { value: null },
+            event: { value: { id: null, parentId: null, label: '' } },
         },
         {
             name: 'onRename',
