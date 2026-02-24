@@ -28,8 +28,8 @@
                 :key="`row-${row.id}`"
                 class="tree-row"
                 :style="{ paddingLeft: `${row.depth * 16 + 8}px` }"
-                @click="onNodeClick(row.raw)"
-                @contextmenu.prevent.stop="openContextActions(row.id)"
+                @click="onNodeClick(row)"
+                @contextmenu.prevent.stop
             >
                 <button
                     v-if="row.hasChildren"
@@ -192,7 +192,20 @@ export default {
             return {
                 width: this.content.width || '100%',
                 height: this.content.height || '420px',
+                '--tree-font-size': this.normalizedFontSize,
             };
+        },
+        normalizedFontSize() {
+            const fontSize = this.content.fontSize;
+            if (typeof fontSize === 'number' && Number.isFinite(fontSize)) {
+                return `${fontSize}px`;
+            }
+
+            if (typeof fontSize === 'string' && fontSize.trim()) {
+                return fontSize.trim();
+            }
+
+            return '14px';
         },
         iconButtonStyle() {
             return {
@@ -228,9 +241,6 @@ export default {
                 ...this.expandedNodes,
                 [id]: !this.isExpanded(id),
             };
-        },
-        openContextActions(nodeId) {
-            this.contextNodeId = nodeId;
         },
         hideContextActions() {
             this.contextNodeId = null;
@@ -286,10 +296,11 @@ export default {
             });
             this.hideContextActions();
         },
-        onNodeClick(node) {
+        onNodeClick(row) {
+            this.contextNodeId = row.id;
             this.$emit('trigger-event', {
                 name: 'onNodeClick',
-                event: node,
+                event: row.raw,
             });
         },
     },
@@ -304,6 +315,7 @@ export default {
     border-radius: 8px;
     overflow: hidden;
     background: #fff;
+    font-size: var(--tree-font-size);
 }
 
 .tree-manager__toolbar {
@@ -333,6 +345,14 @@ export default {
 .toggle-button:hover {
     background: var(--icon-button-hover-bg);
     color: var(--icon-hover-color);
+}
+
+.toggle-button {
+    background: transparent;
+}
+
+.toggle-button:hover {
+    background: transparent;
 }
 
 .toggle-button:disabled {
