@@ -23,15 +23,9 @@
         </div>
 
         <div class="tree-manager__content">
-            <div
-                v-for="row in visibleRows"
-                :key="`row-${row.id}`"
-                class="tree-row"
+            <div v-for="row in visibleRows" :key="`row-${row.id}`" class="tree-row"
                 :class="{ 'tree-row--selected': selectedNodeId === row.id }"
-                :style="{ paddingLeft: `${row.depth * 16 + 8}px` }"
-                @click="onNodeClick(row)"
-                @contextmenu.prevent.stop
-            >
+                :style="{ paddingLeft: `${row.depth * 16 + 8}px` }" @click="onNodeClick(row)" @contextmenu.prevent.stop>
                 <button
                     v-if="row.hasChildren"
                     class="toggle-button"
@@ -81,7 +75,7 @@
 </template>
 
 <script>
-export default {
+    export default {
     props: {
         content: { type: Object, required: true },
     },
@@ -400,130 +394,130 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.tree-manager {
-    display: flex;
-    flex-direction: column;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    overflow: hidden;
-    background: #fff;
-    font-size: var(--tree-font-size);
-}
+    .tree-manager {
+        display: flex;
+        flex-direction: column;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #fff;
+        font-size: var(--tree-font-size);
+    }
 
-.tree-manager__toolbar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px;
-    border-bottom: 1px solid #e9ecef;
-}
+    .tree-manager__toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px;
+        border-bottom: 1px solid #e9ecef;
+    }
 
-.icon-button,
-.toggle-button {
-    border: none;
-    background: var(--icon-button-bg);
-    color: var(--icon-color);
-    border-radius: 6px;
-    min-width: 28px;
-    height: 28px;
-    cursor: pointer;
-    transition: background-color 0.2s ease, color 0.2s ease;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
+    .icon-button,
+    .toggle-button {
+        border: none;
+        background: var(--icon-button-bg);
+        color: var(--icon-color);
+        border-radius: 6px;
+        min-width: 28px;
+        height: 28px;
+        cursor: pointer;
+        transition: background-color 0.2s ease, color 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
 
-.icon-button:hover,
-.toggle-button:hover {
-    background: var(--icon-button-hover-bg);
-    color: var(--icon-hover-color);
-}
+    .icon-button:hover,
+    .toggle-button:hover {
+        background: var(--icon-button-hover-bg);
+        color: var(--icon-hover-color);
+    }
 
-.toggle-button {
-    background: var(--toggle-button-bg);
-    color: var(--toggle-button-color);
-}
+    .toggle-button {
+        background: var(--toggle-button-bg);
+        color: var(--toggle-button-color);
+    }
 
-.toggle-button:disabled {
-    cursor: default;
-    opacity: 0.5;
-}
+    .toggle-button:disabled {
+        cursor: default;
+        opacity: 0.5;
+    }
 
-.material-symbols-outlined {
-    font-size: 18px;
-    line-height: 1;
-}
+    .material-symbols-outlined {
+        font-size: 18px;
+        line-height: 1;
+    }
 
-.search-box {
-    display: flex;
-    align-items: center;
-    flex: 1;
-    border: 1px solid #dee2e6;
-    border-radius: 6px;
-    padding: 0 8px;
-    gap: 6px;
-    min-height: 32px;
-}
+    .search-box {
+        display: flex;
+        align-items: center;
+        flex: 1;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 0 8px;
+        gap: 6px;
+        min-height: 32px;
+    }
 
-.search-icon {
-    color: var(--icon-color);
-}
+    .search-icon {
+        color: var(--icon-color);
+    }
 
-.search-input {
-    flex: 1;
-    border: none;
-    outline: none;
-    background: transparent;
-}
+    .search-input {
+        flex: 1;
+        border: none;
+        outline: none;
+        background: transparent;
+    }
 
-.tree-manager__content {
-    flex: 1;
-    overflow: auto;
-    padding: 6px 0;
-}
+    .tree-manager__content {
+        flex: 1;
+        overflow: auto;
+        padding: 6px 0;
+    }
 
-.tree-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-height: 32px;
-    cursor: pointer;
-    padding-right: 8px;
-    transition: background-color 0.2s ease;
-}
+    .tree-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 32px;
+        cursor: pointer;
+        padding-right: 8px;
+        transition: background-color 0.2s ease;
+    }
 
-.tree-row:hover,
-.tree-row--selected {
-    background: var(--row-selected-bg);
-}
+    .tree-row:hover,
+    .tree-row--selected {
+        background: var(--row-selected-bg);
+    }
 
-.toggle-placeholder {
-    width: 28px;
-}
+    .toggle-placeholder {
+        width: 28px;
+    }
 
-.node-label {
-    white-space: nowrap;
-    flex: 1;
-}
+    .node-label {
+        white-space: nowrap;
+        flex: 1;
+    }
 
-.node-icon {
-    font-size: 22px;
-    color: var(--icon-color);
-}
+    .node-icon {
+        font-size: 22px;
+        color: var(--icon-button-bg);
+    }
 
 
-.row-actions {
-    display: inline-flex;
-    gap: 4px;
-}
+    .row-actions {
+        display: inline-flex;
+        gap: 4px;
+    }
 
-.row-actions .row-action-button,
-.row-actions .row-action-button:hover {
-    background: transparent;
-}
+    .row-actions .row-action-button,
+    .row-actions .row-action-button:hover {
+        background: transparent;
+    }
 
-.empty-state {
-    padding: 12px;
-    color: #6c757d;
-}
+    .empty-state {
+        padding: 12px;
+        color: #6c757d;
+    }
 </style>
