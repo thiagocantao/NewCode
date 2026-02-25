@@ -54,7 +54,7 @@
                 <div v-if="selectedNodeId === row.id" class="row-actions" @click.stop>
                     <button
                         v-if="row.canAddChild"
-                        class="icon-button"
+                        class="icon-button row-action-button"
                         type="button"
                         :style="iconButtonStyle"
                         title="Add child"
@@ -64,7 +64,7 @@
                         <span class="material-symbols-outlined">add</span>
                     </button>
                     <button
-                        class="icon-button"
+                        class="icon-button row-action-button"
                         type="button"
                         :style="iconButtonStyle"
                         title="Delete"
@@ -515,6 +515,11 @@ export default {
 .row-actions {
     display: inline-flex;
     gap: 4px;
+}
+
+.row-actions .row-action-button,
+.row-actions .row-action-button:hover {
+    background: transparent;
 }
 
 .empty-state {
