@@ -51,10 +51,10 @@
                 <span v-if="row.icon" class="material-symbols-outlined node-icon">{{ row.icon }}</span>
                 <span class="node-label" v-html="highlightLabel(row.label)"></span>
 
-                <div v-if="contextNodeId === row.id" class="row-actions" @click.stop>
+                <div v-if="selectedNodeId === row.id" class="row-actions" @click.stop>
                     <button
-                        v-if="row.canHaveChildren"
-                        class="icon-button"
+                        v-if="row.canAddChild"
+                        class="icon-button row-action-button"
                         type="button"
                         :style="iconButtonStyle"
                         title="Add child"
@@ -64,17 +64,7 @@
                         <span class="material-symbols-outlined">add</span>
                     </button>
                     <button
-                        class="icon-button"
-                        type="button"
-                        :style="iconButtonStyle"
-                        title="Rename"
-                        aria-label="Rename"
-                        @click.stop="onRename(row.raw)"
-                    >
-                        <span class="material-symbols-outlined">edit</span>
-                    </button>
-                    <button
-                        class="icon-button"
+                        class="icon-button row-action-button"
                         type="button"
                         :style="iconButtonStyle"
                         title="Delete"
@@ -225,6 +215,7 @@ export default {
                         depth,
                         hasChildren,
                         canHaveChildren: this.canNodeHaveChildren(node),
+                        canAddChild: this.canNodeHaveChildren(node) && depth < this.normalizedMaxLevel - 1,
                         raw: node.raw,
                     });
 
@@ -360,16 +351,13 @@ export default {
         onAddChild(node) {
             if (!this.canNodeHaveChildren(node)) return;
 
+            const nodeId = `${node?.[this.fieldMap.id] ?? ''}`;
+            const selectedRow = this.visibleRows.find(row => row.id === nodeId);
+            if (!selectedRow || !selectedRow.canAddChild) return;
+
             this.$emit('trigger-event', {
                 name: 'onAdd',
                 event: { parentId: node?.[this.fieldMap.id] ?? null, node },
-            });
-            this.hideContextActions();
-        },
-        onRename(node) {
-            this.$emit('trigger-event', {
-                name: 'onRename',
-                event: node,
             });
             this.hideContextActions();
         },
@@ -527,6 +515,11 @@ export default {
 .row-actions {
     display: inline-flex;
     gap: 4px;
+}
+
+.row-actions .row-action-button,
+.row-actions .row-action-button:hover {
+    background: transparent;
 }
 
 .empty-state {
