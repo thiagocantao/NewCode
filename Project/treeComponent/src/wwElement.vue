@@ -61,7 +61,7 @@
                         aria-label="Add child"
                         @click.stop="onAddChild(row.raw)"
                     >
-                        <span class="material-symbols-outlined">add</span>
+                        <span class="material-symbols-outlined node-icon">add</span>
                     </button>
                     <button
                         class="icon-button row-action-button"
@@ -71,7 +71,7 @@
                         aria-label="Delete"
                         @click.stop="onDelete(row.raw)"
                     >
-                        <span class="material-symbols-outlined">delete</span>
+                        <span class="material-symbols-outlined node-icon">delete</span>
                     </button>
                 </div>
             </div>
@@ -507,7 +507,7 @@ export default {
 }
 
 .node-icon {
-    font-size: 18px;
+    font-size: 22px;
     color: var(--icon-color);
 }
 
