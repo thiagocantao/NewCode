@@ -397,9 +397,6 @@
     .tree-manager {
         display: flex;
         flex-direction: column;
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-        overflow: hidden;
         background: #fff;
         font-size: var(--tree-font-size);
     }
