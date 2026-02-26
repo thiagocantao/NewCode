@@ -59,6 +59,11 @@ export default {
             this.syncCurrentSelectedItem(newSelectedIcon);
         },
     },
+    watch: {
+        selectedIcon(newSelectedIcon) {
+            this.currentSelectedItem = newSelectedIcon;
+        },
+    },
     methods: {
         initializePublicVariables() {
             if (typeof wwLib === 'undefined' || !wwLib?.wwVariable?.useComponentVariable) {
@@ -128,7 +133,7 @@ export default {
 
 <style lang="scss" scoped>
 .icon-selector {
-    display: flex;
+    display: flex !important;
     flex-wrap: wrap;
     align-items: flex-start;
     gap: 8px;
