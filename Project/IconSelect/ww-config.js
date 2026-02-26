@@ -8,17 +8,19 @@ export default {
     properties: {
         availableIcons: {
             label: {
-                en: 'Available icons (1 per line)',
+                en: 'Json available icons',
             },
             type: 'Textarea',
-            defaultValue: `support
-help
-help_center
-contact_support
-live_help
-forum
-question_answer
-chat`,
+            defaultValue: `[
+  { "name": "support", "label": "Support", "category": "suporte" },
+  { "name": "help", "label": "Help", "category": "suporte" },
+  { "name": "help_center", "label": "Help Center", "category": "suporte" },
+  { "name": "contact_support", "label": "Contact Support", "category": "suporte" },
+  { "name": "live_help", "label": "Live Help", "category": "suporte" },
+  { "name": "forum", "label": "Forum", "category": "suporte" },
+  { "name": "question_answer", "label": "Question Answer", "category": "suporte" },
+  { "name": "chat", "label": "Chat", "category": "suporte" }
+]`,
             bindable: true,
         },
         selectedIcon: {
