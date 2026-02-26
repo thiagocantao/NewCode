@@ -28,7 +28,7 @@ export default {
     emits: ['update:content:effect', 'update:content', 'element-event'],
     data() {
         return {
-            currentSelectedItem: this.content.selectedIcon || '',
+            currentSelectedItem: this.content.currentSelectedItem || this.content.selectedIcon || '',
             setCurrentSelectedItem: null,
         };
     },
@@ -57,11 +57,6 @@ export default {
         selectedIcon(newSelectedIcon) {
             this.currentSelectedItem = newSelectedIcon;
             this.syncCurrentSelectedItem(newSelectedIcon);
-        },
-    },
-    watch: {
-        selectedIcon(newSelectedIcon) {
-            this.currentSelectedItem = newSelectedIcon;
         },
     },
     methods: {
