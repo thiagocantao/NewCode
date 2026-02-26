@@ -17,8 +17,8 @@ export default {
                     name: 'item',
                     type: 'text',
                     label: {
-                        en: 'Item',
-                        pt: 'Item',
+                        en: 'Item (name, id or object)',
+                        pt: 'Item (nome, id ou objeto)',
                     },
                 },
             ],

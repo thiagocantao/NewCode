@@ -43,7 +43,7 @@ export default {
     wwEditor: {
         actions: {
             setSelectedItem(item) {
-                this.selectIcon(`${item || ''}`.trim());
+                this.selectItemFromAction(item);
             },
         },
     },
@@ -152,24 +152,102 @@ export default {
 
             this.closePopup();
         },
-        selectIcon(iconName) {
-            this.closePopup();
+        selectItemFromAction(actionItem) {
+            const normalizedActionItem = this.unwrapActionItem(actionItem);
+            const icon = this.resolveIconFromActionItem(normalizedActionItem);
 
-            if (iconName === this.selectedIcon) {
+            if (!icon?.name) {
                 return;
             }
 
-            this.currentSelectedItem = iconName;
-            this.syncCurrentSelectedItem(iconName);
+            const selectedItemId = this.resolveSelectedItemId(normalizedActionItem, icon);
+            this.selectIcon(icon.name, {
+                selectedItemId,
+                forceUpdate: true,
+            });
+        },
+        unwrapActionItem(actionItem) {
+            if (actionItem && typeof actionItem === 'object' && 'item' in actionItem && Object.keys(actionItem).length === 1) {
+                return actionItem.item;
+            }
+
+            return actionItem;
+        },
+        resolveIconFromActionItem(actionItem) {
+            if (actionItem && typeof actionItem === 'object') {
+                const rawName = actionItem.name ?? actionItem.icon ?? actionItem.selectedIcon;
+                const iconName = `${rawName || ''}`.trim();
+
+                if (iconName) {
+                    return this.availableIcons.find(icon => icon.name === iconName) || { ...actionItem, name: iconName };
+                }
+
+                const rawId = actionItem.id ?? actionItem.itemId ?? actionItem.value;
+                const iconId = `${rawId || ''}`.trim();
+
+                if (iconId) {
+                    return this.availableIcons.find(icon => `${icon?.id ?? ''}`.trim() === iconId) || null;
+                }
+
+                return null;
+            }
+
+            const normalizedValue = `${actionItem || ''}`.trim();
+
+            if (!normalizedValue) {
+                return null;
+            }
+
+            return (
+                this.availableIcons.find(icon => icon.name === normalizedValue) ||
+                this.availableIcons.find(icon => `${icon?.id ?? ''}`.trim() === normalizedValue) ||
+                { name: normalizedValue }
+            );
+        },
+        resolveSelectedItemId(actionItem, icon) {
+            if (actionItem && typeof actionItem === 'object') {
+                const rawId = actionItem.id ?? actionItem.itemId ?? actionItem.value;
+                const normalizedId = `${rawId || ''}`.trim();
+
+                if (normalizedId) {
+                    return normalizedId;
+                }
+            }
+
+            const iconId = `${icon?.id ?? ''}`.trim();
+            if (iconId) {
+                return iconId;
+            }
+
+            return `${icon?.name || ''}`.trim();
+        },
+        selectIcon(iconName, options = {}) {
+            this.closePopup();
+
+            const normalizedIconName = `${iconName || ''}`.trim();
+            if (!normalizedIconName) {
+                return;
+            }
+
+            const selectedItemId = `${options.selectedItemId || normalizedIconName}`.trim();
+            const shouldSkipUpdate = normalizedIconName === this.selectedIcon && selectedItemId === this.currentSelectedItem && !options.forceUpdate;
+
+            if (shouldSkipUpdate) {
+                return;
+            }
+
+            this.currentSelectedItem = selectedItemId;
+            this.syncCurrentSelectedItem(selectedItemId);
 
             this.$emit('update:content', {
                 ...this.content,
-                selectedIcon: iconName,
-                currentSelectedItem: iconName,
+                selectedIcon: normalizedIconName,
+                currentSelectedItem: selectedItemId,
             });
             this.$emit('element-event', {
                 type: 'icon-select',
-                icon: iconName,
+                icon: normalizedIconName,
+                selectedItemId,
             });
         },
     },
