@@ -144,6 +144,11 @@ export default {
     border: 1px solid #d1d5db;
     border-radius: 8px;
     background: #ffffff;
+
+    &::before {
+        content: none !important;
+        display: none !important;
+    }
 }
 
 .icon-selector__item {
