@@ -13,6 +13,19 @@ export default {
             icon: 'account_tree',
         },
     },
+    actions: [
+        {
+            label: { en: 'Select node by ID' },
+            action: 'selectNodeById',
+            args: [
+                {
+                    name: 'id',
+                    type: 'text',
+                    label: { en: 'Node ID' },
+                },
+            ],
+        },
+    ],
     properties: {
         data: {
             label: { en: 'JSON data source' },
@@ -40,6 +53,12 @@ export default {
         },
         iconField: {
             label: { en: 'Icon field (Material Symbols name)' },
+            type: 'text',
+            bindable: true,
+            defaultValue: '',
+        },
+        deleteVisibleField: {
+            label: { en: 'Delete visibility field' },
             type: 'text',
             bindable: true,
             defaultValue: '',
@@ -137,8 +156,13 @@ export default {
     },
     triggerEvents: [
         {
+            name: 'onToolbarAdd',
+            label: { en: 'On top add clicked' },
+            event: { value: { parentId: null } },
+        },
+        {
             name: 'onAdd',
-            label: { en: 'On add clicked' },
+            label: { en: 'On add child clicked' },
             event: { value: { parentId: null } },
         },
         {
