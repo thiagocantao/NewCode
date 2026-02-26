@@ -5,6 +5,25 @@ export default {
         },
         icon: 'apps',
     },
+    actions: [
+        {
+            label: {
+                en: 'Set selected item',
+                pt: 'Definir item selecionado',
+            },
+            action: 'setSelectedItem',
+            args: [
+                {
+                    name: 'item',
+                    type: 'text',
+                    label: {
+                        en: 'Item (name, id or object)',
+                        pt: 'Item (nome, id ou objeto)',
+                    },
+                },
+            ],
+        },
+    ],
     properties: {
         availableIcons: {
             label: {
