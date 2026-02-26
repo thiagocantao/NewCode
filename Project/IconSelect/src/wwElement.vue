@@ -1,40 +1,19 @@
 <template>
-    <wwSimpleLayout
-        :tag="tag"
-        v-if="noDropzone"
-        class="ww-flexbox"
-        ww-responsive="wwLayoutSlot"
-        v-bind="properties"
-        :class="{ '-link': hasLink && !isEditing }"
-    >
-        <slot></slot>
-    </wwSimpleLayout>
-    <wwLayout
-        v-else
-        class="ww-flexbox"
-        path="children"
-        :direction="content.direction"
-        :disable-edit="isFixed"
-        ww-responsive="wwLayout"
-        :tag="tag"
-        v-bind="properties"
-        :class="{ '-link': hasLink && !isEditing }"
-    >
-        <template #header>
-            <wwBackgroundVideo v-if="backgroundVideo" :video="backgroundVideo"></wwBackgroundVideo>
-            <slot v-if="!noDropzone"></slot>
-        </template>
-        <template #default="{ item, index, itemStyle }">
-            <wwElement
-                v-bind="item"
-                :extra-style="itemStyle"
-                class="ww-flexbox__object"
-                :ww-responsive="`wwobject-${index}`"
-                :data-ww-flexbox-index="index"
-                @click="onElementClick"
-            ></wwElement>
-        </template>
-    </wwLayout>
+    <div class="icon-selector" role="listbox" aria-label="Icon selector">
+        <button
+            v-for="iconName in availableIcons"
+            :key="iconName"
+            class="icon-selector__item"
+            type="button"
+            :class="{ 'icon-selector__item--selected': iconName === selectedIcon }"
+            :aria-selected="iconName === selectedIcon"
+            @click="selectIcon(iconName)"
+        >
+            <span class="material-symbols-outlined" aria-hidden="true">{{ iconName }}</span>
+        </button>
+
+        <div v-if="!availableIcons.length" class="icon-selector__empty">Nenhum ícone disponível</div>
+    </div>
 </template>
 
 <script>
@@ -47,55 +26,91 @@ export default {
         /* wwEditor:end */
     },
     emits: ['update:content:effect', 'update:content', 'element-event'],
-    setup() {
-        const { hasLink, tag, properties } = wwLib.wwElement.useLink();
-        const backgroundVideo = wwLib.wwElement.useBackgroundVideo();
-
-        return {
-            hasLink,
-            properties,
-            backgroundVideo,
-            tag,
-        };
-    },
     computed: {
-        children() {
-            if (!this.content.children || !Array.isArray(this.content.children)) {
+        availableIcons() {
+            const source = this.content.availableIcons;
+
+            if (Array.isArray(source)) {
+                return source.map((icon) => String(icon).trim()).filter(Boolean);
+            }
+
+            if (typeof source !== 'string') {
                 return [];
             }
-            return this.content.children;
+
+            return source
+                .split('\n')
+                .map((icon) => icon.trim())
+                .filter(Boolean);
         },
-        isFixed() {
-            return this.wwElementState.props.isFixed;
-        },
-        noDropzone() {
-            return this.wwElementState.props.noDropzone;
-        },
-        isEditing() {
-            /* wwEditor:start */
-            return this.wwEditorState.editMode === wwLib.wwEditorHelper.EDIT_MODES.EDITION;
-            /* wwEditor:end */
-            // eslint-disable-next-line no-unreachable
-            return false;
+        selectedIcon() {
+            return this.content.selectedIcon || '';
         },
     },
     methods: {
-        onElementClick(event) {
-            // We would prefer having the index inside the callback in the template, but due to a strange way Vue is handling anynmous functions with scope slot, we need to pass the index as a data attribute or each time the parent rerender, all the children will also rerender
-            let rawIndex = event.currentTarget.dataset.wwFlexboxIndex;
-
-            let index = parseInt(rawIndex);
-            if (isNaN(index)) {
-                index = 0;
+        selectIcon(iconName) {
+            if (iconName === this.selectedIcon) {
+                return;
             }
-            this.$emit('element-event', { type: 'click', index });
+
+            this.$emit('update:content', {
+                ...this.content,
+                selectedIcon: iconName,
+            });
+            this.$emit('element-event', {
+                type: 'icon-select',
+                icon: iconName,
+            });
         },
     },
 };
 </script>
 
 <style lang="scss" scoped>
-.-link {
+.icon-selector {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+    gap: 8px;
+    width: 100%;
+    max-height: 232px;
+    overflow-y: auto;
+    padding: 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #ffffff;
+}
+
+.icon-selector__item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    background: transparent;
     cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+
+    &:hover {
+        background: #f3f4f6;
+    }
+
+    .material-symbols-outlined {
+        font-size: 24px;
+        line-height: 24px;
+    }
+}
+
+.icon-selector__item--selected {
+    border-color: #2563eb;
+    background: #dbeafe;
+}
+
+.icon-selector__empty {
+    grid-column: 1 / -1;
+    color: #6b7280;
+    font-size: 12px;
+    text-align: center;
+    padding: 8px;
 }
 </style>

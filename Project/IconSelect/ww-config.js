@@ -1,57 +1,34 @@
 export default {
-    options: {
-        lazyHydrate: true,
-        displayAllowedValues: (content, wwProps) => wwProps?.overrideDisplayValues ?? [
-            'flex',
-            'block',
-            'grid',
-            'table-cell',
-            'table-row',
-            'table-header-group',
-            'inline-flex',
-            'inline-block',
-            'inline-grid',
-        ],
-        linkable: true,
-    },
-    inherit: [{ type: 'ww-layout' }, { type: 'ww-background-video' }],
     editor: {
         label: {
-            en: 'Flexbox',
+            en: 'Icon selector',
         },
-        icon: 'border',
-        bubble: {
-            icon: 'border',
-        },
-        customStylePropertiesOrder: ['children'],
+        icon: 'apps',
     },
     properties: {
-        children: {
+        availableIcons: {
             label: {
-                en: 'Items',
-                fr: 'Items',
+                en: 'Available icons (1 per line)',
             },
-            type: 'Repeat',
-            options: {
-                text: { en: 'Elements to repeat' },
+            type: 'Textarea',
+            defaultValue: `support
+help
+help_center
+contact_support
+live_help
+forum
+question_answer
+chat`,
+            bindable: true,
+        },
+        selectedIcon: {
+            label: {
+                en: 'Selected icon',
             },
-            hidden: (content, sidePanelContent, boundProps, wwProps) => !!(wwProps && wwProps.isFixed) || wwProps.noDropzone,
-            bindable: 'repeatable',
-            defaultValue: [],
-            /* wwEditor:start */
-            bindingValidation: {
-                validations: [
-                    {
-                        type: 'array',
-                    },
-                    {
-                        type: 'object',
-                    },
-                ],
-                tooltip:
-                    'A collection or an array of data: \n\n`myCollection` or `[{}, {}, ...] || ["string1", "string2", ...] || [1, 2, ...]`',
-            },
-            /* wwEditor:end */
+            type: 'Text',
+            defaultValue: '',
+            bindable: true,
+            readonly: true,
         },
     },
 };
