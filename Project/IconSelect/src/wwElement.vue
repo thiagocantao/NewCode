@@ -85,8 +85,9 @@ export default {
 
 <style lang="scss" scoped>
 .icon-selector {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
     gap: 8px;
     width: 100%;
     max-height: 232px;
@@ -101,7 +102,9 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 40px;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
     border: 1px solid #e5e7eb;
     border-radius: 6px;
     background: transparent;
@@ -124,7 +127,7 @@ export default {
 }
 
 .icon-selector__empty {
-    grid-column: 1 / -1;
+    width: 100%;
     color: #6b7280;
     font-size: 12px;
     text-align: center;
