@@ -5,7 +5,7 @@
                 class="icon-button"
                 type="button"
                 :style="iconButtonStyle"
-                @click.stop="onAdd"
+                @click.stop="onToolbarAdd"
                 aria-label="Add"
                 title="Add"
             >
@@ -37,7 +37,7 @@
                     :title="isExpanded(row.id) ? 'Collapse' : 'Expand'"
                 >
                     <span class="material-symbols-outlined">
-                        {{ isExpanded(row.id) ? 'expand_more' : 'chevron_right' }}
+                        {{ isExpanded(row.id) ? 'folder_open' : 'folder' }}
                     </span>
                 </button>
                 <span v-else class="toggle-placeholder"></span>
@@ -58,6 +58,7 @@
                         <span class="material-symbols-outlined node-icon">add</span>
                     </button>
                     <button
+                        v-if="row.canDelete"
                         class="icon-button row-action-button"
                         type="button"
                         :style="iconButtonStyle"
@@ -80,6 +81,13 @@
         content: { type: Object, required: true },
     },
     emits: ['trigger-event'],
+    wwEditor: {
+        actions: {
+            selectNodeById(id) {
+                this.selectNodeById(id);
+            },
+        },
+    },
     data() {
         return {
             searchText: '',
@@ -108,6 +116,7 @@
                 parentId: this.content.parentIdField || 'parentId',
                 icon: this.content.iconField || '',
                 type: this.content.typeField || 'type',
+                deleteVisible: this.content.deleteVisibleField || '',
             };
         },
         allowedChildrenTypesSet() {
@@ -210,6 +219,7 @@
                         hasChildren,
                         canHaveChildren: this.canNodeHaveChildren(node),
                         canAddChild: this.canNodeHaveChildren(node) && depth < this.normalizedMaxLevel - 1,
+                        canDelete: this.canDeleteNode(node.raw),
                         raw: node.raw,
                     });
 
@@ -336,9 +346,9 @@
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#039;');
         },
-        onAdd() {
+        onToolbarAdd() {
             this.$emit('trigger-event', {
-                name: 'onAdd',
+                name: 'onToolbarAdd',
                 event: { parentId: null },
             });
         },
@@ -362,6 +372,37 @@
             });
             this.hideContextActions();
         },
+        selectNodeById(id) {
+            const nodeId = id === undefined || id === null ? '' : `${id}`;
+            if (!nodeId) return;
+
+            const path = [];
+            const findPath = nodes => {
+                for (const node of nodes) {
+                    path.push(node.id);
+                    if (node.id === nodeId) return true;
+                    if (node.children?.length && findPath(node.children)) return true;
+                    path.pop();
+                }
+
+                return false;
+            };
+
+            const found = findPath(this.tree);
+            if (!found) return;
+
+            const expandedNodes = { ...this.expandedNodes };
+            path.slice(0, -1).forEach(ancestorId => {
+                expandedNodes[ancestorId] = true;
+            });
+            this.expandedNodes = expandedNodes;
+
+            this.$nextTick(() => {
+                const row = this.visibleRows.find(currentRow => currentRow.id === nodeId);
+                if (!row) return;
+                this.onNodeClick(row);
+            });
+        },
         onNodeClick(row) {
         this.contextNodeId = row.id;
         this.selectedNodeId = row.id;
@@ -382,6 +423,20 @@
         label: `${label}`,
         },
         });
+        },
+        canDeleteNode(node) {
+            const fieldName = `${this.fieldMap.deleteVisible ?? ''}`.trim();
+            if (!fieldName) return true;
+
+            const value = node?.[fieldName];
+            if (typeof value === 'boolean') return value;
+            if (typeof value === 'number') return value !== 0;
+            if (typeof value === 'string') {
+                const normalized = value.trim().toLowerCase();
+                return ['true', '1', 'yes', 'sim'].includes(normalized);
+            }
+
+            return Boolean(value);
         },
         canNodeHaveChildren(node) {
             if (!this.hasTypeRestriction) return true;
