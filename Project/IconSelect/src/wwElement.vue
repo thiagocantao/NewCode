@@ -26,6 +26,11 @@ export default {
         /* wwEditor:end */
     },
     emits: ['update:content:effect', 'update:content', 'element-event'],
+    data() {
+        return {
+            currentSelectedItem: this.content.selectedIcon || '',
+        };
+    },
     computed: {
         availableIcons() {
             const source = this.content.availableIcons;
@@ -42,6 +47,11 @@ export default {
         },
         selectedIcon() {
             return this.content.selectedIcon || '';
+        },
+    },
+    watch: {
+        selectedIcon(newSelectedIcon) {
+            this.currentSelectedItem = newSelectedIcon;
         },
     },
     methods: {
@@ -69,6 +79,8 @@ export default {
             if (iconName === this.selectedIcon) {
                 return;
             }
+
+            this.currentSelectedItem = iconName;
 
             this.$emit('update:content', {
                 ...this.content,
@@ -118,6 +130,7 @@ export default {
     .material-symbols-outlined {
         font-size: 28px;
         line-height: 28px;
+        color: #777;
     }
 }
 
