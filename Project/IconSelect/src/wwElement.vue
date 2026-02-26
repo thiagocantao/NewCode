@@ -40,6 +40,13 @@ export default {
         /* wwEditor:end */
     },
     emits: ['update:content:effect', 'update:content', 'element-event'],
+    wwEditor: {
+        actions: {
+            setSelectedItem(item) {
+                this.selectIcon(`${item || ''}`.trim());
+            },
+        },
+    },
     data() {
         return {
             currentSelectedItem: this.content.currentSelectedItem || this.content.selectedIcon || '',
