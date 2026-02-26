@@ -26,6 +26,15 @@ export default {
         /* wwEditor:end */
     },
     emits: ['update:content:effect', 'update:content', 'element-event'],
+    data() {
+        return {
+            currentSelectedItem: this.content.selectedIcon || '',
+            setCurrentSelectedItem: null,
+        };
+    },
+    created() {
+        this.initializePublicVariables();
+    },
     computed: {
         availableIcons() {
             const source = this.content.availableIcons;
@@ -41,10 +50,40 @@ export default {
                 .filter(Boolean);
         },
         selectedIcon() {
-            return this.content.selectedIcon || '';
+            return this.content.currentSelectedItem || this.content.selectedIcon || '';
+        },
+    },
+    watch: {
+        selectedIcon(newSelectedIcon) {
+            this.currentSelectedItem = newSelectedIcon;
+            this.syncCurrentSelectedItem(newSelectedIcon);
         },
     },
     methods: {
+        initializePublicVariables() {
+            if (typeof wwLib === 'undefined' || !wwLib?.wwVariable?.useComponentVariable) {
+                return;
+            }
+
+            const uid = this.wwElementState?.uid;
+            if (!uid) {
+                return;
+            }
+
+            const currentSelectedItemVariable = wwLib.wwVariable.useComponentVariable({
+                uid,
+                name: 'currentSelectedItem',
+                type: 'string',
+                defaultValue: this.currentSelectedItem,
+                readonly: true,
+            });
+
+            this.setCurrentSelectedItem = currentSelectedItemVariable.setValue;
+            this.syncCurrentSelectedItem(this.currentSelectedItem);
+        },
+        syncCurrentSelectedItem(value) {
+            this.setCurrentSelectedItem?.(value || '');
+        },
         parseJsonSource(source) {
             try {
                 return JSON.parse(source);
@@ -70,9 +109,13 @@ export default {
                 return;
             }
 
+            this.currentSelectedItem = iconName;
+            this.syncCurrentSelectedItem(iconName);
+
             this.$emit('update:content', {
                 ...this.content,
                 selectedIcon: iconName,
+                currentSelectedItem: iconName,
             });
             this.$emit('element-event', {
                 type: 'icon-select',
@@ -118,6 +161,7 @@ export default {
     .material-symbols-outlined {
         font-size: 28px;
         line-height: 28px;
+        color: #777;
     }
 }
 

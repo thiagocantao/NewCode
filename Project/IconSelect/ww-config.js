@@ -23,6 +23,15 @@ export default {
 ]`,
             bindable: true,
         },
+        currentSelectedItem: {
+            label: {
+                en: 'Current selected item',
+            },
+            type: 'Text',
+            defaultValue: '',
+            bindable: true,
+            readonly: true,
+        },
         selectedIcon: {
             label: {
                 en: 'Selected icon',
