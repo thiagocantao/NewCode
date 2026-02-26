@@ -1,18 +1,32 @@
 <template>
-    <div class="icon-selector" role="listbox" aria-label="Icon selector">
+    <div ref="root" class="icon-selector" :class="{ 'icon-selector--open': isPopupOpen }">
         <button
-            v-for="icon in availableIcons"
-            :key="icon.name"
-            class="icon-selector__item"
+            class="icon-selector__trigger"
             type="button"
-            :class="{ 'icon-selector__item--selected': icon.name === selectedIcon }"
-            :aria-selected="icon.name === selectedIcon"
-            @click="selectIcon(icon.name)"
+            :aria-expanded="isPopupOpen"
+            aria-haspopup="listbox"
+            aria-label="Selecionar ícone"
+            @click="togglePopup"
         >
-            <span class="material-symbols-outlined" aria-hidden="true">{{ icon.name }}</span>
+            <span v-if="visibleIcon" class="material-symbols-outlined" aria-hidden="true">{{ visibleIcon }}</span>
+            <span v-else class="icon-selector__placeholder">Selecionar</span>
         </button>
 
-        <div v-if="!availableIcons.length" class="icon-selector__empty">Nenhum ícone disponível</div>
+        <div v-if="isPopupOpen" class="icon-selector__popup" role="listbox" aria-label="Lista de ícones">
+            <button
+                v-for="icon in availableIcons"
+                :key="icon.name"
+                class="icon-selector__item"
+                type="button"
+                :class="{ 'icon-selector__item--selected': icon.name === selectedIcon }"
+                :aria-selected="icon.name === selectedIcon"
+                @click="selectIcon(icon.name)"
+            >
+                <span class="material-symbols-outlined" aria-hidden="true">{{ icon.name }}</span>
+            </button>
+
+            <div v-if="!availableIcons.length" class="icon-selector__empty">Nenhum ícone disponível</div>
+        </div>
     </div>
 </template>
 
@@ -30,10 +44,17 @@ export default {
         return {
             currentSelectedItem: this.content.currentSelectedItem || this.content.selectedIcon || '',
             setCurrentSelectedItem: null,
+            isPopupOpen: false,
         };
     },
     created() {
         this.initializePublicVariables();
+    },
+    mounted() {
+        document.addEventListener('click', this.handleClickOutside);
+    },
+    beforeUnmount() {
+        document.removeEventListener('click', this.handleClickOutside);
     },
     computed: {
         availableIcons() {
@@ -51,6 +72,9 @@ export default {
         },
         selectedIcon() {
             return this.content.currentSelectedItem || this.content.selectedIcon || '';
+        },
+        visibleIcon() {
+            return this.selectedIcon || this.availableIcons[0]?.name || '';
         },
     },
     watch: {
@@ -104,7 +128,26 @@ export default {
             const name = typeof icon.name === 'string' ? icon.name.trim() : '';
             return name ? { ...icon, name } : null;
         },
+        togglePopup() {
+            this.isPopupOpen = !this.isPopupOpen;
+        },
+        closePopup() {
+            this.isPopupOpen = false;
+        },
+        handleClickOutside(event) {
+            if (!this.isPopupOpen) {
+                return;
+            }
+
+            if (this.$refs.root?.contains(event.target)) {
+                return;
+            }
+
+            this.closePopup();
+        },
         selectIcon(iconName) {
+            this.closePopup();
+
             if (iconName === this.selectedIcon) {
                 return;
             }
@@ -128,22 +171,50 @@ export default {
 
 <style lang="scss" scoped>
 .icon-selector {
-    display: flex !important;
+    position: relative;
+    display: inline-flex;
+
+    &::before {
+        content: none !important;
+        display: none !important;
+    }
+}
+
+.icon-selector__trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #ffffff;
+    cursor: pointer;
+
+    .material-symbols-outlined {
+        font-size: 28px;
+        line-height: 28px;
+        color: #777;
+    }
+}
+
+.icon-selector__popup {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 10;
+    display: flex;
     flex-wrap: wrap;
     align-items: flex-start;
     gap: 8px;
-    width: 100%;
+    width: min(280px, 100vw - 24px);
     max-height: 232px;
     overflow-y: auto;
     padding: 8px;
     border: 1px solid #d1d5db;
     border-radius: 8px;
     background: #ffffff;
-
-    &::before {
-        content: none !important;
-        display: none !important;
-    }
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
 }
 
 .icon-selector__item {
@@ -181,5 +252,10 @@ export default {
     font-size: 12px;
     text-align: center;
     padding: 8px;
+}
+
+.icon-selector__placeholder {
+    font-size: 10px;
+    color: #6b7280;
 }
 </style>
