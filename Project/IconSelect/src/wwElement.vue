@@ -1,15 +1,15 @@
 <template>
     <div class="icon-selector" role="listbox" aria-label="Icon selector">
         <button
-            v-for="iconName in availableIcons"
-            :key="iconName"
+            v-for="icon in availableIcons"
+            :key="icon.name"
             class="icon-selector__item"
             type="button"
-            :class="{ 'icon-selector__item--selected': iconName === selectedIcon }"
-            :aria-selected="iconName === selectedIcon"
-            @click="selectIcon(iconName)"
+            :class="{ 'icon-selector__item--selected': icon.name === selectedIcon }"
+            :aria-selected="icon.name === selectedIcon"
+            @click="selectIcon(icon.name)"
         >
-            <span class="material-symbols-outlined" aria-hidden="true">{{ iconName }}</span>
+            <span class="material-symbols-outlined" aria-hidden="true">{{ icon.name }}</span>
         </button>
 
         <div v-if="!availableIcons.length" class="icon-selector__empty">Nenhum ícone disponível</div>
@@ -30,17 +30,14 @@ export default {
         availableIcons() {
             const source = this.content.availableIcons;
 
-            if (Array.isArray(source)) {
-                return source.map((icon) => String(icon).trim()).filter(Boolean);
-            }
+            const parsedSource = typeof source === 'string' ? this.parseJsonSource(source) : source;
 
-            if (typeof source !== 'string') {
+            if (!Array.isArray(parsedSource)) {
                 return [];
             }
 
-            return source
-                .split('\n')
-                .map((icon) => icon.trim())
+            return parsedSource
+                .map((icon) => this.normalizeIcon(icon))
                 .filter(Boolean);
         },
         selectedIcon() {
@@ -48,6 +45,26 @@ export default {
         },
     },
     methods: {
+        parseJsonSource(source) {
+            try {
+                return JSON.parse(source);
+            } catch (error) {
+                return [];
+            }
+        },
+        normalizeIcon(icon) {
+            if (typeof icon === 'string') {
+                const name = icon.trim();
+                return name ? { name } : null;
+            }
+
+            if (!icon || typeof icon !== 'object') {
+                return null;
+            }
+
+            const name = typeof icon.name === 'string' ? icon.name.trim() : '';
+            return name ? { ...icon, name } : null;
+        },
         selectIcon(iconName) {
             if (iconName === this.selectedIcon) {
                 return;
@@ -96,8 +113,8 @@ export default {
     }
 
     .material-symbols-outlined {
-        font-size: 24px;
-        line-height: 24px;
+        font-size: 28px;
+        line-height: 28px;
     }
 }
 
