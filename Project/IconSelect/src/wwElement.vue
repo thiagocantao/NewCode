@@ -40,13 +40,7 @@ export default {
         /* wwEditor:end */
     },
     emits: ['update:content:effect', 'update:content', 'element-event'],
-    wwEditor: {
-        actions: {
-            setSelectedItem(item) {
-                this.selectItemFromAction(item);
-            },
-        },
-    },
+
     data() {
         return {
             currentSelectedItem: this.content.currentSelectedItem || this.content.selectedIcon || '',
@@ -78,7 +72,7 @@ export default {
                 .filter(Boolean);
         },
         selectedIcon() {
-            return this.content.currentSelectedItem || this.content.selectedIcon || '';
+            return this.content.selectedIcon || this.content.currentSelectedItem || '';
         },
         visibleIcon() {
             return this.selectedIcon || this.availableIcons[0]?.name || '';
@@ -86,11 +80,15 @@ export default {
     },
     watch: {
         selectedIcon(newSelectedIcon) {
-            this.currentSelectedItem = newSelectedIcon;
-            this.syncCurrentSelectedItem(newSelectedIcon);
+            const selectedItem = this.content.currentSelectedItem || newSelectedIcon || '';
+            this.currentSelectedItem = selectedItem;
+            this.syncCurrentSelectedItem(selectedItem);
         },
     },
     methods: {
+        setSelectedItem(actionItem) {
+            this.selectItemFromAction(actionItem);
+        },
         initializePublicVariables() {
             if (typeof wwLib === 'undefined' || !wwLib?.wwVariable?.useComponentVariable) {
                 return;
