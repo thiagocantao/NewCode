@@ -40,13 +40,7 @@ export default {
         /* wwEditor:end */
     },
     emits: ['update:content:effect', 'update:content', 'element-event'],
-    wwEditor: {
-        actions: {
-            setSelectedItem(item) {
-                this.selectItemFromAction(item);
-            },
-        },
-    },
+
     data() {
         return {
             currentSelectedItem: this.content.currentSelectedItem || this.content.selectedIcon || '',
@@ -91,6 +85,9 @@ export default {
         },
     },
     methods: {
+        setSelectedItem(actionItem) {
+            this.selectItemFromAction(actionItem);
+        },
         initializePublicVariables() {
             if (typeof wwLib === 'undefined' || !wwLib?.wwVariable?.useComponentVariable) {
                 return;
