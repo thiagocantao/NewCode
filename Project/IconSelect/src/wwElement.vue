@@ -34,6 +34,13 @@
                 @click="selectIcon(icon.name)"
             >
                 <span class="material-symbols-outlined" aria-hidden="true">{{ icon.name }}</span>
+                <span
+                    v-if="isDeleteIconVisible(icon)"
+                    class="icon-selector__delete material-symbols-outlined"
+                    aria-hidden="true"
+                >
+                    delete
+                </span>
             </button>
 
             <div v-if="!availableIcons.length" class="icon-selector__empty">Nenhum ícone disponível</div>
@@ -243,6 +250,15 @@ export default {
 
             return `${icon?.name || ''}`.trim();
         },
+        isDeleteIconVisible(icon) {
+            const fieldName = `${this.content.deleteIconVisibleField ?? ''}`.trim();
+
+            if (!fieldName) {
+                return false;
+            }
+
+            return icon?.[fieldName] === true;
+        },
         selectIcon(iconName, options = {}) {
             if (this.isReadOnly && !options.forceUpdate) {
                 return;
@@ -347,6 +363,7 @@ export default {
 }
 
 .icon-selector__item {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -370,6 +387,15 @@ export default {
     }
 }
 
+
+.icon-selector__delete {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    font-size: 14px;
+    line-height: 14px;
+    color: #ef4444;
+}
 .icon-selector__item--selected {
     border-color: #2563eb;
     background: #dbeafe;
