@@ -42,6 +42,33 @@ export default {
 ]`,
             bindable: true,
         },
+        popupWidth: {
+            label: {
+                en: 'Popup width',
+                pt: 'Largura do popup',
+            },
+            type: 'Text',
+            defaultValue: '280px',
+            bindable: true,
+        },
+        popupHeight: {
+            label: {
+                en: 'Popup height',
+                pt: 'Altura do popup',
+            },
+            type: 'Text',
+            defaultValue: '232px',
+            bindable: true,
+        },
+        readOnly: {
+            label: {
+                en: 'Read only',
+                pt: 'Somente leitura',
+            },
+            type: 'OnOff',
+            defaultValue: false,
+            bindable: true,
+        },
         currentSelectedItem: {
             label: {
                 en: 'Current selected item',

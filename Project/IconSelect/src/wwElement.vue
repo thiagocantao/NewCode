@@ -1,18 +1,29 @@
 <template>
-    <div ref="root" class="icon-selector" :class="{ 'icon-selector--open': isPopupOpen }">
+    <div
+        ref="root"
+        class="icon-selector"
+        :class="{ 'icon-selector--open': isPopupOpen, 'icon-selector--readonly': isReadOnly }"
+    >
         <button
             class="icon-selector__trigger"
             type="button"
             :aria-expanded="isPopupOpen"
             aria-haspopup="listbox"
             aria-label="Selecionar ícone"
+            :disabled="isReadOnly"
             @click="togglePopup"
         >
             <span v-if="visibleIcon" class="material-symbols-outlined" aria-hidden="true">{{ visibleIcon }}</span>
             <span v-else class="icon-selector__placeholder">Selecionar</span>
         </button>
 
-        <div v-if="isPopupOpen" class="icon-selector__popup" role="listbox" aria-label="Lista de ícones">
+        <div
+            v-if="isPopupOpen"
+            class="icon-selector__popup"
+            role="listbox"
+            aria-label="Lista de ícones"
+            :style="popupStyle"
+        >
             <button
                 v-for="icon in availableIcons"
                 :key="icon.name"
@@ -77,6 +88,15 @@ export default {
         visibleIcon() {
             return this.selectedIcon || this.availableIcons[0]?.name || '';
         },
+        popupStyle() {
+            return {
+                '--icon-selector-popup-width': this.toCssDimension(this.content.popupWidth, '280px'),
+                '--icon-selector-popup-height': this.toCssDimension(this.content.popupHeight, '232px'),
+            };
+        },
+        isReadOnly() {
+            return Boolean(this.content.readOnly);
+        },
     },
     watch: {
         selectedIcon(newSelectedIcon) {
@@ -134,6 +154,10 @@ export default {
             return name ? { ...icon, name } : null;
         },
         togglePopup() {
+            if (this.isReadOnly) {
+                return;
+            }
+
             this.isPopupOpen = !this.isPopupOpen;
         },
         closePopup() {
@@ -220,6 +244,10 @@ export default {
             return `${icon?.name || ''}`.trim();
         },
         selectIcon(iconName, options = {}) {
+            if (this.isReadOnly && !options.forceUpdate) {
+                return;
+            }
+
             this.closePopup();
 
             const normalizedIconName = `${iconName || ''}`.trim();
@@ -247,6 +275,19 @@ export default {
                 icon: normalizedIconName,
                 selectedItemId,
             });
+        },
+        toCssDimension(value, fallback) {
+            const normalizedValue = `${value ?? ''}`.trim();
+
+            if (!normalizedValue) {
+                return fallback;
+            }
+
+            if (/^\d+(\.\d+)?$/.test(normalizedValue)) {
+                return `${normalizedValue}px`;
+            }
+
+            return normalizedValue;
         },
     },
 };
@@ -290,14 +331,19 @@ export default {
     flex-wrap: wrap;
     align-items: flex-start;
     gap: 8px;
-    width: min(280px, 100vw - 24px);
-    max-height: 232px;
+    width: min(var(--icon-selector-popup-width, 280px), calc(100vw - 24px));
+    max-height: var(--icon-selector-popup-height, 232px);
     overflow-y: auto;
     padding: 8px;
     border: 1px solid #d1d5db;
     border-radius: 8px;
     background: #ffffff;
     box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+}
+
+.icon-selector__trigger:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
 }
 
 .icon-selector__item {
