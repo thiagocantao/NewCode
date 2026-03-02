@@ -63,6 +63,15 @@ export default {
             bindable: true,
             defaultValue: '',
         },
+        deleteIconVisibleField: {
+            label: {
+                en: 'Delete icon visible field',
+                pt: 'Campo para exibir ícone de excluir',
+            },
+            type: 'text',
+            bindable: true,
+            defaultValue: '',
+        },
         typeField: {
             label: { en: 'Type field' },
             type: 'text',
