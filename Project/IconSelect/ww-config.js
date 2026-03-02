@@ -69,6 +69,15 @@ export default {
             defaultValue: false,
             bindable: true,
         },
+        deleteIconVisibleField: {
+            label: {
+                en: 'Delete icon visible field',
+                pt: 'Campo para exibir ícone de excluir',
+            },
+            type: 'Text',
+            defaultValue: '',
+            bindable: true,
+        },
         currentSelectedItem: {
             label: {
                 en: 'Current selected item',
