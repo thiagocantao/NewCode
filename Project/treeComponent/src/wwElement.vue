@@ -116,7 +116,7 @@
                 parentId: this.content.parentIdField || 'parentId',
                 icon: this.content.iconField || '',
                 type: this.content.typeField || 'type',
-                deleteVisible: this.content.deleteVisibleField || '',
+                deleteVisible: this.content.deleteIconVisibleField || this.content.deleteVisibleField || '',
             };
         },
         allowedChildrenTypesSet() {
@@ -426,17 +426,12 @@
         },
         canDeleteNode(node) {
             const fieldName = `${this.fieldMap.deleteVisible ?? ''}`.trim();
-            if (!fieldName) return true;
 
-            const value = node?.[fieldName];
-            if (typeof value === 'boolean') return value;
-            if (typeof value === 'number') return value !== 0;
-            if (typeof value === 'string') {
-                const normalized = value.trim().toLowerCase();
-                return ['true', '1', 'yes', 'sim'].includes(normalized);
+            if (!fieldName) {
+                return false;
             }
 
-            return Boolean(value);
+            return node?.[fieldName] === true;
         },
         canNodeHaveChildren(node) {
             if (!this.hasTypeRestriction) return true;
