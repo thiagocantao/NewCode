@@ -635,6 +635,7 @@
         display: flex;
         align-items: center;
         flex: 1;
+        background: #fff;
         border: 1px solid #dee2e6;
         border-radius: 6px;
         padding: 0 8px;
@@ -650,13 +651,32 @@
         flex: 1;
         border: none;
         outline: none;
-        background: transparent;
+        background: #fff;
     }
 
     .tree-manager__content {
         flex: 1;
         overflow: auto;
         padding: 6px 0;
+        scrollbar-width: thin;
+        scrollbar-color: #b8c0cc transparent;
+    }
+
+    .tree-manager__content::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .tree-manager__content::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .tree-manager__content::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, #c6cdd8, #aeb7c4);
+        border-radius: 999px;
+    }
+
+    .tree-manager__content::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(180deg, #b8c0cc, #99a5b4);
     }
 
     .tree-row {
