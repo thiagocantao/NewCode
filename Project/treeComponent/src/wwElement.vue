@@ -33,17 +33,17 @@
                 @dragend="onDragEnd"
                 @click="onNodeClick(row)" @contextmenu.prevent.stop>
                 <button
-                    v-if="row.hasChildren"
+                    v-if="row.showToggle"
                     class="toggle-button"
                     type="button"
                     :style="toggleButtonStyle"
-                    @click.stop="toggleNode(row.id)"
-                    :disabled="row.depth >= normalizedMaxLevel - 1"
+                    @click.stop="toggleNode(row)"
+                    :disabled="row.depth >= normalizedMaxLevel - 1 || !row.hasChildren"
                     :aria-label="isExpanded(row.id) ? 'Collapse' : 'Expand'"
                     :title="isExpanded(row.id) ? 'Collapse' : 'Expand'"
                 >
                     <span class="material-symbols-outlined">
-                        {{ isExpanded(row.id) ? 'folder_open' : 'folder' }}
+                        {{ row.hasChildren && isExpanded(row.id) ? 'folder_open' : 'folder' }}
                     </span>
                 </button>
                 <span v-else class="toggle-placeholder"></span>
@@ -241,6 +241,7 @@
                         type: node.type,
                         depth,
                         hasChildren,
+                        showToggle: hasChildren || `${node.type ?? ''}`.trim().toUpperCase() === 'FOLDER',
                         canHaveChildren: this.canNodeHaveChildren(node),
                         canAddChild: this.canNodeHaveChildren(node) && depth < this.normalizedMaxLevel - 1,
                         canDelete: this.canDeleteNode(node.raw),
@@ -366,7 +367,10 @@
         isExpanded(id) {
             return this.expandedNodes[id] !== false;
         },
-        toggleNode(id) {
+        toggleNode(row) {
+            if (!row?.hasChildren) return;
+
+            const id = row.id;
             this.expandedNodes = {
                 ...this.expandedNodes,
                 [id]: !this.isExpanded(id),
