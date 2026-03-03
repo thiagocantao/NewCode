@@ -24,8 +24,14 @@
 
         <div class="tree-manager__content">
             <div v-for="row in visibleRows" :key="`row-${row.id}`" class="tree-row"
-                :class="{ 'tree-row--selected': selectedNodeId === row.id }"
-                :style="{ paddingLeft: `${row.depth * 16 + 8}px` }" @click="onNodeClick(row)" @contextmenu.prevent.stop>
+                :class="{ 'tree-row--selected': selectedNodeId === row.id, 'tree-row--drag-over': dropTargetRowId === row.id }"
+                :style="{ paddingLeft: `${row.depth * 16 + 8}px` }"
+                :draggable="canDragRow(row)"
+                @dragstart="onDragStart(row, $event)"
+                @dragover="onDragOver(row, $event)"
+                @drop="onDrop(row, $event)"
+                @dragend="onDragEnd"
+                @click="onNodeClick(row)" @contextmenu.prevent.stop>
                 <button
                     v-if="row.hasChildren"
                     class="toggle-button"
@@ -95,6 +101,10 @@
             contextNodeId: null,
             selectedNodeId: null,
             setSelectedItemId: null,
+            draggingRowId: null,
+            draggingParentId: null,
+            dropTargetRowId: null,
+            orderOverrides: {},
         };
     },
     created() {
@@ -114,6 +124,7 @@
                 label: this.content.labelField || 'label',
                 id: this.content.idField || 'id',
                 parentId: this.content.parentIdField || 'parentId',
+                order: this.content.orderField || 'order',
                 icon: this.content.iconField || '',
                 type: this.content.typeField || 'type',
                 deleteVisible: this.content.deleteIconVisibleField || this.content.deleteVisibleField || '',
@@ -158,12 +169,14 @@
                 ? null
                 : parentIdRaw;
                 
-                map.set(String(id), {
-                id: String(id),
+                const normalizedId = String(id);
+                map.set(normalizedId, {
+                id: normalizedId,
                 parentId: parentId === null ? null : String(parentId),
                 label: `${item?.[this.fieldMap.label] ?? ''}`,
                 icon: this.fieldMap.icon ? `${item?.[this.fieldMap.icon] ?? ''}`.trim() : '',
                 type: `${item?.[this.fieldMap.type] ?? ''}`.trim(),
+                order: this.getNodeOrder(item, normalizedId),
                 raw: item,
                 children: [],
                 });
@@ -178,6 +191,14 @@
                 }
             });
 
+            const sortRecursively = nodes => {
+                this.sortNodesByOrder(nodes);
+                nodes.forEach(child => {
+                    if (child.children.length) sortRecursively(child.children);
+                });
+            };
+
+            sortRecursively(roots);
             return roots;
         },
         filteredTree() {
@@ -200,9 +221,12 @@
 
             return this.tree.map(node => filterNode(node)).filter(Boolean);
         },
+        isSearchActive() {
+            return !!this.searchText.trim();
+        },
         visibleRows() {
             const rows = [];
-            const usingSearch = !!this.searchText.trim();
+            const usingSearch = this.isSearchActive;
 
             const walk = (nodes, depth = 0) => {
                 if (depth >= this.normalizedMaxLevel) return;
@@ -278,6 +302,12 @@
         },
     },
     watch: {
+        normalizedData: {
+            deep: true,
+            handler() {
+                this.orderOverrides = {};
+            },
+        },
         tree: {
             immediate: true,
             handler(newTree) {
@@ -309,6 +339,29 @@
             });
 
             this.setSelectedItemId = selectedItemIdVariable.setValue;
+        },
+        getNodeOrder(node, nodeId) {
+            const fieldName = `${this.fieldMap.order ?? ''}`.trim();
+            if (this.orderOverrides[nodeId] !== undefined) {
+                return this.toIntegerOrder(this.orderOverrides[nodeId], Number.MAX_SAFE_INTEGER);
+            }
+
+            if (!fieldName) return Number.MAX_SAFE_INTEGER;
+            return this.toIntegerOrder(node?.[fieldName], Number.MAX_SAFE_INTEGER);
+        },
+        toIntegerOrder(value, fallback = 0) {
+            const parsed = Number(value);
+            if (!Number.isFinite(parsed)) return fallback;
+            return Math.floor(parsed);
+        },
+        sortNodesByOrder(nodes) {
+            nodes.sort((a, b) => {
+                if (a.order !== b.order) return a.order - b.order;
+                return `${a.id}`.localeCompare(`${b.id}`);
+            });
+        },
+        canDragRow(row) {
+            return !this.isSearchActive && !!row && !!row.id;
         },
         isExpanded(id) {
             return this.expandedNodes[id] !== false;
@@ -424,6 +477,85 @@
         },
         });
         },
+        onDragStart(row, event) {
+            if (!this.canDragRow(row)) return;
+
+            this.draggingRowId = row.id;
+            this.draggingParentId = row.parentId ?? null;
+            this.dropTargetRowId = null;
+
+            if (event?.dataTransfer) {
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', row.id);
+            }
+        },
+        onDragOver(row, event) {
+            if (!this.draggingRowId || !row?.id) return;
+            if (row.id === this.draggingRowId) return;
+            const rowParentId = row.parentId ?? null;
+            if (rowParentId !== this.draggingParentId) return;
+
+            event.preventDefault();
+            this.dropTargetRowId = row.id;
+        },
+        onDrop(row, event) {
+            if (event) event.preventDefault();
+            if (!this.draggingRowId || !row?.id || row.id === this.draggingRowId) {
+                this.onDragEnd();
+                return;
+            }
+
+            const targetParentId = row.parentId ?? null;
+            if (targetParentId !== this.draggingParentId) {
+                this.onDragEnd();
+                return;
+            }
+
+            const sameLevelNodes = this.visibleRows
+                .filter(currentRow => (currentRow.parentId ?? null) === targetParentId)
+                .map(currentRow => currentRow.id);
+
+            const draggingIndex = sameLevelNodes.indexOf(this.draggingRowId);
+            const targetIndex = sameLevelNodes.indexOf(row.id);
+
+            if (draggingIndex === -1 || targetIndex === -1) {
+                this.onDragEnd();
+                return;
+            }
+
+            const reorderedIds = [...sameLevelNodes];
+            const [movedId] = reorderedIds.splice(draggingIndex, 1);
+            const insertionIndex = reorderedIds.indexOf(row.id);
+            reorderedIds.splice(insertionIndex, 0, movedId);
+
+            const updates = reorderedIds.map((id, index) => ({
+                id,
+                [this.fieldMap.order]: index + 1,
+            }));
+
+            const newOverrides = { ...this.orderOverrides };
+            updates.forEach(update => {
+                newOverrides[update.id] = update[this.fieldMap.order];
+            });
+            this.orderOverrides = newOverrides;
+
+            this.$emit('trigger-event', {
+                name: 'onReorder',
+                event: {
+                    movedId: movedId,
+                    parentId: targetParentId,
+                    orderField: this.fieldMap.order,
+                    updates,
+                },
+            });
+
+            this.onDragEnd();
+        },
+        onDragEnd() {
+            this.draggingRowId = null;
+            this.draggingParentId = null;
+            this.dropTargetRowId = null;
+        },
         canDeleteNode(node) {
             const fieldName = `${this.fieldMap.deleteVisible ?? ''}`.trim();
 
@@ -534,7 +666,8 @@
     }
 
     .tree-row:hover,
-    .tree-row--selected {
+    .tree-row--selected,
+    .tree-row--drag-over {
         background: var(--row-selected-bg);
     }
 

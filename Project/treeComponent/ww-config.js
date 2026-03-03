@@ -51,6 +51,15 @@ export default {
             bindable: true,
             defaultValue: 'parentId',
         },
+        orderField: {
+            label: {
+                en: 'Order field (integer)',
+                pt: 'Campo de ordenação (inteiro)',
+            },
+            type: 'text',
+            bindable: true,
+            defaultValue: 'order',
+        },
         iconField: {
             label: { en: 'Icon field (Material Symbols name)' },
             type: 'text',
@@ -188,6 +197,21 @@ export default {
             name: 'onDelete',
             label: { en: 'On delete clicked' },
             event: { value: null },
+        },
+        {
+            name: 'onReorder',
+            label: {
+                en: 'On reorder',
+                pt: 'Ao reordenar',
+            },
+            event: {
+                value: {
+                    movedId: null,
+                    parentId: null,
+                    orderField: 'order',
+                    updates: [],
+                },
+            },
         },
     ],
 };
