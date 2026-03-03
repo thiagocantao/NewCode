@@ -25,13 +25,9 @@
         <div class="tree-manager__content">
             <div v-for="row in visibleRows" :key="`row-${row.id}`" class="tree-row"
                 :class="{ 'tree-row--selected': selectedNodeId === row.id, 'tree-row--drag-over': dropTargetRowId === row.id }"
-                :style="{ paddingLeft: `${row.depth * 16 + 8}px` }"
-                :draggable="canDragRow(row)"
-                @dragstart="onDragStart(row, $event)"
-                @dragover="onDragOver(row, $event)"
-                @drop="onDrop(row, $event)"
-                @dragend="onDragEnd"
-                @click="onNodeClick(row)" @contextmenu.prevent.stop>
+                :style="{ paddingLeft: `${row.depth * 16 + 8}px` }" :draggable="canDragRow(row)"
+                @dragstart="onDragStart(row, $event)" @dragover="onDragOver(row, $event)" @drop="onDrop(row, $event)"
+                @dragend="onDragEnd" @click="onNodeClick(row)" @contextmenu.prevent.stop>
                 <button
                     v-if="row.showToggle"
                     class="toggle-button"
@@ -702,11 +698,12 @@
     .node-label {
         white-space: nowrap;
         flex: 1;
+        color: #555
     }
 
     .node-icon {
         font-size: 22px;
-        color: var(--icon-button-bg);
+        color: #777;
     }
 
 
