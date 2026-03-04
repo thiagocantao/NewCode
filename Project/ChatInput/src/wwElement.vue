@@ -31,8 +31,8 @@
                         <button
                             type="button"
                             class="chat-input__remove"
-                            title="Delete"
-                            aria-label="Delete"
+                             :title="deleteLabel"
+                            :aria-label="deleteLabel"
                             @click="removeAttachment(item.id)"
                         >
                             <i class="fa-solid fa-trash" aria-hidden="true"></i>
@@ -78,6 +78,7 @@
 <script>
     import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
     import { SUPABASE_IMAGE_BUCKET } from './supabaseBuckets.js';
+    import { translatePhrase } from './translation.js';
 
 export default {
     name: 'ChatInput',
@@ -97,9 +98,11 @@ export default {
         const textareaRef = ref(null);
         const objectUrls = new Set();
         const isMultiline = ref(false);
+        const t = phrase => translatePhrase(phrase);
 
         const isReadonly = computed(() => !!props.content.readonly);
-        const placeholder = computed(() => props.content.placeholder || 'Type your message...');
+        const placeholder = computed(() => t(props.content.placeholder || 'Type your message...'));
+        const deleteLabel = computed(() => t('Delete'));
         const sendButtonStyle = computed(() => ({
             '--send-button-bg': props.content.sendButtonBackgroundColor || '#10a37f',
             '--send-icon-color': props.content.sendIconColor || '#ffffff',
@@ -341,7 +344,7 @@ export default {
             const rejected = files.filter(file => !allowed.includes(file));
 
             if (rejected.length) {
-                wwLib?.wwLog?.warn?.('Unsupported files ignored:', rejected.map(file => file.name));
+                wwLib?.wwLog?.warn?.(t('Unsupported files ignored:'), rejected.map(file => file.name));
             }
 
             const filesToProcess = allowMultipleAttachments.value ? allowed : allowed.slice(-1);
@@ -370,7 +373,7 @@ export default {
                 await ensureAuthReady();
                 const okStorage = await waitForStorage(4000);
                 if (!okStorage || !supabase?.storage) {
-                    throw new Error('Supabase Storage is not ready. Please try again.');
+                    throw new Error(t('Supabase Storage is not ready. Please try again.'));
                 }
 
                 const { data: userData, error: authErr } = auth?.auth?.getUser
@@ -379,8 +382,8 @@ export default {
                 if (auth && (authErr || !userData?.user)) {
                     throw new Error(
                         authErr
-                            ? `Error retrieving user from Supabase Auth: ${authErr.message || authErr}`
-                            : 'Unauthenticated user on Supabase.',
+                            ? `${t('Error retrieving user from Supabase Auth:')} ${authErr.message || authErr}`
+                            : t('Unauthenticated user on Supabase.'),
                     );
                 }
 
@@ -400,7 +403,7 @@ export default {
                         : { data: true, error: null };
                     if (rpcError) {
                     } else if (allowed === false) {
-                        throw new Error('Not allowed.');
+                        throw new Error(t('Not allowed.'));
                     }
                 } catch (rlsError) {
                     if (rlsError instanceof Error) throw rlsError;
@@ -419,7 +422,7 @@ export default {
 
                 const publicUrl = getPublicUrl(bucket, objectPath);
                 if (!publicUrl) {
-                    throw new Error('Unable to get public URL for uploaded file.');
+                    throw new Error(t('Unable to get public URL for uploaded file.'));
                 }
 
                 attachment.status = 'done';
@@ -604,6 +607,7 @@ export default {
             message,
             onFilesSelected,
             placeholder,
+            deleteLabel,
             removeAttachment,
             sendButtonStyle,
             fileIconClass,
