@@ -88,7 +88,7 @@
               @change="updateValue"
               :disabled="isFieldReadonly"
             />
-            Sim
+            {{ t('Yes') }}
           </label>
           <label class="radio-label">
             <input
@@ -99,7 +99,7 @@
               @change="updateValue"
               :disabled="isFieldReadonly"
             />
-            Não
+            {{ t('No') }}
           </label>
         </div>
       </template>
@@ -134,7 +134,7 @@
               <input
                 type="text"
                 v-model="searchTerm"
-                placeholder="Pesquisar..."
+                :placeholder="t('Search...')"
                 class="list-search-input"
                 @keydown.stop
                 autofocus
@@ -150,15 +150,15 @@
       <template v-else-if="field.fieldType === 'FORMATED_TEXT'">
         <div class="formatted-text-wrapper">
           <div v-if="!isFieldReadonly" class="toolbar">
-            <button type="button" @click="format('bold')" title="Negrito"><span class="material-symbols-outlined">format_bold</span></button>
-            <button type="button" @click="format('italic')" title="Itálico"><span class="material-symbols-outlined">format_italic</span></button>
-            <button type="button" @click="format('underline')" title="Sublinhado"><span class="material-symbols-outlined">format_underlined</span></button>
-            <button type="button" @click="format('insertUnorderedList')" title="Lista"><span class="material-symbols-outlined">format_list_bulleted</span></button>
-            <button type="button" @click="format('insertOrderedList')" title="Lista numerada"><span class="material-symbols-outlined">format_list_numbered</span></button>
-            <button type="button" @click="format('removeFormat')" title="Limpar formatação"><span class="material-symbols-outlined">format_clear</span></button>
-            <button type="button" @click="insertLink" title="Inserir link"><span class="material-symbols-outlined">link</span></button>
-            <button type="button" @click="insertImage" title="Inserir imagem"><span class="material-symbols-outlined">image</span></button>
-            <button type="button" class="color-btn" :style="{ color: currentColor }" title="Cor do texto">
+            <button type="button" @click="format('bold')" :title="t('Bold')"><span class="material-symbols-outlined">format_bold</span></button>
+            <button type="button" @click="format('italic')" :title="t('Italic')"><span class="material-symbols-outlined">format_italic</span></button>
+            <button type="button" @click="format('underline')" :title="t('Underline')"><span class="material-symbols-outlined">format_underlined</span></button>
+            <button type="button" @click="format('insertUnorderedList')" :title="t('Bulleted list')"><span class="material-symbols-outlined">format_list_bulleted</span></button>
+            <button type="button" @click="format('insertOrderedList')" :title="t('Numbered list')"><span class="material-symbols-outlined">format_list_numbered</span></button>
+            <button type="button" @click="format('removeFormat')" :title="t('Clear formatting')"><span class="material-symbols-outlined">format_clear</span></button>
+            <button type="button" @click="insertLink" :title="t('Insert link')"><span class="material-symbols-outlined">link</span></button>
+            <button type="button" @click="insertImage" :title="t('Insert image')"><span class="material-symbols-outlined">image</span></button>
+            <button type="button" class="color-btn" :style="{ color: currentColor }" :title="t('Text color')">
               <span style="font-weight:bold; font-size:14px;">A</span>
               <input
                 type="color"
@@ -166,7 +166,7 @@
                 @input="setColor($event)"
                 :value="currentColor"
                 class="color-input"
-                title="Cor do texto"
+                :title="t('Text color')"
               />
             </button>
           </div>
@@ -180,7 +180,7 @@
                 'readonly-cursor': isFieldReadonly
               }
             ]"
-            :data-placeholder="field.placeholder || field.placeholder_translations?.pt_br || ''"
+            :data-placeholder="field.placeholder || getTranslatedText(field.placeholder_translations) || ''"
             @input="onContentEditableInput" @blur="updateValue"></div>
         </div>
       </template>
@@ -221,14 +221,15 @@
     </div>
 
     <!-- Tooltip -->
-    <div v-if="field.tip_translations?.pt_br" class="field-tooltip">
-      <span class="tooltip-text">{{ field.tip_translations.pt_br }}</span>
+    <div v-if="translatedTipText" class="field-tooltip">
+      <span class="tooltip-text">{{ translatedTipText }}</span>
     </div>
   </div>
 </template>
 
 <script>
   import CustomDatePicker from './CustomDatePicker.vue';
+import { translatePhrase } from '../translation';
 
 export default {
   name: 'FieldComponent',
@@ -288,9 +289,12 @@ export default {
     dropdownPlaceholder() {
       return (
         this.field.placeholder ||
-        this.field.placeholder_translations?.pt_br ||
-        'Select an option'
+        this.getTranslatedText(this.field.placeholder_translations) ||
+        this.t('Select an option')
       );
+    },
+    translatedTipText() {
+      return this.getTranslatedText(this.field.tip_translations);
     },
     listOptions() {
       if (this.options && this.options.length > 0) {
@@ -393,6 +397,9 @@ export default {
     }
   },
   methods: {
+    t(text) {
+      return translatePhrase(text);
+    },
     parseBoolean(val) {
       if (typeof val === 'string') {
         const low = val.toLowerCase();
@@ -510,7 +517,7 @@ export default {
     insertLink() {
       if (this.$refs.rte) {
         this.$refs.rte.focus();
-        const url = prompt('Digite a URL do link:');
+        const url = prompt(this.t('Enter the link URL:'));
         if (url) {
           document.execCommand('createLink', false, url);
           this.localValue = this.$refs.rte.innerHTML;
@@ -522,7 +529,7 @@ export default {
     insertImage() {
       if (this.$refs.rte) {
         this.$refs.rte.focus();
-        const url = prompt('Digite a URL da imagem:');
+        const url = prompt(this.t('Enter the image URL:'));
         if (url) {
           document.execCommand('insertImage', false, url);
           this.localValue = this.$refs.rte.innerHTML;
@@ -631,39 +638,68 @@ export default {
 
       list.style.maxHeight = `${finalHeight}px`;
     },
+    getTranslatedText(translations) {
+      if (!translations || typeof translations !== 'object') return '';
+
+      const currentLang = (window?.wwLib?.wwVariable?.getValue?.('aa44dc4c-476b-45e9-a094-16687e063342') || 'pt-BR')
+        .toString()
+        .toLowerCase();
+
+      const normalizedLang = currentLang.replace('-', '_');
+      const langKeys = [
+        currentLang,
+        normalizedLang,
+        currentLang.split('-')[0],
+        normalizedLang.split('_')[0],
+        'en_us',
+        'en'
+      ];
+
+      for (const key of langKeys) {
+        if (typeof translations[key] === 'string' && translations[key].trim() !== '') {
+          return translations[key];
+        }
+      }
+
+      const firstTranslatedValue = Object.values(translations).find(
+        value => typeof value === 'string' && value.trim() !== ''
+      );
+
+      return firstTranslatedValue || '';
+    },
     validateDate(value) {
       if (!value) {
-        this.error = this.field.is_mandatory ? 'Campo obrigatório' : null;
+        this.error = this.field.is_mandatory ? this.t('Required field') : null;
         return;
       }
       const date = new Date(value + 'T00:00:00');
-      this.error = isNaN(date.getTime()) ? 'Data inválida' : null;
+      this.error = isNaN(date.getTime()) ? this.t('Invalid date') : null;
     },
     validateDeadline(value) {
       if (!value) {
-        this.error = this.field.is_mandatory ? 'Campo obrigatório' : null;
+        this.error = this.field.is_mandatory ? this.t('Required field') : null;
         return;
       }
       const date = new Date(value);
-      this.error = isNaN(date.getTime()) ? 'Data e hora inválidas' : null;
+      this.error = isNaN(date.getTime()) ? this.t('Invalid date and time') : null;
     },
     validateDecimal(value) {
       if (value === null || value === undefined || value === '' || isNaN(value)) {
-        this.error = this.field.is_mandatory ? 'Campo obrigatório' : null;
+        this.error = this.field.is_mandatory ? this.t('Required field') : null;
         return;
       }
       this.error = null;
     },
     validateInteger(value) {
       if (value === null || value === undefined || value === '' || isNaN(value)) {
-        this.error = this.field.is_mandatory ? 'Campo obrigatório' : null;
+        this.error = this.field.is_mandatory ? this.t('Required field') : null;
         return;
       }
       this.error = null;
     },
     validateList(value) {
       if (this.field.is_mandatory && (value === null || value === undefined || value === '')) {
-        this.error = 'Campo obrigatório';
+        this.error = this.t('Required field');
       } else {
         this.error = null;
       }
@@ -671,7 +707,7 @@ export default {
     validateMultilineText(value) {
       const text = typeof value === 'string' ? value : value != null ? String(value) : '';
       if (this.field.is_mandatory && !text.trim()) {
-        this.error = 'Campo obrigatório';
+        this.error = this.t('Required field');
       } else {
         this.error = null;
       }
@@ -679,7 +715,7 @@ export default {
     validateText(value) {
       const text = typeof value === 'string' ? value : value != null ? String(value) : '';
       if (this.field.is_mandatory && !text.trim()) {
-        this.error = 'Campo obrigatório';
+        this.error = this.t('Required field');
       } else {
         this.error = null;
       }
@@ -731,7 +767,7 @@ export default {
           break;
         case 'YES_NO':
           if (this.field.is_mandatory && (value === null || value === undefined || value === '')) {
-            this.error = 'Campo obrigatório';
+            this.error = this.t('Required field');
           } else {
             this.error = null;
           }
@@ -743,7 +779,7 @@ export default {
             (typeof value === 'string' && value.trim() === '')
           );
           if (this.field.is_mandatory && !hasValue) {
-            this.error = 'Campo obrigatório';
+            this.error = this.t('Required field');
           } else {
             this.error = null;
           }
@@ -756,7 +792,6 @@ export default {
     }
   },
   mounted() {
-    console.log(wwLib);
     if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
       this.renderFormattedTextContent(this.localValue || '');
     }
