@@ -40,6 +40,7 @@
 
 <script>
 import { computed } from 'vue';
+import { translatePhrase } from './translation';
 const TEXT_ALIGN_TO_JUSTIFY = {
     center: 'center',
     right: 'flex-end',
@@ -151,7 +152,7 @@ export default {
             return '';
         },
         text() {
-            return this.wwElementState.props.text;
+            return this.t(this.wwElementState.props.text);
         },
         isFocused() {
             /* wwEditor:start */
@@ -239,10 +240,7 @@ export default {
             const parentUid = wwLib.selectParentByFlag(this.$el, 'form-container');
             if (!parentUid) {
                 wwLib.wwNotification.open({
-                    text: {
-                        en: 'No parent form container found. Please, add this submit button into a form container.',
-                        fr: 'Aucun formulaire parent trouvé. Veuillez intégrer ce bouton submit dans un form container.',
-                    },
+                    text: this.t('No parent form container found. Please, add this submit button into a form container.'),
                     color: 'yellow',
                     duration: 6000,
                 });
@@ -330,7 +328,7 @@ export default {
                 try {
                     const text = e?.target?.result;
                     if (typeof text !== 'string') {
-                        throw new Error('Conteúdo inválido no arquivo.');
+                        throw new Error(this.t('Conteúdo inválido no arquivo.'));
                     }
                     this.handleImportContent(text);
                 } catch (error) {
@@ -611,7 +609,7 @@ export default {
                         return normalizeList(parsed);
                     }
                 } catch (error) {
-                    console.warn('visibleLanguagesJson inválido. O valor deve ser um array JSON.', error);
+                    console.warn(this.t('visibleLanguagesJson inválido. O valor deve ser um array JSON.'), error);
                 }
             }
             return [];
@@ -654,7 +652,7 @@ export default {
             }
 
             const csvContent = this.buildCsv(headers, arrayData);
-            this.downloadCsv(csvContent, 'dados-exportados.csv');
+            this.downloadCsv(csvContent, `${this.t('dados-exportados')}.csv`);
             this.$emit('trigger-event', { name: 'export-success', event: { headers, count: arrayData.length } });
         },
         getExportHeaders(dataArray) {
@@ -845,14 +843,25 @@ export default {
                 this.$refs.fileInput.value = '';
             }
         },
+        t(phrase) {
+            if (phrase == null) {
+                return '';
+            }
+            try {
+                return translatePhrase(phrase);
+            } catch (error) {
+                return String(phrase);
+            }
+        },
         notify(message, type = 'error') {
             if (!message) return;
+            const translatedMessage = this.t(message);
             if (wwLib?.wwNotification?.open) {
-                wwLib.wwNotification.open({ text: message, type, duration: 4000 });
+                wwLib.wwNotification.open({ text: translatedMessage, type, duration: 4000 });
             } else if (type === 'error') {
-                console.error(message);
+                console.error(translatedMessage);
             } else {
-                console.log(message);
+                console.log(translatedMessage);
             }
         },
     },
