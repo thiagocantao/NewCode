@@ -12,7 +12,7 @@ export default class ListFilterRenderer {
     this.loadValues();
     this.createGui();
   }
-
+ 
   createGui() {
     this.eGui = document.createElement('div');
     this.eGui.className = 'list-filter';
