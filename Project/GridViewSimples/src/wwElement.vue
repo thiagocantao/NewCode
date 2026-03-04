@@ -35,6 +35,7 @@ import ImageCellRenderer from "./components/ImageCellRenderer.vue";
 import WewebCellRenderer from "./components/WewebCellRenderer.vue";
 import ListFilterRenderer from "./components/ListFilterRenderer.js";
 import './components/list-filter.css';
+import { translatePhrase } from "./translation";
 
 
 // TODO: maybe register less modules
@@ -377,11 +378,11 @@ export default {
           case "action": {
             const result = {
               ...commonProperties,
-              headerName: col.headerName,
+              headerName: translatePhrase(col.headerName),
               cellRenderer: "ActionCellRenderer",
               cellRendererParams: {
                 name: col.actionName,
-                label: col.actionLabel,
+                label: translatePhrase(col.actionLabel),
                 trigger: this.onActionTrigger,
                 withFont: !!this.content.actionFont,
               },
@@ -398,7 +399,7 @@ export default {
           case "custom": {
             const result = {
               ...commonProperties,
-              headerName: col.headerName,
+              headerName: translatePhrase(col.headerName),
               field: col.field,
               cellRenderer: "WewebCellRenderer",
               cellRendererParams: {
@@ -418,7 +419,7 @@ export default {
           case "image": {
             const result = {
               ...commonProperties,
-              headerName: col.headerName,
+              headerName: translatePhrase(col.headerName),
               field: col.field,
               cellRenderer: "ImageCellRenderer",
               cellRendererParams: {
@@ -436,7 +437,7 @@ export default {
           case "boolean": {
             const result = {
               ...commonProperties,
-              headerName: col.headerName,
+              headerName: translatePhrase(col.headerName),
               field: col.field,
               sortable: col.sortable,
               filter: ListFilterRenderer, // sempre filtro tipo list
@@ -473,7 +474,7 @@ export default {
           default: {
             const result = {
               ...commonProperties,
-              headerName: col.headerName,
+              headerName: translatePhrase(col.headerName),
               field: col.field,
               sortable: col.sortable,
               filter: col.filter,
