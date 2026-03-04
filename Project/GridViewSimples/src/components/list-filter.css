@@ -186,7 +186,7 @@
 }
 
 .list-filter .filter-item input[type="checkbox"]:focus {
-  outline: none;
+  outline: 2px solid #5e6a75;
 }
 
 .list-filter .filter-label {
