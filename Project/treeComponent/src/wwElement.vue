@@ -6,8 +6,8 @@
                 type="button"
                 :style="iconButtonStyle"
                 @click.stop="onToolbarAdd"
-                aria-label="Add"
-                title="Add"
+                :aria-label="translatedTexts.add"
+                :title="translatedTexts.add"
             >
                 <span class="material-symbols-outlined">add</span>
             </button>
@@ -17,7 +17,7 @@
                     v-model="searchText"
                     class="search-input"
                     type="text"
-                    :placeholder="content.searchPlaceholder || 'Search...'"
+                    :placeholder="content.searchPlaceholder || translatedTexts.searchPlaceholder"
                 />
             </div>
         </div>
@@ -35,8 +35,8 @@
                     :style="toggleButtonStyle"
                     @click.stop="toggleNode(row)"
                     :disabled="row.depth >= normalizedMaxLevel - 1 || !row.hasChildren"
-                    :aria-label="isExpanded(row.id) ? 'Collapse' : 'Expand'"
-                    :title="isExpanded(row.id) ? 'Collapse' : 'Expand'"
+                    :aria-label="isExpanded(row.id) ? translatedTexts.collapse : translatedTexts.expand"
+                    :title="isExpanded(row.id) ? translatedTexts.collapse : translatedTexts.expand"
                 >
                     <span class="material-symbols-outlined">
                         {{ row.hasChildren && isExpanded(row.id) ? 'folder_open' : 'folder' }}
@@ -53,8 +53,8 @@
                         class="icon-button row-action-button"
                         type="button"
                         :style="iconButtonStyle"
-                        title="Add child"
-                        aria-label="Add child"
+                        :title="translatedTexts.addChild"
+                        :aria-label="translatedTexts.addChild"
                         @click.stop="onAddChild(row.raw)"
                     >
                         <span class="material-symbols-outlined node-icon">add</span>
@@ -64,20 +64,22 @@
                         class="icon-button row-action-button"
                         type="button"
                         :style="iconButtonStyle"
-                        title="Delete"
-                        aria-label="Delete"
+                        :title="translatedTexts.delete"
+                        :aria-label="translatedTexts.delete"
                         @click.stop="onDelete(row.raw)"
                     >
                         <span class="material-symbols-outlined node-icon">delete</span>
                     </button>
                 </div>
             </div>
-            <div v-if="!visibleRows.length" class="empty-state">No items found.</div>
+            <div v-if="!visibleRows.length" class="empty-state">{{ translatedTexts.noItemsFound }}</div>
         </div>
     </div>
 </template>
 
 <script>
+import { translatePhrase } from './translation';
+
     export default {
     props: {
         content: { type: Object, required: true },
@@ -107,6 +109,17 @@
         this.initializePublicVariables();
     },
     computed: {
+        translatedTexts() {
+            return {
+                add: this.translate('Add'),
+                searchPlaceholder: this.translate('Search...'),
+                collapse: this.translate('Collapse'),
+                expand: this.translate('Expand'),
+                addChild: this.translate('Add child'),
+                delete: this.translate('Delete'),
+                noItemsFound: this.translate('No items found.'),
+            };
+        },
         normalizedData() {
             return Array.isArray(this.content.data) ? this.content.data : [];
         },
@@ -321,6 +334,9 @@
         },
     },
     methods: {
+        translate(phrase) {
+            return translatePhrase(phrase);
+        },
         initializePublicVariables() {
             if (typeof wwLib === 'undefined' || !wwLib?.wwVariable?.useComponentVariable) return;
 
