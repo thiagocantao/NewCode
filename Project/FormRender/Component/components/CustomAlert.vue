@@ -1,8 +1,8 @@
 <template>
-  <div v-if="visible && message && message != 'Obrigatório'" class="custom-alert">
+  <div v-if="visible && message && message != t('Required')" class="custom-alert">
     <div class="custom-alert-content">
       <div class="custom-alert-header">
-        <span class="custom-alert-title">Alert</span>
+        <span class="custom-alert-title">{{ t('Alert') }}</span>
         <span class="custom-alert-close" @click="close">&times;</span>
       </div>
       <div class="custom-alert-body">
@@ -13,6 +13,8 @@
 </template>
 
 <script>
+import { translatePhrase } from '../translation';
+
 export default {
   name: 'CustomAlert',
   props: {
@@ -21,6 +23,9 @@ export default {
   },
   emits: ['close'],
   methods: {
+    t(phrase) {
+      return translatePhrase(phrase);
+    },
     close() {
       this.$emit('close');
     }
