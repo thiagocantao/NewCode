@@ -182,6 +182,7 @@
 
 <script>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
+import { translatePhrase } from "./translation";
 
 export default {
   name: "Anexos",
@@ -208,7 +209,7 @@ export default {
       if (text == null) return "";
       const value = typeof text === "string" ? text : String(text);
       try {
-        const translated = window.translateText(value);
+        const translated = translatePhrase(value);
         if (translated !== undefined && translated !== null && translated !== "") {
           return translated;
         }
@@ -794,14 +795,14 @@ export default {
 
       const { data: userData, error: authErr } = await auth?.auth?.getUser ? await auth.auth.getUser() : { data: { user: null }, error: null };
       if (auth && (authErr || !userData?.user)) {
-        errorMessages.push(authErr ? `Erro ao obter usuário do Supabase Auth: ${authErr.message || authErr}` : "Usuário não autenticado no Supabase.");
+        errorMessages.push(authErr ? `${translate("Error getting Supabase Auth user")}: ${authErr.message || authErr}` : translate("User not authenticated in Supabase."));
         showError(errorMessages.join("\n")); event.target.value = ""; return;
       }
 
       // Garante que storage está pronto antes do upload
       const okStorage = await waitForStorage(4000);
       if (!okStorage || !supabase?.storage) {
-        showError("Supabase Storage não está pronto. Tente novamente em alguns segundos.");
+        showError(translate("Supabase Storage is not ready. Try again in a few seconds."));
         return;
       }
 
@@ -822,7 +823,7 @@ export default {
           const { error: upErr } = await supabase.storage.from(bucket).upload(pathObject, file, {
             cacheControl: "3600", upsert: false, contentType,
           });
-          if (upErr) { errorMessages.push(`Erro no upload para Supabase Storage: ${upErr.message || upErr}`); continue; }
+          if (upErr) { errorMessages.push(`${translate("Error uploading to Supabase Storage")}: ${upErr.message || upErr}`); continue; }
 
           const rpcBody = {
             p_action: "insert",
@@ -845,7 +846,7 @@ export default {
               : { data: null, error: null };
 
             if (rpcError) {
-              errorMessages.push(`Erro ao chamar postticketattachment: ${rpcError.message || rpcError}`);
+              errorMessages.push(`${translate("Error calling postticketattachment")}: ${rpcError.message || rpcError}`);
             } else {
               attachmentId = Array.isArray(rpcData)
                 ? rpcData[0]?.p_attachment_id || rpcData[0]?.attachment_id
@@ -878,7 +879,7 @@ export default {
             },
           });
         } catch (err) {
-          errorMessages.push(`Falha geral no upload: ${err.message || err}`);
+          errorMessages.push(`${translate("General upload failure")}: ${err.message || err}`);
         }
       }
 
@@ -913,7 +914,7 @@ export default {
             const { error: storageErr } = await supabase.storage
               .from(removalBucket)
               .remove([removalPath]);
-            if (storageErr) errorMessages.push(`Erro ao remover arquivo do storage: ${storageErr.message || storageErr}`);
+            if (storageErr) errorMessages.push(`${translate("Error removing file from storage")}: ${storageErr.message || storageErr}`);
           }
 
           if (shouldCallRpcDelete) {
@@ -934,10 +935,10 @@ export default {
             const { error: rpcError } = await sb.callPostgresFunction({
               functionName: "postticketattachment", params: rpcBody,
             });
-            if (rpcError) errorMessages.push(`Erro ao chamar postticketattachment: ${rpcError.message || rpcError}`);
+            if (rpcError) errorMessages.push(`${translate("Error calling postticketattachment")}: ${rpcError.message || rpcError}`);
           }
         } catch (err) {
-          errorMessages.push(`Falha ao excluir anexo: ${err.message || err}`);
+          errorMessages.push(`${translate("Failed to delete attachment")}: ${err.message || err}`);
         }
       }
 
@@ -960,7 +961,7 @@ export default {
           URL.revokeObjectURL(blobUrl);
           return;
         }
-        if (!signed) { showError("Não foi possível gerar a URL para download."); return; }
+        if (!signed) { showError(translate("Unable to generate the download URL.")); return; }
         const res = await fetch(signed);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const blob = await res.blob();
@@ -971,7 +972,7 @@ export default {
         URL.revokeObjectURL(blobUrl);
       } catch (e) {
         
-        showError(`Falha no download: ${e.message || e}`);
+        showError(`${translate("Download failed")}: ${e.message || e}`);
       }
     }
 
