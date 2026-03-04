@@ -34,7 +34,6 @@ class="action-icon-section"
 <script>
 import { computed, ref, onMounted, onUnmounted } from 'vue';
 import FieldComponent from './FieldComponent.vue';
-import { translateTerm } from '../translations';
 
 export default {
   name: 'FormSection',
@@ -93,7 +92,6 @@ export default {
   },
   emits: ['update:value'],
   setup(props, { emit }) {
-    const t = term => translateTerm(term);
     
     const isExpanded = ref(true);
     const loadingOptions = ref({});
@@ -118,9 +116,9 @@ export default {
 
     const sectionTitle = computed(() => {
       if (typeof props.section.title === 'object') {
-        return props.section.title.pt_br || t('Section');
+        return props.section.title.pt_br || 'Section';
       }
-      return props.section.title || t('Section');
+      return props.section.title || 'Section';
     });
 
     const sectionFields = computed(() => {
@@ -339,7 +337,6 @@ export default {
       fieldValues,
       getFieldOptions,
       fieldRows,
-      t,
       autoSave,
       fieldComponents,
       validateFields
