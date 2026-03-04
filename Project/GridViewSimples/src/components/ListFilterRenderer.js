@@ -1,3 +1,5 @@
+import { translatePhrase } from "../translation";
+
 export default class ListFilterRenderer {
   constructor() {
     this.searchText = '';
@@ -26,13 +28,14 @@ export default class ListFilterRenderer {
       <div class="select-all-row">
         <label>
           <input type="checkbox" class="select-all-checkbox" />
-          <span>Select all</span>
+          <span>${translatePhrase("Select all")}</span>
         </label>
       </div>
       <div class="filter-list"></div>
     `;
 
     this.searchInput = this.eGui.querySelector('.search-input');
+    this.searchInput.placeholder = translatePhrase("Search...");
     this.filterList = this.eGui.querySelector('.filter-list');
     this.selectAllCheckbox = this.eGui.querySelector('.select-all-checkbox');
 
@@ -108,7 +111,7 @@ export default class ListFilterRenderer {
         let formatted = value;
         // Se for booleano, exibir 'Yes' ou 'No' no label, mas manter o valor cru para filtragem
         if (typeof value === 'boolean') {
-          formatted = value ? 'Yes' : 'No';
+          formatted = value ? translatePhrase('Yes') : translatePhrase('No');
         } else if (cellRendererParams.useCustomFormatter && typeof cellRendererParams.formatter === 'string') {
           try {
             const formatterFn = new Function(
