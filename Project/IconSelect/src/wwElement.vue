@@ -9,19 +9,19 @@
             type="button"
             :aria-expanded="isPopupOpen"
             aria-haspopup="listbox"
-            aria-label="Selecionar ícone"
+            :aria-label="t('Select icon')"
             :disabled="isReadOnly"
             @click="togglePopup"
         >
             <span v-if="visibleIcon" class="material-symbols-outlined" aria-hidden="true">{{ visibleIcon }}</span>
-            <span v-else class="icon-selector__placeholder">Selecionar</span>
+            <span v-else class="icon-selector__placeholder">{{ t('Select') }}</span>
         </button>
 
         <div
             v-if="isPopupOpen"
             class="icon-selector__popup"
             role="listbox"
-            aria-label="Lista de ícones"
+            :aria-label="t('Icon list')"
             :style="popupStyle"
         >
             <button
@@ -43,12 +43,14 @@
                 </span>
             </button>
 
-            <div v-if="!availableIcons.length" class="icon-selector__empty">Nenhum ícone disponível</div>
+            <div v-if="!availableIcons.length" class="icon-selector__empty">{{ t('No icons available') }}</div>
         </div>
     </div>
 </template>
 
 <script>
+import { translatePhrase } from './translation';
+
 export default {
     props: {
         content: { type: Object, required: true },
@@ -113,6 +115,9 @@ export default {
         },
     },
     methods: {
+        t(text) {
+            return translatePhrase(text);
+        },
         setSelectedItem(actionItem) {
             this.selectItemFromAction(actionItem);
         },
