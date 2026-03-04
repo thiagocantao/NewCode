@@ -29,7 +29,7 @@
             </template>
             <template v-else>
               <span class="material-symbols-outlined deadline-empty-icon">calendar_month</span>
-              <span class="deadline-empty-text">Select</span>
+              <span class="deadline-empty-text">{{ t('Select') }}</span>
             </template>
           </div>
           <CustomDatePicker ref="deadlineDatePicker" v-model="deadlineValue" :disabled="field.is_readonly"
@@ -70,7 +70,7 @@
               :disabled="field.is_readonly"
               @change="updateValue"
             />
-            Sim
+            {{ t('Yes') }}
           </label>
           <label class="radio-label">
             <input
@@ -81,7 +81,7 @@
               :disabled="field.is_readonly"
               @change="updateValue"
             />
-            Não
+            {{ t('No') }}
           </label>
         </div>
       </template>
@@ -101,7 +101,7 @@
               <input
                 type="text"
                 v-model="searchTerm"
-                placeholder="Pesquisar..."
+                :placeholder="t('Search...')"
                 class="list-search-input"
                 @keydown.stop
                 autofocus
@@ -117,17 +117,17 @@
       <template v-else-if="field.fieldType === 'FORMATED_TEXT'">
         <div class="formatted-text-wrapper">
           <div v-if="!field.is_readonly" class="toolbar">
-            <button type="button" @click="format('bold')" title="Negrito"><span class="material-symbols-outlined">format_bold</span></button>
-            <button type="button" @click="format('italic')" title="Itálico"><span class="material-symbols-outlined">format_italic</span></button>
-            <button type="button" @click="format('underline')" title="Sublinhado"><span class="material-symbols-outlined">format_underlined</span></button>
-            <button type="button" @click="format('insertUnorderedList')" title="Lista"><span class="material-symbols-outlined">format_list_bulleted</span></button>
-            <button type="button" @click="format('insertOrderedList')" title="Lista numerada"><span class="material-symbols-outlined">format_list_numbered</span></button>
-            <button type="button" @click="format('removeFormat')" title="Limpar formatação"><span class="material-symbols-outlined">format_clear</span></button>
-            <button type="button" @click="insertLink" title="Inserir link"><span class="material-symbols-outlined">link</span></button>
-            <button type="button" @click="insertImage" title="Inserir imagem"><span class="material-symbols-outlined">image</span></button>
-            <button type="button" class="color-btn" :style="{ color: currentColor }" title="Cor do texto">
+            <button type="button" @click="format('bold')" :title="t('Bold')"><span class="material-symbols-outlined">format_bold</span></button>
+            <button type="button" @click="format('italic')" :title="t('Italic')"><span class="material-symbols-outlined">format_italic</span></button>
+            <button type="button" @click="format('underline')" :title="t('Underline')"><span class="material-symbols-outlined">format_underlined</span></button>
+            <button type="button" @click="format('insertUnorderedList')" :title="t('Bulleted list')"><span class="material-symbols-outlined">format_list_bulleted</span></button>
+            <button type="button" @click="format('insertOrderedList')" :title="t('Numbered list')"><span class="material-symbols-outlined">format_list_numbered</span></button>
+            <button type="button" @click="format('removeFormat')" :title="t('Clear formatting')"><span class="material-symbols-outlined">format_clear</span></button>
+            <button type="button" @click="insertLink" :title="t('Insert link')"><span class="material-symbols-outlined">link</span></button>
+            <button type="button" @click="insertImage" :title="t('Insert image')"><span class="material-symbols-outlined">image</span></button>
+            <button type="button" class="color-btn" :style="{ color: currentColor }" :title="t('Text color')">
               <span style="font-weight:bold; font-size:16px;">A</span>
-              <input type="color" @input="setColor($event)" :value="currentColor" class="color-input" title="Cor do texto" />
+              <input type="color" @input="setColor($event)" :value="currentColor" class="color-input" :title="t('Text color')" />
             </button>
           </div>
           <div ref="rte" :contenteditable="!field.is_readonly" dir="ltr"
@@ -168,6 +168,7 @@
 import CustomAlert from './CustomAlert.vue';
 import CustomDatePicker from './CustomDatePicker.vue';
 import { SUPABASE_IMAGE_BUCKET } from './supabaseBuckets';
+import { translateTerm } from '../translations';
 
 export default {
   name: 'FieldComponent',
@@ -264,7 +265,7 @@ export default {
       return (
         this.field.placeholder ||
         this.field.placeholder_translations?.pt_br ||
-        'Select an option'
+        this.t('Select an option')
       );
     },
     listOptions() {
@@ -504,6 +505,9 @@ export default {
     }
   },
   methods: {
+    t(term) {
+      return translateTerm(term);
+    },
     updateDeadlineTimer() {
       if (this.field.fieldType !== 'DEADLINE') {
         this.clearDeadlineTimer();
@@ -604,7 +608,7 @@ export default {
         if (!this.apiKey) missing.push('apiKey');
         if (!this.apiAuthorization) missing.push('apiAuthorization');
         if (!this.ticketId) missing.push('ticketId');
-        const msg = 'API info missing: ' + missing.join(', ');
+        const msg = `${this.t('API info missing')}: ${missing.join(', ')}`;
         this.error = msg;
         return;
       }
@@ -627,13 +631,13 @@ export default {
         });
         if (!response.ok) {
           const errorText = await response.text();
-          const errorMsg = 'Erro ao salvar valor do campo: ' + errorText;
+          const errorMsg = `${this.t('Error saving field value')}: ${errorText}`;
           this.error = errorMsg;
         } else {
           this.error = null;
         }
       } catch (err) {
-        this.error = 'Erro ao salvar valor do campo: ' + err.message;
+        this.error = `${this.t('Error saving field value')}: ${err.message}`;
       }
     },
     showFeedback(message, type) {
@@ -646,60 +650,60 @@ export default {
     },
     validateDate(value) {
       if (!value) {
-        this.error = this.field.is_mandatory ? 'Campo obrigatório' : null;
+        this.error = this.field.is_mandatory ? this.t('Required field') : null;
         return;
       }
       const date = new Date(value + 'T00:00:00');
       if (isNaN(date.getTime())) {
-        this.error = 'Data inválida';
+        this.error = this.t('Invalid date');
       } else {
         this.error = null;
       }
     },
     validateDeadline(value) {
       if (!value) {
-        this.error = this.field.is_mandatory ? 'Campo obrigatório' : null;
+        this.error = this.field.is_mandatory ? this.t('Required field') : null;
         return;
       }
       // O input datetime-local retorna 'YYYY-MM-DDTHH:mm', que é válido para Date
       const date = new Date(value);
       if (isNaN(date.getTime())) {
-        this.error = 'Data e hora inválidas';
+        this.error = this.t('Invalid date and time');
       } else {
         this.error = null;
       }
     },
     validateDecimal(value) {
       if (value === null || isNaN(value)) {
-        this.error = this.field.is_mandatory ? 'Campo obrigatório' : null;
+        this.error = this.field.is_mandatory ? this.t('Required field') : null;
         return;
       }
       this.error = null;
     },
     validateInteger(value) {
       if (value === null || isNaN(value)) {
-        this.error = this.field.is_mandatory ? 'Campo obrigatório' : null;
+        this.error = this.field.is_mandatory ? this.t('Required field') : null;
         return;
       }
       this.error = null;
     },
     validateList(value) {
       if (this.field.is_mandatory && !value) {
-        this.error = 'Campo obrigatório';
+        this.error = this.t('Required field');
       } else {
         this.error = null;
       }
     },
     validateMultilineText(value) {
       if (this.field.is_mandatory && !value.trim()) {
-        this.error = 'Campo obrigatório';
+        this.error = this.t('Required field');
       } else {
         this.error = null;
       }
     },
     validateText(value) {
       if (this.field.is_mandatory && !value.trim()) {
-        this.error = 'Campo obrigatório';
+        this.error = this.t('Required field');
       } else {
         this.error = null;
       }
@@ -816,14 +820,14 @@ export default {
     },
     insertLink() {
       this.$refs.rte && this.$refs.rte.focus();
-      const url = prompt('Digite a URL do link:');
+      const url = prompt(this.t('Enter link URL:'));
       if (url) {
         document.execCommand('createLink', false, url);
       }
     },
     insertImage() {
       this.$refs.rte && this.$refs.rte.focus();
-      const url = prompt('Digite a URL da imagem:');
+      const url = prompt(this.t('Enter image URL:'));
       if (url) {
         document.execCommand('insertImage', false, url);
       }
@@ -940,7 +944,7 @@ export default {
           break;
         case 'YES_NO':
           if (this.field.is_mandatory && (value === null || value === undefined || value === '')) {
-            this.error = 'Campo obrigatório';
+            this.error = this.t('Required field');
           } else {
             this.error = null;
           }
@@ -952,7 +956,7 @@ export default {
             (typeof value === 'string' && value.trim() === '')
           );
           if (this.field.is_mandatory && !hasValue) {
-            this.error = 'Campo obrigatório';
+            this.error = this.t('Required field');
           } else {
             this.error = null;
           }
