@@ -18,7 +18,6 @@
         v-for="option in options"
         :key="option.value"
         :value="option.value"
-        :disabled="option.isEnabled === false"
       >
         {{ option.label }}
       </option>
@@ -51,16 +50,15 @@ export default {
   },
   emits: ['update:value'],
   setup(props, { emit }) {
-    console.log('DynamicListField setup - Props:', props);
+    
 
     const updateValue = (event) => {
-      console.log('Updating value:', event.target.value);
+     
       emit('update:value', event.target.value);
     };
 
     onMounted(() => {
-      console.log('DynamicListField mounted');
-      console.log('Options received:', props.options);
+      
     });
 
     return {
