@@ -28,7 +28,7 @@
                   <div class="activity-added-card__title">{{ item.Title }} <!-- botão lixeira (hover) -->
                     <button
                       class="activity-trash-btn"
-                      title="Delete"
+                       :title="t('Delete')"
                       @click.stop="requestActivityDelete(item)"
                     >
                       <i class="material-symbols-outlined">delete</i>
@@ -37,23 +37,23 @@
 
                   <dl class="activity-added-card__list">
                     <div class="row">
-                      <dt>Responsible User:</dt>
+                      <dt>{{ t("Responsible User:") }}</dt>
                       <dd>{{ getResponsibleText(item) }}</dd>
                     </div>
                     <div class="row">
-                      <dt>Start Time:</dt>
+                      <dt>{{ t("Start Time:") }}</dt>
                       <dd>{{ formatDateUS(getFieldValue(item, 'StartTime')) }}</dd>
                     </div>
                     <div class="row">
-                      <dt>End Time:</dt>
+                      <dt>{{ t("End Time:") }}</dt>
                       <dd>{{ formatDateUS(getFieldValue(item, 'EndTime')) }}</dd>
                     </div>
                     <div class="row">
-                      <dt>Total:</dt>
+                      <dt>{{ t("Total:") }}</dt>
                       <dd>{{ formatDuration(getFieldValue(item, 'TotalMinutes')) }}</dd>
                     </div>
                     <div class="row">
-                      <dt>Description:</dt>
+                      <dt>{{ t("Description:") }}</dt>
                       <dd>{{ getFieldValue(item, 'Description') }}</dd>
                     </div>
                   </dl>
@@ -77,7 +77,7 @@
                       <div class="activity-added-card__subtitle-text">
                         {{ item.NameFieldModified }}
                       </div>
-                      <button class="details-link" @click.stop="openFtModal(item)">Details</button>
+                      <button class="details-link" @click.stop="openFtModal(item)">{{ t("Details") }}</button>
                     </div>
                   </div>
                   <div class="activity-added-card__right">
@@ -125,7 +125,7 @@
                   <div class="activity-added-card__title">{{ item.Title }} <!-- botão lixeira (hover) -->
                     <button
     class="activity-trash-btn"
-    title="Delete"
+     :title="t('Delete')"
     @click.stop="requestActivityDelete(item)"
   >
     <i class="material-symbols-outlined">delete</i>
@@ -134,7 +134,7 @@
 
                   <dl class="activity-added-card__list">
                     <div class="row value-change">
-                      <dt>Responsible User:</dt>
+                      <dt>{{ t("Responsible User:") }}</dt>
                       <dd class="value-change__values">
                         <span class="value-chip old">{{ getResponsibleActivityText(item, 'old') }}</span>
                         <i class="material-symbols-outlined arrow">arrow_forward</i>
@@ -143,7 +143,7 @@
                     </div>
 
                     <div class="row value-change">
-                      <dt>Start Time:</dt>
+                      <dt>{{ t("Start Time:") }}</dt>
                       <dd class="value-change__values">
                         <span class="value-chip old">{{ formatDateUS(getActivityField(item, 'old', 'StartTime')) }}</span>
                         <i class="material-symbols-outlined arrow">arrow_forward</i>
@@ -152,7 +152,7 @@
                     </div>
 
                     <div class="row value-change">
-                      <dt>End Time:</dt>
+                      <dt>{{ t("End Time:") }}</dt>
                       <dd class="value-change__values">
                         <span class="value-chip old">{{ formatDateUS(getActivityField(item, 'old', 'EndTime')) }}</span>
                         <i class="material-symbols-outlined arrow">arrow_forward</i>
@@ -161,7 +161,7 @@
                     </div>
 
                     <div class="row value-change">
-                      <dt>Total:</dt>
+                      <dt>{{ t("Total:") }}</dt>
                       <dd class="value-change__values">
                         <span class="value-chip old">{{ formatDuration(getActivityField(item, 'old', 'TotalMinutes')) }}</span>
                         <i class="material-symbols-outlined arrow">arrow_forward</i>
@@ -170,7 +170,7 @@
                     </div>
 
                     <div class="row value-change">
-                      <dt>Description:</dt>
+                      <dt>{{ t("Description:") }}</dt>
                       <dd class="value-change__values">
                         <span class="value-chip old">{{ getActivityField(item, 'old', 'Description') }}</span>
                         <i class="material-symbols-outlined arrow">arrow_forward</i>
@@ -308,7 +308,7 @@
                   <button
                     v-if="!isCommentDeleted(item)"
                     class="comment-menu-btn"
-                    title="More"
+                     :title="t('More')"
                     @click.stop="toggleCommentMenu(item)"
                   >
                     <i class="material-symbols-outlined">more_vert</i>
@@ -318,11 +318,11 @@
                   <div v-if="isMenuOpen(item)" class="comment-menu" @click.stop>
                     <button class="comment-menu-item" @click="editComment(item)">
                       <i class="material-symbols-outlined">edit</i>
-                      <span>Edit</span>
+                      <span>{{ t("Edit") }}</span>
                     </button>
                     <button class="comment-menu-item danger" @click="deleteComment(item)">
                       <i class="material-symbols-outlined">delete</i>
-                      <span>Delete</span>
+                      <span>{{ t("Delete") }}</span>
                     </button>
                   </div>
 
@@ -344,7 +344,7 @@
                   <div class="activity-added-card__title">{{ item.Title }}</div>
 
                   <!-- Botão de menu (3 pontos) -->
-                  <button v-if="!isCommentDeleted(item)" class="comment-menu-btn" title="More" @click.stop="toggleCommentMenu(item)">
+                  <button v-if="!isCommentDeleted(item)" class="comment-menu-btn"  :title="t('More')" @click.stop="toggleCommentMenu(item)">
                     <i class="material-symbols-outlined">more_vert</i>
                   </button>
 
@@ -352,11 +352,11 @@
                   <div v-if="isMenuOpen(item)" class="comment-menu" @click.stop>
                     <button class="comment-menu-item" @click="editComment(item)">
                       <i class="material-symbols-outlined">edit</i>
-                      <span>Edit</span>
+                      <span>{{ t("Edit") }}</span>
                     </button>
                     <button class="comment-menu-item danger" @click="deleteComment(item)">
                       <i class="material-symbols-outlined">delete</i>
-                      <span>Delete</span>
+                      <span>{{ t("Delete") }}</span>
                     </button>
                   </div>
 
@@ -369,7 +369,7 @@
                     class="collapsible-toggle"
                     @click.stop="toggleCollapse(item)"
                   >
-                    {{ isCollapsed(item) ? "Show more" : "Show less" }}
+                    {{ isCollapsed(item) ? t("Show more") : t("Show less") }}
                   </button>
                 </div>
 
@@ -463,12 +463,12 @@
                       <div class="attach-actions">
                         <button
                           class="attach-action-btn"
-                          title="Download"
+                           :title="t('Download')"
                           @click.stop="attDownload(getAttachment(item))"
                         >
                           <i class="material-symbols-outlined">download</i>
                         </button>
-                        <button class="attach-action-btn danger" title="Delete" @click.stop="requestAttDelete(item)">
+                        <button class="attach-action-btn danger"  :title="t('Delete')" @click.stop="requestAttDelete(item)">
                           <i class="material-symbols-outlined">delete</i>
                         </button>
                       </div>
@@ -481,7 +481,7 @@
 
                   <div class="attachment-box loading" v-else>
                     <div class="attach-skeleton"></div>
-                    <div class="attach-name skeleton-line">Loading…</div>
+                    <div class="attach-name skeleton-line">{{ t("Loading…") }}</div>
                   </div>
                 </div>
 
@@ -499,7 +499,7 @@
                   <div class="activity-added-card__title">{{ item.Title }}</div>
                   <dl class="activity-added-card__list">
                     <div class="row">
-                      <dt>File:</dt>
+                      <dt>{{ t("File:") }}</dt>
                       <dd>{{ getDeletedAttachmentName(item) }}</dd>
                     </div>
                   </dl>
@@ -518,7 +518,7 @@
                   <div class="activity-added-card__title">{{ item.Title }}</div>
 
                   <div class="activity-added-card__subtitle assignee-row">
-                    
+
                   </div>
 
                   <div class="assignee-avatars">
@@ -719,15 +719,15 @@
 
                   <dl class="activity-added-card__list message-sent-list">
                     <div class="row">
-                      <dt>From:</dt>
+                      <dt>{{ t("From:") }}</dt>
                       <dd>{{ getFromEmails(item) }}</dd>
                     </div>
                     <div class="row">
-                      <dt>To:</dt>
+                      <dt>{{ t("To:") }}</dt>
                       <dd>{{ getToEmails(item) }}</dd>
                     </div>
                     <div class="row">
-                      <dt>Subject:</dt>
+                      <dt>{{ t("Subject:") }}</dt>
                       <dd>{{ getMessageSubject(item) }}</dd>
                     </div>
                   </dl>
@@ -741,7 +741,7 @@
                     class="collapsible-toggle"
                     @click.stop="toggleCollapse(item)"
                   >
-                    {{ isCollapsed(item) ? "Show more" : "Show less" }}
+                    {{ isCollapsed(item) ? t("Show more") : t("Show less") }}
                   </button>
                 </div>
 
@@ -793,21 +793,21 @@
       <div class="dlg">
         <div class="dlg-header">
           <i class="material-symbols-outlined dlg-header-icon danger">close</i>
-          <div id="dlg-delete-activity-title" class="dlg-title">Delete activity</div>
-          <button class="dlg-close" @click="cancelActDelete" aria-label="Close">
+          <div id="dlg-delete-activity-title" class="dlg-title">{{ t("Delete activity") }}</div>
+          <button class="dlg-close" @click="cancelActDelete"  :aria-label="t('Close')">
         <i class="material-symbols-outlined">close</i>
       </button>
         </div>
 
         <div class="dlg-body">
-          Do you want to delete this activity?
+          {{ t("Do you want to delete this activity?") }}
           <div v-if="actError" class="dlg-error">{{ actError }}</div>
         </div>
 
         <div class="dlg-actions">
-          <button class="dlg-btn ghost" :disabled="actLoading" @click="cancelActDelete">Cancel</button>
+          <button class="dlg-btn ghost" :disabled="actLoading" @click="cancelActDelete">{{ t("Cancel") }}</button>
           <button class="dlg-btn primary" :disabled="actLoading" @click="confirmActDelete">
-        <span v-if="actLoading" class="spinner"></span>Ok
+        <span v-if="actLoading" class="spinner"></span>{{ t("Ok") }}
       </button>
         </div>
       </div>
@@ -817,7 +817,7 @@
       <div class="ft-modal">
         <div class="ft-modal__header">
           <div class="ft-modal__title">
-            {{ ftModalItem?.NameFieldModified || 'Details' }}
+            {{ ftModalItem?.NameFieldModified || t('Details') }}
           </div>
           <button class="ft-modal__close" @click="closeFtModal">
           <i class="material-symbols-outlined">close</i>
@@ -883,14 +883,14 @@
           </template>
 
           <template v-else-if="attModalFile && attModalFile.isTxt">
-            <pre class="tl-modal-txt">{{ attModalFile.textContent || 'Carregando…' }}</pre>
+            <pre class="tl-modal-txt">{{ attModalFile.textContent || t('Loading…') }}</pre>
             <div class="tl-modal-file-name">{{ attModalFile.file.name }}</div>
           </template>
 
           <template v-else>
             <div class="tl-file-not-viewable">
               <i v-if="attModalFile" :class="['tl-modal-file-icon', getFileIcon(attModalFile.file.name)]"></i>
-              <p class="tl-no-preview">This file cannot be viewed</p>
+              <p class="tl-no-preview">{{ t("This file cannot be viewed") }}</p>
             </div>
           </template>
         </div>
@@ -903,17 +903,17 @@
       <div class="dlg">
         <div class="dlg-header">
           <i class="material-symbols-outlined dlg-header-icon danger">close</i>
-          <div id="dlg-delete-attach-title" class="dlg-title">Delete</div>
-          <button class="dlg-close" @click="cancelDelete" aria-label="Close">
+          <div id="dlg-delete-attach-title" class="dlg-title">{{ t("Delete") }}</div>
+          <button class="dlg-close" @click="cancelDelete"  :aria-label="t('Close')">
             <i class="material-symbols-outlined">close</i>
           </button>
         </div>
 
-        <div class="dlg-body">Do you want to delete this data?</div>
+        <div class="dlg-body">{{ t("Do you want to delete this data?") }}</div>
 
         <div class="dlg-actions">
-          <button class="dlg-btn ghost" @click="cancelDelete">Cancel</button>
-          <button class="dlg-btn primary" @click="confirmDelete">Ok</button>
+          <button class="dlg-btn ghost" @click="cancelDelete">{{ t("Cancel") }}</button>
+          <button class="dlg-btn primary" @click="confirmDelete">{{ t("Ok") }}</button>
         </div>
       </div>
     </div>
@@ -924,21 +924,21 @@
       <div class="dlg">
         <div class="dlg-header">
           <i class="material-symbols-outlined dlg-header-icon danger">close</i>
-          <div id="dlg-delete-comment-title" class="dlg-title">Delete</div>
-          <button class="dlg-close" @click="cancelCmtDelete" aria-label="Close">
+          <div id="dlg-delete-comment-title" class="dlg-title">{{ t("Delete") }}</div>
+          <button class="dlg-close" @click="cancelCmtDelete"  :aria-label="t('Close')">
             <i class="material-symbols-outlined">close</i>
           </button>
         </div>
 
         <div class="dlg-body">
-          Do you want to delete this data?
+          {{ t("Do you want to delete this data?") }}
           <div v-if="cmtError" class="dlg-error">{{ cmtError }}</div>
         </div>
 
         <div class="dlg-actions">
-          <button class="dlg-btn ghost" :disabled="cmtLoading" @click="cancelCmtDelete">Cancel</button>
+          <button class="dlg-btn ghost" :disabled="cmtLoading" @click="cancelCmtDelete">{{ t("Cancel") }}</button>
           <button class="dlg-btn primary" :disabled="cmtLoading" @click="confirmCmtDelete">
-            <span v-if="cmtLoading" class="spinner"></span>Ok
+            <span v-if="cmtLoading" class="spinner"></span>{{ t("Ok") }}
           </button>
         </div>
       </div>
@@ -950,6 +950,7 @@
   import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 import { useElementSize } from "@vueuse/core";
 import { SUPABASE_IMAGE_BUCKET } from "./components/supabaseBuckets";
+import { translatePhrase } from "./translation";
 
 export default {
   props: {
@@ -963,6 +964,7 @@ export default {
     const { width: containerWidth } = useElementSize(containerRef);
     const events = ref([]);
     const COLLAPSED_MAX_HEIGHT = 150;
+    const t = (text) => translatePhrase(text);
 
     const parseMaybeJSON = (val) => {
       if (typeof val === "string") {
@@ -1247,14 +1249,14 @@ async function confirmActDelete() {
   actError.value = "";
 
   try {
-    if (!sb?.callPostgresFunction) throw new Error("Supabase plugin unavailable.");
+    if (!sb?.callPostgresFunction) throw new Error(t("Supabase plugin unavailable."));
 
     const TicketActivityID = getActivityId(actPendingItem.value);
     const LoggedUserID = getVar(loggedUserVarId);
     const language = getVar(languageVarId) || "en-US";
 
-    if (!TicketActivityID) throw new Error("Missing TicketActivityID.");
-    if (!LoggedUserID) throw new Error("Missing LoggedUserID.");
+    if (!TicketActivityID) throw new Error(t("Missing TicketActivityID."));
+    if (!LoggedUserID) throw new Error(t("Missing LoggedUserID."));
 
     const { error } = await sb.callPostgresFunction({
       functionName: "deleteTicketActivity",
@@ -1264,7 +1266,7 @@ async function confirmActDelete() {
         p_language: language,
       },
     });
-    
+
 
     // remove localmente
     const idx = events.value.findIndex((e) => e === actPendingItem.value);
@@ -1854,7 +1856,7 @@ const getAssigneeTooltip = (item, side) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         file.textContent = await res.text();
       } catch (e) {
-        file.textContent = "(Não foi possível carregar este texto)";
+        file.textContent = t("(Could not load this text)");
       }
     }
 
@@ -1952,7 +1954,7 @@ const getAssigneeTooltip = (item, side) => {
     async function attDownload(file) {
       try {
         let signed = await getFreshSignedUrl(file, { forceDownloadName: file.file?.name || "download" });
-        if (!signed) throw new Error("Não foi possível gerar a URL para download.");
+        if (!signed) throw new Error(t("Could not generate URL for download."));
         const res = await fetch(signed);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const blob = await res.blob();
@@ -1991,9 +1993,9 @@ const getAssigneeTooltip = (item, side) => {
         const LoggedUserID = getVar(loggedUserVarId);
         const language = getVar(languageVarId) || "en-US";
 
-        if (!TicketCommentID) throw new Error("Missing TicketCommentID.");
-        if (!LoggedUserID) throw new Error("Missing LoggedUserID.");
-        if (!sb?.callPostgresFunction) throw new Error("Supabase plugin unavailable.");
+        if (!TicketCommentID) throw new Error(t("Missing TicketCommentID."));
+        if (!LoggedUserID) throw new Error(t("Missing LoggedUserID."));
+        if (!sb?.callPostgresFunction) throw new Error(t("Supabase plugin unavailable."));
 
         const { error } = await sb.callPostgresFunction({
           functionName: "deleteTicketComment",
@@ -2312,6 +2314,7 @@ const getAssigneeTooltip = (item, side) => {
       shouldShowToggle,
       toggleCollapse,
       registerCollapsibleEl,
+      t,
     };
   },
   methods: {
