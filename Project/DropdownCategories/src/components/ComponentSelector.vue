@@ -5,7 +5,7 @@
         :value="inputDisplayValue"
         @input="onInput"
         @keydown.enter.prevent="handleEnter"
-        :placeholder="''"
+        :placeholder="translatedSearchPlaceholder"
         class="dropdown-input"
         :style="[inputStyle, readOnly ? { background: 'transparent', cursor: 'default' } : {}]"
         @focus="!readOnly && openDropdown"
@@ -26,7 +26,7 @@
         ]"
         @click.stop="!component.__isTitle && component.isEnabled !== false && !inputMode && selectComponent(component)"
       >
-        <span class="component-selector__name" :style="nameStyle">{{ component?.[labelField] || '' }}</span>
+        <span class="component-selector__name" :style="nameStyle">{{ translateText(component?.[labelField] || '') }}</span>
       </div>
       <div
         v-if="filteredItems.length === 0 && search.trim() && !inputMode"
@@ -34,14 +34,14 @@
         @click.stop="createNewOption"
         style="font-style: italic; color: #888;"
       >
-        {{ search }} (create new)
+        {{ search }} ({{ translatedCreateNewLabel }})
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
+import { translatePhrase } from '../translation';
 
 export default {
   name: 'ComponentSelector',
@@ -123,7 +123,7 @@ export default {
     filteredComponents() {
       let filtered = [...this.filteredItems];
       if (this.listTitle && !this.inputMode) {
-        filtered.unshift({ __isTitle: true, [this.labelField]: this.listTitle });
+        filtered.unshift({ __isTitle: true, [this.labelField]: this.translateText(this.listTitle) });
       }
       return filtered;
     },
@@ -133,9 +133,15 @@ export default {
       }
       // Mostra o valor selecionado se não estiver digitando
       if (!this.isOpen || (!this.isTyping && !this.search)) {
-        return this.selectedComponent?.[this.labelField] || '';
+        return this.translateText(this.selectedComponent?.[this.labelField] || this.unassignedLabel || '');
       }
       return this.search;
+    },
+    translatedSearchPlaceholder() {
+      return this.translateText(this.searchPlaceholder);
+    },
+    translatedCreateNewLabel() {
+      return this.translateText('create new');
     },
     nameStyle() {
       return {
@@ -237,6 +243,9 @@ export default {
     }
   },
   methods: {
+    translateText(text) {
+      return translatePhrase(text);
+    },
     handleDropdownClick() {
       if (!this.readOnly) this.openDropdown();
     },
