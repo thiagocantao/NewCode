@@ -13,7 +13,7 @@
       :disabled="isLoading"
       class="field-input"
     >
-      <option value="" disabled selected>{{ isLoading ? 'Carregando...' : 'Selecione uma opção' }}</option>
+      <option value="" disabled selected>{{ isLoading ? t('Loading...') : t('Select an option') }}</option>
       <option
         v-for="option in options"
         :key="option.value"
@@ -26,7 +26,8 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
+import { onMounted } from 'vue';
+import { translatePhrase } from '../translation';
 
 export default {
   name: 'DynamicListField',
@@ -61,8 +62,11 @@ export default {
       
     });
 
+    const t = phrase => translatePhrase(phrase);
+
     return {
-      updateValue
+      updateValue,
+      t
     };
   }
 };

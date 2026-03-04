@@ -6,14 +6,14 @@
         <!-- Estado de carregamento -->
         <div v-if="isLoading" class="loading-container">
           <div class="loading-spinner"></div>
-          <p>Carregando formulário...</p>
+          <p>{{ t('Loading form...') }}</p>
         </div>
 
 
         <!-- Conteúdo quando carregado -->
         <template v-else>
           <div v-if="!formSections.length" class="no-sections">
-            <p>Nenhuma seção encontrada</p>
+            <p>{{ t('No sections found') }}</p>
           </div>
           <div v-else>
             <FormSection
@@ -50,6 +50,7 @@
 <script>
   import { ref, computed, onMounted, watch } from 'vue';
 import FormSection from './components/FormSection.vue';
+import { translatePhrase } from './translation';
 
 export default {
   name: 'FormBuilder',
@@ -100,6 +101,7 @@ export default {
     }
   },
   setup(props, { emit }) {
+    const t = phrase => translatePhrase(phrase);
     
     const isEditing = computed(() => {
       return props.wwEditorState?.isEditing || false;
@@ -172,7 +174,7 @@ export default {
         formData = {
           form: {
             id: null,
-            name: { [window.wwLib.wwVariable.getValue('aa44dc4c-476b-45e9-a094-16687e063342')]: "Formulário Criado" },
+            name: { [window.wwLib.wwVariable.getValue('aa44dc4c-476b-45e9-a094-16687e063342')]: t('Created Form') },
             workspace_id: "00000000-0000-0000-0000-000000000000",
             company_id: null,
             is_current: true
@@ -186,7 +188,7 @@ export default {
         return {
           ...section,
           id: section.id || `section-${Date.now()}`,
-          title: section.title[window.wwLib.wwVariable.getValue('aa44dc4c-476b-45e9-a094-16687e063342')] || section.title || 'Nova Seção',
+          title: section.title[window.wwLib.wwVariable.getValue('aa44dc4c-476b-45e9-a094-16687e063342')] || section.title || t('New Section'),
           fields: (section.fields || []).map(field => {
             let processedValue = field.value;
 
@@ -213,7 +215,7 @@ export default {
               ...field,
               id: field.id || field.ID || field.field_id || `field-${Date.now()}`,
               field_id: field.field_id || field.ID || field.id,
-              name: field.name || field.Name || 'Campo sem nome',
+              name: field.name || field.Name || t('Unnamed field'),
               fieldType: field.fieldType || 'text',
               columns: parseInt(field.columns) || 1,
               is_mandatory: Boolean(field.is_mandatory),
@@ -474,7 +476,8 @@ export default {
       autoSave,
       ticketIsClosed,
       sectionComponents,
-      validateRequiredFields
+      validateRequiredFields,
+      t
     };
   }
 };

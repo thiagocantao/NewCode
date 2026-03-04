@@ -34,6 +34,7 @@ class="action-icon-section"
 <script>
 import { computed, ref, onMounted, onUnmounted } from 'vue';
 import FieldComponent from './FieldComponent.vue';
+import { translatePhrase } from '../translation';
 
 export default {
   name: 'FormSection',
@@ -115,10 +116,11 @@ export default {
     };
 
     const sectionTitle = computed(() => {
+      const currentLang = window?.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342');
       if (typeof props.section.title === 'object') {
-        return props.section.title.pt_br || 'Section';
+        return props.section.title[currentLang] || props.section.title.en_US || props.section.title.en || translatePhrase('Section');
       }
-      return props.section.title || 'Section';
+      return props.section.title || translatePhrase('Section');
     });
 
     const sectionFields = computed(() => {
