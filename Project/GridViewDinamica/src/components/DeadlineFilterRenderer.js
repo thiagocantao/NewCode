@@ -1,5 +1,6 @@
 import * as VueRuntimeModule from "vue";
 import { readTypographyVariable, DEFAULT_FONT_FAMILY } from "../utils/fontFamily.js";
+import { translatePhrase } from "../translation";
 
 /* CustomDatePicker + DeadlineFilterRenderer
    - Popup via Teleport para <body>
@@ -91,7 +92,7 @@ const CustomDatePicker = (() => {
     emits: ["update:modelValue"],
     setup(props, { emit }) {
       // ===== helpers de data/locale =====
-      const translateText = (t) => t;
+      const translateText = (t) => translatePhrase(t);
       const ww = window.wwLib?.wwVariable;
       const lang =
         ww?.getValue("aa44dc4c-476b-45e9-a094-16687e063342") ||
@@ -742,7 +743,7 @@ export default class DeadlineFilterRenderer {
       { label: "This week", value: "this_week" },
       { label: "This month", value: "this_month" },
       { label: "Last 30 days", value: "last_30_days" },
-      { label: "Customize", value: "custom" },
+      { label: translatePhrase("Customize"), value: "custom" },
       { label: "Clear", value: "clear" },
     ];
 
@@ -775,7 +776,7 @@ export default class DeadlineFilterRenderer {
     this.eGui.className = "list-filter deadline-filter";
     this.eGui.innerHTML = `
       <div class="field-search">
-        <input type="text" placeholder="Search..." class="search-input" />
+        <input type="text" placeholder="${translatePhrase("Search...")}" class="search-input" />
         <span class="search-icon" aria-hidden="true">
           <i class="material-symbols-outlined-search">search</i>
         </span>
@@ -869,24 +870,24 @@ export default class DeadlineFilterRenderer {
     this.listEl.innerHTML = `
       <div class="custom-header">
         <button class="back-btn" type="button" aria-label="Back">‹</button>
-        <span class="custom-title">Customize</span>
+        <span class="custom-title">${translatePhrase("Customize")}</span>
       </div>
 
       <label class="custom-row">
-        <span class="custom-label">Mode</span>
+        <span class="custom-label">${translatePhrase("Mode")}</span>
         <select class="custom-select">
-          <option value="equals">Equals</option>
-          <option value="before">Before</option>
-          <option value="after">After</option>
-          <option value="between">Between</option>
+          <option value="equals">${translatePhrase("Equals")}</option>
+          <option value="before">${translatePhrase("Before")}</option>
+          <option value="after">${translatePhrase("After")}</option>
+          <option value="between">${translatePhrase("Between")}</option>
         </select>
       </label>
 
       <div class="custom-range"></div>
 
       <div class="custom-actions">
-        <button type="button" class="apply-btn" disabled>Apply</button>
-        <button type="button" class="cancel-btn">Cancel</button>
+        <button type="button" class="apply-btn" disabled>${translatePhrase("Apply")}</button>
+        <button type="button" class="cancel-btn">${translatePhrase("Cancel")}</button>
       </div>
     `;
 
@@ -972,7 +973,7 @@ export default class DeadlineFilterRenderer {
       if (!runtime || !CustomDatePicker) {
         const fallbackFont = getResolvedFontFamily();
         mountEl.innerHTML =
-          `<div class="dp-fallback" title="Vue indisponível" style="font: 13px/1 ${fallbackFont};">Select date</div>`;
+          `<div class="dp-fallback" title="${translatePhrase("Vue unavailable")}" style="font: 13px/1 ${fallbackFont};">${translatePhrase("Select date")}</div>`;
         return { unmount: () => {} };
       }
       const { createApp, h } = runtime;

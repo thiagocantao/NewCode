@@ -1,3 +1,5 @@
+import { translatePhrase } from "../translation";
+
 export default class ListFilterRenderer {
   constructor() {
     this.searchText = '';
@@ -41,7 +43,7 @@ export default class ListFilterRenderer {
     this.eGui.className = 'list-filter';
     this.eGui.innerHTML = `
       <div class="field-search">
-        <input type="text" placeholder="Search..." class="search-input" />
+        <input type="text" placeholder="${translatePhrase("Search...")}" class="search-input" />
         <span class="search-icon">
           <i class="material-symbols-outlined-search">search</i>
         </span>
@@ -49,7 +51,7 @@ export default class ListFilterRenderer {
       <div class="select-all-row">
         <label>
           <input type="checkbox" class="select-all-checkbox" />
-          <span>Select all</span>
+          <span>${translatePhrase("Select all")}</span>
         </label>
       </div>
       <div class="filter-list"></div>

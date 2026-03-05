@@ -1,3 +1,5 @@
+import { translatePhrase } from "../translation";
+
 export default class ResponsibleUserFilterRenderer {
   constructor() {
     this.searchText = '';
@@ -23,7 +25,7 @@ export default class ResponsibleUserFilterRenderer {
     this.applyAvatarTheme();
     this.eGui.innerHTML = `
       <div class="field-search">
-        <input type="text" placeholder="Search..." class="search-input" />
+        <input type="text" placeholder="${translatePhrase("Search...")}" class="search-input" />
         <span class="search-icon">
           <i class="material-symbols-outlined-search">search</i>
         </span>
@@ -31,7 +33,7 @@ export default class ResponsibleUserFilterRenderer {
       <div class="select-all-row">
         <label>
           <input type="checkbox" class="select-all-checkbox" />
-          <span>Select all</span>
+          <span>${translatePhrase("Select all")}</span>
         </label>
       </div>
       <div class="filter-list"></div>
@@ -584,11 +586,11 @@ export default class ResponsibleUserFilterRenderer {
 
     const sections = [];
     if (respHtml.length) {
-      sections.push(`<div class="filter-section"><div class="filter-section-title">Responsibles</div>${respHtml.join('')}</div>`);
+      sections.push(`<div class="filter-section"><div class="filter-section-title">${translatePhrase("Responsibles")}</div>${respHtml.join('')}</div>`);
     }
 
     if (groupHtml.length) {
-      sections.push(`<div class="filter-section"><div class="filter-section-title">Groups</div>${groupHtml.join('')}</div>`);
+      sections.push(`<div class="filter-section"><div class="filter-section-title">${translatePhrase("Groups")}</div>${groupHtml.join('')}</div>`);
     }
     this.filterList.innerHTML = sections.join('');
 

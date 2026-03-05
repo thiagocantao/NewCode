@@ -72,6 +72,7 @@
 
 <script>
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { translatePhrase } from '../translation';
 
 export default {
   name: 'CustomDatePicker',
@@ -83,16 +84,15 @@ export default {
   },
   emits: ['update:modelValue'],
   setup(props, { emit, expose }) {
-    const translateText = (t) => t;
+    
     const ww = window.wwLib?.wwVariable;
     const lang = ww?.getValue('aa44dc4c-476b-45e9-a094-16687e063342') || navigator.language;
     const formatStyleRaw = ww?.getValue('21a41590-e7d8-46a5-af76-bb3542da1df3') || 'european';
     const formatStyle = String(formatStyleRaw).toLowerCase() === 'american' ? 'american' : 'european';
 
     const isPt = computed(() => String(lang || '').toLowerCase().startsWith('pt'));
-    const PT_MONTHS = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
-    const labelToday = computed(() => (isPt.value ? 'Hoje' : translateText('Today')));
-    const labelClear = computed(() => (isPt.value ? 'Limpar' : translateText('Clear')));
+        const labelToday = computed(() => translatePhrase('Today'));
+    const labelClear = computed(() => translatePhrase('Clear'));
 
     const dpWrapper = ref(null);
     const dpInput   = ref(null);
@@ -159,7 +159,6 @@ export default {
     });
 
     const monthLabel = computed(() => {
-      if (isPt.value) return `${PT_MONTHS[dpMonth.value]} ${dpYear.value}`;
       try {
         return new Intl.DateTimeFormat(lang, { month: 'long', year: 'numeric' }).format(new Date(dpYear.value, dpMonth.value, 1));
       } catch {

@@ -13,6 +13,7 @@
 <script>
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { readTypographyVariable, DEFAULT_FONT_FAMILY } from '../utils/fontFamily.js';
+import { translatePhrase } from '../translation';
   // Função global original
 function getRoundedSpanColor(value, colorArray, fieldName, isBold) {
 
@@ -184,7 +185,7 @@ if (
           if (!value) {
             return `<span style="display:inline-flex;align-items:center;justify-content:center;gap:6px;height:26px;min-width:100px;padding:0 12px;border:1px solid #bdbdbd;border-radius:12px;background:#ffffff;color:#9e9e9e;font-size:12px;font-weight:500;font-family:${fontFamily};text-transform:none;box-sizing:border-box;">
               <span class="material-symbols-outlined" style="font-size:16px;line-height:1;font-variation-settings:'OPSZ' 24;">calendar_today</span>
-              Select
+              ${translatePhrase("Select")}
             </span>`;
           }
           // Parse data DEADLINE

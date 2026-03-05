@@ -43,6 +43,7 @@
   import DateTimeCellEditor from "./components/DateTimeCellEditor.vue";
   import FixedListCellEditor from "./components/FixedListCellEditor.js";
   import ResponsibleUserCellEditor from "./components/ResponsibleUserCellEditor.js";
+  import { translatePhrase } from "./translation";
   import {
   applyGlobalGridFontFamily,
   readTypographyVariable,
@@ -90,7 +91,7 @@
       this.eGui.innerHTML = `
         <span class="editor-close">&times;</span>
         <div class="field-search">
-          <input type="text" class="search-input" placeholder="Search..." />
+          <input type="text" class="search-input" placeholder="${translatePhrase("Search...")}" />
           <span class="search-icon"><i class="material-symbols-outlined-search">search</i></span>
         </div>
         <div class="filter-list"></div>
@@ -1293,11 +1294,11 @@ function defer(fn, delay = 0) {
     name: "ticketTagCounts",
     type: "array",
     defaultValue: [
-      { TagControl: null, TicketModelName: "All", QuantityTickets: 0 },
-      { TagControl: "incident", TicketModelName: "Incidents", QuantityTickets: 0 },
-      { TagControl: "problem", TicketModelName: "Problems", QuantityTickets: 0 },
-      { TagControl: "request", TicketModelName: "Requests", QuantityTickets: 0 },
-      { TagControl: "update", TicketModelName: "Updates", QuantityTickets: 0 }
+      { TagControl: null, TicketModelName: translatePhrase("All"), QuantityTickets: 0 },
+      { TagControl: "incident", TicketModelName: translatePhrase("Incidents"), QuantityTickets: 0 },
+      { TagControl: "problem", TicketModelName: translatePhrase("Problems"), QuantityTickets: 0 },
+      { TagControl: "request", TicketModelName: translatePhrase("Requests"), QuantityTickets: 0 },
+      { TagControl: "update", TicketModelName: translatePhrase("Updates"), QuantityTickets: 0 }
     ],
     readonly: true,
   });
@@ -1383,11 +1384,11 @@ const asObject = (v) => (v && typeof v === 'object' ? v : {});
 
     const total = rows.length;
     return [
-      { TagControl: null, TicketModelName: "All", QuantityTickets: total },
-      { TagControl: "incident", TicketModelName: "Incidents", QuantityTickets: counts.incident },
-      { TagControl: "problem", TicketModelName: "Problems", QuantityTickets: counts.problem },
-      { TagControl: "request", TicketModelName: "Requests", QuantityTickets: counts.request },
-      { TagControl: "update", TicketModelName: "Updates", QuantityTickets: counts.update },
+      { TagControl: null, TicketModelName: translatePhrase("All"), QuantityTickets: total },
+      { TagControl: "incident", TicketModelName: translatePhrase("Incidents"), QuantityTickets: counts.incident },
+      { TagControl: "problem", TicketModelName: translatePhrase("Problems"), QuantityTickets: counts.problem },
+      { TagControl: "request", TicketModelName: translatePhrase("Requests"), QuantityTickets: counts.request },
+      { TagControl: "update", TicketModelName: translatePhrase("Updates"), QuantityTickets: counts.update },
     ];
   };
 
@@ -3202,7 +3203,7 @@ setTimeout(() => {
                 }
                 const val = params.value;
                 if (!val) {
-                  return '<span class="deadline-visual deadline-empty"><span class="material-symbols-outlined deadline-empty-icon">calendar_month</span><span class="deadline-empty-text">Select</span></span>';
+                  return `<span class="deadline-visual deadline-empty"><span class="material-symbols-outlined deadline-empty-icon">calendar_month</span><span class="deadline-empty-text">${translatePhrase("Select")}</span></span>`;
                 }
                 const formattedDate = getDeadlineOriginalFormatted(val);
                 const formattedTooltip = getDeadlineTooltipFormatted(val);
@@ -3222,7 +3223,7 @@ setTimeout(() => {
                 const diff = getDeadlineDiff(val);
                 const colorClass = getDeadlineColorClass(val);
                 if (!diff) {
-                  return `<span class="deadline-visual deadline-empty"${tooltipAttr}><span class="material-symbols-outlined deadline-empty-icon">calendar_month</span><span class="deadline-empty-text">Select</span></span>`;
+                  return `<span class="deadline-visual deadline-empty"${tooltipAttr}><span class="material-symbols-outlined deadline-empty-icon">calendar_month</span><span class="deadline-empty-text">${translatePhrase("Select")}</span></span>`;
                 }
                 return `<span class="deadline-visual ${colorClass}"${tooltipAttr}>${diff}</span>`;
               };
