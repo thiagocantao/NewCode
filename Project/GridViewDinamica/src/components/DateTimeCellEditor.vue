@@ -20,7 +20,7 @@
       @pointerdown.stop.prevent="openDp($event)"
       @mousedown.stop.prevent="openDp($event)"
       @click.stop.prevent="openDp($event)"
-      aria-label="Abrir calendário"
+      :aria-label="labelOpenCalendar"
     >
       <span class="material-symbols-outlined">calendar_month</span>
     </button>
@@ -29,9 +29,9 @@
     <teleport to="body">
       <div v-if="dpOpen" ref="dpPopRef" role="dialog" aria-modal="true" :style="popRootStyle">
         <div :style="rowBetweenStyle">
-          <button type="button" :style="navBtnStyle" @click="prevMonth" aria-label="Mês anterior">&lt;</button>
+          <button type="button" :style="navBtnStyle" @click="prevMonth" :aria-label="labelPreviousMonth">&lt;</button>
           <div :style="titleStyle">{{ monthLabel }}</div>
-          <button type="button" :style="navBtnStyle" @click="nextMonth" aria-label="Próximo mês">&gt;</button>
+          <button type="button" :style="navBtnStyle" @click="nextMonth" :aria-label="labelNextMonth">&gt;</button>
         </div>
 
         <div :style="gridHeaderStyle">
@@ -66,6 +66,7 @@
 
 <script>
 import { ref, computed, watch, onBeforeUnmount, nextTick } from 'vue';
+import { translatePhrase } from '../translation';
 
 export default {
   name: 'DateTimeCellEditor',
@@ -90,10 +91,12 @@ export default {
     const formatStyleRaw = ww?.getValue('21a41590-e7d8-46a5-af76-bb3542da1df3') || 'european';
     const formatStyle = String(formatStyleRaw).toLowerCase() === 'american' ? 'american' : 'european';
     const isPt = computed(() => String(lang || '').toLowerCase().startsWith('pt'));
-    const PT_MONTHS = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
-    const labelToday = computed(() => (isPt.value ? 'Hoje' : 'Today'));
-    const labelSelect = computed(() => (isPt.value ? 'Selecionar' : 'Select'));
-    const labelClear = computed(() => (isPt.value ? 'Limpar' : 'Clear'));
+        const labelToday = computed(() => translatePhrase('Today'));
+    const labelSelect = computed(() => translatePhrase('Select'));
+    const labelClear = computed(() => translatePhrase('Clear'));
+    const labelOpenCalendar = computed(() => translatePhrase('Open calendar'));
+    const labelPreviousMonth = computed(() => translatePhrase('Previous month'));
+    const labelNextMonth = computed(() => translatePhrase('Next month'));
 
     const dpWrapper = ref(null);
     const dpInput   = ref(null);
@@ -210,7 +213,6 @@ export default {
     });
 
     const monthLabel = computed(() => {
-      if (isPt.value) return `${PT_MONTHS[dpMonth.value]} ${dpYear.value}`;
       try {
         return new Intl.DateTimeFormat(lang, { month: 'long', year: 'numeric' }).format(new Date(dpYear.value, dpMonth.value, 1));
       } catch {
@@ -494,7 +496,7 @@ export default {
       openDp, prevMonth, nextMonth,
       selectDay, onPickToday, onClear, onApply,
       weekdayAbbrs, monthLabel, gridDays,
-      displayDate, labelToday, labelSelect, labelClear,
+      displayDate, labelToday, labelSelect, labelClear, labelOpenCalendar, labelPreviousMonth, labelNextMonth,
       timePart, onTimeInput,
       showTime: isShowTime.value, disabled: props.disabled,
       hideInlineInput,

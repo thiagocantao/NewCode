@@ -1,3 +1,5 @@
+import { translatePhrase } from "../translation";
+
 export default class FixedListCellEditor {
   init(params) {
     this.params = params;
@@ -11,7 +13,7 @@ export default class FixedListCellEditor {
     this.eGui.innerHTML = `
       <span class="editor-close">&times;</span>
       <div class="field-search">
-        <input type="text" class="search-input" placeholder="Search..." />
+        <input type="text" class="search-input" placeholder="${translatePhrase("Search...")}" />
         <span class="search-icon"><i class="material-symbols-outlined-search">search</i></span>
       </div>
       <div class="filter-list"></div>

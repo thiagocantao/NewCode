@@ -34,7 +34,7 @@
           </div>
           <div v-if="showGroupTooltip" class="user-selector__group-tooltip">
             <div>{{ selectedGroup.name }}</div>
-            <div class="user-selector__group-tooltip-count">{{ selectedGroup.groupUsers?.length || 0 }} {{ (selectedGroup.groupUsers?.length || 0) === 1 ? 'member' : 'members' }}</div>
+            <div class="user-selector__group-tooltip-count">{{ selectedGroup.groupUsers?.length || 0 }} {{ (selectedGroup.groupUsers?.length || 0) === 1 ? translatePhrase('member') : translatePhrase('members') }}</div>
           </div>
         </div>
         <div class="avatar-outer selected-user-avatar">
@@ -67,7 +67,7 @@
           </div>
           <div v-if="showGroupTooltip" class="user-selector__group-tooltip">
             <div>{{ selectedGroup.name }}</div>
-            <div class="user-selector__group-tooltip-count">{{ selectedGroup.groupUsers?.length || 0 }} {{ (selectedGroup.groupUsers?.length || 0) === 1 ? 'member' : 'members' }}</div>
+            <div class="user-selector__group-tooltip-count">{{ selectedGroup.groupUsers?.length || 0 }} {{ (selectedGroup.groupUsers?.length || 0) === 1 ? translatePhrase('member') : translatePhrase('members') }}</div>
           </div>
         </div>
         <div class="avatar-outer" v-else>
@@ -247,7 +247,7 @@
         </template>
 
         <div v-if="filteredUsers.length === 0" class="user-selector__no-results" :style="nameStyle">
-          No user found
+          {{ translatePhrase('No user found') }}
         </div>
       </div>
     </div>
@@ -255,6 +255,7 @@
 </template>
 
 <script>
+import { translatePhrase } from '../translation';
 export default {
   name: 'UserSelector',
   emits: ['trigger-event', 'user-selected'],
@@ -270,8 +271,8 @@ export default {
     inputFontFamily: String,
     inputFontSize: String,
     inputFontWeight: [String, Number],
-    unassignedLabel: { type: String, default: 'Unassigned' },
-    searchPlaceholder: { type: String, default: 'Search user...' },
+    unassignedLabel: { type: String, default: () => translatePhrase('Unassigned') },
+    searchPlaceholder: { type: String, default: () => translatePhrase('Search user...') },
     initialSelectedId: [String, Number, Object],
     initialGroupId: [String, Number],
     selectedUserId: [String, Number, Object],
@@ -363,7 +364,7 @@ export default {
     },
     currentGroupCountLabel() {
       const count = this.currentGroup?.groupUsers?.length || 0;
-      return `${count} ${count === 1 ? 'member' : 'members'}`;
+      return `${count} ${count === 1 ? translatePhrase('member') : translatePhrase('members')}`;
     },
     selectedLabel() {
       if (this.selectedGroup && this.selectedUser) return this.selectedUser.name;
@@ -431,6 +432,7 @@ export default {
     }
   },
   methods: {
+    translatePhrase,
     toggleDropdown() {
       this.isOpen = !this.isOpen;
       if (!this.isOpen) {
