@@ -105,8 +105,8 @@
           <table>
             <thead>
               <tr>
-                <th style="width:155px" class="headerDias">{{ translateText('Date') }}</th>
-                <th class="headerHoras">{{ translateText('Action') }}</th>
+                <th style="width:185px" class="headerDias">{{ translateText('Date') }}</th>
+                <th style="width:180px" class="headerHoras">{{ translateText('Action') }}</th>
               </tr>
             </thead>
             <tbody
@@ -115,7 +115,7 @@
               :style="{ maxHeight: excludedDatesHeight }"
             >
               <tr>
-                <td style="width:155px">
+                <td style="width:185px">
                   <div class="dp-wrapper" ref="dpWrapper">
                     <input
                       class="inputDate dp-input"
@@ -175,7 +175,7 @@
                     <input type="hidden" v-model="newExcludedDate" />
                   </div>
                 </td>
-                <td>
+                <td style="width:180px">
                   <button class="buttonFormat" @click="addExcludedDate">
                     {{ translateText('Add') }}
                   </button>
@@ -980,7 +980,7 @@ export default {
 .corporate-calendar th { font-weight: 400; }
 
 /* --------- Tabela de datas excluídas --------- */
-.excluded-dates { border: 1px solid #acacad; overflow: hidden; display: inline-block; margin-top: 0px; }
+.excluded-dates { border: 1px solid #acacad; overflow: hidden; display: inline-block; margin-top: 0px; min-width:365px}
 .excluded-dates-wrapper { display: flex; align-items: flex-start; gap: 10px; }
 .default-calendar-message { font-family: "Roboto", sans-serif; font-size: 12px; color: red; font-style: italic; }
 .h3 { font-weight: 400; margin-bottom: 1px; margin-top: 20px; font-family: "Roboto", sans-serif; font-size: 13px; color: #333; }
