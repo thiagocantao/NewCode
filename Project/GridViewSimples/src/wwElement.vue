@@ -92,6 +92,40 @@ export default {
         readonly: true,
       });
 
+    const getAppLanguage = () => {
+      let value = null;
+      try {
+        if (window.wwLib?.wwVariable?.getValue) {
+          value = window.wwLib.wwVariable.getValue("aa44dc4c-476b-45e9-a094-16687e063342");
+        }
+      } catch (e) {}
+
+      switch (value) {
+        case "pt-BR":
+        case "pt":
+        case "Portuguese":
+          return "pt";
+        case "fr-FR":
+        case "fr":
+        case "French":
+          return "fr";
+        case "es-ES":
+        case "es":
+        case "Spanish":
+          return "es";
+        case "de-DE":
+        case "de":
+        case "German":
+          return "de";
+        case "en-US":
+        case "en":
+        case "English":
+          return "en";
+        default:
+          return null;
+      }
+    };
+
     const onGridReady = (params) => {
       gridApi.value = params.api;
       if (
@@ -258,6 +292,11 @@ export default {
     onMounted(() => {
       resizeObserver = new ResizeObserver(() => refreshLayout());
       if (rootRef.value) resizeObserver.observe(rootRef.value);
+
+      const appLanguage = getAppLanguage();
+      if (appLanguage && appLanguage !== props.content.lang) {
+        ctx.emit("update:content:effect", { lang: appLanguage });
+      }
     });
 
     onUnmounted(() => {
@@ -281,7 +320,8 @@ export default {
       showGrid,
       rootRef,
       localeText: computed(() => {
-        switch (props.content.lang) {
+        const language = getAppLanguage() || props.content.lang;
+        switch (language) {
           case "fr":
             return AG_GRID_LOCALE_FR;
           case "de":
@@ -296,7 +336,7 @@ export default {
               ...(props.content.localeText || {}),
             };
           default:
-            AG_GRID_LOCALE_EN;
+            return AG_GRID_LOCALE_EN;
         }
       }),
       /* wwEditor:start */
