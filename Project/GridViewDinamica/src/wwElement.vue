@@ -3489,6 +3489,16 @@ setTimeout(() => {
         payload = payload.Sort;
       } else if (Array.isArray(payload.sort)) {
         payload = payload.sort;
+      } else {
+        const hasSingleSortEntryFields =
+          payload?.id != null ||
+          payload?.colId != null ||
+          payload?.field != null ||
+          payload?.fieldId != null;
+
+        if (hasSingleSortEntryFields) {
+          payload = [payload];
+        }
       }
     }
 
