@@ -566,6 +566,7 @@ const TAGS_MAP = {
     h4: 4,
     h5: 5,
     h6: 6,
+    ol: 7,
 };
 
 const WORKSPACE_VAR_ID = '744511f1-3309-41da-a9fd-0721e7dd2f99';
@@ -1016,6 +1017,7 @@ export default {
                 { label: 'Heading 4', value: 4, active: this.richEditor.isActive('heading', { level: 4 }) },
                 { label: 'Heading 5', value: 5, active: this.richEditor.isActive('heading', { level: 5 }) },
                 { label: 'Heading 6', value: 6, active: this.richEditor.isActive('heading', { level: 6 }) },
+                { label: 'Ordered List', value: 7, active: this.richEditor.isActive('orderedList') },
             ];
         },
         menuStyles() {
@@ -1092,6 +1094,15 @@ export default {
                 '--p-lineHeight': this.content.p.lineHeight,
                 '--p-margin-top': this.content.p.marginTop,
                 '--p-margin-bottom': this.content.p.marginBottom,
+                // ol
+                '--ol-fontSize': this.content.ol?.fontSize,
+                '--ol-fontFamily': this.content.ol?.fontFamily,
+                '--ol-fontWeight': this.content.ol?.fontWeight,
+                '--ol-textAlign': this.content.ol?.textAlign,
+                '--ol-color': this.content.ol?.color,
+                '--ol-lineHeight': this.content.ol?.lineHeight,
+                '--ol-margin-top': this.content.ol?.marginTop,
+                '--ol-margin-bottom': this.content.ol?.marginBottom,
                 // mention
                 '--mention-fontSize': this.content.mention.fontSize,
                 '--mention-fontFamily': this.content.mention.fontFamily,
@@ -1945,7 +1956,25 @@ export default {
                 tag = tag.toLocaleLowerCase().trim();
                 if (tag in TAGS_MAP) tag = TAGS_MAP[tag];
             }
-            if (tag === 0) this.richEditor.chain().focus().setParagraph().run();
+            if (tag === 0) {
+                if (this.richEditor.isActive('orderedList')) {
+                    this.richEditor.chain().focus().toggleOrderedList().run();
+                }
+                this.richEditor.chain().focus().setParagraph().run();
+                return;
+            }
+
+            if (tag === 7) {
+                if (!this.richEditor.isActive('orderedList')) {
+                    this.richEditor.chain().focus().toggleOrderedList().run();
+                }
+                return;
+            }
+
+            if (this.richEditor.isActive('orderedList')) {
+                this.richEditor.chain().focus().toggleOrderedList().run();
+            }
+
             if (tag !== 0)
                 this.richEditor
                     .chain()
@@ -2409,6 +2438,16 @@ export default {
             line-height: var(--p-lineHeight);
             margin-top: var(--p-margin-top);
             margin-bottom: var(--p-margin-bottom);
+        }
+        ol {
+            font-size: var(--ol-fontSize);
+            font-family: var(--ol-fontFamily);
+            font-weight: var(--ol-fontWeight);
+            text-align: var(--ol-textAlign);
+            color: var(--ol-color);
+            line-height: var(--ol-lineHeight);
+            margin-top: var(--ol-margin-top);
+            margin-bottom: var(--ol-margin-bottom);
         }
         a {
             display: initial;

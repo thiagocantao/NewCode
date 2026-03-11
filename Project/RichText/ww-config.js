@@ -33,6 +33,7 @@ export default {
                 'h5',
                 'h6',
                 'p',
+                'ol',
                 'mention',
                 'a',
                 'blockquote',
@@ -145,6 +146,7 @@ export default {
                         { value: 4, label: { en: 'h4' } },
                         { value: 5, label: { en: 'h5' } },
                         { value: 6, label: { en: 'h6' } },
+                        { value: 7, label: { en: 'Ordered List' } },
                     ],
                 },
             ],
@@ -457,6 +459,7 @@ export default {
                     { value: 'h5', label: { en: 'h5' } },
                     { value: 'h6', label: { en: 'h6' } },
                     { value: 'p', label: { en: 'p' } },
+                    { value: 'ol', label: { en: 'Ordered List' } },
                     { value: 'a', label: { en: 'a' } },
                     { value: 'img', label: { en: 'image' } },
                     { value: 'blockquote', label: { en: 'blockquote' } },
@@ -617,6 +620,29 @@ export default {
             },
             defaultValue: {
                 fontSize: '16px',
+                fontFamily: '',
+                fontWeight: '',
+                textAlign: '',
+                color: '',
+                lineHeight: '',
+                marginTop: '',
+                marginBottom: '',
+            },
+            states: true,
+            classes: true,
+            responsive: true,
+        },
+        ol: {
+            type: 'Object',
+            hidden: (content, sidepanelContent) => {
+                return sidepanelContent.selectedTag !== 'ol';
+            },
+            options: {
+                item: textOptions,
+                singleLine: true,
+            },
+            defaultValue: {
+                fontSize: '',
                 fontFamily: '',
                 fontWeight: '',
                 textAlign: '',
