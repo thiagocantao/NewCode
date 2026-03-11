@@ -566,6 +566,7 @@ const TAGS_MAP = {
     h4: 4,
     h5: 5,
     h6: 6,
+    ol: 7,
 };
 
 const WORKSPACE_VAR_ID = '744511f1-3309-41da-a9fd-0721e7dd2f99';
@@ -775,6 +776,8 @@ export default {
         imageSelectionRetries: 0,
         isEditingImageSize: false,
         imageRefreshTimer: null,
+        orderedLinesMode: false,
+        isApplyingOrderedLineNumbers: false,
 
     }),
 
@@ -999,6 +1002,7 @@ export default {
         },
         currentTextType: {
             get() {
+                if (this.orderedLinesMode) return 7;
                 const currentType = this.textTypeOptions.find(option => option.active);
                 return currentType ? currentType.value : 0;
             },
@@ -1016,6 +1020,7 @@ export default {
                 { label: 'Heading 4', value: 4, active: this.richEditor.isActive('heading', { level: 4 }) },
                 { label: 'Heading 5', value: 5, active: this.richEditor.isActive('heading', { level: 5 }) },
                 { label: 'Heading 6', value: 6, active: this.richEditor.isActive('heading', { level: 6 }) },
+                { label: 'Ordered List', value: 7, active: this.orderedLinesMode },
             ];
         },
         menuStyles() {
@@ -1092,6 +1097,15 @@ export default {
                 '--p-lineHeight': this.content.p.lineHeight,
                 '--p-margin-top': this.content.p.marginTop,
                 '--p-margin-bottom': this.content.p.marginBottom,
+                // ol
+                '--ol-fontSize': this.content.ol?.fontSize,
+                '--ol-fontFamily': this.content.ol?.fontFamily,
+                '--ol-fontWeight': this.content.ol?.fontWeight,
+                '--ol-textAlign': this.content.ol?.textAlign,
+                '--ol-color': this.content.ol?.color,
+                '--ol-lineHeight': this.content.ol?.lineHeight,
+                '--ol-margin-top': this.content.ol?.marginTop,
+                '--ol-margin-bottom': this.content.ol?.marginBottom,
                 // mention
                 '--mention-fontSize': this.content.mention.fontSize,
                 '--mention-fontFamily': this.content.mention.fontFamily,
@@ -1804,7 +1818,52 @@ export default {
             this.handleEditorSelectionUpdate();
             this.loading = false;
         },
+        stripOrderedLinePrefix(text = '') {
+            return String(text).replace(/^\s*\d+\s*-\s*/u, '');
+        },
+        applyOrderedLineNumbers() {
+            if (!this.richEditor || !this.orderedLinesMode || this.isApplyingOrderedLineNumbers) return false;
+
+            const { state, view } = this.richEditor;
+            if (!state || !view) return false;
+
+            let lineNumber = 1;
+            let hasChanges = false;
+            const tr = state.tr;
+
+            state.doc.descendants((node, pos) => {
+                if (node.type.name !== 'paragraph') return;
+
+                const text = node.textContent || '';
+                if (!text.trim()) return;
+
+                const normalizedText = this.stripOrderedLinePrefix(text);
+                const desiredText = `${lineNumber} - ${normalizedText}`;
+                lineNumber += 1;
+
+                if (text !== desiredText) {
+                    tr.insertText(desiredText, pos + 1, pos + node.nodeSize - 1);
+                    hasChanges = true;
+                }
+            });
+
+            if (!hasChanges) return false;
+
+            this.isApplyingOrderedLineNumbers = true;
+            try {
+                view.dispatch(tr);
+            } finally {
+                this.isApplyingOrderedLineNumbers = false;
+            }
+
+            return true;
+        },
         handleOnUpdate() {
+            if (this.orderedLinesMode && !this.isApplyingOrderedLineNumbers) {
+                const hasNormalizedContent = this.applyOrderedLineNumbers();
+                if (hasNormalizedContent) return;
+            }
+
             let htmlValue = this.getContent();
             if (this.variableValue === htmlValue) {
                 this.htmlEditorValue = htmlValue;
@@ -1945,13 +2004,27 @@ export default {
                 tag = tag.toLocaleLowerCase().trim();
                 if (tag in TAGS_MAP) tag = TAGS_MAP[tag];
             }
-            if (tag === 0) this.richEditor.chain().focus().setParagraph().run();
-            if (tag !== 0)
-                this.richEditor
-                    .chain()
-                    .focus()
-                    .toggleHeading({ level: Number(tag) })
-                    .run();
+
+            if (tag === 7) {
+                this.orderedLinesMode = true;
+                this.richEditor.chain().focus().setParagraph().run();
+                this.applyOrderedLineNumbers();
+                this.handleOnUpdate();
+                return;
+            }
+
+            this.orderedLinesMode = false;
+
+            if (tag === 0) {
+                this.richEditor.chain().focus().setParagraph().run();
+                return;
+            }
+
+            this.richEditor
+                .chain()
+                .focus()
+                .toggleHeading({ level: Number(tag) })
+                .run();
         },
         toggleUnderline() {
             this.richEditor.chain().focus().toggleMark('underline').run();
@@ -1981,12 +2054,15 @@ export default {
             this.richEditor.chain().focus().setColor(color).run();
         },
         toggleBulletList() {
+            this.orderedLinesMode = false;
             this.richEditor.chain().focus().toggleBulletList().run();
         },
         toggleOrderedList() {
+            this.orderedLinesMode = false;
             this.richEditor.chain().focus().toggleOrderedList().run();
         },
         toggleTaskList() {
+            this.orderedLinesMode = false;
             this.richEditor.chain().focus().toggleTaskList().run();
         },
         toggleCodeBlock() {
@@ -2409,6 +2485,16 @@ export default {
             line-height: var(--p-lineHeight);
             margin-top: var(--p-margin-top);
             margin-bottom: var(--p-margin-bottom);
+        }
+        ol {
+            font-size: var(--ol-fontSize);
+            font-family: var(--ol-fontFamily);
+            font-weight: var(--ol-fontWeight);
+            text-align: var(--ol-textAlign);
+            color: var(--ol-color);
+            line-height: var(--ol-lineHeight);
+            margin-top: var(--ol-margin-top);
+            margin-bottom: var(--ol-margin-bottom);
         }
         a {
             display: initial;
