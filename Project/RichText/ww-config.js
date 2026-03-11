@@ -51,6 +51,7 @@ export default {
             'hideMenu',
             'wrapMenu',
             'initialValue',
+            'orderedLines',
             'output',
             'placeholder',
             'debounce',
@@ -259,6 +260,15 @@ export default {
             },
             type: 'Textarea',
             defaultValue: '',
+            bindable: true,
+        },
+        orderedLines: {
+            section: 'settings',
+            label: {
+                en: 'Ordered lines',
+            },
+            type: 'OnOff',
+            defaultValue: false,
             bindable: true,
         },
         output: {
