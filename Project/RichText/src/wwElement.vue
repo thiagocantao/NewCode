@@ -802,6 +802,19 @@ export default {
             if (this.isReadonly) this.handleOnUpdate();
             this.htmlEditorValue = String(value ?? '');
         },
+        'content.orderedLines'(value) {
+            if (!value) {
+                this.orderedLinesMode = false;
+                return;
+            }
+
+            this.orderedLinesMode = true;
+            if (!this.richEditor) return;
+
+            this.richEditor.chain().focus().setParagraph().run();
+            this.applyOrderedLineNumbers();
+            this.handleOnUpdate();
+        },
         isEditable(value) {
             if (!this.richEditor) return;
             if (!value) this.clearSelectedImage({ force: true });
@@ -955,6 +968,9 @@ export default {
         hideMenu() {
             return this.content.hideMenu || this.isReadonly;
         },
+        isOrderedLinesEnabled() {
+            return this.content.orderedLines || this.orderedLinesMode;
+        },
         menu() {
             return {
                 textType: this.content.parameterTextType ?? true,
@@ -1002,7 +1018,7 @@ export default {
         },
         currentTextType: {
             get() {
-                if (this.orderedLinesMode) return 7;
+                if (this.isOrderedLinesEnabled) return 7;
                 const currentType = this.textTypeOptions.find(option => option.active);
                 return currentType ? currentType.value : 0;
             },
@@ -1020,7 +1036,7 @@ export default {
                 { label: 'Heading 4', value: 4, active: this.richEditor.isActive('heading', { level: 4 }) },
                 { label: 'Heading 5', value: 5, active: this.richEditor.isActive('heading', { level: 5 }) },
                 { label: 'Heading 6', value: 6, active: this.richEditor.isActive('heading', { level: 6 }) },
-                { label: 'Ordered List', value: 7, active: this.orderedLinesMode },
+                { label: 'Ordered List', value: 7, active: this.isOrderedLinesEnabled },
             ];
         },
         menuStyles() {
@@ -1785,6 +1801,7 @@ export default {
                         }),
                 ],
                 onCreate: () => {
+                    this.orderedLinesMode = this.content.orderedLines;
                     this.setValue(this.getContent());
                     this.setMentions(this.richEditor.getJSON().content.reduce(extractMentions, []));
                     this.htmlEditorValue = this.getContent();
@@ -1859,7 +1876,7 @@ export default {
             return true;
         },
         handleOnUpdate() {
-            if (this.orderedLinesMode && !this.isApplyingOrderedLineNumbers) {
+            if (this.isOrderedLinesEnabled && !this.isApplyingOrderedLineNumbers) {
                 const hasNormalizedContent = this.applyOrderedLineNumbers();
                 if (hasNormalizedContent) return;
             }
@@ -2013,7 +2030,7 @@ export default {
                 return;
             }
 
-            this.orderedLinesMode = false;
+            if (!this.content.orderedLines) this.orderedLinesMode = false;
 
             if (tag === 0) {
                 this.richEditor.chain().focus().setParagraph().run();
@@ -2054,15 +2071,15 @@ export default {
             this.richEditor.chain().focus().setColor(color).run();
         },
         toggleBulletList() {
-            this.orderedLinesMode = false;
+            if (!this.content.orderedLines) this.orderedLinesMode = false;
             this.richEditor.chain().focus().toggleBulletList().run();
         },
         toggleOrderedList() {
-            this.orderedLinesMode = false;
+            if (!this.content.orderedLines) this.orderedLinesMode = false;
             this.richEditor.chain().focus().toggleOrderedList().run();
         },
         toggleTaskList() {
-            this.orderedLinesMode = false;
+            if (!this.content.orderedLines) this.orderedLinesMode = false;
             this.richEditor.chain().focus().toggleTaskList().run();
         },
         toggleCodeBlock() {
