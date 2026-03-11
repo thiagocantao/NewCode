@@ -776,6 +776,8 @@ export default {
         imageSelectionRetries: 0,
         isEditingImageSize: false,
         imageRefreshTimer: null,
+        orderedLinesMode: false,
+        isApplyingOrderedLineNumbers: false,
 
     }),
 
@@ -1000,6 +1002,7 @@ export default {
         },
         currentTextType: {
             get() {
+                if (this.orderedLinesMode) return 7;
                 const currentType = this.textTypeOptions.find(option => option.active);
                 return currentType ? currentType.value : 0;
             },
@@ -1017,7 +1020,7 @@ export default {
                 { label: 'Heading 4', value: 4, active: this.richEditor.isActive('heading', { level: 4 }) },
                 { label: 'Heading 5', value: 5, active: this.richEditor.isActive('heading', { level: 5 }) },
                 { label: 'Heading 6', value: 6, active: this.richEditor.isActive('heading', { level: 6 }) },
-                { label: 'Ordered List', value: 7, active: this.richEditor.isActive('orderedList') },
+                { label: 'Ordered List', value: 7, active: this.orderedLinesMode },
             ];
         },
         menuStyles() {
@@ -1815,7 +1818,52 @@ export default {
             this.handleEditorSelectionUpdate();
             this.loading = false;
         },
+        stripOrderedLinePrefix(text = '') {
+            return String(text).replace(/^\s*\d+\s*-\s*/u, '');
+        },
+        applyOrderedLineNumbers() {
+            if (!this.richEditor || !this.orderedLinesMode || this.isApplyingOrderedLineNumbers) return false;
+
+            const { state, view } = this.richEditor;
+            if (!state || !view) return false;
+
+            let lineNumber = 1;
+            let hasChanges = false;
+            const tr = state.tr;
+
+            state.doc.descendants((node, pos) => {
+                if (node.type.name !== 'paragraph') return;
+
+                const text = node.textContent || '';
+                if (!text.trim()) return;
+
+                const normalizedText = this.stripOrderedLinePrefix(text);
+                const desiredText = `${lineNumber} - ${normalizedText}`;
+                lineNumber += 1;
+
+                if (text !== desiredText) {
+                    tr.insertText(desiredText, pos + 1, pos + node.nodeSize - 1);
+                    hasChanges = true;
+                }
+            });
+
+            if (!hasChanges) return false;
+
+            this.isApplyingOrderedLineNumbers = true;
+            try {
+                view.dispatch(tr);
+            } finally {
+                this.isApplyingOrderedLineNumbers = false;
+            }
+
+            return true;
+        },
         handleOnUpdate() {
+            if (this.orderedLinesMode && !this.isApplyingOrderedLineNumbers) {
+                const hasNormalizedContent = this.applyOrderedLineNumbers();
+                if (hasNormalizedContent) return;
+            }
+
             let htmlValue = this.getContent();
             if (this.variableValue === htmlValue) {
                 this.htmlEditorValue = htmlValue;
@@ -1956,31 +2004,27 @@ export default {
                 tag = tag.toLocaleLowerCase().trim();
                 if (tag in TAGS_MAP) tag = TAGS_MAP[tag];
             }
+
+            if (tag === 7) {
+                this.orderedLinesMode = true;
+                this.richEditor.chain().focus().setParagraph().run();
+                this.applyOrderedLineNumbers();
+                this.handleOnUpdate();
+                return;
+            }
+
+            this.orderedLinesMode = false;
+
             if (tag === 0) {
-                if (this.richEditor.isActive('orderedList')) {
-                    this.richEditor.chain().focus().toggleOrderedList().run();
-                }
                 this.richEditor.chain().focus().setParagraph().run();
                 return;
             }
 
-            if (tag === 7) {
-                if (!this.richEditor.isActive('orderedList')) {
-                    this.richEditor.chain().focus().toggleOrderedList().run();
-                }
-                return;
-            }
-
-            if (this.richEditor.isActive('orderedList')) {
-                this.richEditor.chain().focus().toggleOrderedList().run();
-            }
-
-            if (tag !== 0)
-                this.richEditor
-                    .chain()
-                    .focus()
-                    .toggleHeading({ level: Number(tag) })
-                    .run();
+            this.richEditor
+                .chain()
+                .focus()
+                .toggleHeading({ level: Number(tag) })
+                .run();
         },
         toggleUnderline() {
             this.richEditor.chain().focus().toggleMark('underline').run();
@@ -2010,12 +2054,15 @@ export default {
             this.richEditor.chain().focus().setColor(color).run();
         },
         toggleBulletList() {
+            this.orderedLinesMode = false;
             this.richEditor.chain().focus().toggleBulletList().run();
         },
         toggleOrderedList() {
+            this.orderedLinesMode = false;
             this.richEditor.chain().focus().toggleOrderedList().run();
         },
         toggleTaskList() {
+            this.orderedLinesMode = false;
             this.richEditor.chain().focus().toggleTaskList().run();
         },
         toggleCodeBlock() {
