@@ -350,6 +350,7 @@ export default {
         const searchState = ref(null);
         const optionProperties = ref({});
         const resizeObserver = ref(null);
+        const dropdownResizeObserver = ref(null);
         const triggerWidth = ref(0);
         const triggerHeight = ref(0);
         const shouldCloseDropdown = ref(true);
@@ -379,7 +380,12 @@ export default {
             const availableBelow = Math.max(0, viewportHeight - triggerRect.bottom - offsetY);
             const availableAbove = Math.max(0, triggerRect.top - offsetY);
 
+            const dropdownDirection = props.content.dropdownDirection || 'auto';
+
             const shouldOpenUpwards = () => {
+                if (dropdownDirection === 'up') return true;
+                if (dropdownDirection === 'down') return false;
+
                 if (availableBelow >= dropdownHeight) return false;
                 if (availableAbove >= dropdownHeight) return true;
                 return availableAbove > availableBelow;
@@ -763,6 +769,25 @@ export default {
             resizeObserver.value.observe(triggerElement.value);
         };
 
+        const observeDropdownSize = () => {
+            if (dropdownResizeObserver.value) {
+                dropdownResizeObserver.value.disconnect();
+                dropdownResizeObserver.value = null;
+            }
+
+            if (!dropdownElement.value) return;
+
+            dropdownResizeObserver.value = new ResizeObserver(
+                debounce(entries => {
+                    if (entries[0] && isOpen.value) {
+                        syncFloating();
+                    }
+                }, 16)
+            );
+
+            dropdownResizeObserver.value.observe(dropdownElement.value);
+        };
+
         const selectionDetails = computed(() => {
             const _optionsMap = new Map(
                 rawData.value.map(option => {
@@ -1059,7 +1084,18 @@ export default {
             observeTriggerSize();
         });
 
-        watch([() => props.content.offsetX, () => props.content.offsetY], () => {
+        watch(dropdownElement, () => {
+            observeDropdownSize();
+        });
+
+        watch(isOpen, value => {
+            if (!value && dropdownResizeObserver.value) {
+                dropdownResizeObserver.value.disconnect();
+                dropdownResizeObserver.value = null;
+            }
+        });
+
+        watch([() => props.content.offsetX, () => props.content.offsetY, () => props.content.dropdownDirection], () => {
             syncFloating();
         });
 
@@ -1202,6 +1238,10 @@ export default {
             if (resizeObserver.value) {
                 resizeObserver.value.disconnect();
                 resizeObserver.value = null;
+            }
+            if (dropdownResizeObserver.value) {
+                dropdownResizeObserver.value.disconnect();
+                dropdownResizeObserver.value = null;
             }
             revertBlockScrolling();
             wwLib.getFrontDocument().removeEventListener('click', handleClickOutside);
