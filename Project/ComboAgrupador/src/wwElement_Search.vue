@@ -28,7 +28,7 @@
 </template>
 
 <script>
-import { inject, onMounted, onBeforeUnmount, ref, computed, watch, nextTick } from 'vue';
+import { inject, onMounted, onBeforeUnmount, ref, computed, watch, nextTick, toValue } from 'vue';
 /* wwEditor:start */
 import useEditorHint from './editor/useEditorHint';
 /* wwEditor:end */
@@ -55,7 +55,9 @@ export default {
         const searchElementRef = ref(null);
         const searchValue = ref('');
         const rawData = inject('_wwSelect:rawData', ref([]));
+        const mappingLabel = inject('_wwSelect:mappingLabel', ref(null));
         const searchState = inject('_wwSelect:searchState', ref(null));
+        const { resolveMappingFormula } = wwLib.wwFormula.useFormula();
         const searchElement = computed(() => searchElementRef.value);
         const allowInsertNew = computed(() => props.content.allowInsertNew || false);
         const searchBy = computed(() => {
@@ -113,11 +115,17 @@ export default {
             return rawData.value
                 .map(option => {
                     if (typeof option !== 'object' || option === null) {
-                        return option != null ? String(option) : '';
+                        return option != null ? String(option).trim() : '';
                     }
 
-                    if (option.name !== undefined && option.name !== null) return String(option.name);
-                    if (option.label !== undefined && option.label !== null) return String(option.label);
+                    const mappedLabel = resolveMappingFormula(toValue(mappingLabel), option);
+                    if (mappedLabel !== undefined && mappedLabel !== null && String(mappedLabel).trim() !== '') {
+                        return String(mappedLabel).trim();
+                    }
+
+                    if (option.name !== undefined && option.name !== null) return String(option.name).trim();
+                    if (option.label !== undefined && option.label !== null) return String(option.label).trim();
+                    if (option.value !== undefined && option.value !== null) return String(option.value).trim();
                     return '';
                 })
                 .filter(Boolean);
@@ -220,6 +228,11 @@ export default {
     &::placeholder {
         color: var(--placeholder-color);
     }
+}
+
+.ww-select-search:focus {
+    outline: none !important;
+    box-shadow: none;
 }
 
 .ww-select-search-add-btn {
