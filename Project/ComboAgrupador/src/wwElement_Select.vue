@@ -40,7 +40,12 @@
                 >
                     <div :style="[dropdownStyles]">
                             <SelectDropdown :content="content" :wwEditorState="wwEditorState">
-                                <SelectSearch v-if="showSearch" :content="content" :wwEditorState="wwEditorState" />
+                                <SelectSearch
+                                    v-if="showSearch"
+                                    :content="content"
+                                    :wwEditorState="wwEditorState"
+                                    @add-new="handleAddNew"
+                                />
                                 <div class="ww-select-close" @click="closeDropdown">x</div>
                                 <div class="ww-select-separator"></div>
                                 <!-- List mode -->
@@ -350,6 +355,7 @@ export default {
         const shouldCloseDropdown = ref(true);
         const showSearch = computed(() => props.content.showSearch);
         const allowScrollingWhenOpen = computed(() => props.content.allowScrollingWhenOpen);
+        const allowInsertNew = computed(() => props.content.allowInsertNew || false);
 
         // Styles
         const syncFloating = () => {
@@ -489,6 +495,11 @@ export default {
 
         const updateSearch = filter => {
             searchState.value = filter;
+        };
+
+        const handleAddNew = value => {
+            if (!allowInsertNew.value) return;
+            emit('trigger-event', { name: 'addNew', event: { value } });
         };
 
         const updateValue = value => {
@@ -1236,6 +1247,7 @@ export default {
             lastTriggeredComponentAction,
             selectStyles,
             translateText,
+            handleAddNew,
 
             // Methods
             openDropdown,
