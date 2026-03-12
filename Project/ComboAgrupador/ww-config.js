@@ -175,6 +175,7 @@ export default {
                 'closeOnSelect',
                 'closeOnClickOutside',
                 'manualTrigger',
+                'dropdownDirection',
                 'selectOnClick',
                 'virtualScrollBuffer',
                 'virtualScrollMinItemSize',
@@ -599,6 +600,28 @@ export default {
             },
             propertyHelp: {
                 tooltip: 'Whether the select dropdown closes when clicking outside the dropdown.',
+            },
+            /* wwEditor:end */
+            section: 'settings',
+        },
+        dropdownDirection: {
+            label: { en: 'Dropdown direction' },
+            type: 'TextSelect',
+            options: {
+                options: [
+                    { value: 'auto', label: 'Auto' },
+                    { value: 'down', label: 'Down' },
+                    { value: 'up', label: 'Up' },
+                ],
+            },
+            defaultValue: 'auto',
+            states: true,
+            bindable: true,
+            responsive: true,
+            /* wwEditor:start */
+            bindingValidation: {
+                validations: [{ type: 'string' }],
+                tooltip: 'Controls whether the dropdown opens automatically, upwards, or downwards.',
             },
             /* wwEditor:end */
             section: 'settings',
