@@ -165,6 +165,15 @@ export default {
             bindable: true,
             defaultValue: '#e7f1ff',
         },
+        readOnly: {
+            label: {
+                en: 'Read only',
+                pt: 'Somente leitura',
+            },
+            type: 'boolean',
+            bindable: true,
+            defaultValue: false,
+        },
         maxLevel: {
             label: { en: 'Max level' },
             type: 'number',
