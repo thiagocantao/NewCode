@@ -179,7 +179,7 @@ export default {
                 'virtualScrollBuffer',
                 'virtualScrollMinItemSize',
             ],
-            ['searchTitle', 'showSearch', 'searchBy', 'autoFocus'],
+            ['searchTitle', 'showSearch', 'allowInsertNew', 'searchBy', 'autoFocus'],
             'formInfobox',
             ['fieldName', 'customValidation', 'validation'],
         ],
@@ -195,6 +195,7 @@ export default {
         { name: 'initValueChange', label: { en: 'On init value change' }, event: { value: '' } },
         { name: 'focus', label: { en: 'On focus' }, event: { value: '' } },
         { name: 'blur', label: { en: 'On blur' }, event: { value: '' } },
+        { name: 'addNew', label: { en: 'On add new' }, event: { value: '' } },
     ],
     actions: [
         {
@@ -989,6 +990,22 @@ export default {
             },
             /* wwEditor:end */
             section: 'settings',
+        },
+        allowInsertNew: {
+            label: { en: 'Allow insert new items' },
+            type: 'OnOff',
+            defaultValue: false,
+            states: true,
+            bindable: true,
+            responsive: true,
+            section: 'settings',
+            hidden: content => !content.showSearch,
+            /* wwEditor:start */
+            bindingValidation: {
+                type: 'boolean',
+                tooltip: 'Whether users can add new items when the searched value does not exist.',
+            },
+            /* wwEditor:end */
         },
         searchBy: {
             label: 'Search by',
