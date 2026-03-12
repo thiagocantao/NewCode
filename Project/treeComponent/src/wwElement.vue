@@ -2,6 +2,7 @@
     <div class="tree-manager" :style="containerStyle" @click="hideContextActions">
         <div class="tree-manager__toolbar">
             <button
+                v-if="!isReadOnly"
                 class="icon-button"
                 type="button"
                 :style="iconButtonStyle"
@@ -47,7 +48,7 @@
                 <span v-if="row.icon" class="material-symbols-outlined node-icon">{{ row.icon }}</span>
                 <span class="node-label" v-html="highlightLabel(row.label)"></span>
 
-                <div v-if="selectedNodeId === row.id" class="row-actions" @click.stop>
+                <div v-if="selectedNodeId === row.id && !isReadOnly" class="row-actions" @click.stop>
                     <button
                         v-if="row.canAddChild"
                         class="icon-button row-action-button"
@@ -122,6 +123,9 @@ import { translatePhrase } from './translation';
         },
         normalizedData() {
             return Array.isArray(this.content.data) ? this.content.data : [];
+        },
+        isReadOnly() {
+            return this.content.readOnly === true;
         },
         normalizedMaxLevel() {
             const maxLevel = Number(this.content.maxLevel);
@@ -416,12 +420,15 @@ import { translatePhrase } from './translation';
                 .replace(/'/g, '&#039;');
         },
         onToolbarAdd() {
+            if (this.isReadOnly) return;
+
             this.$emit('trigger-event', {
                 name: 'onToolbarAdd',
                 event: { parentId: null },
             });
         },
         onAddChild(node) {
+            if (this.isReadOnly) return;
             if (!this.canNodeHaveChildren(node)) return;
 
             const nodeId = `${node?.[this.fieldMap.id] ?? ''}`;
@@ -435,6 +442,8 @@ import { translatePhrase } from './translation';
             this.hideContextActions();
         },
         onDelete(node) {
+            if (this.isReadOnly) return;
+
             this.$emit('trigger-event', {
                 name: 'onDelete',
                 event: node,
