@@ -379,7 +379,12 @@ export default {
             const availableBelow = Math.max(0, viewportHeight - triggerRect.bottom - offsetY);
             const availableAbove = Math.max(0, triggerRect.top - offsetY);
 
+            const dropdownDirection = props.content.dropdownDirection || 'auto';
+
             const shouldOpenUpwards = () => {
+                if (dropdownDirection === 'up') return true;
+                if (dropdownDirection === 'down') return false;
+
                 if (availableBelow >= dropdownHeight) return false;
                 if (availableAbove >= dropdownHeight) return true;
                 return availableAbove > availableBelow;
@@ -1059,7 +1064,7 @@ export default {
             observeTriggerSize();
         });
 
-        watch([() => props.content.offsetX, () => props.content.offsetY], () => {
+        watch([() => props.content.offsetX, () => props.content.offsetY, () => props.content.dropdownDirection], () => {
             syncFloating();
         });
 
