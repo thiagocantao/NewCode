@@ -116,8 +116,8 @@ export default {
                         return option != null ? String(option) : '';
                     }
 
+                    if (option.name !== undefined && option.name !== null) return String(option.name);
                     if (option.label !== undefined && option.label !== null) return String(option.label);
-                    if (option.value !== undefined && option.value !== null) return String(option.value);
                     return '';
                 })
                 .filter(Boolean);
@@ -196,7 +196,7 @@ export default {
 
 .ww-select-search-row {
     display: flex;
-    align-items: center;
+    align-items: start;
     gap: 8px;
 }
 
