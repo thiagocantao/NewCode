@@ -350,6 +350,7 @@ export default {
         const searchState = ref(null);
         const optionProperties = ref({});
         const resizeObserver = ref(null);
+        const dropdownResizeObserver = ref(null);
         const triggerWidth = ref(0);
         const triggerHeight = ref(0);
         const shouldCloseDropdown = ref(true);
@@ -768,6 +769,25 @@ export default {
             resizeObserver.value.observe(triggerElement.value);
         };
 
+        const observeDropdownSize = () => {
+            if (dropdownResizeObserver.value) {
+                dropdownResizeObserver.value.disconnect();
+                dropdownResizeObserver.value = null;
+            }
+
+            if (!dropdownElement.value) return;
+
+            dropdownResizeObserver.value = new ResizeObserver(
+                debounce(entries => {
+                    if (entries[0] && isOpen.value) {
+                        syncFloating();
+                    }
+                }, 16)
+            );
+
+            dropdownResizeObserver.value.observe(dropdownElement.value);
+        };
+
         const selectionDetails = computed(() => {
             const _optionsMap = new Map(
                 rawData.value.map(option => {
@@ -1064,6 +1084,17 @@ export default {
             observeTriggerSize();
         });
 
+        watch(dropdownElement, () => {
+            observeDropdownSize();
+        });
+
+        watch(isOpen, value => {
+            if (!value && dropdownResizeObserver.value) {
+                dropdownResizeObserver.value.disconnect();
+                dropdownResizeObserver.value = null;
+            }
+        });
+
         watch([() => props.content.offsetX, () => props.content.offsetY, () => props.content.dropdownDirection], () => {
             syncFloating();
         });
@@ -1207,6 +1238,10 @@ export default {
             if (resizeObserver.value) {
                 resizeObserver.value.disconnect();
                 resizeObserver.value = null;
+            }
+            if (dropdownResizeObserver.value) {
+                dropdownResizeObserver.value.disconnect();
+                dropdownResizeObserver.value = null;
             }
             revertBlockScrolling();
             wwLib.getFrontDocument().removeEventListener('click', handleClickOutside);
