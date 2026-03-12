@@ -90,6 +90,8 @@ export default {
 
         const registerTriggerLocalContext = inject('_wwSelect:registerTriggerLocalContext');
         const localContext = inject('_wwSelect:localContext');
+        const isDisabled = inject('_wwSelect:isDisabled', ref(false));
+        const isReadonly = inject('_wwSelect:isReadonly', ref(false));
 
         const isSingleSelect = computed(() => props.content.selectType === 'single');
 
@@ -152,7 +154,7 @@ export default {
                 height: props.content.triggerHeight,
                 'border-radius': props.content.triggerBorderRadius,
                 'box-shadow': props.content.triggerShadows,
-                cursor: 'pointer',
+                cursor: isReadonly.value || isDisabled.value ? 'not-allowed' : 'pointer',
 
                 display: 'flex',
                 'flex-direction': 'row',
