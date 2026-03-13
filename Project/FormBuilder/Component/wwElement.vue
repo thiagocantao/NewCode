@@ -2320,10 +2320,14 @@ return;
         is_mandatory: Boolean(field.is_mandatory),
         is_readonly: Boolean(field.is_readonly),
         is_hide_legend: Boolean(field.is_hide_legend),
-        show_only: Boolean(field.show_only),
+        show_only: normalizeBoolean(field.show_only),
         show_only_groups: normalizeStringArray(field.show_only_groups),
-        IsHiddenInEndUserNewTicket: Boolean(field.IsHiddenInEndUserNewTicket),
-        IsHiddenInEndUserViewTicket: Boolean(field.IsHiddenInEndUserViewTicket)
+        IsHiddenInEndUserNewTicket: normalizeBoolean(
+          field.IsHiddenInEndUserNewTicket ?? field.isHiddenInEndUserNewTicket
+        ),
+        IsHiddenInEndUserViewTicket: normalizeBoolean(
+          field.IsHiddenInEndUserViewTicket ?? field.isHiddenInEndUserViewTicket
+        )
       };
 
     };
@@ -2343,10 +2347,14 @@ return;
         is_mandatory: Boolean(updatedField.is_mandatory),
         is_readonly: Boolean(updatedField.is_readonly),
         is_hide_legend: Boolean(updatedField.is_hide_legend),
-        show_only: Boolean(updatedField.show_only),
+        show_only: normalizeBoolean(updatedField.show_only),
         show_only_groups: normalizeStringArray(updatedField.show_only_groups),
-        IsHiddenInEndUserNewTicket: Boolean(updatedField.IsHiddenInEndUserNewTicket),
-        IsHiddenInEndUserViewTicket: Boolean(updatedField.IsHiddenInEndUserViewTicket)
+        IsHiddenInEndUserNewTicket: normalizeBoolean(
+          updatedField.IsHiddenInEndUserNewTicket ?? updatedField.isHiddenInEndUserNewTicket
+        ),
+        IsHiddenInEndUserViewTicket: normalizeBoolean(
+          updatedField.IsHiddenInEndUserViewTicket ?? updatedField.isHiddenInEndUserViewTicket
+        )
       };
 
       // Find the section containing this field

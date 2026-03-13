@@ -207,6 +207,16 @@ export default {
     const showOnlyLoading = ref(false);
     const SHOW_ONLY_GROUPS_VARIABLE_ID = '79df4513-8ec5-4a4b-8f2c-d055d9eb30f4';
 
+    const normalizeBoolean = (value) => {
+      if (typeof value === 'boolean') return value;
+      if (typeof value === 'number') return value === 1;
+      if (typeof value === 'string') {
+        const normalizedValue = value.trim().toLowerCase();
+        return normalizedValue === 'true' || normalizedValue === '1';
+      }
+      return false;
+    };
+
     const normalizeShowOnlyGroups = (value) => {
       if (Array.isArray(value)) return value.map(item => String(item));
       if (value === null || value === undefined || value === '') return [];
@@ -247,8 +257,8 @@ export default {
     // Watch for changes in the selected field
     watch(() => props.selectedField, (newField) => {
       if (newField) {
-        isRequired.value = Boolean(newField.is_mandatory);
-        isHideLegend.value = Boolean(newField.is_hide_legend);
+        isRequired.value = normalizeBoolean(newField.is_mandatory);
+        isHideLegend.value = normalizeBoolean(newField.is_hide_legend);
         const normalizedShowOnlyGroups = normalizeShowOnlyGroups(
           newField.show_only_groups || newField.show_only_groups_json
         );
@@ -267,7 +277,7 @@ export default {
           isHiddenInEndUserNewTicket.value = false;
           updateFieldProperty('IsHiddenInEndUserNewTicket', false);
         } else {
-          isHiddenInEndUserNewTicket.value = Boolean(hiddenInEndUserNewTicket);
+          isHiddenInEndUserNewTicket.value = normalizeBoolean(hiddenInEndUserNewTicket);
         }
 
         const hiddenInEndUserViewTicket =
@@ -276,7 +286,7 @@ export default {
           isHiddenInEndUserViewTicket.value = false;
           updateFieldProperty('IsHiddenInEndUserViewTicket', false);
         } else {
-          isHiddenInEndUserViewTicket.value = Boolean(hiddenInEndUserViewTicket);
+          isHiddenInEndUserViewTicket.value = normalizeBoolean(hiddenInEndUserViewTicket);
         }
         
         // Atualiza o gradiente do range
@@ -290,8 +300,13 @@ export default {
         
         // Handle tip
         const tipTranslations = newField.tip_translations || {};
-        const tip = tipTranslations[currentLang.value] || newField.tip || '';
-        hasTip.value = Boolean(tip);
+        const hasCurrentLangTip = Object.prototype.hasOwnProperty.call(
+          tipTranslations,
+          currentLang.value
+        );
+        const tip = hasCurrentLangTip ? (tipTranslations[currentLang.value] || '') : (newField.tip || '');
+
+        hasTip.value = hasCurrentLangTip || Boolean(tip);
         tipText.value = tip;
       } else {
         resetForm();
@@ -364,12 +379,20 @@ export default {
     const updateTip = () => {
       if (!props.selectedField) return;
       
+      const updatedTranslations = {
+        ...(props.selectedField.tip_translations || {})
+      };
+
+      if (hasTip.value) {
+        updatedTranslations[currentLang.value] = tipText.value;
+      } else {
+        delete updatedTranslations[currentLang.value];
+      }
+
       const updatedField = {
         ...props.selectedField,
-        tip_translations: {
-          ...(props.selectedField.tip_translations || {}),
-          [currentLang.value]: hasTip.value ? tipText.value : ''
-        }
+        tip: hasTip.value ? tipText.value : '',
+        tip_translations: updatedTranslations
       };
       
       emit('update-field', updatedField);
