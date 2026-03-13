@@ -52,22 +52,8 @@
         </div>
       </div>
 
-      <div class="form-group toggle">
-        <div class="toggle-container">
-          <label>{{ tipLabel }}</label>
-          <div class="toggle-switch">
-            <input
-              type="checkbox"
-              :id="`tip-${uniqueId}`"
-              v-model="hasTip"
-              @change="toggleTip"
-            />
-            <label :for="`tip-${uniqueId}`" class="toggle-label"></label>
-          </div>
-        </div>
-      </div>
-
-      <div class="form-group" v-if="hasTip">
+      <div class="form-group">
+        <label>{{ tipLabel }}</label>
         <textarea
           v-model="tipText"
           class="tip-textarea"
@@ -198,7 +184,6 @@ export default {
     // Field properties
     const isRequired = ref(false);
     const isHideLegend = ref(false);
-    const hasTip = ref(false);
     const columns = ref(1);
     const tipText = ref('');
     const showOnly = ref(false);
@@ -260,7 +245,6 @@ export default {
       if (typeof rawTipTranslations === 'string') {
         const normalizedTip = rawTipTranslations.trim();
         return {
-          hasTip: Boolean(normalizedTip),
           tipText: normalizedTip
         };
       }
@@ -272,7 +256,6 @@ export default {
       const tip = (tipFromObject || field.tip || '').toString().trim();
 
       return {
-        hasTip: Boolean(tip),
         tipText: tip
       };
     };
@@ -322,9 +305,7 @@ export default {
         });
         
         // Handle tip
-        const { hasTip: nextHasTip, tipText: nextTipText } = resolveTipState(newField);
-
-        hasTip.value = nextHasTip;
+        const { tipText: nextTipText } = resolveTipState(newField);
         tipText.value = nextTipText;
       } else {
         resetForm();
@@ -335,7 +316,6 @@ export default {
     const resetForm = () => {
       isRequired.value = false;
       isHideLegend.value = false;
-      hasTip.value = false;
       tipText.value = '';
       showOnly.value = false;
       showOnlyGroups.value = [];
@@ -385,14 +365,6 @@ export default {
       });
     };
     
-    // Toggle tip
-    const toggleTip = () => {
-      if (!hasTip.value) {
-        tipText.value = '';
-      }
-      updateTip();
-    };
-    
     // Update tip
     const updateTip = () => {
       if (!props.selectedField) return;
@@ -401,8 +373,8 @@ export default {
 
       const updatedField = {
         ...props.selectedField,
-        tip: hasTip.value ? normalizedTipText : '',
-        tip_translations: hasTip.value ? normalizedTipText : ''
+        tip: normalizedTipText,
+        tip_translations: normalizedTipText
       };
       
       emit('update-field', updatedField);
@@ -474,7 +446,6 @@ export default {
       uniqueId,
       isRequired,
       isHideLegend,
-      hasTip,
       columns,
       tipText,
       showOnly,
@@ -484,7 +455,6 @@ export default {
       isHiddenInEndUserNewTicket,
       isHiddenInEndUserViewTicket,
       updateFieldProperty,
-      toggleTip,
       updateTip,
       updateShowOnlyGroups
     };
