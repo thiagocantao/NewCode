@@ -251,8 +251,8 @@
       </template>
     </div>
 
-    <div v-if="field.tip_translations?.[currentLang]" class="field-tooltip">
-      <span class="tooltip-text">{{ field.tip_translations[currentLang] }}</span>
+    <div v-if="resolvedTipText" class="field-tooltip">
+      <span class="tooltip-text">{{ resolvedTipText }}</span>
     </div>
     <div v-if="error" class="field-feedback error">{{ error }}</div>
   </div>
@@ -445,6 +445,17 @@ export default {
         return window.wwLib.wwVariable.getValue('aa44dc4c-476b-45e9-a094-16687e063342') || 'pt-BR';
       }
       return 'pt-BR';
+    },
+    resolvedTipText() {
+      if (typeof this.field?.tip_translations === 'string') {
+        return this.field.tip_translations.trim();
+      }
+
+      if (this.field?.tip_translations && typeof this.field.tip_translations === 'object') {
+        return (this.field.tip_translations[this.currentLang] || '').toString().trim();
+      }
+
+      return (this.field?.tip || '').toString().trim();
     },
     dataSourceConfig() {
       return normalizeFieldDataSource(this.field);

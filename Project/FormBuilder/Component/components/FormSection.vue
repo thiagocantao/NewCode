@@ -482,7 +482,11 @@ function normalizeOptions(raw) {
             is_mandatory: field.is_mandatory !== undefined ? field.is_mandatory : completeField.is_mandatory,
             is_readonly: field.is_readonly !== undefined ? field.is_readonly : completeField.is_readonly,
             is_hide_legend: field.is_hide_legend !== undefined ? field.is_hide_legend : completeField.is_hide_legend,
-            tip_translations: field.tip_translations || completeField.tip_translations || { [currentLang.value]: field.tip || completeField.tip || '' }
+            tip_translations: typeof field.tip_translations === 'string'
+              ? field.tip_translations
+              : (typeof completeField.tip_translations === 'string'
+                ? completeField.tip_translations
+                : (field.tip || completeField.tip || ''))
           };
         }
 
@@ -495,7 +499,9 @@ function normalizeOptions(raw) {
           is_mandatory: Boolean(field.is_mandatory),
           is_readonly: Boolean(field.is_readonly),
           is_hide_legend: Boolean(field.is_hide_legend),
-          tip_translations: field.tip_translations || { [currentLang.value]: field.tip || '' }
+          tip_translations: typeof field.tip_translations === 'string'
+            ? field.tip_translations
+            : (field.tip || '')
         };
       });
     });
@@ -775,7 +781,9 @@ if (!evt || !evt.to) return;
                     ? clonedFieldData.is_hide_legend
                     : clonedFieldData.IsHideLegend
                 ),
-                tip_translations: clonedFieldData.tip_translations || { [currentLang.value]: clonedFieldData.tip || '' },
+                tip_translations: typeof clonedFieldData.tip_translations === 'string'
+                  ? clonedFieldData.tip_translations
+                  : (clonedFieldData.tip || ''),
                 deleted: false,
                 name: clonedFieldData.name || clonedFieldData.Name,
                 fieldType: normalizedFieldTypeValue,

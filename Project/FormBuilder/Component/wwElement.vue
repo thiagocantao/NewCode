@@ -2204,7 +2204,9 @@ return;
               show_only_groups: normalizeStringArray(field.show_only_groups),
               IsHiddenInEndUserNewTicket: normalizeBoolean(field.IsHiddenInEndUserNewTicket),
               IsHiddenInEndUserViewTicket: normalizeBoolean(field.IsHiddenInEndUserViewTicket),
-              tip_translations: field.tip_translations || { 'en-US': field.tip || '' },
+              tip_translations: typeof field.tip_translations === 'string'
+                ? field.tip_translations
+                : (field.tip || ''),
               deleted: false,
               name: field.name,
               fieldType: field.fieldType,
