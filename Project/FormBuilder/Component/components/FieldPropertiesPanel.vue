@@ -258,26 +258,21 @@ export default {
       const rawTipTranslations = field.tip_translations;
 
       if (typeof rawTipTranslations === 'string') {
+        const normalizedTip = rawTipTranslations.trim();
         return {
-          hasTip: Boolean(rawTipTranslations.trim()),
-          tipText: rawTipTranslations
+          hasTip: Boolean(normalizedTip),
+          tipText: normalizedTip
         };
       }
 
-      const tipTranslations =
-        rawTipTranslations && typeof rawTipTranslations === 'object' ? rawTipTranslations : {};
-
-      const hasCurrentLangTip = Object.prototype.hasOwnProperty.call(
-        tipTranslations,
-        currentLang.value
-      );
-
-      const tip = hasCurrentLangTip
-        ? (tipTranslations[currentLang.value] || '')
-        : (field.tip || '');
+      const tipTranslations = rawTipTranslations && typeof rawTipTranslations === 'object'
+        ? rawTipTranslations
+        : null;
+      const tipFromObject = tipTranslations?.[currentLang.value] || '';
+      const tip = (tipFromObject || field.tip || '').toString().trim();
 
       return {
-        hasTip: hasCurrentLangTip || Boolean(tip),
+        hasTip: Boolean(tip),
         tipText: tip
       };
     };
@@ -401,26 +396,13 @@ export default {
     // Update tip
     const updateTip = () => {
       if (!props.selectedField) return;
-      
-      const currentTranslations =
-        props.selectedField.tip_translations && typeof props.selectedField.tip_translations === 'object'
-          ? props.selectedField.tip_translations
-          : {};
 
-      const updatedTranslations = {
-        ...currentTranslations
-      };
-
-      if (hasTip.value) {
-        updatedTranslations[currentLang.value] = tipText.value;
-      } else {
-        delete updatedTranslations[currentLang.value];
-      }
+      const normalizedTipText = (tipText.value || '').toString();
 
       const updatedField = {
         ...props.selectedField,
-        tip: hasTip.value ? tipText.value : '',
-        tip_translations: updatedTranslations
+        tip: hasTip.value ? normalizedTipText : '',
+        tip_translations: hasTip.value ? normalizedTipText : ''
       };
       
       emit('update-field', updatedField);
