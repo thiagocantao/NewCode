@@ -52,22 +52,8 @@
         </div>
       </div>
 
-      <div class="form-group toggle">
-        <div class="toggle-container">
-          <label>{{ tipLabel }}</label>
-          <div class="toggle-switch">
-            <input
-              type="checkbox"
-              :id="`tip-${uniqueId}`"
-              v-model="hasTip"
-              @change="toggleTip"
-            />
-            <label :for="`tip-${uniqueId}`" class="toggle-label"></label>
-          </div>
-        </div>
-      </div>
-
-      <div class="form-group" v-if="hasTip">
+      <div class="form-group">
+        <label>{{ tipLabel }}</label>
         <textarea
           v-model="tipText"
           class="tip-textarea"
@@ -152,7 +138,6 @@ export default {
     // Field properties
     const isRequired = ref(false);
     const isHideLegend = ref(false);
-    const hasTip = ref(false);    
     const columns = ref(1);
     const tipText = ref('');
     const showOnly = ref(false);
@@ -177,7 +162,6 @@ export default {
         // Handle tip
         const tipTranslations = newField.tip_translations || {};
         const tip = tipTranslations[window.wwLib.wwVariable.getValue('aa44dc4c-476b-45e9-a094-16687e063342')] || newField.tip || '';
-        hasTip.value = Boolean(tip);
         tipText.value = tip;
       } else {
         resetForm();
@@ -188,7 +172,6 @@ export default {
     const resetForm = () => {
       isRequired.value = false;
       isHideLegend.value = false;
-      hasTip.value = false;
       tipText.value = '';
       showOnly.value = false;
       columns.value = 1;
@@ -213,14 +196,6 @@ export default {
       });
     };
     
-    // Toggle tip
-    const toggleTip = () => {
-      if (!hasTip.value) {
-        tipText.value = '';
-      }
-      updateTip();
-    };
-    
     // Update tip
     const updateTip = () => {
       if (!props.selectedField) return;
@@ -229,7 +204,7 @@ export default {
         ...props.selectedField,
         tip_translations: {
           ...(props.selectedField.tip_translations || {}),
-          [window.wwLib.wwVariable.getValue('aa44dc4c-476b-45e9-a094-16687e063342')]: hasTip.value ? tipText.value : ''
+          [window.wwLib.wwVariable.getValue('aa44dc4c-476b-45e9-a094-16687e063342')]: tipText.value
         }
       };
       
@@ -240,12 +215,10 @@ export default {
       uniqueId,
       isRequired,
       isHideLegend,
-      hasTip,
       columns,
       tipText,
       showOnly,
       updateFieldProperty,
-      toggleTip,
       updateTip
     };
   }
