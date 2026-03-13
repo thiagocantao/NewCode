@@ -254,6 +254,34 @@ export default {
       return 'en-US';
     });
 
+    const resolveTipState = (field) => {
+      const rawTipTranslations = field.tip_translations;
+
+      if (typeof rawTipTranslations === 'string') {
+        return {
+          hasTip: Boolean(rawTipTranslations.trim()),
+          tipText: rawTipTranslations
+        };
+      }
+
+      const tipTranslations =
+        rawTipTranslations && typeof rawTipTranslations === 'object' ? rawTipTranslations : {};
+
+      const hasCurrentLangTip = Object.prototype.hasOwnProperty.call(
+        tipTranslations,
+        currentLang.value
+      );
+
+      const tip = hasCurrentLangTip
+        ? (tipTranslations[currentLang.value] || '')
+        : (field.tip || '');
+
+      return {
+        hasTip: hasCurrentLangTip || Boolean(tip),
+        tipText: tip
+      };
+    };
+
     // Watch for changes in the selected field
     watch(() => props.selectedField, (newField) => {
       if (newField) {
@@ -299,15 +327,10 @@ export default {
         });
         
         // Handle tip
-        const tipTranslations = newField.tip_translations || {};
-        const hasCurrentLangTip = Object.prototype.hasOwnProperty.call(
-          tipTranslations,
-          currentLang.value
-        );
-        const tip = hasCurrentLangTip ? (tipTranslations[currentLang.value] || '') : (newField.tip || '');
+        const { hasTip: nextHasTip, tipText: nextTipText } = resolveTipState(newField);
 
-        hasTip.value = hasCurrentLangTip || Boolean(tip);
-        tipText.value = tip;
+        hasTip.value = nextHasTip;
+        tipText.value = nextTipText;
       } else {
         resetForm();
       }
@@ -379,8 +402,13 @@ export default {
     const updateTip = () => {
       if (!props.selectedField) return;
       
+      const currentTranslations =
+        props.selectedField.tip_translations && typeof props.selectedField.tip_translations === 'object'
+          ? props.selectedField.tip_translations
+          : {};
+
       const updatedTranslations = {
-        ...(props.selectedField.tip_translations || {})
+        ...currentTranslations
       };
 
       if (hasTip.value) {
