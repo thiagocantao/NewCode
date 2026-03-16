@@ -244,6 +244,19 @@ export default {
 
       if (typeof rawTipTranslations === 'string') {
         const normalizedTip = rawTipTranslations.trim();
+
+        if (normalizedTip.startsWith('{') && normalizedTip.endsWith('}')) {
+          try {
+            const parsedTipTranslations = JSON.parse(normalizedTip);
+            const tipFromJson = (parsedTipTranslations?.[currentLang.value] || field.tip || '').toString().trim();
+            return {
+              tipText: tipFromJson
+            };
+          } catch (error) {
+            // Keep backward compatibility when a plain string is stored.
+          }
+        }
+
         return {
           tipText: normalizedTip
         };
@@ -374,11 +387,19 @@ export default {
       if (!props.selectedField) return;
 
       const normalizedTipText = (tipText.value || '').toString();
+      const baseTipTranslations =
+        props.selectedField.tip_translations && typeof props.selectedField.tip_translations === 'object'
+          ? { ...props.selectedField.tip_translations }
+          : {};
+      const nextTipTranslations = {
+        ...baseTipTranslations,
+        [currentLang.value]: normalizedTipText
+      };
 
       const updatedField = {
         ...props.selectedField,
         tip: normalizedTipText,
-        tip_translations: normalizedTipText
+        tip_translations: nextTipTranslations
       };
       
       emit('update-field', updatedField);

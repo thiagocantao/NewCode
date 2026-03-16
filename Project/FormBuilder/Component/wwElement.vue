@@ -2168,6 +2168,34 @@ return;
       return [String(value)];
     };
 
+    const normalizeTipTranslations = (tipTranslations, fallbackTip = '') => {
+      if (tipTranslations && typeof tipTranslations === 'object' && !Array.isArray(tipTranslations)) {
+        return tipTranslations;
+      }
+
+      if (typeof tipTranslations === 'string') {
+        const normalizedTipTranslations = tipTranslations.trim();
+        if (!normalizedTipTranslations) {
+          return { [currentLang.value]: (fallbackTip || '').toString() };
+        }
+
+        if (normalizedTipTranslations.startsWith('{') && normalizedTipTranslations.endsWith('}')) {
+          try {
+            const parsedTipTranslations = JSON.parse(normalizedTipTranslations);
+            if (parsedTipTranslations && typeof parsedTipTranslations === 'object' && !Array.isArray(parsedTipTranslations)) {
+              return parsedTipTranslations;
+            }
+          } catch (error) {
+            // Keep legacy plain string data untouched.
+          }
+        }
+
+        return { [currentLang.value]: normalizedTipTranslations };
+      }
+
+      return { [currentLang.value]: (fallbackTip || '').toString() };
+    };
+
     const updateFormState = () => {
       const baseFormData = cloneDeep(formData.value) || {};
       const formMetadata = baseFormData.form || {
@@ -2212,9 +2240,7 @@ return;
                 field.IsHiddenInEndUserViewTicket ??
                 field.isHiddenInEndUserViewTicket
               ),
-              tip_translations: typeof field.tip_translations === 'string'
-                ? field.tip_translations
-                : (field.tip || ''),
+              tip_translations: normalizeTipTranslations(field.tip_translations, field.tip || ''),
               deleted: false,
               name: field.name,
               fieldType: field.fieldType,
