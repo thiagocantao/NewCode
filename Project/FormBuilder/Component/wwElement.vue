@@ -2202,8 +2202,16 @@ return;
               is_hide_legend: normalizeBoolean(field.is_hide_legend),
               show_only: normalizeBoolean(field.show_only),
               show_only_groups: normalizeStringArray(field.show_only_groups),
-              IsHiddenInEndUserNewTicket: normalizeBoolean(field.IsHiddenInEndUserNewTicket),
-              IsHiddenInEndUserViewTicket: normalizeBoolean(field.IsHiddenInEndUserViewTicket),
+              is_hidden_in_end_user_new_ticket: normalizeBoolean(
+                field.is_hidden_in_end_user_new_ticket ??
+                field.IsHiddenInEndUserNewTicket ??
+                field.isHiddenInEndUserNewTicket
+              ),
+              is_hidden_in_end_user_view_ticket: normalizeBoolean(
+                field.is_hidden_in_end_user_view_ticket ??
+                field.IsHiddenInEndUserViewTicket ??
+                field.isHiddenInEndUserViewTicket
+              ),
               tip_translations: typeof field.tip_translations === 'string'
                 ? field.tip_translations
                 : (field.tip || ''),
@@ -2324,11 +2332,15 @@ return;
         is_hide_legend: Boolean(field.is_hide_legend),
         show_only: normalizeBoolean(field.show_only),
         show_only_groups: normalizeStringArray(field.show_only_groups),
-        IsHiddenInEndUserNewTicket: normalizeBoolean(
-          field.IsHiddenInEndUserNewTicket ?? field.isHiddenInEndUserNewTicket
+        is_hidden_in_end_user_new_ticket: normalizeBoolean(
+          field.is_hidden_in_end_user_new_ticket ??
+          field.IsHiddenInEndUserNewTicket ??
+          field.isHiddenInEndUserNewTicket
         ),
-        IsHiddenInEndUserViewTicket: normalizeBoolean(
-          field.IsHiddenInEndUserViewTicket ?? field.isHiddenInEndUserViewTicket
+        is_hidden_in_end_user_view_ticket: normalizeBoolean(
+          field.is_hidden_in_end_user_view_ticket ??
+          field.IsHiddenInEndUserViewTicket ??
+          field.isHiddenInEndUserViewTicket
         )
       };
 
@@ -2351,11 +2363,15 @@ return;
         is_hide_legend: Boolean(updatedField.is_hide_legend),
         show_only: normalizeBoolean(updatedField.show_only),
         show_only_groups: normalizeStringArray(updatedField.show_only_groups),
-        IsHiddenInEndUserNewTicket: normalizeBoolean(
-          updatedField.IsHiddenInEndUserNewTicket ?? updatedField.isHiddenInEndUserNewTicket
+        is_hidden_in_end_user_new_ticket: normalizeBoolean(
+          updatedField.is_hidden_in_end_user_new_ticket ??
+          updatedField.IsHiddenInEndUserNewTicket ??
+          updatedField.isHiddenInEndUserNewTicket
         ),
-        IsHiddenInEndUserViewTicket: normalizeBoolean(
-          updatedField.IsHiddenInEndUserViewTicket ?? updatedField.isHiddenInEndUserViewTicket
+        is_hidden_in_end_user_view_ticket: normalizeBoolean(
+          updatedField.is_hidden_in_end_user_view_ticket ??
+          updatedField.IsHiddenInEndUserViewTicket ??
+          updatedField.isHiddenInEndUserViewTicket
         )
       };
 
