@@ -74,7 +74,7 @@
               type="checkbox"
               :id="`end-user-new-${uniqueId}`"
               v-model="isHiddenInEndUserNewTicket"
-              @change="updateFieldProperty('IsHiddenInEndUserNewTicket', isHiddenInEndUserNewTicket)"
+              @change="updateFieldProperty('is_hidden_in_end_user_new_ticket', isHiddenInEndUserNewTicket)"
             />
             <label :for="`end-user-new-${uniqueId}`" class="toggle-label"></label>
           </div>
@@ -89,7 +89,7 @@
               type="checkbox"
               :id="`end-user-view-${uniqueId}`"
               v-model="isHiddenInEndUserViewTicket"
-              @change="updateFieldProperty('IsHiddenInEndUserViewTicket', isHiddenInEndUserViewTicket)"
+              @change="updateFieldProperty('is_hidden_in_end_user_view_ticket', isHiddenInEndUserViewTicket)"
             />
             <label :for="`end-user-view-${uniqueId}`" class="toggle-label"></label>
           </div>
@@ -278,19 +278,23 @@ export default {
         columns.value = parseInt(newField.columns) || 1;
 
         const hiddenInEndUserNewTicket =
-          newField.IsHiddenInEndUserNewTicket ?? newField.isHiddenInEndUserNewTicket;
+          newField.is_hidden_in_end_user_new_ticket ??
+          newField.IsHiddenInEndUserNewTicket ??
+          newField.isHiddenInEndUserNewTicket;
         if (hiddenInEndUserNewTicket === undefined) {
           isHiddenInEndUserNewTicket.value = false;
-          updateFieldProperty('IsHiddenInEndUserNewTicket', false);
+          updateFieldProperty('is_hidden_in_end_user_new_ticket', false);
         } else {
           isHiddenInEndUserNewTicket.value = normalizeBoolean(hiddenInEndUserNewTicket);
         }
 
         const hiddenInEndUserViewTicket =
-          newField.IsHiddenInEndUserViewTicket ?? newField.isHiddenInEndUserViewTicket;
+          newField.is_hidden_in_end_user_view_ticket ??
+          newField.IsHiddenInEndUserViewTicket ??
+          newField.isHiddenInEndUserViewTicket;
         if (hiddenInEndUserViewTicket === undefined) {
           isHiddenInEndUserViewTicket.value = false;
-          updateFieldProperty('IsHiddenInEndUserViewTicket', false);
+          updateFieldProperty('is_hidden_in_end_user_view_ticket', false);
         } else {
           isHiddenInEndUserViewTicket.value = normalizeBoolean(hiddenInEndUserViewTicket);
         }
