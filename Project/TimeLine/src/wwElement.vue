@@ -75,7 +75,7 @@
                     <div class="activity-added-card__title">{{ item.Title }}</div>
                     <div class="activity-added-card__subtitle title-row">
                       <div class="activity-added-card__subtitle-text">
-                        {{ item.NameFieldModified }}
+                        {{ getNameFieldModified(item) }}
                       </div>
                       <button class="details-link" @click.stop="openFtModal(item)">{{ t("Details") }}</button>
                     </div>
@@ -93,7 +93,7 @@
                   <div class="activity-added-card__left">
                     <div class="activity-added-card__title">{{ item.Title }}</div>
                     <div class="activity-added-card__subtitle">
-                      {{ item.NameFieldModified }}
+                      {{ getNameFieldModified(item) }}
                     </div>
                     <dl class="activity-added-card__list">
                       <div class="row value-change">
@@ -817,7 +817,7 @@
       <div class="ft-modal">
         <div class="ft-modal__header">
           <div class="ft-modal__title">
-            {{ ftModalItem?.NameFieldModified || t('Details') }}
+            {{ getNameFieldModified(ftModalItem) || t('Details') }}
           </div>
           <button class="ft-modal__close" @click="closeFtModal">
           <i class="material-symbols-outlined">close</i>
@@ -965,6 +965,29 @@ export default {
     const events = ref([]);
     const COLLAPSED_MAX_HEIGHT = 150;
     const t = (text) => translatePhrase(text);
+
+    const mojibakeScore = (text) => (text.match(/[ÃÂâ�]/g) || []).length;
+    const decodeUtf8Mojibake = (text) => {
+      if (typeof text !== "string" || !/[ÃÂâ]/.test(text)) return text;
+      try {
+        const bytes = Uint8Array.from(text, (char) => char.charCodeAt(0));
+        const decoded = new TextDecoder("utf-8").decode(bytes);
+        return mojibakeScore(decoded) < mojibakeScore(text) ? decoded : text;
+      } catch {
+        return text;
+      }
+    };
+    const normalizeDisplayText = (value) => {
+      if (value === null || value === undefined) return "";
+      if (typeof value !== "string") return value;
+
+      const withNewLines = value
+        .replace(/\\r\\n/g, "\n")
+        .replace(/\\n/g, "\n")
+        .replace(/\\r/g, "\n");
+
+      return decodeUtf8Mojibake(withNewLines);
+    };
 
     const parseMaybeJSON = (val) => {
       if (typeof val === "string") {
@@ -1169,10 +1192,10 @@ export default {
       const parsed = parseMaybeJSON(item?.NewValueTitle);
       return parsed || {};
     };
-    const getFieldValue = (item, field) => getActivityObj(item)?.[field] ?? "";
+    const getFieldValue = (item, field) => normalizeDisplayText(getActivityObj(item)?.[field] ?? "");
     const getResponsibleText = (item) => {
       const a = getActivityObj(item);
-      return a?.ResponsibleUser?.Username || "";
+      return normalizeDisplayText(a?.ResponsibleUser?.Username || "");
     };
 
     /* ========= ActivityUpdated ========= */
@@ -1188,12 +1211,13 @@ export default {
     };
     const getActivityField = (item, side, field) => {
       const obj = side === "new" ? getActivityNewObj(item) : getActivityOldObj(item);
-      return obj?.[field] ?? "";
+      return normalizeDisplayText(obj?.[field] ?? "");
     };
     const getResponsibleActivityText = (item, side) => {
       const obj = side === "new" ? getActivityNewObj(item) : getActivityOldObj(item);
-      return obj?.ResponsibleUser?.Username || "";
+      return normalizeDisplayText(obj?.ResponsibleUser?.Username || "");
     };
+    const getNameFieldModified = (item) => normalizeDisplayText(item?.NameFieldModified || "");
 
 
     // ===== Activity delete (RPC) =====
@@ -1295,7 +1319,11 @@ async function confirmActDelete() {
 
     /* ========= Updated / Status ========= */
     const toDisplay = (v) =>
-      v === null || v === undefined ? "" : typeof v === "object" ? JSON.stringify(v) : String(v);
+      v === null || v === undefined
+        ? ""
+        : typeof v === "object"
+          ? normalizeDisplayText(JSON.stringify(v))
+          : normalizeDisplayText(String(v));
     const getOldValue = (item) => {
       const raw = item.OldValueTitle ?? item.FieldOldValue ??  null;
       const parsed = parseMaybeJSON(raw);
@@ -2246,6 +2274,7 @@ const getAssigneeTooltip = (item, side) => {
       // ActivityUpdated
       getActivityField,
       getResponsibleActivityText,
+      getNameFieldModified,
       // Comments
       getCommentHtml,
       editComment,
@@ -2570,6 +2599,7 @@ const getAssigneeTooltip = (item, side) => {
       color: var(--card-text-color, #333);
       line-height: 1.25;
       font-size: 13px;
+      white-space: pre-wrap;
     }
 
     .value-change .arrow {
