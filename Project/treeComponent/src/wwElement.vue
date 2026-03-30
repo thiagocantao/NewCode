@@ -61,6 +61,17 @@
                         <span class="material-symbols-outlined node-icon">add</span>
                     </button>
                     <button
+                        v-if="row.canRename"
+                        class="icon-button row-action-button"
+                        type="button"
+                        :style="iconButtonStyle"
+                        :title="translatedTexts.rename"
+                        :aria-label="translatedTexts.rename"
+                        @click.stop="onRename(row.raw)"
+                    >
+                        <span class="material-symbols-outlined node-icon">edit</span>
+                    </button>
+                    <button
                         v-if="row.canDelete"
                         class="icon-button row-action-button"
                         type="button"
@@ -117,6 +128,7 @@ import { translatePhrase } from './translation';
                 collapse: this.translate('Collapse'),
                 expand: this.translate('Expand'),
                 addChild: this.translate('Add child'),
+                rename: this.translate('Rename'),
                 delete: this.translate('Delete'),
                 noItemsFound: this.translate('No items found.'),
             };
@@ -126,6 +138,9 @@ import { translatePhrase } from './translation';
         },
         isReadOnly() {
             return this.content.readOnly === true;
+        },
+        isRenameIconVisible() {
+            return this.content.showRenameIcon === true;
         },
         normalizedMaxLevel() {
             const maxLevel = Number(this.content.maxLevel);
@@ -140,6 +155,7 @@ import { translatePhrase } from './translation';
                 order: this.content.orderField || 'order',
                 icon: this.content.iconField || '',
                 type: this.content.typeField || 'type',
+                renameVisible: this.content.renameIconVisibleField || this.content.renameVisibleField || '',
                 deleteVisible: this.content.deleteIconVisibleField || this.content.deleteVisibleField || '',
             };
         },
@@ -257,6 +273,7 @@ import { translatePhrase } from './translation';
                         showToggle: hasChildren || `${node.type ?? ''}`.trim().toUpperCase() === 'FOLDER',
                         canHaveChildren: this.canNodeHaveChildren(node),
                         canAddChild: this.canNodeHaveChildren(node) && depth < this.normalizedMaxLevel - 1,
+                        canRename: this.canRenameNode(node.raw),
                         canDelete: this.canDeleteNode(node.raw),
                         raw: node.raw,
                     });
@@ -450,6 +467,17 @@ import { translatePhrase } from './translation';
             });
             this.hideContextActions();
         },
+        onRename(node) {
+            if (this.isReadOnly) return;
+            if (!this.isRenameIconVisible) return;
+            if (!this.canRenameNode(node)) return;
+
+            this.$emit('trigger-event', {
+                name: 'onRename',
+                event: node,
+            });
+            this.hideContextActions();
+        },
         selectNodeById(id) {
             const nodeId = id === undefined || id === null ? '' : `${id}`;
             if (!nodeId) return;
@@ -580,6 +608,19 @@ import { translatePhrase } from './translation';
             this.draggingRowId = null;
             this.draggingParentId = null;
             this.dropTargetRowId = null;
+        },
+        canRenameNode(node) {
+            if (!this.isRenameIconVisible) {
+                return false;
+            }
+
+            const fieldName = `${this.fieldMap.renameVisible ?? ''}`.trim();
+
+            if (!fieldName) {
+                return true;
+            }
+
+            return node?.[fieldName] === true;
         },
         canDeleteNode(node) {
             const fieldName = `${this.fieldMap.deleteVisible ?? ''}`.trim();

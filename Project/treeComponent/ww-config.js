@@ -81,6 +81,24 @@ export default {
             bindable: true,
             defaultValue: '',
         },
+        showRenameIcon: {
+            label: {
+                en: 'Show rename icon',
+                pt: 'Exibir ícone de renomear',
+            },
+            type: 'boolean',
+            bindable: true,
+            defaultValue: false,
+        },
+        renameIconVisibleField: {
+            label: {
+                en: 'Rename icon visible field',
+                pt: 'Campo para exibir ícone de renomear',
+            },
+            type: 'text',
+            bindable: true,
+            defaultValue: '',
+        },
         typeField: {
             label: { en: 'Type field' },
             type: 'text',
