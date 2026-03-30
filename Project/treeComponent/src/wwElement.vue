@@ -46,7 +46,39 @@
                 <span v-else class="toggle-placeholder"></span>
 
                 <span v-if="row.icon" class="material-symbols-outlined node-icon">{{ row.icon }}</span>
-                <span class="node-label" v-html="highlightLabel(row.label)"></span>
+                <template v-if="isRowBeingEdited(row)">
+                    <div class="node-label-edit" @click.stop>
+                        <input
+                            v-model="editingLabel"
+                            class="node-label-input"
+                            type="text"
+                            @click.stop
+                            @keydown.enter.stop.prevent="confirmRenameEdit(row)"
+                            @keydown.esc.stop.prevent="cancelRenameEdit"
+                        />
+                        <button
+                            class="icon-button row-action-button"
+                            type="button"
+                            :style="iconButtonStyle"
+                            :title="translatedTexts.cancel"
+                            :aria-label="translatedTexts.cancel"
+                            @click.stop="cancelRenameEdit"
+                        >
+                            <span class="material-symbols-outlined node-icon">close</span>
+                        </button>
+                        <button
+                            class="icon-button row-action-button"
+                            type="button"
+                            :style="iconButtonStyle"
+                            :title="translatedTexts.confirm"
+                            :aria-label="translatedTexts.confirm"
+                            @click.stop="confirmRenameEdit(row)"
+                        >
+                            <span class="material-symbols-outlined node-icon">check</span>
+                        </button>
+                    </div>
+                </template>
+                <span v-else class="node-label" v-html="highlightLabel(row.label)"></span>
 
                 <div v-if="selectedNodeId === row.id && !isReadOnly" class="row-actions" @click.stop>
                     <button
@@ -67,7 +99,7 @@
                         :style="iconButtonStyle"
                         :title="translatedTexts.rename"
                         :aria-label="translatedTexts.rename"
-                        @click.stop="onRename(row.raw)"
+                        @click.stop="startRenameEdit(row)"
                     >
                         <span class="material-symbols-outlined node-icon">edit</span>
                     </button>
@@ -115,6 +147,8 @@ import { translatePhrase } from './translation';
             draggingParentId: null,
             dropTargetRowId: null,
             orderOverrides: {},
+            editingNodeId: null,
+            editingLabel: '',
         };
     },
     created() {
@@ -129,6 +163,8 @@ import { translatePhrase } from './translation';
                 expand: this.translate('Expand'),
                 addChild: this.translate('Add child'),
                 rename: this.translate('Rename'),
+                cancel: this.translate('Cancel'),
+                confirm: this.translate('Confirm'),
                 delete: this.translate('Delete'),
                 noItemsFound: this.translate('No items found.'),
             };
@@ -467,14 +503,41 @@ import { translatePhrase } from './translation';
             });
             this.hideContextActions();
         },
-        onRename(node) {
+        startRenameEdit(row) {
+            if (this.isReadOnly) return;
+            if (!row?.canRename) return;
+            const currentLabel = `${row?.raw?.[this.fieldMap.label] ?? row?.label ?? ''}`;
+            this.editingNodeId = row.id;
+            this.editingLabel = currentLabel;
+        },
+        isRowBeingEdited(row) {
+            return !!row?.id && this.editingNodeId === row.id;
+        },
+        cancelRenameEdit() {
+            this.editingNodeId = null;
+            this.editingLabel = '';
+        },
+        confirmRenameEdit(row) {
+            if (!this.isRowBeingEdited(row)) return;
+            const nextLabel = `${this.editingLabel ?? ''}`;
+            this.onRename(row.raw, nextLabel);
+            this.cancelRenameEdit();
+        },
+        onRename(node, nextLabel = null) {
             if (this.isReadOnly) return;
             if (!this.isRenameIconVisible) return;
             if (!this.canRenameNode(node)) return;
 
+            const payload = node && typeof node === 'object' ? { ...node } : {};
+
+            if (nextLabel !== null) {
+                payload[this.fieldMap.label] = nextLabel;
+                payload.label = nextLabel;
+            }
+
             this.$emit('trigger-event', {
                 name: 'onRename',
-                event: node,
+                event: payload,
             });
             this.hideContextActions();
         },
@@ -765,6 +828,22 @@ import { translatePhrase } from './translation';
         white-space: nowrap;
         flex: 1;
         color: #555
+    }
+
+    .node-label-edit {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        flex: 1;
+    }
+
+    .node-label-input {
+        flex: 1;
+        min-width: 0;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        padding: 4px 8px;
+        outline: none;
     }
 
     .node-icon {
