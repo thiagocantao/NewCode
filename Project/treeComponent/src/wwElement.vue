@@ -145,6 +145,7 @@ import { translatePhrase } from './translation';
             setSelectedItemId: null,
             draggingRowId: null,
             draggingParentId: null,
+            draggingRowDepth: null,
             dropTargetRowId: null,
             orderOverrides: {},
             editingNodeId: null,
@@ -444,6 +445,20 @@ import { translatePhrase } from './translation';
         canDragRow(row) {
             return !this.isSearchActive && !!row && !!row.id;
         },
+        canMoveToAnotherParent() {
+            return this.content.allowMoveToAnotherParent === true;
+        },
+        canDropAsNewParent(targetRow) {
+            if (!this.canMoveToAnotherParent()) return false;
+            if (!targetRow?.id) return false;
+            if (!this.draggingRowId) return false;
+            if (targetRow.id === this.draggingRowId) return false;
+            if (!targetRow.canHaveChildren) return false;
+            if (!Number.isFinite(this.draggingRowDepth)) return false;
+
+            const currentParentDepth = this.draggingRowDepth - 1;
+            return targetRow.depth === currentParentDepth;
+        },
         isExpanded(id) {
             return this.expandedNodes[id] !== false;
         },
@@ -620,6 +635,7 @@ import { translatePhrase } from './translation';
 
             this.draggingRowId = row.id;
             this.draggingParentId = row.parentId ?? null;
+            this.draggingRowDepth = Number(row.depth);
             this.dropTargetRowId = null;
 
             if (event?.dataTransfer) {
@@ -630,8 +646,12 @@ import { translatePhrase } from './translation';
         onDragOver(row, event) {
             if (!this.draggingRowId || !row?.id) return;
             if (row.id === this.draggingRowId) return;
+
             const rowParentId = row.parentId ?? null;
-            if (rowParentId !== this.draggingParentId) return;
+            const canReorderWithinParent = rowParentId === this.draggingParentId;
+            const canMoveToNewParent = this.canDropAsNewParent(row);
+
+            if (!canReorderWithinParent && !canMoveToNewParent) return;
 
             event.preventDefault();
             this.dropTargetRowId = row.id;
@@ -644,7 +664,16 @@ import { translatePhrase } from './translation';
             }
 
             const targetParentId = row.parentId ?? null;
-            if (targetParentId !== this.draggingParentId) {
+            const isReorderWithinParent = targetParentId === this.draggingParentId;
+            const isMoveToNewParent = this.canDropAsNewParent(row);
+
+            if (!isReorderWithinParent && !isMoveToNewParent) {
+                this.onDragEnd();
+                return;
+            }
+
+            if (isMoveToNewParent) {
+                this.moveNodeToAnotherParent(row.id);
                 this.onDragEnd();
                 return;
             }
@@ -682,16 +711,77 @@ import { translatePhrase } from './translation';
                 event: {
                     movedId: movedId,
                     parentId: targetParentId,
+                    previousParentId: targetParentId,
                     orderField: this.fieldMap.order,
+                    parentIdField: this.fieldMap.parentId,
                     updates,
                 },
             });
 
             this.onDragEnd();
         },
+        moveNodeToAnotherParent(newParentId) {
+            const currentParentId = this.draggingParentId ?? null;
+            const movingRow = this.visibleRows.find(currentRow => currentRow.id === this.draggingRowId);
+            if (!movingRow) return;
+
+            const oldSiblings = this.visibleRows
+                .filter(currentRow => (currentRow.parentId ?? null) === currentParentId)
+                .map(currentRow => currentRow.id)
+                .filter(id => id !== this.draggingRowId);
+
+            const newSiblings = this.visibleRows
+                .filter(currentRow => (currentRow.parentId ?? null) === newParentId)
+                .map(currentRow => currentRow.id);
+
+            const updates = [];
+            oldSiblings.forEach((id, index) => {
+                updates.push({
+                    id,
+                    [this.fieldMap.order]: index + 1,
+                });
+            });
+
+            const movedOrder = newSiblings.length + 1;
+            updates.push({
+                id: this.draggingRowId,
+                [this.fieldMap.parentId]: newParentId,
+                [this.fieldMap.order]: movedOrder,
+            });
+
+            newSiblings.forEach((id, index) => {
+                updates.push({
+                    id,
+                    [this.fieldMap.order]: index + 1,
+                });
+            });
+
+            const newOverrides = { ...this.orderOverrides };
+            oldSiblings.forEach((id, index) => {
+                newOverrides[id] = index + 1;
+            });
+            newOverrides[this.draggingRowId] = movedOrder;
+            newSiblings.forEach((id, index) => {
+                newOverrides[id] = index + 1;
+            });
+            this.orderOverrides = newOverrides;
+
+            this.$emit('trigger-event', {
+                name: 'onReorder',
+                event: {
+                    movedId: this.draggingRowId,
+                    parentId: newParentId,
+                    previousParentId: currentParentId,
+                    orderField: this.fieldMap.order,
+                    parentIdField: this.fieldMap.parentId,
+                    updates,
+                },
+            });
+        },
         onDragEnd() {
             this.draggingRowId = null;
             this.draggingParentId = null;
+            this.draggingRowDepth = null;
             this.dropTargetRowId = null;
         },
         canRenameNode(node) {

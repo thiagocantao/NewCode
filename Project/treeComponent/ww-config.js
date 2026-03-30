@@ -198,6 +198,15 @@ export default {
             bindable: true,
             defaultValue: 99,
         },
+        allowMoveToAnotherParent: {
+            label: {
+                en: 'Allow moving to another parent (same level)',
+                pt: 'Permitir mover para outro pai (mesmo nível)',
+            },
+            type: 'boolean',
+            bindable: true,
+            defaultValue: false,
+        },
     },
     triggerEvents: [
         {
@@ -235,7 +244,9 @@ export default {
                 value: {
                     movedId: null,
                     parentId: null,
+                    previousParentId: null,
                     orderField: 'order',
+                    parentIdField: 'parentId',
                     updates: [],
                 },
             },
