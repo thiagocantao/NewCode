@@ -57,7 +57,7 @@
                             @keydown.esc.stop.prevent="cancelRenameEdit"
                         />
                         <button
-                            class="icon-button row-action-button"
+                            class="icon-button row-action-button row-action-button--cancel"
                             type="button"
                             :style="iconButtonStyle"
                             :title="translatedTexts.cancel"
@@ -67,7 +67,7 @@
                             <span class="material-symbols-outlined node-icon">close</span>
                         </button>
                         <button
-                            class="icon-button row-action-button"
+                            class="icon-button row-action-button row-action-button--confirm"
                             type="button"
                             :style="iconButtonStyle"
                             :title="translatedTexts.confirm"
@@ -82,7 +82,7 @@
 
                 <div v-if="selectedNodeId === row.id && !isReadOnly" class="row-actions" @click.stop>
                     <button
-                        v-if="row.canAddChild"
+                        v-if="row.canAddChild && !isRowBeingEdited(row)"
                         class="icon-button row-action-button"
                         type="button"
                         :style="iconButtonStyle"
@@ -104,7 +104,7 @@
                         <span class="material-symbols-outlined node-icon">edit</span>
                     </button>
                     <button
-                        v-if="row.canDelete"
+                        v-if="row.canDelete && !isRowBeingEdited(row)"
                         class="icon-button row-action-button"
                         type="button"
                         :style="iconButtonStyle"
@@ -860,6 +860,23 @@ import { translatePhrase } from './translation';
     .row-actions .row-action-button,
     .row-actions .row-action-button:hover {
         background: transparent;
+    }
+
+    .row-action-button--cancel,
+    .row-action-button--cancel:hover {
+        background: #dc3545 !important;
+        color: #fff !important;
+    }
+
+    .row-action-button--confirm,
+    .row-action-button--confirm:hover {
+        background: #198754 !important;
+        color: #fff !important;
+    }
+
+    .row-action-button--cancel .node-icon,
+    .row-action-button--confirm .node-icon {
+        color: #fff;
     }
 
     .empty-state {
