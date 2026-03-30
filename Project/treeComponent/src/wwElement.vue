@@ -80,7 +80,7 @@
                 </template>
                 <span v-else class="node-label" v-html="highlightLabel(row.label)"></span>
 
-                <div v-if="selectedNodeId === row.id && !isReadOnly" class="row-actions" @click.stop>
+                <div v-if="selectedNodeId === row.id && !isReadOnly && !isEditingAnyNode" class="row-actions" @click.stop>
                     <button
                         v-if="row.canAddChild && !isRowBeingEdited(row)"
                         class="icon-button row-action-button"
@@ -149,6 +149,7 @@ import { translatePhrase } from './translation';
             orderOverrides: {},
             editingNodeId: null,
             editingLabel: '',
+            labelOverrides: {},
         };
     },
     created() {
@@ -177,6 +178,9 @@ import { translatePhrase } from './translation';
         },
         isRenameIconVisible() {
             return this.content.showRenameIcon === true;
+        },
+        isEditingAnyNode() {
+            return !!this.editingNodeId;
         },
         normalizedMaxLevel() {
             const maxLevel = Number(this.content.maxLevel);
@@ -238,7 +242,7 @@ import { translatePhrase } from './translation';
                 map.set(normalizedId, {
                 id: normalizedId,
                 parentId: parentId === null ? null : String(parentId),
-                label: `${item?.[this.fieldMap.label] ?? ''}`,
+                label: this.getNodeLabel(item, normalizedId),
                 icon: this.fieldMap.icon ? `${item?.[this.fieldMap.icon] ?? ''}`.trim() : '',
                 type: `${item?.[this.fieldMap.type] ?? ''}`.trim(),
                 order: this.getNodeOrder(item, normalizedId),
@@ -410,6 +414,13 @@ import { translatePhrase } from './translation';
 
             this.setSelectedItemId = selectedItemIdVariable.setValue;
         },
+        getNodeLabel(node, nodeId) {
+            if (this.labelOverrides[nodeId] !== undefined) {
+                return `${this.labelOverrides[nodeId] ?? ''}`;
+            }
+
+            return `${node?.[this.fieldMap.label] ?? ''}`;
+        },
         getNodeOrder(node, nodeId) {
             const fieldName = `${this.fieldMap.order ?? ''}`.trim();
             if (this.orderOverrides[nodeId] !== undefined) {
@@ -531,6 +542,13 @@ import { translatePhrase } from './translation';
             const payload = node && typeof node === 'object' ? { ...node } : {};
 
             if (nextLabel !== null) {
+                const nodeId = `${node?.[this.fieldMap.id] ?? ''}`;
+                if (nodeId) {
+                    this.labelOverrides = {
+                        ...this.labelOverrides,
+                        [nodeId]: nextLabel,
+                    };
+                }
                 payload[this.fieldMap.label] = nextLabel;
                 payload.label = nextLabel;
             }
@@ -573,6 +591,10 @@ import { translatePhrase } from './translation';
             });
         },
         onNodeClick(row) {
+        if (this.isEditingAnyNode && this.editingNodeId !== row?.id) {
+        this.cancelRenameEdit();
+        }
+
         this.contextNodeId = row.id;
         this.selectedNodeId = row.id;
         this.setSelectedItemId?.(row.id ?? null);
