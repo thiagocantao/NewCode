@@ -216,11 +216,22 @@ export default {
         }
       ]
     },
-    {
-      action: 'remountComponent',
-      label: { en: 'Remount Component' },
-      args: []
-    },
+  {
+    action: 'remountComponent',
+    label: { en: 'Remount Component' },
+    args: []
+  },
+  {
+    action: 'exportGridToExcel',
+    label: { en: 'Export Grid to Excel' },
+    args: [
+      {
+        name: 'fileName',
+        type: 'string',
+        label: { en: 'File name' }
+      }
+    ]
+  },
   ],
   properties: {
   headerTitle: {
