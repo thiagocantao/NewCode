@@ -15,15 +15,37 @@
             }"
         ></div>
         <div class="ww-file-item__info">
-            <div class="ww-file-item__name" :style="fileNameStyles">{{ file.name }}</div>
-            <div class="ww-file-item__details" :style="fileDetailsStyles" v-if="showFileInfo">
-                <span>{{ formattedSize }}</span>
-                <span v-if="status && status.uploadProgress !== undefined">
-                    • {{ `${Math.round(status.uploadProgress)}%` }}
-                </span>
+            <button
+                type="button"
+                class="ww-file-item__preview"
+                :disabled="isDisabled"
+                @click="$emit('preview')"
+                :aria-label="`Preview ${file.name}`"
+            >
+                <img v-if="isImage && previewUrl" :src="previewUrl" alt="" class="ww-file-item__thumb" />
+                <span v-else class="ww-file-item__file-icon">{{ fileIcon }}</span>
+            </button>
+            <div class="ww-file-item__meta">
+                <div class="ww-file-item__name" :style="fileNameStyles">{{ file.name }}</div>
+                <div class="ww-file-item__details" :style="fileDetailsStyles" v-if="showFileInfo">
+                    <span>{{ formattedSize }}</span>
+                    <span v-if="status && status.uploadProgress !== undefined">
+                        • {{ `${Math.round(status.uploadProgress)}%` }}
+                    </span>
+                </div>
             </div>
         </div>
         <div class="ww-file-item__actions">
+            <button
+                type="button"
+                class="ww-file-item__btn"
+                :disabled="isDisabled"
+                @click="$emit('download')"
+                :style="actionButtonStyles"
+                aria-label="Download file"
+            >
+                <span class="material-symbols-outlined">download</span>
+            </button>
             <button
                 v-if="!isReadonly"
                 type="button"
@@ -65,7 +87,7 @@ export default {
             default: false,
         },
     },
-    emits: ['remove'],
+    emits: ['remove', 'download', 'preview'],
     setup(props) {
         const fileUpload = inject('_wwFileUpload', {
             files: computed(() => []),
@@ -123,6 +145,24 @@ export default {
             const i = Math.floor(Math.log(fileSizeInBytes) / Math.log(1024));
             return `${(fileSizeInBytes / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
         });
+        const isImage = computed(() => {
+            const type = (props.file?.type || props.file?.mimeType || props.file?.contentType || '').toLowerCase();
+            if (type.startsWith('image/')) return true;
+            const ext = (props.file?.name || '').split('.').pop()?.toLowerCase();
+            return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(ext);
+        });
+
+        const previewUrl = computed(() => props.file?.previewUrl || props.file?.url || null);
+
+        const fileIcon = computed(() => {
+            const ext = (props.file?.name || '').split('.').pop()?.toLowerCase();
+            if (ext === 'pdf') return 'picture_as_pdf';
+            if (['doc', 'docx'].includes(ext)) return 'description';
+            if (['xls', 'xlsx', 'csv'].includes(ext)) return 'table_view';
+            if (['ppt', 'pptx'].includes(ext)) return 'slideshow';
+            if (['zip', 'rar', '7z'].includes(ext)) return 'folder_zip';
+            return 'draft';
+        });
 
         const { getIcon } = wwLib.useIcons();
         const removeIcon = ref(null);
@@ -145,12 +185,17 @@ export default {
             content,
             showFileInfo,
             removeIcon,
+            isImage,
+            previewUrl,
+            fileIcon,
         };
     },
 };
 </script>
 
 <style lang="scss" scoped>
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined');
+
 .ww-file-item {
     display: flex;
     align-items: center;
@@ -195,6 +240,37 @@ export default {
         min-width: 0;
         position: relative;
         z-index: 1;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    &__preview {
+        width: 48px;
+        height: 48px;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        background: #f8fafc;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        cursor: pointer;
+    }
+    &__meta {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+    }
+    &__thumb {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 6px;
+    }
+    &__file-icon {
+        font-family: 'Material Symbols Outlined';
+        font-size: 24px;
+        color: #64748b;
     }
 
     &__name {
