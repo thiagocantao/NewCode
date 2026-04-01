@@ -255,6 +255,20 @@ export default {
             type: 'any',
         });
 
+        const { value: deletedFile, setValue: setDeletedFile } = wwLib.wwVariable.useComponentVariable({
+            uid: props.uid,
+            name: 'deletedFile',
+            defaultValue: null,
+            type: 'any',
+        });
+
+        const { value: deletedFilesCount, setValue: setDeletedFilesCount } = wwLib.wwVariable.useComponentVariable({
+            uid: props.uid,
+            name: 'deletedFilesCount',
+            defaultValue: 0,
+            type: 'number',
+        });
+
         const useForm = inject('_wwForm:useForm', () => {});
         const fieldName = computed(() => props.content.fieldName);
         const validation = computed(() => props.content.validation);
@@ -423,6 +437,8 @@ export default {
                     });
                 }),
                 status: status,
+                deletedFile: deletedFile,
+                deletedFilesCount: deletedFilesCount,
             },
         });
 
@@ -640,6 +656,12 @@ export default {
 
         const removeFile = index => {
             if (isDisabled.value || isReadonly.value) return;
+
+            const removedFile = fileList.value[index] || null;
+            setDeletedFile(removedFile ? { ...removedFile } : null);
+            if (removedFile) {
+                setDeletedFilesCount((deletedFilesCount.value || 0) + 1);
+            }
 
             const updatedFiles = [...files.value.filter((_, i) => i !== index)];
             setFiles(updatedFiles);
