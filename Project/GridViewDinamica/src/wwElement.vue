@@ -3539,6 +3539,248 @@ setTimeout(() => {
       this.gridApi.setFilterModel(filters || null);
     }
   },
+  exportGridToExcel(fileNameInput) {
+    if (!this.gridApi) return;
+
+    const sanitizeFileName = (name) => {
+      const normalized = typeof name === "string" ? name.trim() : "";
+      const safeName = normalized.replace(/[\\/:*?"<>|]+/g, "_");
+      if (!safeName) return "grid-export.xls";
+      return safeName.toLowerCase().endsWith(".xls") ? safeName : `${safeName}.xls`;
+    };
+
+    const escapeXml = (value) => String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&apos;");
+
+    const getDisplayedColumns = () => {
+      if (typeof this.gridApi?.getAllDisplayedColumns === "function") {
+        return this.gridApi.getAllDisplayedColumns();
+      }
+      const colApi = typeof this.gridApi?.getColumnApi === "function"
+        ? this.gridApi.getColumnApi()
+        : null;
+      if (typeof colApi?.getAllDisplayedColumns === "function") {
+        return colApi.getAllDisplayedColumns();
+      }
+      return [];
+    };
+
+    const formatCellValue = (rawValue, node, column) => {
+      const colDef = column?.getColDef ? column.getColDef() : {};
+      if (typeof colDef?.valueFormatter === "function") {
+        try {
+          const formatted = colDef.valueFormatter({
+            value: rawValue,
+            data: node?.data,
+            node,
+            colDef,
+            column,
+            api: this.gridApi,
+            context: this.gridApi?.context,
+          });
+          if (formatted != null) return formatted;
+        } catch (error) {
+          noopConsole("[GridViewDinamica] Failed to format cell for Excel export", error);
+        }
+      }
+
+      if (rawValue == null) return "";
+      if (typeof rawValue === "object") {
+        try {
+          return JSON.stringify(rawValue);
+        } catch (error) {
+          return String(rawValue);
+        }
+      }
+      return String(rawValue);
+    };
+
+    const isExportableColumn = (column) => {
+      const colId = column?.getColId ? column.getColId() : column?.colId;
+      const colDef = column?.getColDef ? column.getColDef() : {};
+      if (!colId) return false;
+      if (String(colId).startsWith("ag-Grid-")) return false;
+      if (colDef?.checkboxSelection || colDef?.headerCheckboxSelection) return false;
+      return true;
+    };
+
+    const columns = getDisplayedColumns().filter(isExportableColumn);
+    if (!columns.length) return;
+
+    const currentPage = typeof this.gridApi?.paginationGetCurrentPage === "function"
+      ? this.gridApi.paginationGetCurrentPage()
+      : 0;
+    const pageSize = typeof this.gridApi?.paginationGetPageSize === "function"
+      ? this.gridApi.paginationGetPageSize()
+      : 0;
+    const hasPagination = pageSize > 0;
+    const pageStart = hasPagination ? currentPage * pageSize : -1;
+    const pageEnd = hasPagination ? pageStart + pageSize : Number.POSITIVE_INFINITY;
+
+    const rows = [];
+    if (
+      typeof this.gridApi?.getDisplayedRowCount === "function" &&
+      typeof this.gridApi?.getDisplayedRowAtIndex === "function"
+    ) {
+      const displayedCount = this.gridApi.getDisplayedRowCount();
+      const startIndex = hasPagination ? Math.max(pageStart, 0) : 0;
+      const endIndex = hasPagination
+        ? Math.min(pageEnd, displayedCount)
+        : displayedCount;
+
+      for (let rowIndex = startIndex; rowIndex < endIndex; rowIndex += 1) {
+        const node = this.gridApi.getDisplayedRowAtIndex(rowIndex);
+        if (node) rows.push(node);
+      }
+    } else if (typeof this.gridApi?.forEachNodeAfterFilterAndSort === "function") {
+      let displayIndex = 0;
+      this.gridApi.forEachNodeAfterFilterAndSort((node) => {
+        if (!hasPagination || (displayIndex >= pageStart && displayIndex < pageEnd)) {
+          rows.push(node);
+        }
+        displayIndex += 1;
+      });
+    } else if (typeof this.gridApi?.forEachNode === "function") {
+      this.gridApi.forEachNode((node) => {
+        rows.push(node);
+      });
+    }
+
+    const headerXml = columns
+      .map((column) => {
+        const colDef = column?.getColDef ? column.getColDef() : {};
+        const headerLabel = colDef?.headerName || colDef?.field || column?.getColId?.() || "";
+        return `<Cell><Data ss:Type="String">${escapeXml(headerLabel)}</Data></Cell>`;
+      })
+      .join("");
+
+    let bodyXml = rows
+      .map((node) => {
+        const cellsXml = columns
+          .map((column) => {
+            const colId = column?.getColId ? column.getColId() : column?.colId;
+            const rawValue = typeof this.gridApi?.getValue === "function"
+              ? this.gridApi.getValue(colId, node)
+              : node?.data?.[colId];
+            const formattedValue = formatCellValue(rawValue, node, column);
+            return `<Cell><Data ss:Type="String">${escapeXml(formattedValue)}</Data></Cell>`;
+          })
+          .join("");
+        return `<Row>${cellsXml}</Row>`;
+      })
+      .join("");
+
+    if (!bodyXml && typeof this.gridApi?.getDataAsCsv === "function") {
+      const csvValue = this.gridApi.getDataAsCsv({
+        columnKeys: columns.map((column) => (
+          column?.getColId ? column.getColId() : column?.colId
+        )),
+        skipColumnHeaders: true,
+        skipColumnGroupHeaders: true,
+        processCellCallback: (params) => {
+          if (params?.valueFormatted != null) return params.valueFormatted;
+          if (params?.value == null) return "";
+          return typeof params.value === "object"
+            ? JSON.stringify(params.value)
+            : String(params.value);
+        },
+      });
+
+      const parseCsvLine = (line) => {
+        const values = [];
+        let current = "";
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i += 1) {
+          const char = line[i];
+          const next = line[i + 1];
+
+          if (char === '"' && inQuotes && next === '"') {
+            current += '"';
+            i += 1;
+            continue;
+          }
+
+          if (char === '"') {
+            inQuotes = !inQuotes;
+            continue;
+          }
+
+          if (char === "," && !inQuotes) {
+            values.push(current);
+            current = "";
+            continue;
+          }
+
+          current += char;
+        }
+
+        values.push(current);
+        return values;
+      };
+
+      bodyXml = String(csvValue || "")
+        .split(/\r?\n/)
+        .filter((line) => line.trim().length > 0)
+        .map((line) => {
+          const cellsXml = parseCsvLine(line)
+            .map((value) => `<Cell><Data ss:Type="String">${escapeXml(value)}</Data></Cell>`)
+            .join("");
+          return cellsXml ? `<Row>${cellsXml}</Row>` : "";
+        })
+        .join("");
+    }
+
+    if (!bodyXml) {
+      const gridRoot = this.$el?.querySelector?.(".ag-root");
+      const domRows = gridRoot
+        ? Array.from(gridRoot.querySelectorAll(".ag-center-cols-container .ag-row"))
+        : [];
+
+      bodyXml = domRows
+        .map((rowEl) => {
+          const cells = Array.from(rowEl.querySelectorAll(".ag-cell"));
+          const cellsXml = cells
+            .map((cellEl) => {
+              const value = (cellEl?.innerText || cellEl?.textContent || "").trim();
+              return `<Cell><Data ss:Type="String">${escapeXml(value)}</Data></Cell>`;
+            })
+            .join("");
+          return cellsXml ? `<Row>${cellsXml}</Row>` : "";
+        })
+        .join("");
+    }
+
+    const xmlWorkbook = `<?xml version="1.0"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+ <Worksheet ss:Name="Grid">
+  <Table>
+   <Row>${headerXml}</Row>
+   ${bodyXml}
+  </Table>
+ </Worksheet>
+</Workbook>`;
+
+    const blob = new Blob([xmlWorkbook], {
+      type: "application/vnd.ms-excel;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = sanitizeFileName(fileNameInput);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  },
   getRowId(params) {
   return this.resolveMappingFormula(this.content.idFormula, params.data);
   },
