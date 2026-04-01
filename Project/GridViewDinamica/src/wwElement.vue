@@ -3613,9 +3613,30 @@ setTimeout(() => {
     const pageEnd = hasPagination ? pageStart + pageSize : Number.POSITIVE_INFINITY;
 
     const rows = [];
-    if (typeof this.gridApi?.forEachNodeAfterFilterAndSort === "function") {
-      this.gridApi.forEachNodeAfterFilterAndSort((node, displayIndex) => {
-        if (hasPagination && (displayIndex < pageStart || displayIndex >= pageEnd)) return;
+    if (
+      typeof this.gridApi?.getDisplayedRowCount === "function" &&
+      typeof this.gridApi?.getDisplayedRowAtIndex === "function"
+    ) {
+      const displayedCount = this.gridApi.getDisplayedRowCount();
+      const startIndex = hasPagination ? Math.max(pageStart, 0) : 0;
+      const endIndex = hasPagination
+        ? Math.min(pageEnd, displayedCount)
+        : displayedCount;
+
+      for (let rowIndex = startIndex; rowIndex < endIndex; rowIndex += 1) {
+        const node = this.gridApi.getDisplayedRowAtIndex(rowIndex);
+        if (node) rows.push(node);
+      }
+    } else if (typeof this.gridApi?.forEachNodeAfterFilterAndSort === "function") {
+      let displayIndex = 0;
+      this.gridApi.forEachNodeAfterFilterAndSort((node) => {
+        if (!hasPagination || (displayIndex >= pageStart && displayIndex < pageEnd)) {
+          rows.push(node);
+        }
+        displayIndex += 1;
+      });
+    } else if (typeof this.gridApi?.forEachNode === "function") {
+      this.gridApi.forEachNode((node) => {
         rows.push(node);
       });
     }
