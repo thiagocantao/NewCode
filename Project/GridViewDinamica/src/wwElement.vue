@@ -3599,7 +3599,16 @@ setTimeout(() => {
       return String(rawValue);
     };
 
-    const columns = getDisplayedColumns();
+    const isExportableColumn = (column) => {
+      const colId = column?.getColId ? column.getColId() : column?.colId;
+      const colDef = column?.getColDef ? column.getColDef() : {};
+      if (!colId) return false;
+      if (String(colId).startsWith("ag-Grid-")) return false;
+      if (colDef?.checkboxSelection || colDef?.headerCheckboxSelection) return false;
+      return true;
+    };
+
+    const columns = getDisplayedColumns().filter(isExportableColumn);
     if (!columns.length) return;
 
     const currentPage = typeof this.gridApi?.paginationGetCurrentPage === "function"
@@ -3664,6 +3673,67 @@ setTimeout(() => {
         return `<Row>${cellsXml}</Row>`;
       })
       .join("");
+
+    if (!bodyXml && typeof this.gridApi?.getDataAsCsv === "function") {
+      const csvValue = this.gridApi.getDataAsCsv({
+        columnKeys: columns.map((column) => (
+          column?.getColId ? column.getColId() : column?.colId
+        )),
+        skipColumnHeaders: true,
+        skipColumnGroupHeaders: true,
+        processCellCallback: (params) => {
+          if (params?.valueFormatted != null) return params.valueFormatted;
+          if (params?.value == null) return "";
+          return typeof params.value === "object"
+            ? JSON.stringify(params.value)
+            : String(params.value);
+        },
+      });
+
+      const parseCsvLine = (line) => {
+        const values = [];
+        let current = "";
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i += 1) {
+          const char = line[i];
+          const next = line[i + 1];
+
+          if (char === '"' && inQuotes && next === '"') {
+            current += '"';
+            i += 1;
+            continue;
+          }
+
+          if (char === '"') {
+            inQuotes = !inQuotes;
+            continue;
+          }
+
+          if (char === "," && !inQuotes) {
+            values.push(current);
+            current = "";
+            continue;
+          }
+
+          current += char;
+        }
+
+        values.push(current);
+        return values;
+      };
+
+      bodyXml = String(csvValue || "")
+        .split(/\r?\n/)
+        .filter((line) => line.trim().length > 0)
+        .map((line) => {
+          const cellsXml = parseCsvLine(line)
+            .map((value) => `<Cell><Data ss:Type="String">${escapeXml(value)}</Data></Cell>`)
+            .join("");
+          return cellsXml ? `<Row>${cellsXml}</Row>` : "";
+        })
+        .join("");
+    }
 
     if (!bodyXml) {
       const gridRoot = this.$el?.querySelector?.(".ag-root");
