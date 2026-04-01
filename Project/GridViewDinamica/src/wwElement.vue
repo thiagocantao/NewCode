@@ -3649,7 +3649,7 @@ setTimeout(() => {
       })
       .join("");
 
-    const bodyXml = rows
+    let bodyXml = rows
       .map((node) => {
         const cellsXml = columns
           .map((column) => {
@@ -3664,6 +3664,26 @@ setTimeout(() => {
         return `<Row>${cellsXml}</Row>`;
       })
       .join("");
+
+    if (!bodyXml) {
+      const gridRoot = this.$el?.querySelector?.(".ag-root");
+      const domRows = gridRoot
+        ? Array.from(gridRoot.querySelectorAll(".ag-center-cols-container .ag-row"))
+        : [];
+
+      bodyXml = domRows
+        .map((rowEl) => {
+          const cells = Array.from(rowEl.querySelectorAll(".ag-cell"));
+          const cellsXml = cells
+            .map((cellEl) => {
+              const value = (cellEl?.innerText || cellEl?.textContent || "").trim();
+              return `<Cell><Data ss:Type="String">${escapeXml(value)}</Data></Cell>`;
+            })
+            .join("");
+          return cellsXml ? `<Row>${cellsXml}</Row>` : "";
+        })
+        .join("");
+    }
 
     const xmlWorkbook = `<?xml version="1.0"?>
 <Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
