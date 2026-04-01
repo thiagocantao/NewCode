@@ -3674,6 +3674,32 @@ setTimeout(() => {
       })
       .join("");
 
+    if (!bodyXml) {
+      const sourceRowsRaw = wwLib.wwUtils.getDataFromCollection(this.content?.rowData);
+      const sourceRows = Array.isArray(sourceRowsRaw) ? sourceRowsRaw : [];
+
+      bodyXml = sourceRows
+        .map((rowData, rowIndex) => {
+          const pseudoNode = {
+            data: rowData,
+            rowIndex,
+            id: rowData?.Id ?? rowData?.ID ?? rowData?.id ?? rowIndex,
+          };
+          const cellsXml = columns
+            .map((column) => {
+              const colId = column?.getColId ? column.getColId() : column?.colId;
+              const colDef = column?.getColDef ? column.getColDef() : {};
+              const field = colDef?.field || colId;
+              const rawValue = rowData?.[field];
+              const formattedValue = formatCellValue(rawValue, pseudoNode, column);
+              return `<Cell><Data ss:Type="String">${escapeXml(formattedValue)}</Data></Cell>`;
+            })
+            .join("");
+          return cellsXml ? `<Row>${cellsXml}</Row>` : "";
+        })
+        .join("");
+    }
+
     if (!bodyXml && typeof this.gridApi?.getDataAsCsv === "function") {
       const csvValue = this.gridApi.getDataAsCsv({
         columnKeys: columns.map((column) => (
