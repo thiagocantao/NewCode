@@ -62,7 +62,7 @@
 </template>
 
 <script>
-import { computed, inject, onMounted, ref } from 'vue';
+import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 export default {
     props: {
@@ -152,7 +152,21 @@ export default {
             return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(ext);
         });
 
-        const previewUrl = computed(() => props.file?.previewUrl || props.file?.url || null);
+        const previewUrl = ref(null);
+
+        const updatePreviewUrl = () => {
+            const currentValue = props.file?.previewUrl || props.file?.url || null;
+            if (currentValue) {
+                previewUrl.value = currentValue;
+                return;
+            }
+            const localFile = props.file instanceof File ? props.file : props.file?.file;
+            if (localFile instanceof File && isImage.value) {
+                previewUrl.value = URL.createObjectURL(localFile);
+                return;
+            }
+            previewUrl.value = null;
+        };
 
         const fileIcon = computed(() => {
             const ext = (props.file?.name || '').split('.').pop()?.toLowerCase();
@@ -172,6 +186,19 @@ export default {
                 removeIcon.value = await getIcon('lucide/trash');
             } catch (e) {
                 removeIcon.value = null;
+            }
+            updatePreviewUrl();
+        });
+
+        watch(
+            () => [props.file?.previewUrl, props.file?.url, props.file?.name, props.file?.type],
+            () => updatePreviewUrl(),
+            { immediate: true }
+        );
+
+        onBeforeUnmount(() => {
+            if (previewUrl.value && previewUrl.value.startsWith('blob:')) {
+                URL.revokeObjectURL(previewUrl.value);
             }
         });
 
