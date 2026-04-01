@@ -316,7 +316,6 @@
   ModuleRegistry.registerModules([AllCommunityModule]);
 
   const HIDE_SAVE_BUTTON_VARIABLE_ID = "09c5aacd-b697-4e04-9571-d5db1f671877";
-  const GRID_CONFIG_VARIABLE_ID = "f33bef90-f5d8-485d-ad5b-7418bd7437f4";
 
   export default {
   components: {
@@ -1538,42 +1537,6 @@ function applyExternalSortAndSync() {
   // ===================== Persistência de estado =====================
   const storageKey = `GridViewDinamicaState_${props.uid}`;
 
-  function persistGridStateToWWVariable(state) {
-    try {
-      const wwVariable = window?.wwLib?.wwVariable;
-      if (!wwVariable) return;
-
-      if (typeof wwVariable.setValue === "function") {
-        wwVariable.setValue(GRID_CONFIG_VARIABLE_ID, state);
-        return;
-      }
-      if (typeof wwVariable.updateValue === "function") {
-        wwVariable.updateValue(GRID_CONFIG_VARIABLE_ID, state);
-        return;
-      }
-      if (typeof wwVariable.setComponentValue === "function") {
-        wwVariable.setComponentValue(GRID_CONFIG_VARIABLE_ID, state);
-      }
-    } catch (error) {
-      noopConsole("[GridViewDinamica] Failed to persist grid config", error);
-    }
-  }
-
-  function getGridStateFromWWVariable() {
-    try {
-      const wwVariable = window?.wwLib?.wwVariable;
-      if (wwVariable && typeof wwVariable.getValue === "function") {
-        const state = wwVariable.getValue(GRID_CONFIG_VARIABLE_ID);
-        if (state && typeof state === "object") {
-          return state;
-        }
-      }
-    } catch (error) {
-      noopConsole("[GridViewDinamica] Failed to read grid config", error);
-    }
-    return null;
-  }
-
   function getGridStateFromLocalStorage() {
     try {
       const raw = localStorage.getItem(storageKey);
@@ -1597,7 +1560,6 @@ function applyExternalSortAndSync() {
             : [],
       };
       localStorage.setItem(storageKey, JSON.stringify(state));
-      persistGridStateToWWVariable(state);
     } catch (e) {
       noopConsole('Failed to save grid state', e);
     }
@@ -1607,9 +1569,7 @@ function applyExternalSortAndSync() {
     const colApi = getColApi();
     if (!isGridApiActive() || !colApi) return;
     try {
-      const state =
-        getGridStateFromWWVariable() ||
-        getGridStateFromLocalStorage();
+      const state = getGridStateFromLocalStorage();
       if (!state) return;
 
       const hasColumnState = Array.isArray(state.columnState) && state.columnState.length;
@@ -1654,7 +1614,6 @@ function applyExternalSortAndSync() {
   function clearSavedGridState() {
     try {
       localStorage.removeItem(storageKey);
-      persistGridStateToWWVariable(null);
     } catch {}
     const colApi = getColApi();
     colApi?.resetColumnState?.();
