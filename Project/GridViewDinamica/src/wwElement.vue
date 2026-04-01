@@ -3611,38 +3611,19 @@ setTimeout(() => {
     const columns = getDisplayedColumns().filter(isExportableColumn);
     if (!columns.length) return;
 
-    const currentPage = typeof this.gridApi?.paginationGetCurrentPage === "function"
-      ? this.gridApi.paginationGetCurrentPage()
-      : 0;
-    const pageSize = typeof this.gridApi?.paginationGetPageSize === "function"
-      ? this.gridApi.paginationGetPageSize()
-      : 0;
-    const hasPagination = pageSize > 0;
-    const pageStart = hasPagination ? currentPage * pageSize : -1;
-    const pageEnd = hasPagination ? pageStart + pageSize : Number.POSITIVE_INFINITY;
-
     const rows = [];
     if (
       typeof this.gridApi?.getDisplayedRowCount === "function" &&
       typeof this.gridApi?.getDisplayedRowAtIndex === "function"
     ) {
       const displayedCount = this.gridApi.getDisplayedRowCount();
-      const startIndex = hasPagination ? Math.max(pageStart, 0) : 0;
-      const endIndex = hasPagination
-        ? Math.min(pageEnd, displayedCount)
-        : displayedCount;
-
-      for (let rowIndex = startIndex; rowIndex < endIndex; rowIndex += 1) {
+      for (let rowIndex = 0; rowIndex < displayedCount; rowIndex += 1) {
         const node = this.gridApi.getDisplayedRowAtIndex(rowIndex);
         if (node) rows.push(node);
       }
     } else if (typeof this.gridApi?.forEachNodeAfterFilterAndSort === "function") {
-      let displayIndex = 0;
       this.gridApi.forEachNodeAfterFilterAndSort((node) => {
-        if (!hasPagination || (displayIndex >= pageStart && displayIndex < pageEnd)) {
-          rows.push(node);
-        }
-        displayIndex += 1;
+        rows.push(node);
       });
     } else if (typeof this.gridApi?.forEachNode === "function") {
       this.gridApi.forEachNode((node) => {
