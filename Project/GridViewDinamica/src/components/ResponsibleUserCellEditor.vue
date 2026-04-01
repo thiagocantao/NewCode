@@ -255,8 +255,7 @@ export default class ResponsibleUserCellEditor {
         const styled = this.getRoundedSpanColor(value, params.styleArray, colDef.FieldDB);
         if (styled) return styled;
       }
-    } catch (e) {
-      console.error('Format option error', e);
+    } catch {
     }
     return value;
   }
@@ -559,8 +558,7 @@ export default class ResponsibleUserCellEditor {
           },
         });
       }
-    } catch (e) {
-      console.warn('postGroupAndUser failed', e);
+    } catch {
     }
   }
 

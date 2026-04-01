@@ -24,8 +24,7 @@ export function readTypographyVariable() {
 
     const typographySettings = getter(TYPOGRAPHY_VARIABLE_ID);
     return sanitizeFontFamily(typographySettings?.fontFamily);
-  } catch (error) {
-    console.warn("[GridViewDinamica] Failed to read typography variable", error);
+  } catch {
     return "";
   }
 }
