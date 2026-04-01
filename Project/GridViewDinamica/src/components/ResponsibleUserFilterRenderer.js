@@ -166,8 +166,7 @@ export default class ResponsibleUserFilterRenderer {
       return data
         .map(item => this.normalizeCollectionEntry(item))
         .filter(item => item);
-    } catch (error) {
-      console.warn('[GridViewDinamica] Failed to resolve ResponsibleUser filter options from collection', error);
+    } catch {
       return [];
     }
   }
