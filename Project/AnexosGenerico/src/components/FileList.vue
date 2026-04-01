@@ -10,6 +10,8 @@
                 :is-readonly="isReadonly"
                 :is-disabled="isDisabled"
                 @remove="$emit('remove', index)"
+                @download="$emit('download', index)"
+                @preview="$emit('preview', index)"
             />
         </transition-group>
     </div>
@@ -46,7 +48,7 @@ export default {
             default: false,
         },
     },
-    emits: ['remove'],
+    emits: ['remove', 'download', 'preview'],
     setup(props) {
         const getFileStatus = file => {
             if (!file?.name || !props.status) return {};

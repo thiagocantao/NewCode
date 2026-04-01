@@ -61,6 +61,8 @@
             :is-readonly="isReadonly"
             :is-disabled="isDisabled"
             @remove="removeFile"
+            @download="downloadFileByIndex"
+            @preview="previewFileByIndex"
             @reorder="reorderFiles"
         />
 
@@ -139,6 +141,7 @@ export default {
         const maxTotalFileSize = computed(() => props.content?.maxTotalFileSize || 50);
         const maxFiles = computed(() => props.content?.maxFiles || 10);
         const required = computed(() => props.content?.required || false);
+        const initialValue = computed(() => props.content?.initialValue || []);
         const extensions = computed(() => props.content?.extensions || 'any');
         const customExtensions = computed(() => props.content?.customExtensions || '');
         const exposeBase64 = computed(() => props.content?.exposeBase64 || false);
@@ -265,6 +268,44 @@ export default {
 
         const fileList = computed(() => (Array.isArray(files.value) ? files.value : []));
         const hasFiles = computed(() => fileList.value.length > 0);
+        const previousInitialValueHash = ref('');
+
+        const getFileKind = fileName => {
+            const ext = (fileName || '').split('.').pop()?.toLowerCase();
+            if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(ext)) return 'image';
+            if (ext === 'pdf') return 'pdf';
+            if (['txt', 'log'].includes(ext)) return 'txt';
+            return 'file';
+        };
+
+        const normalizeInitialValue = value => {
+            if (!Array.isArray(value)) return [];
+            return value
+                .map(item => {
+                    const name = item?.FileName || item?.fileName;
+                    const storageBucket = item?.StorageBucket || item?.storageBucket;
+                    const storagePath = item?.StoragePath || item?.storagePath;
+                    if (!name || !storageBucket || !storagePath) return null;
+                    const kind = getFileKind(name);
+                    return {
+                        id: item?.AttachmentID || item?.attachmentId || `init-${storagePath}`,
+                        name,
+                        size: Number(item?.SizeBytes || item?.size || 0),
+                        type: item?.ContentType || item?.contentType || 'application/octet-stream',
+                        mimeType: item?.ContentType || item?.contentType || 'application/octet-stream',
+                        attachmentId: item?.AttachmentID || item?.attachmentId || null,
+                        bucket: storageBucket,
+                        storagePath,
+                        createdDate: item?.CreatedDate || null,
+                        createdBy: item?.CreatedBy || null,
+                        isImage: kind === 'image',
+                        isPdf: kind === 'pdf',
+                        isTxt: kind === 'txt',
+                        isFromInitialValue: true,
+                    };
+                })
+                .filter(Boolean);
+        };
 
         watch([status, fileList], ([newStatus, newFiles]) => {
             if (newStatus && typeof newStatus === 'object') {
@@ -278,6 +319,22 @@ export default {
                 }
             }
         });
+
+        watch(
+            initialValue,
+            newValue => {
+                const hash = JSON.stringify(newValue || []);
+                if (hash === previousInitialValueHash.value) return;
+                previousInitialValueHash.value = hash;
+                const normalized = normalizeInitialValue(newValue);
+                setFiles(normalized);
+                emit('trigger-event', {
+                    name: 'initValueChange',
+                    event: { value: normalized },
+                });
+            },
+            { immediate: true, deep: true }
+        );
 
         const getFileStatus = file => {
             if (!status.value || !file.name || !status.value[file.name]) {
@@ -593,6 +650,111 @@ export default {
             });
         };
 
+        const getSupabase = () => wwLib?.wwPlugins?.supabase?.instance || null;
+
+        const isHttpUrl = value => typeof value === 'string' && /^https?:\/\//i.test(value);
+        const sanitizeBucket = value => (typeof value === 'string' ? value.trim().replace(/^\/+|\/+$/g, '') : '');
+        const sanitizeStoragePath = value =>
+            typeof value === 'string' ? value.trim().replace(/^\/+/, '').replace(/\?.*$/, '') : '';
+
+        const resolveStorageLocation = file => {
+            const rawBucket = sanitizeBucket(
+                file?.bucket || file?.storageBucket || file?.StorageBucket || file?.storagebucket || ''
+            );
+            let rawPath = sanitizeStoragePath(
+                file?.storagePath || file?.StoragePath || file?.storagepath || file?.path || ''
+            );
+
+            if (!rawPath && isHttpUrl(file?.url)) {
+                return { bucket: rawBucket, storagePath: '', directUrl: file.url };
+            }
+
+            if (rawPath && rawBucket && rawPath.startsWith(`${rawBucket}/`)) {
+                rawPath = rawPath.slice(rawBucket.length + 1);
+            }
+
+            if (!rawBucket && rawPath.includes('/')) {
+                const [bucketFromPath, ...rest] = rawPath.split('/');
+                return {
+                    bucket: sanitizeBucket(bucketFromPath),
+                    storagePath: sanitizeStoragePath(rest.join('/')),
+                    directUrl: isHttpUrl(file?.url) ? file.url : null,
+                };
+            }
+
+            return { bucket: rawBucket, storagePath: rawPath, directUrl: isHttpUrl(file?.url) ? file.url : null };
+        };
+
+        const resolveFileUrl = async (file, { download = false } = {}) => {
+            if (!file) return null;
+            if (file.url) return file.url;
+            const localFile = file instanceof File ? file : file?.file;
+            if (localFile instanceof File) return URL.createObjectURL(localFile);
+            const supabase = getSupabase();
+            const { bucket, storagePath, directUrl } = resolveStorageLocation(file);
+            if (!supabase?.storage || !bucket || !storagePath) return directUrl || null;
+            const options = {};
+            if (download) options.download = file.name || 'download';
+            if (file?.isImage && !download) options.transform = { width: 400, resize: 'contain' };
+            const { data, error } = await supabase.storage.from(bucket).createSignedUrl(storagePath, 3600, options);
+            if (error) return null;
+            file.url = data?.signedUrl || null;
+            file.previewUrl = file.url;
+            file.bucket = bucket;
+            file.storagePath = storagePath;
+            return file.url;
+        };
+
+        const previewFileByIndex = async index => {
+            const file = fileList.value[index];
+            if (!file) return;
+            const url = await resolveFileUrl(file);
+            if (!url) return;
+            window.open(url, '_blank', 'noopener,noreferrer');
+        };
+
+        const downloadFileByIndex = async index => {
+            const file = fileList.value[index];
+            if (!file) return;
+            const url = await resolveFileUrl(file, { download: true });
+            if (!url) return;
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const blob = await response.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = file.name || 'download';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(blobUrl);
+            } catch (error) {
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = file.name || 'download';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            }
+        };
+
+        watch(
+            fileList,
+            async list => {
+                const items = Array.isArray(list) ? list : [];
+                await Promise.all(
+                    items.map(async file => {
+                        if (!file || !file.isImage || file.previewUrl || file.url) return;
+                        const preview = await resolveFileUrl(file);
+                        if (preview) file.previewUrl = preview;
+                    })
+                );
+            },
+            { immediate: true, deep: true }
+        );
+
         const reorderFiles = (fromIndex, toIndex) => {
             if (isDisabled.value || isReadonly.value || !reorder.value) return;
 
@@ -690,6 +852,8 @@ export default {
             handleDrop,
             handleFileSelection,
             removeFile,
+            downloadFileByIndex,
+            previewFileByIndex,
             reorderFiles,
             getAllowedTypesLabel,
             iconHTML,

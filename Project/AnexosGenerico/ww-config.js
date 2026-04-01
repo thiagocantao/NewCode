@@ -14,6 +14,7 @@ export default {
             'maxFiles',
             'required',
             'readonly',
+            'initialValue',
             'extensions',
             'customExtensions',
             'exposeBase64',
@@ -327,6 +328,20 @@ export default {
             bindingValidation: {
                 type: 'boolean',
                 tooltip: 'A boolean that defines if the upload is in readonly mode: `true | false`',
+            },
+            /* wwEditor:end */
+        },
+        initialValue: {
+            label: { en: 'Initial value (attachments JSON)' },
+            type: 'Array',
+            section: 'settings',
+            bindable: true,
+            defaultValue: [],
+            /* wwEditor:start */
+            bindingValidation: {
+                type: 'array',
+                tooltip:
+                    'Array in the same structure returned by getKnowledgeAttachmentsByVersion: AttachmentID, StorageBucket, StoragePath, FileName, ContentType, SizeBytes, CreatedDate, CreatedBy.',
             },
             /* wwEditor:end */
         },
