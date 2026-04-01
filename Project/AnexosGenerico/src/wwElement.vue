@@ -258,7 +258,7 @@ export default {
         const { value: deletedFile, setValue: setDeletedFile } = wwLib.wwVariable.useComponentVariable({
             uid: props.uid,
             name: 'deletedFile',
-            defaultValue: null,
+            defaultValue: [],
             type: 'any',
         });
 
@@ -658,8 +658,13 @@ export default {
             if (isDisabled.value || isReadonly.value) return;
 
             const removedFile = fileList.value[index] || null;
-            setDeletedFile(removedFile ? { ...removedFile } : null);
             if (removedFile) {
+                const deletedFileEntry = {
+                    ...removedFile,
+                    id: removedFile.id || `deleted-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+                    isFromInitialValue: Boolean(removedFile.isFromInitialValue),
+                };
+                setDeletedFile([...(Array.isArray(deletedFile.value) ? deletedFile.value : []), deletedFileEntry]);
                 setDeletedFilesCount((deletedFilesCount.value || 0) + 1);
             }
 
