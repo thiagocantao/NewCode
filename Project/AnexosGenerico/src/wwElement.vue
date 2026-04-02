@@ -717,7 +717,7 @@ export default {
 
         const resolveFileUrl = async (file, { download = false } = {}) => {
             if (!file) return null;
-            if (file.url) return file.url;
+            if (!download && file.url) return file.url;
             const localFile = file instanceof File ? file : file?.file;
             if (localFile instanceof File) return URL.createObjectURL(localFile);
             const supabase = getSupabase();
@@ -728,11 +728,14 @@ export default {
             if (file?.isImage && !download) options.transform = { width: 400, resize: 'contain' };
             const { data, error } = await supabase.storage.from(bucket).createSignedUrl(storagePath, 3600, options);
             if (error) return null;
-            file.url = data?.signedUrl || null;
-            file.previewUrl = file.url;
+            const signedUrl = data?.signedUrl || null;
+            if (!download) {
+                file.url = signedUrl;
+                file.previewUrl = signedUrl;
+            }
             file.bucket = bucket;
             file.storagePath = storagePath;
-            return file.url;
+            return signedUrl;
         };
 
         const previewUnavailableMessage = computed(() => translatePhrase('Preview not available for this file type.'));
