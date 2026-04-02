@@ -9,6 +9,8 @@
                 :index="index"
                 :is-readonly="isReadonly"
                 :is-disabled="isDisabled"
+                :can-preview="canPreview(file)"
+                :preview-hint="getPreviewHint(file)"
                 @remove="$emit('remove', index)"
                 @download="$emit('download', index)"
                 @preview="$emit('preview', index)"
@@ -46,6 +48,14 @@ export default {
         isDisabled: {
             type: Boolean,
             default: false,
+        },
+        canPreview: {
+            type: Function,
+            default: () => true,
+        },
+        getPreviewHint: {
+            type: Function,
+            default: () => '',
         },
     },
     emits: ['remove', 'download', 'preview'],

@@ -21,6 +21,8 @@
                 :disabled="isDisabled"
                 @click="$emit('preview')"
                 :aria-label="`Preview ${file.name}`"
+                :title="previewHint || null"
+                :class="{ 'ww-file-item__preview--not-allowed': !canPreview }"
             >
                 <img v-if="isImage && previewUrl" :src="previewUrl" alt="" class="ww-file-item__thumb" />
                 <span v-else class="ww-file-item__file-icon">{{ fileIcon }}</span>
@@ -85,6 +87,14 @@ export default {
         isDisabled: {
             type: Boolean,
             default: false,
+        },
+        canPreview: {
+            type: Boolean,
+            default: true,
+        },
+        previewHint: {
+            type: String,
+            default: '',
         },
     },
     emits: ['remove', 'download', 'preview'],
@@ -282,6 +292,15 @@ export default {
         justify-content: center;
         flex-shrink: 0;
         cursor: pointer;
+
+        &:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+    }
+
+    &__preview--not-allowed {
+        cursor: not-allowed;
     }
     &__meta {
         min-width: 0;

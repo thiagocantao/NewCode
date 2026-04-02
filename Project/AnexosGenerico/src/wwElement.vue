@@ -60,6 +60,8 @@
             :can-reorder="reorder"
             :is-readonly="isReadonly"
             :is-disabled="isDisabled"
+            :can-preview="canPreviewFile"
+            :get-preview-hint="getPreviewHint"
             @remove="removeFile"
             @download="downloadFileByIndex"
             @preview="previewFileByIndex"
@@ -87,6 +89,7 @@ import FileList from './components/FileList.vue';
 import { validateFile } from './utils/fileValidation';
 import { fileToBase64, fileToBinary } from './utils/fileProcessing';
 import { useDragAnimation } from './composables/useDragAnimation';
+import { translatePhrase } from './translation';
 
 /* wwEditor:start */
 import useParentSelection from './editor/useParentSelection';
@@ -732,12 +735,46 @@ export default {
             return file.url;
         };
 
+        const previewUnavailableMessage = computed(() => translatePhrase('Preview not available for this file type.'));
+
+        const getFileExtension = file =>
+            (file?.name || '')
+                .split('.')
+                .pop()
+                ?.toLowerCase() || '';
+
+        const getPreviewMode = file => {
+            const ext = getFileExtension(file);
+            const type = (file?.type || file?.mimeType || file?.contentType || '').toLowerCase();
+
+            if (
+                type.startsWith('image/') ||
+                ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg', 'pdf', 'txt', 'log', 'csv', 'json'].includes(ext)
+            ) {
+                return 'direct';
+            }
+
+            if (['xls', 'xlsx', 'xlsm', 'xlsb', 'doc', 'docx', 'ppt', 'pptx'].includes(ext)) {
+                return 'office';
+            }
+
+            return 'unsupported';
+        };
+
+        const canPreviewFile = file => getPreviewMode(file) !== 'unsupported';
+
+        const getPreviewHint = file => (canPreviewFile(file) ? '' : previewUnavailableMessage.value);
+
         const previewFileByIndex = async index => {
             const file = fileList.value[index];
             if (!file) return;
+            const previewMode = getPreviewMode(file);
+            if (previewMode === 'unsupported') return;
             const url = await resolveFileUrl(file);
             if (!url) return;
-            window.open(url, '_blank', 'noopener,noreferrer');
+            const previewUrl =
+                previewMode === 'office' ? `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(url)}` : url;
+            window.open(previewUrl, '_blank', 'noopener,noreferrer');
         };
 
         const downloadFileByIndex = async index => {
@@ -881,6 +918,8 @@ export default {
             removeFile,
             downloadFileByIndex,
             previewFileByIndex,
+            canPreviewFile,
+            getPreviewHint,
             reorderFiles,
             getAllowedTypesLabel,
             iconHTML,
