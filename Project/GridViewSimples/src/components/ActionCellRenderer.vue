@@ -42,15 +42,18 @@ export default {
 }
 .datagrid-btn {
     background-color: var(--ww-data-grid_action-backgroundColor, unset);
+    font-family: "Inter", sans-serif;
+    font-size: 12px;
     color: var(--ww-data-grid_action-color, unset);
     padding: var(--ww-data-grid_action-padding, unset);
     border: var(--ww-data-grid_action-border, unset);
     &.with-font {
-        font: var(--ww-data-grid_action-font);
+        font-family: "Inter", sans-serif;
+        font-size: 12px;
     }
     &.without-font {
-        font-size: var(--ww-data-grid_action-fontSize);
-        font-family: var(--ww-data-grid_action-fontFamily);
+        font-size: var(--ww-data-grid_action-fontSize, 12px);
+        font-family: var(--ww-data-grid_action-fontFamily, "Inter", sans-serif);
         font-weight: var(--ww-data-grid_action-fontWeight);
         font-style: var(--ww-data-grid_action-fontStyle);
         line-height: var(--ww-data-grid_action-lineHeight, normal);
