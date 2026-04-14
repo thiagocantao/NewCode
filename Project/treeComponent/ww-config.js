@@ -15,15 +15,20 @@ export default {
     },
     actions: [
         {
-            label: { en: 'Select node by ID' },
+            label: { en: 'Select node by ID', pt: 'Selecionar nó por ID' },
             action: 'selectNodeById',
             args: [
                 {
                     name: 'id',
                     type: 'text',
-                    label: { en: 'Node ID' },
+                    label: { en: 'Node ID', pt: 'ID do nó' },
                 },
             ],
+        },
+        {
+            label: { en: 'Clear selected node', pt: 'Limpar seleção do nó' },
+            action: 'clearSelectedNode',
+            args: [],
         },
     ],
     properties: {
