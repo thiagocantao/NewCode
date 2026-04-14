@@ -35,13 +35,20 @@ export default {
     setup(props, { emit }) {
         const fileInput = ref(null);
 
-        const nameValue = computed(() => String(props.content?.NameValue || '').trim());
+        const nameValue = computed(() => {
+            const value = props.content?.NameValue ?? props.content?.nameValue ?? '';
+            return String(value).trim();
+        });
         const initialValue = computed(() => {
-            const value = props.content?.initialValue;
+            const value = props.content?.initialValue ?? props.content?.InitialValue;
             return typeof value === 'string' ? value.trim() : '';
         });
 
-        const hasInitialImage = computed(() => !!initialValue.value);
+        const hasInitialImage = computed(() => {
+            if (!initialValue.value) return false;
+            const normalized = initialValue.value.toLowerCase();
+            return normalized !== 'null' && normalized !== 'undefined';
+        });
         const initialLetter = computed(() => (nameValue.value ? nameValue.value.charAt(0).toUpperCase() : '?'));
 
         const avatarStyle = computed(() => ({
@@ -107,9 +114,11 @@ export default {
 }
 
 .ww-avatar__image {
+    display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
+    border-radius: inherit;
 }
 
 .ww-avatar__initial {
