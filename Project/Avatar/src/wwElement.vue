@@ -10,21 +10,21 @@
         @keydown.enter.prevent="openFilePicker"
         @keydown.space.prevent="openFilePicker"
     >
-        <img v-if="hasInitialImage" :src="initialValue" class="ww-avatar__image" :alt="nameValue || 'Avatar'" />
+        <img v-if="hasDisplayImage" :src="displayImage" class="ww-avatar__image" :alt="nameValue || 'Avatar'" />
         <span v-else class="ww-avatar__initial">{{ initialLetter }}</span>
 
         <input
             ref="fileInput"
             class="ww-avatar__input"
             type="file"
-            accept="text/*,.txt"
+            accept="image/*"
             @change="handleFileChange"
         />
     </div>
 </template>
 
 <script>
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, ref } from 'vue';
 
 export default {
     props: {
@@ -34,6 +34,7 @@ export default {
     emits: ['trigger-event'],
     setup(props, { emit }) {
         const fileInput = ref(null);
+        const selectedImageUrl = ref('');
 
         const nameValue = computed(() => {
             const value = props.content?.NameValue ?? props.content?.nameValue ?? '';
@@ -44,11 +45,8 @@ export default {
             return typeof value === 'string' ? value.trim() : '';
         });
 
-        const hasInitialImage = computed(() => {
-            if (!initialValue.value) return false;
-            const normalized = initialValue.value.toLowerCase();
-            return normalized !== 'null' && normalized !== 'undefined';
-        });
+        const displayImage = computed(() => selectedImageUrl.value || initialValue.value);
+        const hasDisplayImage = computed(() => Boolean(displayImage.value));
         const initialLetter = computed(() => (nameValue.value ? nameValue.value.charAt(0).toUpperCase() : '?'));
 
         const avatarStyle = computed(() => ({
@@ -65,6 +63,16 @@ export default {
 
         const handleFileChange = event => {
             const [file] = event.target?.files || [];
+
+            if (selectedImageUrl.value) {
+                URL.revokeObjectURL(selectedImageUrl.value);
+                selectedImageUrl.value = '';
+            }
+
+            if (file && file.type?.startsWith('image/')) {
+                selectedImageUrl.value = URL.createObjectURL(file);
+            }
+
             emit('trigger-event', {
                 name: 'change',
                 event: {
@@ -75,11 +83,18 @@ export default {
             event.target.value = '';
         };
 
+        onBeforeUnmount(() => {
+            if (selectedImageUrl.value) {
+                URL.revokeObjectURL(selectedImageUrl.value);
+            }
+        });
+
         return {
             fileInput,
             nameValue,
             initialValue,
-            hasInitialImage,
+            displayImage,
+            hasDisplayImage,
             initialLetter,
             avatarStyle,
             openFilePicker,
