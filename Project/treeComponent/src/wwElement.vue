@@ -134,6 +134,9 @@ import { translatePhrase } from './translation';
             selectNodeById(id) {
                 this.selectNodeById(id);
             },
+            clearSelectedNode() {
+                this.clearSelectedNode();
+            },
         },
     },
     data() {
@@ -604,6 +607,11 @@ import { translatePhrase } from './translation';
                 if (!row) return;
                 this.onNodeClick(row);
             });
+        },
+        clearSelectedNode() {
+            this.contextNodeId = null;
+            this.selectedNodeId = null;
+            this.setSelectedItemId?.(null);
         },
         onNodeClick(row) {
         if (this.isEditingAnyNode && this.editingNodeId !== row?.id) {
