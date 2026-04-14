@@ -53,8 +53,10 @@ export default {
 
         const avatarStyle = computed(() => ({
             color: props.content?.initialLetterColor || '#FFFFFF',
-            background: props.content?.avatarBackgroundColor || 'rgba(1, 48, 157, 0.635)',
+            backgroundColor: props.content?.avatarBackgroundColor || 'rgba(1, 48, 157, 0.635)',
             borderColor: props.content?.avatarBorderColor || '#FFFFFF',
+            boxShadow: `0 0 0 2px ${props.content?.avatarOuterBorderColor || '#E5E7EB'}`,
+            fontSize: props.content?.initialLetterSize || '16px',
         }));
 
         const openFilePicker = () => {
@@ -101,9 +103,8 @@ export default {
     border-radius: 9999px;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
     font-family: var(--ww-default-font-family);
-    line-height: 16px;
+    line-height: 1;
     font-weight: 500;
     text-align: center;
     text-overflow: initial;
