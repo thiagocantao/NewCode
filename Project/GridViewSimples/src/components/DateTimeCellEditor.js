@@ -5,7 +5,8 @@ export default class DateTimeCellEditor {
     input.type = 'datetime-local';
     input.style.width = '100%';
     input.style.height = '100%';
-    input.style.fontSize = '13px';
+    input.style.fontSize = '12px';
+    input.style.fontFamily = 'Inter, sans-serif';
     input.style.borderRadius = '6px';
     input.style.padding = '4px';
 

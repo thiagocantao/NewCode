@@ -625,13 +625,13 @@ export default {
       return themeQuartz.withParams({
         headerBackgroundColor: this.content.headerBackgroundColor,
         headerTextColor: this.content.headerTextColor,
-        headerFontSize: this.content.headerFontSize,
-        headerFontFamily: this.content.headerFontFamily,
+        headerFontSize: "12px",
+        headerFontFamily: "Inter, sans-serif",
         headerFontWeight: this.content.headerFontWeight,
         borderColor: this.content.borderColor,
         cellTextColor: this.content.cellColor,
-        cellFontFamily: this.content.cellFontFamily,
-        dataFontSize: this.content.cellFontSize,
+        cellFontFamily: "Inter, sans-serif",
+        dataFontSize: "12px",
         oddRowBackgroundColor: this.content.rowAlternateColor,
         backgroundColor: this.content.rowBackgroundColor,
         rowHoverColor: this.content.rowHoverColor,
@@ -899,6 +899,18 @@ export default {
 
     /* wwEditor:end */
 
+
+    :deep(.ag-root-wrapper),
+    :deep(.ag-header),
+    :deep(.ag-header-cell-text),
+    :deep(.ag-cell),
+    :deep(.ag-paging-panel),
+    :deep(.ag-menu),
+    :deep(.ag-input-field-input) {
+      font-family: "Inter", sans-serif !important;
+      font-size: 12px !important;
+    }
+
     :deep(.ag-header-cell .ag-header-cell-menu-button),
     :deep(.ag-header-cell .ag-header-cell-menu-button-wrapper),
     :deep(.ag-header-cell .ag-header-icon) {
@@ -995,6 +1007,8 @@ export default {
     min-width: 200px;
     max-height: 300px;
     overflow-y: auto;
+    font-family: "Inter", sans-serif;
+    font-size: 12px;
   }
 
   .list-filter .filter-header {
@@ -1007,6 +1021,7 @@ export default {
     border: 1px solid #ccc;
     border-radius: 3px;
     font-size: 12px;
+    font-family: "Inter", sans-serif;
   }
 
   .list-filter .filter-list {
@@ -1020,6 +1035,7 @@ export default {
     align-items: center;
     padding: 3px 0;
     font-size: 12px;
+    font-family: "Inter", sans-serif;
     cursor: pointer;
   }
 
@@ -1044,7 +1060,8 @@ export default {
     border-radius: 3px;
     background: #fff;
     cursor: pointer;
-    font-size: 11px;
+    font-size: 12px;
+    font-family: "Inter", sans-serif;
   }
 
   .list-filter .apply-btn:hover {
