@@ -1,10 +1,12 @@
 <template>
     <div
         class="ww-avatar"
+        :class="{ 'ww-avatar--readonly': isReadOnly }"
         :style="avatarStyle"
         :title="nameValue"
-        role="button"
-        tabindex="0"
+        :role="isReadOnly ? undefined : 'button'"
+        :tabindex="isReadOnly ? -1 : 0"
+        :aria-disabled="isReadOnly ? 'true' : 'false'"
         :aria-label="nameValue || 'Avatar'"
         @click="openFilePicker"
         @keydown.enter.prevent="openFilePicker"
@@ -40,6 +42,7 @@ export default {
             const value = props.content?.NameValue ?? props.content?.nameValue ?? '';
             return String(value).trim();
         });
+        const isReadOnly = computed(() => props.content?.readOnly === true);
         const initialValue = computed(() => {
             const value = props.content?.initialValue ?? props.content?.InitialValue;
             return typeof value === 'string' ? value.trim() : '';
@@ -58,6 +61,7 @@ export default {
         }));
 
         const openFilePicker = () => {
+            if (isReadOnly.value) return;
             fileInput.value?.click();
         };
 
@@ -92,6 +96,7 @@ export default {
         return {
             fileInput,
             nameValue,
+            isReadOnly,
             initialValue,
             displayImage,
             hasDisplayImage,
@@ -127,6 +132,10 @@ export default {
     overflow: hidden;
     cursor: pointer;
     transition: 0.45s;
+}
+
+.ww-avatar--readonly {
+    cursor: default;
 }
 
 .ww-avatar__image {

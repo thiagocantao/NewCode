@@ -3,7 +3,7 @@ export default {
         label: 'Avatar',
         icon: 'user',
         bubble: { icon: 'user' },
-        customSettingsPropertiesOrder: ['NameValue', 'initialValue'],
+        customSettingsPropertiesOrder: ['NameValue', 'initialValue', 'readOnly'],
         customStylePropertiesOrder: [
             {
                 label: 'Avatar',
@@ -58,6 +58,13 @@ export default {
                 tooltip: 'When filled, must be an image URL shown inside the avatar.',
             },
             /* wwEditor:end */
+        },
+        readOnly: {
+            label: { en: 'Read only' },
+            type: 'OnOff',
+            section: 'settings',
+            defaultValue: false,
+            bindable: true,
         },
         initialLetterColor: {
             label: { en: 'Initial letter color' },
