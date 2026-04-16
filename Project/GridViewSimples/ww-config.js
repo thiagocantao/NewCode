@@ -146,11 +146,11 @@ export default {
     },
     {
       action: "markRow",
-      label: { en: "Mark Row", pt: "Marcar linha" },
+      label: { en: "Mark Row Background", pt: "Marcar fundo da linha" },
       args: [
         {
           name: "rowId",
-          type: "text",
+          type: "string",
           label: { en: "Row id", pt: "ID da linha" },
         },
       ],
