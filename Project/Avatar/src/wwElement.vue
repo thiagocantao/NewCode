@@ -37,6 +37,13 @@ export default {
     setup(props, { emit }) {
         const fileInput = ref(null);
         const selectedImageUrl = ref('');
+        const { setValue: setSelectedFile } = wwLib.wwVariable.useComponentVariable({
+            uid: props.uid,
+            name: 'value',
+            defaultValue: null,
+            type: 'file',
+            componentType: 'element',
+        });
 
         const nameValue = computed(() => {
             const value = props.content?.NameValue ?? props.content?.nameValue ?? '';
@@ -76,6 +83,8 @@ export default {
             if (file && file.type?.startsWith('image/')) {
                 selectedImageUrl.value = URL.createObjectURL(file);
             }
+
+            setSelectedFile(file || null);
 
             emit('trigger-event', {
                 name: 'change',
