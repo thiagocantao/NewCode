@@ -3,6 +3,7 @@
     <ag-grid-vue :key="gridKey" :rowData="rowData" :columnDefs="columnDefs" :defaultColDef="defaultColDef"
       :domLayout="content.layout === 'auto' ? 'autoHeight' : 'normal'" :style="style" :rowSelection="rowSelection"
       :selection-column-def="{ pinned: true }" :theme="theme" :getRowId="getRowId" :pagination="content.pagination"
+      :getRowStyle="getRowStyle"
       :paginationPageSize="content.paginationPageSize || 10" :paginationPageSizeSelector="false"
       :suppressColumnMoveAnimation="true"
       :suppressMovableColumns="!content.movableColumns" :columnHoverHighlight="content.columnHoverHighlight"
@@ -348,6 +349,7 @@ export default {
   data() {
     return {
       pendingEnterEdit: null,
+      markedRowId: null,
     };
   },
   computed: {
@@ -774,6 +776,31 @@ export default {
       if (this.gridApi) {
         this.gridApi.deselectAll();
       }
+    },
+    markRow(rowId) {
+      if (rowId === undefined || rowId === null || rowId === "") {
+        this.markedRowId = null;
+      } else {
+        this.markedRowId = String(rowId);
+      }
+
+      if (this.gridApi?.redrawRows) {
+        this.gridApi.redrawRows();
+      }
+    },
+    getRowStyle(params) {
+      if (!this.content.selectedActionRowColor || this.markedRowId === null) {
+        return null;
+      }
+
+      const rowId = this.getRowId({ data: params?.data });
+      if (String(rowId) !== this.markedRowId) {
+        return null;
+      }
+
+      return {
+        backgroundColor: this.content.selectedActionRowColor,
+      };
     },
     /* wwEditor:start */
     generateColumns() {
