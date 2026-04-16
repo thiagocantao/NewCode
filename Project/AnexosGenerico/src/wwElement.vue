@@ -14,7 +14,13 @@
         aria-label="File upload area"
     >
         <!-- Main upload area -->
-        <div ref="dropzoneEl" class="ww-file-upload__dropzone" @click="openFileExplorer" @mousemove="handleMouseMove">
+        <div
+            v-if="!isReadonly"
+            ref="dropzoneEl"
+            class="ww-file-upload__dropzone"
+            @click="openFileExplorer"
+            @mousemove="handleMouseMove"
+        >
             <div
                 v-if="isDragging && !isDisabled && !isReadonly && enableCircleAnimation"
                 ref="circleEl"
@@ -70,6 +76,7 @@
 
         <!-- Hidden file input -->
         <input
+            v-if="!isReadonly"
             ref="fileInput"
             type="file"
             class="ww-file-upload__input"
