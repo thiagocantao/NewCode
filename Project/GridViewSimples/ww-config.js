@@ -51,6 +51,7 @@ export default {
         "actionFontWeight",
         "actionFontStyle",
         "actionLineHeight",
+        "selectedActionRowColor",
       ],
     ],
     customSettingsPropertiesOrder: [
@@ -142,6 +143,17 @@ export default {
       action: "remountGrid",
       label: { en: "Remount Grid" },
       args: [],
+    },
+    {
+      action: "markRow",
+      label: { en: "Mark Row Background", pt: "Marcar fundo da linha" },
+      args: [
+        {
+          name: "rowId",
+          type: "string",
+          label: { en: "Row id", pt: "ID da linha" },
+        },
+      ],
     },
   ],
   properties: {
@@ -816,6 +828,17 @@ export default {
         type: "string",
         cssSupports: "line-height",
       },
+    },
+    selectedActionRowColor: {
+      type: "Color",
+      label: "Selected Row Color",
+      options: {
+        nullable: true,
+      },
+      responsive: true,
+      bindable: true,
+      states: true,
+      classes: true,
     },
     rowData: {
       label: { en: "Data" },
