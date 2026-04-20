@@ -50,6 +50,24 @@
         @blur="onBlur"
         @keyup.enter="onEnter"
     />
+    <div
+        v-else-if="content.type == 'search'"
+        class="search-input-wrapper"
+        :class="`icon-${searchIconPosition}`"
+        @click="focusInput"
+    >
+        <span v-if="searchIcon" class="search-icon">{{ searchIcon }}</span>
+        <input
+            ref="inputRef"
+            v-bind="inputBindings"
+            class="ww-input-basic search-input"
+            :class="[inputClasses]"
+            @input="handleManualInput"
+            @blur="onBlur"
+            @focus="isReallyFocused = true"
+            @keyup.enter="onEnter"
+        />
+    </div>
     <input
         v-else
         ref="inputRef"
@@ -502,7 +520,7 @@ export default {
             name: props.wwElementState.name,
             readonly: isReadonly.value || isEditing.value,
             required: props.content.required,
-            autocomplete: props.content.autocomplete ? 'on' : 'off',
+            autocomplete: 'off',
             placeholder: wwLib.wwLang.getText(props.content.placeholder),
             style: style.value,
             min: min.value,
@@ -517,10 +535,16 @@ export default {
             name: props.wwElementState.name,
             readonly: isReadonly.value || isEditing.value,
             required: props.content.required,
+            autocomplete: 'off',
             placeholder: wwLib.wwLang.getText(props.content.placeholder),
             rows: props.content.rows,
             style: [style.value, { resize: props.content.resize ? '' : 'none' }],
         }));
+
+        const searchIcon = computed(() => props.content.searchIcon || '🔍');
+        const searchIconPosition = computed(() =>
+            props.content.searchIconPosition === 'right' ? 'right' : 'left'
+        );
 
         const inputClasses = computed(() => ({
             hideArrows: props.content.hideArrows && inputType.value === 'number',
@@ -643,6 +667,8 @@ export default {
             inputClasses,
             onEnter,
             handleColorInputClick,
+            searchIcon,
+            searchIconPosition,
             // Currency-related
             handleCurrencyInput,
             handleCurrencyKeydown,
@@ -730,6 +756,21 @@ export default {
 
     &.currency-type {
         background-color: transparent;
+        width: 100%;
+    }
+}
+
+.search-input-wrapper {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 0.5em;
+
+    &.icon-right {
+        flex-direction: row-reverse;
+    }
+
+    .search-input {
         width: 100%;
     }
 }
