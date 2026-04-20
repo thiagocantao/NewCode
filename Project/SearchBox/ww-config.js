@@ -14,7 +14,7 @@ export default {
             'placeholder',
             'readonly',
             'required',
-            'autocomplete',
+            ['searchIcon', 'searchIconPosition'],
             'debounce',
             'debounceDelay',
         ],
@@ -250,6 +250,33 @@ export default {
             },
             /* wwEditor:end */
         },
+        searchIcon: {
+            label: { en: 'Search icon' },
+            type: 'Text',
+            section: 'settings',
+            defaultValue: '🔍',
+            bindable: true,
+            hidden: content => content.type !== 'search',
+            /* wwEditor:start */
+            bindingValidation: {
+                type: 'string',
+                tooltip: 'A string displayed as the search icon, for example: `"🔍"`',
+            },
+            /* wwEditor:end */
+        },
+        searchIconPosition: {
+            label: { en: 'Icon position' },
+            type: 'TextSelect',
+            section: 'settings',
+            options: {
+                options: [
+                    { value: 'left', label: { en: 'Left' } },
+                    { value: 'right', label: { en: 'Right' } },
+                ],
+            },
+            defaultValue: 'left',
+            hidden: content => content.type !== 'search',
+        },
         rows: {
             label: { en: 'Rows', fr: 'Rows' },
             type: 'Number',
@@ -364,6 +391,7 @@ export default {
             section: 'settings',
             defaultValue: false,
             bindable: true,
+            hidden: () => true,
             /* wwEditor:start */
             bindingValidation: {
                 type: 'boolean',
