@@ -741,6 +741,7 @@ export default {
     border: none;
     position: relative;
     isolation: isolate;
+    background-color: transparent;
 
     &::placeholder {
         color: var(--placeholder-color, #000000ad);
