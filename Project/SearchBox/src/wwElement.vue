@@ -810,9 +810,20 @@ export default {
         display: flex;
         align-items: center;
         justify-content: center;
+        color: var(--placeholder-color, #000000ad);
         line-height: 0;
         pointer-events: none;
         z-index: 1;
+
+        :deep(svg) {
+            display: block;
+            width: 1.1em;
+            height: 1.1em;
+        }
+
+        :deep(path) {
+            fill: currentColor;
+        }
     }
 
     .material-symbols-outlined {
