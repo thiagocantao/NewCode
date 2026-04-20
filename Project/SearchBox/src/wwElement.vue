@@ -56,12 +56,16 @@
         :class="`icon-${searchIconPosition}`"
         @click="focusInput"
     >
-        <span v-if="searchIcon" class="search-icon">{{ searchIcon }}</span>
+        <div v-if="searchIcon" class="search-icon">
+            <div v-if="searchIconHtml" v-html="searchIconHtml"></div>
+            <span v-else class="material-symbols-outlined">{{ searchIcon }}</span>
+        </div>
         <input
             ref="inputRef"
             v-bind="inputBindings"
             class="ww-input-basic search-input"
             :class="[inputClasses]"
+            :style="searchInputStyle"
             @input="handleManualInput"
             @blur="onBlur"
             @focus="isReallyFocused = true"
@@ -110,6 +114,7 @@ export default {
         'update:sidepanel-content',
     ],
     setup(props, { emit }) {
+        const { getIcon } = wwLib.useIcons();
         const isEditing = computed(() => {
             /* wwEditor:start */
             return props.wwEditorState.editMode === wwLib.wwEditorHelper.EDIT_MODES.EDITION;
@@ -541,10 +546,30 @@ export default {
             style: [style.value, { resize: props.content.resize ? '' : 'none' }],
         }));
 
-        const searchIcon = computed(() => props.content.searchIcon || '🔍');
+        const searchIcon = computed(() => props.content.searchIcon || 'search');
+        const searchIconHtml = ref('');
         const searchIconPosition = computed(() =>
             props.content.searchIconPosition === 'right' ? 'right' : 'left'
         );
+        watch(
+            searchIcon,
+            async newIcon => {
+                if (!newIcon) {
+                    searchIconHtml.value = '';
+                    return;
+                }
+                try {
+                    searchIconHtml.value = (await getIcon(newIcon)) || '';
+                } catch (error) {
+                    searchIconHtml.value = '';
+                }
+            },
+            { immediate: true }
+        );
+        const searchInputStyle = computed(() => {
+            if (!searchIcon.value) return {};
+            return searchIconPosition.value === 'right' ? { paddingRight: '2.2em' } : { paddingLeft: '2.2em' };
+        });
 
         const inputClasses = computed(() => ({
             hideArrows: props.content.hideArrows && inputType.value === 'number',
@@ -668,7 +693,9 @@ export default {
             onEnter,
             handleColorInputClick,
             searchIcon,
+            searchIconHtml,
             searchIconPosition,
+            searchInputStyle,
             // Currency-related
             handleCurrencyInput,
             handleCurrencyKeydown,
@@ -761,17 +788,35 @@ export default {
 }
 
 .search-input-wrapper {
-    display: flex;
-    align-items: center;
+    position: relative;
     width: 100%;
-    gap: 0.5em;
 
     &.icon-right {
-        flex-direction: row-reverse;
+        .search-icon {
+            right: 0.7em;
+            left: auto;
+        }
     }
 
     .search-input {
         width: 100%;
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 0.7em;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 0;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .material-symbols-outlined {
+        font-size: 1.1em;
     }
 }
 </style>

@@ -252,15 +252,15 @@ export default {
         },
         searchIcon: {
             label: { en: 'Search icon' },
-            type: 'Text',
+            type: 'SystemIcon',
             section: 'settings',
-            defaultValue: '🔍',
+            defaultValue: 'search',
             bindable: true,
             hidden: content => content.type !== 'search',
             /* wwEditor:start */
             bindingValidation: {
                 type: 'string',
-                tooltip: 'A string displayed as the search icon, for example: `"🔍"`',
+                tooltip: 'A string that defines the search icon code',
             },
             /* wwEditor:end */
         },
