@@ -56,7 +56,7 @@
         :class="`icon-${searchIconPosition}`"
         @click="focusInput"
     >
-        <span v-if="searchIcon" class="search-icon">{{ searchIcon }}</span>
+        <div v-if="searchIcon" class="search-icon" v-html="searchIconHtml"></div>
         <input
             ref="inputRef"
             v-bind="inputBindings"
@@ -110,6 +110,7 @@ export default {
         'update:sidepanel-content',
     ],
     setup(props, { emit }) {
+        const { getIcon } = wwLib.useIcons();
         const isEditing = computed(() => {
             /* wwEditor:start */
             return props.wwEditorState.editMode === wwLib.wwEditorHelper.EDIT_MODES.EDITION;
@@ -541,9 +542,25 @@ export default {
             style: [style.value, { resize: props.content.resize ? '' : 'none' }],
         }));
 
-        const searchIcon = computed(() => props.content.searchIcon || '🔍');
+        const searchIcon = computed(() => props.content.searchIcon || 'search');
+        const searchIconHtml = ref('');
         const searchIconPosition = computed(() =>
             props.content.searchIconPosition === 'right' ? 'right' : 'left'
+        );
+        watch(
+            searchIcon,
+            async newIcon => {
+                if (!newIcon) {
+                    searchIconHtml.value = '';
+                    return;
+                }
+                try {
+                    searchIconHtml.value = (await getIcon(newIcon)) || '';
+                } catch (error) {
+                    searchIconHtml.value = '';
+                }
+            },
+            { immediate: true }
         );
 
         const inputClasses = computed(() => ({
@@ -668,6 +685,7 @@ export default {
             onEnter,
             handleColorInputClick,
             searchIcon,
+            searchIconHtml,
             searchIconPosition,
             // Currency-related
             handleCurrencyInput,
@@ -772,6 +790,13 @@ export default {
 
     .search-input {
         width: 100%;
+    }
+
+    .search-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 0;
     }
 }
 </style>
