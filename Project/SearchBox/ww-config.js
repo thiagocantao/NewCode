@@ -14,7 +14,7 @@ export default {
             'placeholder',
             'readonly',
             'required',
-            ['searchIcon', 'searchIconPosition'],
+            ['searchIcon', 'searchIconPosition', 'searchIconColor'],
             'debounce',
             'debounceDelay',
         ],
@@ -276,6 +276,23 @@ export default {
             },
             defaultValue: 'left',
             hidden: content => content.type !== 'search',
+        },
+        searchIconColor: {
+            label: { en: 'Icon color' },
+            type: 'Color',
+            section: 'settings',
+            options: {
+                nullable: true,
+            },
+            bindable: true,
+            hidden: content => content.type !== 'search',
+            /* wwEditor:start */
+            bindingValidation: {
+                cssSupports: 'color',
+                type: 'string',
+                tooltip: 'A string that represents a color code: `"rebeccapurple" | "#00ff00" | "rgb(214, 122, 127)"`',
+            },
+            /* wwEditor:end */
         },
         rows: {
             label: { en: 'Rows', fr: 'Rows' },
