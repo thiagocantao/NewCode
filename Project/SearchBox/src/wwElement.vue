@@ -56,7 +56,7 @@
         :class="`icon-${searchIconPosition}`"
         @click="focusInput"
     >
-        <div v-if="searchIcon" class="search-icon">
+        <div v-if="searchIcon" class="search-icon" :style="searchIconStyle">
             <div v-if="searchIconHtml" v-html="searchIconHtml"></div>
             <span v-else class="material-symbols-outlined">{{ searchIcon }}</span>
         </div>
@@ -570,6 +570,7 @@ export default {
             if (!searchIcon.value) return {};
             return searchIconPosition.value === 'right' ? { paddingRight: '2.2em' } : { paddingLeft: '2.2em' };
         });
+        const searchIconStyle = computed(() => ({ color: props.content.searchIconColor || undefined }));
 
         const inputClasses = computed(() => ({
             hideArrows: props.content.hideArrows && inputType.value === 'number',
@@ -695,6 +696,7 @@ export default {
             searchIcon,
             searchIconHtml,
             searchIconPosition,
+            searchIconStyle,
             searchInputStyle,
             // Currency-related
             handleCurrencyInput,
