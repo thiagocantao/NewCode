@@ -56,12 +56,16 @@
         :class="`icon-${searchIconPosition}`"
         @click="focusInput"
     >
-        <div v-if="searchIcon" class="search-icon" v-html="searchIconHtml"></div>
+        <div v-if="searchIcon" class="search-icon">
+            <div v-if="searchIconHtml" v-html="searchIconHtml"></div>
+            <span v-else class="material-symbols-outlined">{{ searchIcon }}</span>
+        </div>
         <input
             ref="inputRef"
             v-bind="inputBindings"
             class="ww-input-basic search-input"
             :class="[inputClasses]"
+            :style="searchInputStyle"
             @input="handleManualInput"
             @blur="onBlur"
             @focus="isReallyFocused = true"
@@ -562,6 +566,10 @@ export default {
             },
             { immediate: true }
         );
+        const searchInputStyle = computed(() => {
+            if (!searchIcon.value) return {};
+            return searchIconPosition.value === 'right' ? { paddingRight: '2.2em' } : { paddingLeft: '2.2em' };
+        });
 
         const inputClasses = computed(() => ({
             hideArrows: props.content.hideArrows && inputType.value === 'number',
@@ -687,6 +695,7 @@ export default {
             searchIcon,
             searchIconHtml,
             searchIconPosition,
+            searchInputStyle,
             // Currency-related
             handleCurrencyInput,
             handleCurrencyKeydown,
@@ -779,13 +788,14 @@ export default {
 }
 
 .search-input-wrapper {
-    display: flex;
-    align-items: center;
+    position: relative;
     width: 100%;
-    gap: 0.5em;
 
     &.icon-right {
-        flex-direction: row-reverse;
+        .search-icon {
+            right: 0.7em;
+            left: auto;
+        }
     }
 
     .search-input {
@@ -793,10 +803,20 @@ export default {
     }
 
     .search-icon {
-        display: inline-flex;
+        position: absolute;
+        left: 0.7em;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
         align-items: center;
         justify-content: center;
         line-height: 0;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .material-symbols-outlined {
+        font-size: 1.1em;
     }
 }
 </style>
