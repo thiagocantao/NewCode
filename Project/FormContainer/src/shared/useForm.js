@@ -106,37 +106,43 @@ export function useForm(
     }
     const { resolveFormula } = wwLib.wwFormula.useFormula();
 
-    const computeValidation = (value, required, customValidation, validation, requiredValidation) => {
+    const computeValidationState = (value, required, customValidation, validation, requiredValidation) => {
         const validationResult = customValidation && validation ? resolveFormula(validation)?.value : true;
 
         // Use custom required validation if provided, otherwise use default isEmpty check
         const hasValue = requiredValidation ? requiredValidation(value) : !isValueEmpty(value);
 
-        let finalResult;
+        let isValid;
+        let validationMessage = '';
 
         // If not required, field is valid unless there's custom validation
         if (!required) {
-            finalResult = validationResult;
+            isValid = validationResult;
         }
         // If required and has custom validation, both must be true
         else if (customValidation && validation) {
-            finalResult = hasValue && validationResult;
+            isValid = hasValue && validationResult;
         }
         // If just required, check for value using custom or default validation
         else {
-            finalResult = hasValue;
+            isValid = hasValue;
         }
 
-        return finalResult;
+        if (!isValid && required && !hasValue) {
+            validationMessage = form?.requiredFieldMessage?.value || 'Required field';
+        }
+
+        return { isValid, validationMessage };
     };
 
-    function updateInputValidity(isValid) {
+    function updateInputValidity(isValid, validationMessage = '') {
         updateFormInput(id, input => {
             if (!input[_fieldName.value]) {
                 console.warn('Field name not available, is the AI generating ?');
                 return;
             }
             input[_fieldName.value].isValid = isValid;
+            input[_fieldName.value].validationMessage = validationMessage;
             input[_fieldName.value].pending = false;
         });
     }
@@ -152,7 +158,7 @@ export function useForm(
     let isFirst = true;
     let hasSetInitialIsValid = false;
     const computedValidation = computed(() => {
-        const isValid = computeValidation(
+        const { isValid, validationMessage } = computeValidationState(
             value.value,
             required.value,
             customValidation.value,
@@ -161,11 +167,11 @@ export function useForm(
         );
         if (isFirst) {
             isFirst = false;
-            return null;
+            return { isValid: null, validationMessage: '' };
         }
-        return isValid;
+        return { isValid, validationMessage };
     });
-    watch(computedValidation, (isValid, oldIsValid) => {
+    watch(computedValidation, (currentValidation, oldValidation) => {
         if (form.validationType.value === 'change') {
             updateFormInput(id, input => {
                 if (!input[_fieldName.value]) {
@@ -174,7 +180,7 @@ export function useForm(
                 }
                 input[_fieldName.value].pending = true;
             });
-            debouncedUpdateInputValidity(isValid);
+            debouncedUpdateInputValidity(currentValidation.isValid, currentValidation.validationMessage);
 
             // Capture the initial isValid state after the first validation completes
             // This ensures reset returns to the correct initial state
@@ -182,7 +188,12 @@ export function useForm(
             // only when the value hasn't changed from initial (this is the initial mount validation)
             const currentValue = value.value;
             const isStillInitialValue = isEqual(currentValue, initialValueRef);
-            if (!hasSetInitialIsValid && oldIsValid === null && (required.value || customValidation.value) && isStillInitialValue) {
+            if (
+                !hasSetInitialIsValid &&
+                oldValidation?.isValid === null &&
+                (required.value || customValidation.value) &&
+                isStillInitialValue
+            ) {
                 hasSetInitialIsValid = true;
                 setTimeout(() => {
                     updateFormInput(id, input => {
@@ -198,16 +209,16 @@ export function useForm(
         () => form.validationType.value,
         (validationType, oldValidationType) => {
             if (validationType === 'change') {
-                const computedResult = computeValidation(
+                const computedResult = computeValidationState(
                     value.value,
                     required?.value,
                     customValidation?.value,
                     validation?.value,
                     requiredValidation
                 );
-                updateInputValidity(computedResult);
+                updateInputValidity(computedResult.isValid, computedResult.validationMessage);
             } else if (validationType === 'submit') {
-                updateInputValidity(null);
+                updateInputValidity(null, '');
             }
         }
     );
@@ -216,19 +227,19 @@ export function useForm(
     });
     function forceValidateField() {
         debouncedUpdateInputValidity.cancel();
-        const isValid = computeValidation(
+        const validationState = computeValidationState(
             value.value,
             required?.value,
             customValidation?.value,
             validation?.value,
             requiredValidation
         );
-        updateInputValidity(isValid);
+        updateInputValidity(validationState.isValid, validationState.validationMessage);
 
         // Don't capture initialIsValid for submit mode - it should always stay null
         // Only capture for onChange mode (which happens in the watch of computedValidation)
 
-        return isValid;
+        return validationState.isValid;
     }
 
     watch(

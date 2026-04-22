@@ -123,6 +123,19 @@ export default {
                     'The delay before triggering the form validation in milliseconds. Must be between `1` and `5000`',
             },
         },
+        requiredFieldMessage: {
+            section: 'settings',
+            label: {
+                en: 'Required field message',
+            },
+            type: 'Text',
+            bindable: true,
+            defaultValue: 'Required field',
+            bindingValidation: {
+                type: 'string',
+                tooltip: 'Message used when a required field is empty during form validation.',
+            },
+        },
         formContent: {
             hidden: true,
             defaultValue: [],
