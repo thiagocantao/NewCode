@@ -938,6 +938,13 @@ export default {
       font-size: 12px !important;
     }
 
+
+    :deep(.ag-selection-checkbox .ag-checkbox-input-wrapper.ag-disabled),
+    :deep(.ag-selection-checkbox .ag-checkbox-input-wrapper.ag-disabled *),
+    :deep(.ag-selection-checkbox input[type="checkbox"]:disabled) {
+      cursor: not-allowed !important;
+    }
+
     :deep(.ag-header-cell .ag-header-cell-menu-button),
     :deep(.ag-header-cell .ag-header-cell-menu-button-wrapper),
     :deep(.ag-header-cell .ag-header-icon) {
