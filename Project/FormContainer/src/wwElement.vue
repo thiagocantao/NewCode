@@ -57,6 +57,7 @@ export default {
         const componentId = ref(null);
         const formName = computed(() => props.wwElementState.name);
         const validationType = computed(() => props.content.validation);
+        const requiredFieldMessage = computed(() => props.content.requiredFieldMessage || 'Required field');
         const debounceDelay = computed(() => {
             if (!props.content.debounceDelay) return 0;
             const parsedDelay = wwLib.wwUtils.getLengthUnit(props.content.debounceDelay)[0] || 0;
@@ -189,6 +190,7 @@ export default {
             name: formName,
             validationType,
             debounceDelay,
+            requiredFieldMessage,
         });
         provide('_wwForm:submit', handleSubmit);
         provide('_wwForm:useForm', useForm);
