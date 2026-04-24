@@ -1828,11 +1828,19 @@ function applyExternalSortAndSync() {
 
     responsibleUserCache = null;
     const nextOptions = { ...(columnOptions.value || {}) };
-    let refreshedKeys = 0;
+    const refreshTasks = [];
 
     for (const col of columns) {
       const fieldKey = col.id || col.field;
       if (!fieldKey) continue;
+
+      const hasDynamicSource = !!(col.dataSource?.functionName || col.dataSource?.dataSource?.functionName);
+      const tag = (col.TagControl || col.tagControl || col.tagcontrol || '').toUpperCase();
+      const identifier = (col.FieldDB || '').toUpperCase();
+      const isResponsibleUser = tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
+      if (!hasDynamicSource && !isResponsibleUser) {
+        continue;
+      }
 
       nextOptions[fieldKey] = {};
 
@@ -1853,14 +1861,31 @@ function applyExternalSortAndSync() {
 
       for (const ticketKey of ticketKeys) {
         const cacheKey = getOptionsCacheKey(col, shouldUseTicket ? ticketKey : undefined);
-        const opts = await getColumnOptions(
-          col,
-          shouldUseTicket ? ticketKey : undefined,
-          { force: true }
+        refreshTasks.push(
+          getColumnOptions(
+            col,
+            shouldUseTicket ? ticketKey : undefined,
+            { force: true }
+          )
+            .then(opts => {
+              if (!nextOptions[fieldKey]) {
+                nextOptions[fieldKey] = {};
+              }
+              nextOptions[fieldKey][cacheKey] = Array.isArray(opts) ? opts : [];
+            })
+            .catch(error => {
+              noopConsole('[GridViewDinamica] Failed to refresh dropdown options for column', fieldKey, error);
+              if (!nextOptions[fieldKey]) {
+                nextOptions[fieldKey] = {};
+              }
+              nextOptions[fieldKey][cacheKey] = [];
+            })
         );
-        nextOptions[fieldKey][cacheKey] = Array.isArray(opts) ? opts : [];
-        refreshedKeys += 1;
       }
+    }
+
+    if (refreshTasks.length) {
+      await Promise.all(refreshTasks);
     }
 
     columnOptions.value = nextOptions;
@@ -1905,7 +1930,7 @@ function applyExternalSortAndSync() {
       }
     }
 
-    return { refreshedColumns: columns.length, refreshedKeys };
+    return { refreshedColumns: columns.length, refreshedKeys: refreshTasks.length };
   };
 
   // Reaplica a ordem das colunas baseada na propriedade PositionInGrid
