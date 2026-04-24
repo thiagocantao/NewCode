@@ -1703,7 +1703,7 @@ function applyExternalSortAndSync() {
 
   const loadResponsibleUserOptions = async () => {
         try {
-          const data = wwLib.wwCollection.getCollection("0e41f029-e1c3-4302-82ca-16aceccdadb1").data;
+          const data = wwLib.wwCollection.getCollection("0e41f029-e1c3-4302-82ca-16aceccdadb1").data.filter(item => item.istecnical === true);
           return asArray(
             Array.isArray(data)
               ? data
