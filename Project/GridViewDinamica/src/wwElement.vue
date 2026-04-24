@@ -1702,22 +1702,48 @@ function applyExternalSortAndSync() {
   };
 
   const loadResponsibleUserOptions = async () => {
+    const normalizeOptions = source => {
+      const items = asArray(source);
+      return items.filter(item => item?.istecnical === true);
+    };
+
+    try {
+      const fallbackCollectionId = '0e41f029-e1c3-4302-82ca-16aceccdadb1';
+      const datasourceBinding = props.content?.userDatasource;
+
+      const candidates = [
+        datasourceBinding,
+        datasourceBinding?.id,
+        datasourceBinding?.collection,
+        datasourceBinding?._id,
+        fallbackCollectionId,
+      ].filter(Boolean);
+
+      for (const candidate of candidates) {
         try {
-          const data = wwLib.wwCollection.getCollection("0e41f029-e1c3-4302-82ca-16aceccdadb1").data.filter(item => item.istecnical === true);
-          return asArray(
-            Array.isArray(data)
-              ? data
-              : data?.data || data?.result || data?.results
-          );
-        } catch (e) {
-          // Fallback: props.content.userDatasource
-          const ds = props.content?.userDatasource;
-          if (Array.isArray(ds)) return ds;
-          if (ds && typeof ds === 'object') return asArray(ds.data || ds.result || ds.results);
-          
-          return [];
+          const liveData = wwLib.wwUtils.getDataFromCollection(candidate);
+          const normalizedLiveData = normalizeOptions(liveData);
+          if (normalizedLiveData.length) return normalizedLiveData;
+
+          const collectionRef =
+            typeof candidate === 'string' ? wwLib.wwCollection.getCollection(candidate) : candidate;
+          const normalizedRefData = normalizeOptions(collectionRef?.data);
+          if (normalizedRefData.length) return normalizedRefData;
+        } catch (collectionError) {
+          noopConsole('[GridViewDinamica] Failed to resolve responsible users from collection candidate', candidate, collectionError);
         }
-      };
+      }
+    } catch (e) {
+      noopConsole('[GridViewDinamica] Failed to load responsible users from collection', e);
+    }
+
+    // Fallback: inline datasource object/array
+    const ds = props.content?.userDatasource;
+    if (Array.isArray(ds)) return normalizeOptions(ds);
+    if (ds && typeof ds === 'object') return normalizeOptions(ds.data || ds.result || ds.results);
+
+    return [];
+  };
 
   let responsibleUserCache = null;
 
