@@ -1858,6 +1858,10 @@ function applyExternalSortAndSync() {
     columnOptions.value = nextOptions;
 
     if (gridApi.value) {
+      const previousFilterModel =
+        typeof gridApi.value.getFilterModel === 'function'
+          ? gridApi.value.getFilterModel()
+          : null;
       const columnIds = columns
         .map(col => col.id || col.field)
         .filter(Boolean);
@@ -1878,6 +1882,14 @@ function applyExternalSortAndSync() {
             noopConsole('[GridViewDinamica] Failed to destroy filter for column', colId, error);
           }
         });
+      }
+
+      if (
+        previousFilterModel &&
+        typeof previousFilterModel === 'object' &&
+        typeof gridApi.value.setFilterModel === 'function'
+      ) {
+        gridApi.value.setFilterModel(previousFilterModel);
       }
 
       if (typeof gridApi.value.onFilterChanged === 'function') {
