@@ -183,6 +183,11 @@ export default {
     label: { en: 'Reset Column Positions' },
     args: []
   },
+  {
+    action: 'refreshDropdownOptions',
+    label: { en: 'Refresh Dropdown Options' },
+    args: []
+  },
     {
       action: 'setFilters',
       label: { en: 'Set Filters' },
