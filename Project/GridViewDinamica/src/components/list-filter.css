@@ -107,7 +107,7 @@
 }
 
 :is(.list-filter, .list-editor) .filter-list {
-  max-height: 305px;
+  max-height: 250px;
   overflow-y: auto;
   margin-bottom: 10px;
 }
