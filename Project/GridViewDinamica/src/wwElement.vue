@@ -1682,7 +1682,11 @@ function applyExternalSortAndSync() {
             let value = item[ds.transform?.value] ?? item.id;
             let label = item[ds.transform?.label] ?? item.name;
             if (value === undefined || label === undefined) return null;
-            return { value, label };
+            return {
+              ...(item && typeof item === 'object' ? item : {}),
+              value,
+              label,
+            };
           })
           .filter(v => v);
       }
@@ -1692,7 +1696,11 @@ function applyExternalSortAndSync() {
           const value = item[ds.valueField || 'id'];
           const label = item[ds.labelField || 'name'];
           if (value === undefined || label === undefined) return null;
-          return { value, label };
+          return {
+            ...(item && typeof item === 'object' ? item : {}),
+            value,
+            label,
+          };
         })
         .filter(v => v);
     } catch (e) {
