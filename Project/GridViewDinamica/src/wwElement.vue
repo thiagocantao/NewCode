@@ -1781,6 +1781,87 @@ function applyExternalSortAndSync() {
     columnOptions.value = result;
   };
 
+  const refreshAllDropdownOptions = async () => {
+    if (!props.content || !Array.isArray(props.content.columns)) {
+      return { refreshedColumns: 0, refreshedKeys: 0 };
+    }
+
+    const rows = wwLib.wwUtils.getDataFromCollection(props.content.rowData) || [];
+    const columns = props.content.columns.filter(col => isListLikeColumn(col));
+    if (!columns.length) {
+      return { refreshedColumns: 0, refreshedKeys: 0 };
+    }
+
+    responsibleUserCache = null;
+    const nextOptions = { ...(columnOptions.value || {}) };
+    let refreshedKeys = 0;
+
+    for (const col of columns) {
+      const fieldKey = col.id || col.field;
+      if (!fieldKey) continue;
+
+      nextOptions[fieldKey] = {};
+
+      const shouldUseTicket = usesTicketId(col);
+      const ticketKeys = shouldUseTicket
+        ? Array.from(
+            new Set(
+              rows
+                .map(row => row?.TicketID)
+                .filter(ticketId => ticketId != null && ticketId !== '')
+            )
+          )
+        : [undefined];
+
+      if (!ticketKeys.length) {
+        ticketKeys.push(undefined);
+      }
+
+      for (const ticketKey of ticketKeys) {
+        const cacheKey = getOptionsCacheKey(col, shouldUseTicket ? ticketKey : undefined);
+        const opts = await getColumnOptions(
+          col,
+          shouldUseTicket ? ticketKey : undefined,
+          { force: true }
+        );
+        nextOptions[fieldKey][cacheKey] = Array.isArray(opts) ? opts : [];
+        refreshedKeys += 1;
+      }
+    }
+
+    columnOptions.value = nextOptions;
+
+    if (gridApi.value) {
+      const columnIds = columns
+        .map(col => col.id || col.field)
+        .filter(Boolean);
+
+      if (columnIds.length && typeof gridApi.value.refreshCells === 'function') {
+        gridApi.value.refreshCells({ force: true, columns: columnIds });
+      }
+
+      if (typeof gridApi.value.refreshHeader === 'function') {
+        gridApi.value.refreshHeader();
+      }
+
+      if (typeof gridApi.value.destroyFilter === 'function') {
+        columnIds.forEach(colId => {
+          try {
+            gridApi.value.destroyFilter(colId);
+          } catch (error) {
+            noopConsole('[GridViewDinamica] Failed to destroy filter for column', colId, error);
+          }
+        });
+      }
+
+      if (typeof gridApi.value.onFilterChanged === 'function') {
+        gridApi.value.onFilterChanged();
+      }
+    }
+
+    return { refreshedColumns: columns.length, refreshedKeys };
+  };
+
   // Reaplica a ordem das colunas baseada na propriedade PositionInGrid
   const applyColumnOrderFromPosition = () => {
     const colApi = getColApi();
@@ -2469,6 +2550,7 @@ setTimeout(() => {
       refreshRowListOptions,
       shouldLazyLoadStatus,
       buildLazyStatusFallbackOptions,
+      refreshAllDropdownOptions,
       getRowMetadataHash,
       waitForRowHydration,
       getColumnOptions,
@@ -3427,6 +3509,11 @@ setTimeout(() => {
   resetFilters() {
     if (this.gridApi) {
       this.gridApi.setFilterModel(null);
+    }
+  },
+  async refreshDropdownOptions() {
+    if (typeof this.refreshAllDropdownOptions === "function") {
+      await this.refreshAllDropdownOptions();
     }
   },
   setSort(sortInput) {
