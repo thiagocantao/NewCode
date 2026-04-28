@@ -6,6 +6,7 @@ export default {
         customSettingsPropertiesOrder: [
             // UX properties
             'type',
+            'inputMode',
             'reorder',
             'drop',
             'maxFileSize',
@@ -224,6 +225,26 @@ export default {
                 type: 'string',
                 enum: ['single', 'multi'],
                 tooltip: 'A string that defines the upload type: `"single" | "multi"`',
+            },
+            /* wwEditor:end */
+        },
+        inputMode: {
+            label: { en: 'Input mode' },
+            type: 'TextSelect',
+            options: {
+                options: [
+                    { value: 'files', label: { en: 'Files' } },
+                    { value: 'directories', label: { en: 'Directories' } },
+                ],
+            },
+            section: 'settings',
+            defaultValue: 'files',
+            bindable: true,
+            /* wwEditor:start */
+            bindingValidation: {
+                type: 'string',
+                enum: ['files', 'directories'],
+                tooltip: 'A string that defines picker mode: `"files" | "directories"`',
             },
             /* wwEditor:end */
         },
