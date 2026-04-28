@@ -11,7 +11,7 @@
         @dragleave.prevent="handleDragLeave"
         @drop.prevent="handleDrop"
         role="region"
-        aria-label="File upload area"
+        aria-label="File and directory upload area"
     >
         <!-- Main upload area -->
         <div
@@ -81,12 +81,48 @@
             type="file"
             class="ww-file-upload__input"
             :multiple="type === 'multi'"
+            :webkitdirectory="directoryInputEnabled ? true : null"
+            :directory="directoryInputEnabled ? true : null"
             :accept="acceptedFileTypes"
             :required="required && !hasFiles"
             :disabled="isDisabled || isReadonly"
             :aria-label="labelMessage"
             @change="handleFileSelection"
         />
+
+        <div
+            v-if="isPreviewModalOpen"
+            class="ww-file-upload__preview-modal-backdrop"
+            role="dialog"
+            aria-modal="true"
+            :aria-label="`Preview ${previewModalTitle || ''}`"
+            @click.self="closePreviewModal"
+        >
+            <div class="ww-file-upload__preview-modal">
+                <div class="ww-file-upload__preview-modal-header">
+                    <div class="ww-file-upload__preview-modal-title">{{ previewModalTitle }}</div>
+                    <button type="button" class="ww-file-upload__preview-modal-close" @click="closePreviewModal">✕</button>
+                </div>
+                <div class="ww-file-upload__preview-modal-body">
+                    <img
+                        v-if="previewModalType === 'image'"
+                        :src="previewModalUrl"
+                        class="ww-file-upload__preview-image"
+                        alt="Image preview"
+                    />
+                    <iframe
+                        v-else-if="previewModalType === 'pdf' || previewModalType === 'office'"
+                        :src="previewModalUrl"
+                        class="ww-file-upload__preview-iframe"
+                        title="File preview"
+                    />
+                    <pre v-else-if="previewModalType === 'text'" class="ww-file-upload__preview-text">{{ previewModalText }}</pre>
+                    <div v-else class="ww-file-upload__preview-text">
+                        {{ previewModalText || previewUnavailableMessage }}
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -144,6 +180,7 @@ export default {
         const labelMessage = computed(() => props.content?.labelMessage || null);
 
         const type = computed(() => props.content?.type || 'single');
+        const inputMode = computed(() => props.content?.inputMode || 'files');
         const reorder = computed(() => props.content?.reorder || false);
         const drop = computed(() => props.content?.drop !== false);
         const maxFileSize = computed(() => props.content?.maxFileSize || 10);
@@ -396,6 +433,7 @@ export default {
                     return '';
             }
         });
+        const directoryInputEnabled = computed(() => inputMode.value === 'directories');
 
         watch(
             () => uploadIcon.value,
@@ -496,12 +534,12 @@ export default {
             const animationHandled = animationHandleDrop(event);
             if (!animationHandled || isDisabled.value || isReadonly.value || !drop.value) return;
 
-            const items = event.dataTransfer.files;
-            if (!items.length) return;
+            const droppedFiles = await extractDroppedFiles(event.dataTransfer);
+            if (!droppedFiles.length) return;
 
             // Wait for the circle animation to complete before processing files
             setTimeout(async () => {
-                await processFiles(items);
+                await processFiles(droppedFiles);
             }, 1050);
         };
 
@@ -511,6 +549,33 @@ export default {
 
             await processFiles(selectedFiles);
             event.target.value = '';
+        };
+
+        const walkFileTree = entry =>
+            new Promise(resolve => {
+                if (!entry) return resolve([]);
+                if (entry.isFile) {
+                    entry.file(file => {
+                        file.relativePath = entry.fullPath?.replace(/^\/+/, '') || file.webkitRelativePath || file.name;
+                        resolve([file]);
+                    });
+                    return;
+                }
+                if (!entry.isDirectory) return resolve([]);
+                const reader = entry.createReader();
+                reader.readEntries(async entries => {
+                    const chunks = await Promise.all(entries.map(child => walkFileTree(child)));
+                    resolve(chunks.flat());
+                });
+            });
+
+        const extractDroppedFiles = async dataTransfer => {
+            const entries = Array.from(dataTransfer?.items || [])
+                .map(item => (item?.webkitGetAsEntry ? item.webkitGetAsEntry() : null))
+                .filter(Boolean);
+            if (!entries.length) return Array.from(dataTransfer?.files || []);
+            const allFiles = await Promise.all(entries.map(entry => walkFileTree(entry)));
+            return allFiles.flat();
         };
 
         const processFiles = async fileList => {
@@ -600,6 +665,10 @@ export default {
                 if (validationResult.valid) {
                     file.id = `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
                     file.mimeType = file.type;
+                    file.relativePath = file.relativePath || file.webkitRelativePath || file.name;
+                    file.directory = (file.relativePath || '').includes('/')
+                        ? (file.relativePath || '').split('/').slice(0, -1).join('/')
+                        : '';
                     if (exposeBase64.value) file.base64 = await fileToBase64(file);
                     if (exposeBinary.value) file.binary = await fileToBinary(file);
                     processedFiles.push(file);
@@ -775,6 +844,23 @@ export default {
 
         const getPreviewHint = file => (canPreviewFile(file) ? '' : previewUnavailableMessage.value);
 
+        const isPreviewModalOpen = ref(false);
+        const previewModalUrl = ref('');
+        const previewModalTitle = ref('');
+        const previewModalType = ref('unsupported');
+        const previewModalText = ref('');
+
+        const closePreviewModal = () => {
+            if (previewModalUrl.value && previewModalUrl.value.startsWith('blob:')) {
+                URL.revokeObjectURL(previewModalUrl.value);
+            }
+            previewModalUrl.value = '';
+            previewModalText.value = '';
+            previewModalType.value = 'unsupported';
+            previewModalTitle.value = '';
+            isPreviewModalOpen.value = false;
+        };
+
         const previewFileByIndex = async index => {
             const file = fileList.value[index];
             if (!file) return;
@@ -782,9 +868,33 @@ export default {
             if (previewMode === 'unsupported') return;
             const url = await resolveFileUrl(file);
             if (!url) return;
-            const previewUrl =
-                previewMode === 'office' ? `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(url)}` : url;
-            window.open(previewUrl, '_blank', 'noopener,noreferrer');
+            previewModalTitle.value = file?.relativePath || file?.name || 'Preview';
+
+            if (previewMode === 'office') {
+                previewModalType.value = 'office';
+                previewModalUrl.value = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(url)}`;
+            } else if (file.isImage || (file.type || '').startsWith('image/')) {
+                previewModalType.value = 'image';
+                previewModalUrl.value = url;
+            } else if ((file.type || '').includes('pdf') || getFileExtension(file) === 'pdf') {
+                previewModalType.value = 'pdf';
+                previewModalUrl.value = url;
+            } else if (['txt', 'log', 'csv', 'json'].includes(getFileExtension(file))) {
+                previewModalType.value = 'text';
+                previewModalUrl.value = '';
+                try {
+                    const response = await fetch(url);
+                    previewModalText.value = await response.text();
+                } catch (error) {
+                    previewModalText.value = 'Não foi possível carregar o preview deste arquivo.';
+                }
+            } else {
+                previewModalType.value = 'unsupported';
+                previewModalUrl.value = '';
+                previewModalText.value = previewUnavailableMessage.value;
+            }
+
+            isPreviewModalOpen.value = true;
         };
 
         const downloadFileByIndex = async index => {
@@ -928,8 +1038,15 @@ export default {
             removeFile,
             downloadFileByIndex,
             previewFileByIndex,
+            isPreviewModalOpen,
+            previewModalUrl,
+            previewModalTitle,
+            previewModalType,
+            previewModalText,
+            closePreviewModal,
             canPreviewFile,
             getPreviewHint,
+            directoryInputEnabled,
             reorderFiles,
             getAllowedTypesLabel,
             iconHTML,
@@ -1137,6 +1254,64 @@ export default {
         will-change: transform, opacity;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         backface-visibility: hidden;
+    }
+
+    &__preview-modal-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        background: rgba(15, 23, 42, 0.55);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+    }
+
+    &__preview-modal {
+        width: min(980px, 100%);
+        max-height: min(85vh, 920px);
+        background: #fff;
+        border-radius: 12px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    &__preview-modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    &__preview-modal-title {
+        font-size: 14px;
+        font-weight: 600;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+    }
+    &__preview-modal-close {
+        border: none;
+        background: transparent;
+        font-size: 18px;
+        cursor: pointer;
+    }
+    &__preview-modal-body {
+        padding: 12px;
+        overflow: auto;
+        min-height: 240px;
+    }
+    &__preview-image,
+    &__preview-iframe {
+        width: 100%;
+        min-height: 60vh;
+        border: none;
+    }
+    &__preview-text {
+        margin: 0;
+        white-space: pre-wrap;
+        font-size: 13px;
+        color: #334155;
     }
 }
 </style>

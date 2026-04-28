@@ -29,6 +29,7 @@
             </button>
             <div class="ww-file-item__meta">
                 <div class="ww-file-item__name" :style="fileNameStyles">{{ file.name }}</div>
+                <div v-if="folderPath" class="ww-file-item__path">{{ folderPath }}</div>
                 <div class="ww-file-item__details" :style="fileDetailsStyles" v-if="showFileInfo">
                     <span>{{ formattedSize }}</span>
                     <span v-if="status && status.uploadProgress !== undefined">
@@ -155,6 +156,7 @@ export default {
             const i = Math.floor(Math.log(fileSizeInBytes) / Math.log(1024));
             return `${(fileSizeInBytes / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
         });
+        const folderPath = computed(() => props.file?.directory || props.file?.relativePath?.split('/').slice(0, -1).join('/') || '');
         const isImage = computed(() => {
             const type = (props.file?.type || props.file?.mimeType || props.file?.contentType || '').toLowerCase();
             if (type.startsWith('image/')) return true;
@@ -214,6 +216,7 @@ export default {
 
         return {
             formattedSize,
+            folderPath,
             filesCount,
             fileItemStyles,
             fileNameStyles,
@@ -332,6 +335,14 @@ export default {
     &__details {
         font-size: v-bind('content?.fileDetailsFontSize || "12px"');
         color: v-bind('content?.fileDetailsColor || "#888"');
+    }
+    &__path {
+        font-size: 11px;
+        color: #94a3b8;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        margin-bottom: 2px;
     }
 
     &__actions {
