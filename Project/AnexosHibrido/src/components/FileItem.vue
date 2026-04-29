@@ -25,7 +25,7 @@
                 :class="{ 'ww-file-item__preview--not-allowed': !canPreview }"
             >
                 <img v-if="isImage && previewUrl" :src="previewUrl" alt="" class="ww-file-item__thumb" />
-                <i v-else :class=['ww-file-item__file-icon', fileIcon]></i>
+                <i v-else :class="['ww-file-item__file-icon', fileIcon]"></i>
             </button>
             <div class="ww-file-item__meta">
                 <div class="ww-file-item__name" :style="fileNameStyles">{{ file.name }}</div>
