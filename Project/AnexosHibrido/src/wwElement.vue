@@ -13,66 +13,37 @@
         role="region"
         aria-label="File upload area"
     >
-        <!-- Main upload area -->
-        <div
-            v-if="!isReadonly"
-            ref="dropzoneEl"
-            class="ww-file-upload__dropzone"
-            @click="openFileExplorer"
-            @mousemove="handleMouseMove"
-        >
-            <div
-                v-if="isDragging && !isDisabled && !isReadonly && enableCircleAnimation"
-                ref="circleEl"
-                class="ww-file-upload__hover-circle"
-                :style="{
-                    left: `${mouseX}px`,
-                    top: `${mouseY}px`,
-                    backgroundColor: circleColor,
-                    opacity: circleOpacity,
-                    width: circleSize,
-                    height: circleSize,
-                }"
-            ></div>
+        <div class="ww-file-upload__grid">
+            <button
+                v-if="!isReadonly"
+                type="button"
+                ref="dropzoneEl"
+                class="ww-file-upload__add-tile"
+                :disabled="isDisabled"
+                :aria-label="labelMessage || 'Adicionar anexo'"
+                @click="openFileExplorer"
+                @mousemove="handleMouseMove"
+            >
+                <span class="ww-file-upload__add-icon">+</span>
+            </button>
 
-            <div class="ww-file-upload__content" :class="[`ww-file-upload__content--${uploadIconPosition}`]">
-                <div v-if="showUploadIcon" class="ww-file-upload__icon" v-html="iconHTML" />
-                <div class="ww-file-upload__text">
-                    <div class="ww-file-upload__label" :style="labelMessageStyle">{{ labelMessage }}</div>
-                    <div
-                        class="ww-file-upload__info ww-file-upload__extensions-message"
-                        v-if="extensionsMessage"
-                        :style="extensionsMessageStyle"
-                    >
-                        {{ extensionsMessage }}
-                    </div>
-                    <div
-                        class="ww-file-upload__info ww-file-upload__max-file-message"
-                        v-if="maxFileMessage"
-                        :style="maxFileMessageStyle"
-                    >
-                        {{ maxFileMessage }}
-                    </div>
-                </div>
-            </div>
+            <!-- File list -->
+            <FileList
+                v-if="hasFiles"
+                :files="fileList"
+                :status="status"
+                :type="type"
+                :can-reorder="reorder"
+                :is-readonly="isReadonly"
+                :is-disabled="isDisabled"
+                :can-preview="canPreviewFile"
+                :get-preview-hint="getPreviewHint"
+                @remove="removeFile"
+                @download="downloadFileByIndex"
+                @preview="previewFileByIndex"
+                @reorder="reorderFiles"
+            />
         </div>
-
-        <!-- File list -->
-        <FileList
-            v-if="hasFiles"
-            :files="fileList"
-            :status="status"
-            :type="type"
-            :can-reorder="reorder"
-            :is-readonly="isReadonly"
-            :is-disabled="isDisabled"
-            :can-preview="canPreviewFile"
-            :get-preview-hint="getPreviewHint"
-            @remove="removeFile"
-            @download="downloadFileByIndex"
-            @preview="previewFileByIndex"
-            @reorder="reorderFiles"
-        />
 
         <!-- Hidden file input -->
         <input
@@ -1019,30 +990,40 @@ export default {
         width: 100%;
     }
 
-    &__dropzone {
-        position: relative;
-        overflow: hidden;
+    &__grid {
         display: flex;
-        flex-direction: column;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    &__add-tile {
+        width: 48px;
+        height: 48px;
+        border: 1px dashed v-bind('safeDropzoneBorderColor');
+        border-radius: 6px;
+        background-color: v-bind('safeDropzoneBackground');
+        display: flex;
         align-items: center;
         justify-content: center;
-        background-color: v-bind('safeDropzoneBackground');
-        border: v-bind('safeDropzoneBorderWidth') v-bind('safeDropzoneBorderStyle') v-bind('safeDropzoneBorderColor');
-        border-radius: v-bind('safeDropzoneBorderRadius');
-        padding: v-bind('safeDropzonePadding');
-        min-height: v-bind('safeDropzoneMinHeight');
-        cursor: v-bind('isEditing ? "unset" : "pointer"');
-        transition: all 0.3s ease;
-        isolation: isolate;
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: all 0.2s ease;
 
         &:hover {
-            border-color: v-bind('safeDropzoneBorderColor');
             background-color: v-bind('safeDropzoneBackgroundHover');
+        }
+
+        &:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
         }
     }
 
-    &--has-files &__dropzone {
-        margin-bottom: 16px;
+    &__add-icon {
+        font-size: 34px;
+        line-height: 1;
+        color: v-bind('safeDropzoneBorderColor');
     }
 
     &__content {
@@ -1105,7 +1086,7 @@ export default {
     }
 
     &--dragging {
-        .ww-file-upload__dropzone {
+        .ww-file-upload__add-tile {
             background-color: v-bind('safeDropzoneBackgroundDragging');
         }
     }
@@ -1114,17 +1095,11 @@ export default {
         opacity: 0.6;
         pointer-events: none;
 
-        .ww-file-upload__dropzone {
-            cursor: not-allowed;
-            background-color: v-bind('safeDropzoneBackground');
-        }
+        .ww-file-upload__add-tile { cursor: not-allowed; }
     }
 
     &--readonly {
-        .ww-file-upload__dropzone {
-            cursor: default;
-            background-color: v-bind('safeDropzoneBackground');
-        }
+        .ww-file-upload__add-tile { cursor: default; }
     }
 
     &__hover-circle {

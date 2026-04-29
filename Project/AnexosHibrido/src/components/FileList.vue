@@ -75,12 +75,13 @@ export default {
 <style lang="scss" scoped>
 .ww-file-list {
     display: flex;
-    flex-direction: column;
-    width: 100%;
+    flex: 1;
+    min-width: 0;
 
     &__inner {
-        position: relative;
-        min-height: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
         will-change: transform;
     }
 }
