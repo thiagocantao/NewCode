@@ -239,7 +239,7 @@ export default {
     padding: v-bind('content?.fileItemPadding || "12px"');
     border: 1px solid v-bind('content?.fileItemBorderColor || "#eee"');
     border-radius: v-bind('content?.fileItemBorderRadius || "6px"');
-    margin-bottom: v-bind('(content?.fileItemMargin || "0 0 8px 0").split(" ")[2] || "8px"');
+    margin-bottom: 0;
     background-color: v-bind('content?.fileItemBackground || "#fff"');
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     transform-origin: center;
