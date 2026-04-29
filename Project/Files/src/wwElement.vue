@@ -1,1317 +1,176 @@
 <template>
-    <div
-        class="ww-file-upload"
-        :class="{
-            'ww-file-upload--dragging': isDragging && !isDisabled && !isReadonly,
-            'ww-file-upload--disabled': isDisabled,
-            'ww-file-upload--readonly': isReadonly,
-            'ww-file-upload--has-files': hasFiles,
-        }"
-        @dragover.prevent="handleDragOver"
-        @dragleave.prevent="handleDragLeave"
-        @drop.prevent="handleDrop"
-        role="region"
-        aria-label="File and directory upload area"
-    >
-        <!-- Main upload area -->
-        <div
-            v-if="!isReadonly"
-            ref="dropzoneEl"
-            class="ww-file-upload__dropzone"
-            @click="openFileExplorer"
-            @mousemove="handleMouseMove"
-        >
+    <div class="explorer" :class="{ 'is-disabled': isDisabled, 'is-readonly': isReadonly }">
+        <div class="toolbar" v-if="!isReadonly">
+            <button type="button" @click="createFolder()" :disabled="isDisabled">+ Pasta</button>
+            <button type="button" @click="pickFiles()" :disabled="isDisabled">+ Arquivos</button>
+            <button type="button" @click="createLink()" :disabled="isDisabled">+ Link</button>
+        </div>
+
+        <div class="path">/{{ currentPath.join('/') }}</div>
+
+        <div class="list">
+            <div class="item nav" v-if="currentPath.length" @click="goUp()">..</div>
             <div
-                v-if="isDragging && !isDisabled && !isReadonly && enableCircleAnimation"
-                ref="circleEl"
-                class="ww-file-upload__hover-circle"
-                :style="{
-                    left: `${mouseX}px`,
-                    top: `${mouseY}px`,
-                    backgroundColor: circleColor,
-                    opacity: circleOpacity,
-                    width: circleSize,
-                    height: circleSize,
-                }"
-            ></div>
-
-            <div class="ww-file-upload__content" :class="[`ww-file-upload__content--${uploadIconPosition}`]">
-                <div v-if="showUploadIcon" class="ww-file-upload__icon" v-html="iconHTML" />
-                <div class="ww-file-upload__text">
-                    <div class="ww-file-upload__label" :style="labelMessageStyle">{{ labelMessage }}</div>
-                    <div
-                        class="ww-file-upload__info ww-file-upload__extensions-message"
-                        v-if="extensionsMessage"
-                        :style="extensionsMessageStyle"
-                    >
-                        {{ extensionsMessage }}
-                    </div>
-                    <div
-                        class="ww-file-upload__info ww-file-upload__max-file-message"
-                        v-if="maxFileMessage"
-                        :style="maxFileMessageStyle"
-                    >
-                        {{ maxFileMessage }}
-                    </div>
-                </div>
+                class="item"
+                v-for="entry in currentEntries"
+                :key="entry.id"
+                :class="`type-${entry.type}`"
+                @dblclick="openEntry(entry)"
+            >
+                <span class="name" @click="entry.type === 'folder' ? openEntry(entry) : null">{{ entry.name }}</span>
+                <span class="actions" v-if="!isReadonly">
+                    <button type="button" @click.stop="renameEntry(entry)" :disabled="isDisabled">Renomear</button>
+                    <button type="button" @click.stop="removeEntry(entry)" :disabled="isDisabled">Remover</button>
+                </span>
             </div>
         </div>
 
-        <!-- File list -->
-        <FileList
-            v-if="hasFiles"
-            :files="fileList"
-            :status="status"
-            :type="type"
-            :can-reorder="reorder"
-            :is-readonly="isReadonly"
-            :is-disabled="isDisabled"
-            :can-preview="canPreviewFile"
-            :get-preview-hint="getPreviewHint"
-            @remove="removeFile"
-            @download="downloadFileByIndex"
-            @preview="previewFileByIndex"
-            @reorder="reorderFiles"
-        />
-
-        <!-- Hidden file input -->
-        <input
-            v-if="!isReadonly"
-            ref="fileInput"
-            type="file"
-            class="ww-file-upload__input"
-            :multiple="type === 'multi'"
-            :webkitdirectory="directoryInputEnabled ? true : null"
-            :directory="directoryInputEnabled ? true : null"
-            :accept="acceptedFileTypes"
-            :required="required && !hasFiles"
-            :disabled="isDisabled || isReadonly"
-            :aria-label="labelMessage"
-            @change="handleFileSelection"
-        />
-
-        <div
-            v-if="isPreviewModalOpen"
-            class="ww-file-upload__preview-modal-backdrop"
-            role="dialog"
-            aria-modal="true"
-            :aria-label="`Preview ${previewModalTitle || ''}`"
-            @click.self="closePreviewModal"
-        >
-            <div class="ww-file-upload__preview-modal">
-                <div class="ww-file-upload__preview-modal-header">
-                    <div class="ww-file-upload__preview-modal-title">{{ previewModalTitle }}</div>
-                    <button type="button" class="ww-file-upload__preview-modal-close" @click="closePreviewModal">✕</button>
-                </div>
-                <div class="ww-file-upload__preview-modal-body">
-                    <img
-                        v-if="previewModalType === 'image'"
-                        :src="previewModalUrl"
-                        class="ww-file-upload__preview-image"
-                        alt="Image preview"
-                    />
-                    <iframe
-                        v-else-if="previewModalType === 'pdf' || previewModalType === 'office'"
-                        :src="previewModalUrl"
-                        class="ww-file-upload__preview-iframe"
-                        title="File preview"
-                    />
-                    <pre v-else-if="previewModalType === 'text'" class="ww-file-upload__preview-text">{{ previewModalText }}</pre>
-                    <div v-else class="ww-file-upload__preview-text">
-                        {{ previewModalText || previewUnavailableMessage }}
-                    </div>
-                </div>
-            </div>
-        </div>
+        <input ref="fileInput" class="hidden" type="file" multiple @change="handleFileSelection" :disabled="isDisabled || isReadonly" />
     </div>
 </template>
 
 <script>
-import { ref, computed, watch, provide, inject } from 'vue';
-import FileList from './components/FileList.vue';
-import { validateFile } from './utils/fileValidation';
-import { fileToBase64, fileToBinary } from './utils/fileProcessing';
-import { useDragAnimation } from './composables/useDragAnimation';
-import { translatePhrase } from './translation';
-
-/* wwEditor:start */
-import useParentSelection from './editor/useParentSelection';
-/* wwEditor:end */
+import { ref, computed, watch, inject } from 'vue';
 
 export default {
-    components: {
-        FileList,
-    },
     props: {
         content: { type: Object, required: true },
-        /* wwEditor:start */
         wwFrontState: { type: Object, required: true },
         wwEditorState: { type: Object, required: true },
-        parentSelection: { type: Object, default: () => ({ allow: false, texts: {} }) },
-        /* wwEditor:end */
         uid: { type: String, required: true },
         wwElementState: { type: Object, required: true },
     },
     emits: ['trigger-event', 'add-state', 'remove-state'],
     setup(props, { emit }) {
-
-        const isEditing = computed(() => {
-            /* wwEditor:start */
-            return props.wwEditorState?.isEditing;
-            /* wwEditor:end */
-            // eslint-disable-next-line no-unreachable
-            return false;
-        });
-
-        /* wwEditor:start */
-        const { selectParentElement } = useParentSelection(props, emit);
-        /* wwEditor:end */
-
-        const { getIcon } = wwLib.useIcons();
-
-        const fileInput = ref(null);
-        const dropzoneEl = ref(null);
-        const circleEl = ref(null);
-        const iconText = ref(null);
-        const isProcessing = ref(false);
-
-        const extensionsMessage = computed(() => props.content?.extensionsMessage || null);
-        const maxFileMessage = computed(() => props.content?.maxFileMessage || null);
-        const labelMessage = computed(() => props.content?.labelMessage || null);
-
-        const type = computed(() => props.content?.type || 'single');
-        const inputMode = computed(() => props.content?.inputMode || 'files');
-        const reorder = computed(() => props.content?.reorder || false);
-        const drop = computed(() => props.content?.drop !== false);
-        const maxFileSize = computed(() => props.content?.maxFileSize || 10);
-        const minFileSize = computed(() => props.content?.minFileSize || 0);
-        const maxTotalFileSize = computed(() => props.content?.maxTotalFileSize || 50);
-        const maxFiles = computed(() => props.content?.maxFiles || 10);
-        const required = computed(() => props.content?.required || false);
-        const initialValue = computed(() => props.content?.initialValue || []);
-        const extensions = computed(() => props.content?.extensions || 'any');
-        const customExtensions = computed(() => props.content?.customExtensions || '');
-        const exposeBase64 = computed(() => props.content?.exposeBase64 || false);
-        const exposeBinary = computed(() => props.content?.exposeBinary || false);
-        const showUploadIcon = computed(() => props.content?.showUploadIcon !== false);
-        const uploadIcon = computed(() => props.content?.uploadIcon || 'upload');
-        const uploadIconColor = computed(() => props.content?.uploadIconColor || '#666666');
-        const uploadIconPosition = computed(() => props.content?.uploadIconPosition || 'top');
-        const uploadIconSize = computed(() => props.content?.uploadIconSize || '24px');
-        const uploadIconMargin = computed(() => props.content?.uploadIconMargin || '8px');
-        const enableCircleAnimation = computed(() => props.content?.enableCircleAnimation !== false);
-        const circleSize = computed(() => props.content?.circleSize || '80px');
-        const circleColor = computed(() => props.content?.circleColor || safeProgressBarColor.value);
-        const circleOpacity = computed(() =>
-            props.content?.circleOpacity !== undefined ? props.content.circleOpacity : 0.5
-        );
-        const animationSpeed = computed(() =>
-            props.content?.animationSpeed !== undefined ? props.content.animationSpeed : 0.5
-        );
-
-        const safeDropzoneBorderWidth = computed(() => props.content?.dropzoneBorderWidth || '2px');
-        const safeDropzoneBorderStyle = computed(() => props.content?.dropzoneBorderStyle || 'dashed');
-        const safeDropzoneBorderColor = computed(() => props.content?.dropzoneBorderColor || '#CCCCCC');
-        const safeDropzoneBorderRadius = computed(() => props.content?.dropzoneBorderRadius || '8px');
-        const safeDropzonePadding = computed(() => props.content?.dropzonePadding || '20px');
-        const safeDropzoneMinHeight = computed(() => props.content?.dropzoneMinHeight || '120px');
-        const safeDropzoneBackground = computed(() => props.content?.dropzoneBackground || 'rgba(0, 0, 0, 0)');
-        const safeDropzoneBackgroundHover = computed(
-            () => props.content?.dropzoneBackgroundHover || 'rgba(0, 0, 0, 0.01)'
-        );
-        const safeLabelFontSize = computed(() => props.content?.labelFontSize || '16px');
-        const safeLabelFontFamily = computed(() => props.content?.labelFontFamily || 'inherit');
-        const safeLabelFontWeight = computed(() => props.content?.labelFontWeight || 'normal');
-        const safeLabelColor = computed(() => props.content?.labelColor || '#333333');
-        const safeFileDetailsFontSize = computed(() => props.content?.fileDetailsFontSize || '12px');
-        const safeFileDetailsColor = computed(() => props.content?.fileDetailsColor || '#888888');
-        const safeProgressBarColor = computed(() => props.content?.progressBarColor || '#EEEEEE');
-        const safeLabelMarginBottom = computed(() => {
-            const labelMargin = props.content?.labelMargin || '0 0 4px 0';
-            return labelMargin.split(' ')[2] || '4px';
-        });
-        const safeProgressBarBackground = computed(() => {
-            const color = safeProgressBarColor.value;
-            if (!color) return 'rgba(85, 85, 85, 0.05)';
-
-            try {
-                const r = parseInt(color.slice(1, 3), 16) || 85;
-                const g = parseInt(color.slice(3, 5), 16) || 85;
-                const b = parseInt(color.slice(5, 7), 16) || 85;
-                return `rgba(${r}, ${g}, ${b}, 0.05)`;
-            } catch (e) {
-                return 'rgba(85, 85, 85, 0.05)';
-            }
-        });
-
-        const safeDropzoneBackgroundDragging = computed(
-            () => props.content?.dropzoneBackgroundDragging || 'rgba(0, 0, 0, 0.05)'
-        );
-
-        // Extensions message styling
-        const extensionsMessageStyle = computed(() => ({
-            fontFamily: props.content?.extensionsMessageFontFamily || 'inherit',
-            fontSize: props.content?.extensionsMessageFontSize || '12px',
-            fontWeight: props.content?.extensionsMessageFontWeight || 'normal',
-            color: props.content?.extensionsMessageColor || '#888888',
-            margin: props.content?.extensionsMessageMargin || '0 0 4px 0',
-        }));
-
-        // Max file message styling
-        const maxFileMessageStyle = computed(() => ({
-            fontFamily: props.content?.maxFileMessageFontFamily || 'inherit',
-            fontSize: props.content?.maxFileMessageFontSize || '12px',
-            fontWeight: props.content?.maxFileMessageFontWeight || 'normal',
-            color: props.content?.maxFileMessageColor || '#888888',
-            margin: props.content?.maxFileMessageMargin || '0 0 4px 0',
-        }));
-
-        // Label message styling
-        const labelMessageStyle = computed(() => ({
-            fontFamily: props.content?.labelFontFamily || 'inherit',
-            fontSize: props.content?.labelFontSize || '16px',
-            fontWeight: props.content?.labelFontWeight || 'normal',
-            color: props.content?.labelColor || '#333333',
-            margin: props.content?.labelMargin || '0 0 4px 0',
-        }));
-
         const isDisabled = computed(() => props.wwElementState.props.disabled || false);
-        const isReadonly = computed(() => {
-            /* wwEditor:start */
-            if (props.wwEditorState?.isSelected) {
-                return props.wwElementState.states.includes('readonly');
-            }
-            /* wwEditor:end */
-            return props.wwElementState.props.readonly === undefined
-                ? props.content?.readonly || false
-                : props.wwElementState.props.readonly;
-        });
+        const isReadonly = computed(() => props.wwElementState.props.readonly || props.content?.readonly || false);
+        const fileInput = ref(null);
+        const currentPath = ref([]);
 
         const { value: files, setValue: setFiles } = wwLib.wwVariable.useComponentVariable({
             uid: props.uid,
             name: 'value',
             defaultValue: [],
-            type: 'file',
+            type: 'any',
             componentType: 'element',
         });
 
-        const { value: status, setValue: setStatus } = wwLib.wwVariable.useComponentVariable({
-            uid: props.uid,
-            name: 'status',
-            defaultValue: {},
-            type: 'any',
-        });
-
-        const { value: deletedFile, setValue: setDeletedFile } = wwLib.wwVariable.useComponentVariable({
-            uid: props.uid,
-            name: 'deletedFile',
-            defaultValue: [],
-            type: 'any',
-        });
-
-        const { value: deletedFilesCount, setValue: setDeletedFilesCount } = wwLib.wwVariable.useComponentVariable({
-            uid: props.uid,
-            name: 'deletedFilesCount',
-            defaultValue: 0,
-            type: 'number',
-        });
-
-        const useForm = inject('_wwForm:useForm', () => {});
-        const fieldName = computed(() => props.content.fieldName);
-        const validation = computed(() => props.content.validation);
-        const customValidation = computed(() => props.content.customValidation);
-
-        useForm(
-            files,
-            { fieldName, validation, customValidation, required },
-            { elementState: props.wwElementState, emit, sidepanelFormPath: 'form', setValue: setFiles }
-        );
-
-        const fileList = computed(() => (Array.isArray(files.value) ? files.value : []));
-        const hasFiles = computed(() => fileList.value.length > 0);
-        const previousInitialValueHash = ref('');
-
-        const getFileKind = fileName => {
-            const ext = (fileName || '').split('.').pop()?.toLowerCase();
-            if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(ext)) return 'image';
-            if (ext === 'pdf') return 'pdf';
-            if (['txt', 'log'].includes(ext)) return 'txt';
-            return 'file';
-        };
-
-        const normalizeInitialValue = value => {
-            if (!Array.isArray(value)) return [];
-            return value
-                .map(item => {
-                    const name = item?.FileName || item?.fileName;
-                    const storageBucket = item?.StorageBucket || item?.storageBucket;
-                    const storagePath = item?.StoragePath || item?.storagePath;
-                    if (!name || !storageBucket || !storagePath) return null;
-                    const kind = getFileKind(name);
-                    return {
-                        id: item?.AttachmentID || item?.attachmentId || `init-${storagePath}`,
-                        name,
-                        size: Number(item?.SizeBytes || item?.size || 0),
-                        type: item?.ContentType || item?.contentType || 'application/octet-stream',
-                        mimeType: item?.ContentType || item?.contentType || 'application/octet-stream',
-                        attachmentId: item?.AttachmentID || item?.attachmentId || null,
-                        bucket: storageBucket,
-                        storagePath,
-                        createdDate: item?.CreatedDate || null,
-                        createdBy: item?.CreatedBy || null,
-                        isImage: kind === 'image',
-                        isPdf: kind === 'pdf',
-                        isTxt: kind === 'txt',
-                        isFromInitialValue: true,
-                    };
-                })
-                .filter(Boolean);
-        };
-
-        watch([status, fileList], ([newStatus, newFiles]) => {
-            if (newStatus && typeof newStatus === 'object') {
-                const fileNames = newFiles.map(file => file.name);
-                const updatedStatus = Object.fromEntries(
-                    Object.entries(newStatus).filter(([key]) => fileNames.includes(key))
-                );
-
-                if (Object.keys(updatedStatus).length !== Object.keys(newStatus).length) {
-                    setStatus(updatedStatus);
-                }
-            }
-        });
-
-        watch(
-            initialValue,
-            newValue => {
-                const hash = JSON.stringify(newValue || []);
-                if (hash === previousInitialValueHash.value) return;
-                previousInitialValueHash.value = hash;
-                const normalized = normalizeInitialValue(newValue);
-                setFiles(normalized);
-                emit('trigger-event', {
-                    name: 'initValueChange',
-                    event: { value: normalized },
-                });
-            },
-            { immediate: true, deep: true }
-        );
-
-        const getFileStatus = file => {
-            if (!status.value || !file.name || !status.value[file.name]) {
-                return {
-                    uploadProgress: 0,
-                    isUploading: false,
-                    isUploaded: false,
-                };
-            }
-
-            return status.value[file.name];
-        };
-
-        const acceptedFileTypes = computed(() => {
-            switch (extensions.value) {
-                case 'image':
-                    return 'image/*';
-                case 'video':
-                    return 'video/*';
-                case 'audio':
-                    return 'audio/*';
-                case 'pdf':
-                    return '.pdf';
-                case 'csv':
-                    return '.csv';
-                case 'excel':
-                    return '.xls,.xlsx,.xlsm,.xlsb';
-                case 'word':
-                    return '.doc,.docx,.docm';
-                case 'json':
-                    return '.json';
-                case 'custom':
-                    return customExtensions.value;
-                default:
-                    return '';
-            }
-        });
-        const directoryInputEnabled = computed(() => inputMode.value === 'directories');
-
-        watch(
-            () => uploadIcon.value,
-            async icon => {
-                if (icon && showUploadIcon.value) {
-                    try {
-                        iconText.value = await getIcon(icon);
-                    } catch (error) {
-                        iconText.value = null;
-                    }
-                } else {
-                    iconText.value = null;
-                }
-            },
-            { immediate: true }
-        );
-
-        const iconHTML = computed(() => {
-            /* wwEditor:start */
-            return (
-                iconText.value ||
-                '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-upload"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>'
-            );
-            /* wwEditor:end */
-            return iconText.value;
-        });
-
-        const localData = ref({
-            fileUpload: {
-                value: computed(() => {
-                    return fileList.value.map(file => {
-                        const plainObject = {};
-                        for (const key in file) {
-                            if (Object.prototype.hasOwnProperty.call(file, key)) {
-                                plainObject[key] = file[key];
-                            }
-                        }
-                        plainObject.name = file.name;
-                        plainObject.size = file.size;
-                        plainObject.type = file.type;
-                        plainObject.lastModified = file.lastModified;
-                        plainObject.mimeType = file.mimeType;
-                        plainObject.id = file.id;
-
-                        if (file.base64) plainObject.base64 = file.base64;
-                        if (file.binary) plainObject.binary = file.binary;
-
-                        return plainObject;
-                    });
-                }),
-                status: status,
-                deletedFile: deletedFile,
-                deletedFilesCount: deletedFilesCount,
-            },
-        });
-
-        provide('_wwFileUpload', {
-            files: fileList,
-            status: status,
-            acceptedTypes: acceptedFileTypes,
-            isDisabled,
-            isReadonly,
-            isSingleMode: computed(() => type.value === 'single'),
-            content: computed(() => props.content || {}),
-        });
-
-        // Drag and drop animation
-        const {
-            isDragging,
-            mouseX,
-            mouseY,
-            targetX,
-            targetY,
-            isAnimating,
-            handleDragOver: animationHandleDragOver,
-            handleDragLeave: animationHandleDragLeave,
-            handleDrop: animationHandleDrop,
-            handleMouseMove: animationHandleMouseMove,
-        } = useDragAnimation({
-            dropzoneRef: dropzoneEl,
-            circleRef: circleEl,
-            isDisabled,
-            isReadonly,
-            dropEnabled: drop,
-            circleOpacity,
-            animationSpeed,
-            isEditing,
-        });
-
-        // Methods
-        const openFileExplorer = () => {
-            if (!isDisabled.value && !isReadonly.value && !isEditing.value) {
-                fileInput.value.click();
+        const ensureTree = () => {
+            if (!Array.isArray(files.value) || files.value.length === 0) {
+                setFiles([{ id: 'root', name: 'root', type: 'folder', children: [] }]);
             }
         };
 
-        const handleDrop = async event => {
-            const animationHandled = animationHandleDrop(event);
-            if (!animationHandled || isDisabled.value || isReadonly.value || !drop.value) return;
-
-            const droppedFiles = await extractDroppedFiles(event.dataTransfer);
-            if (!droppedFiles.length) return;
-
-            // Wait for the circle animation to complete before processing files
-            setTimeout(async () => {
-                await processFiles(droppedFiles);
-            }, 1050);
+        const getRoot = () => {
+            ensureTree();
+            return files.value[0];
         };
 
-        const handleFileSelection = async event => {
-            const selectedFiles = event.target.files;
+        const getFolderByPath = (path = currentPath.value) => {
+            let node = getRoot();
+            for (const segment of path) {
+                node = (node.children || []).find(item => item.type === 'folder' && item.name === segment);
+                if (!node) return null;
+            }
+            return node;
+        };
+
+        const currentEntries = computed(() => getFolderByPath()?.children || []);
+
+        const commitChange = () => {
+            setFiles([...files.value]);
+            emit('trigger-event', { name: 'change', event: { value: files.value } });
+        };
+
+        const createFolder = () => {
+            const folderName = window.prompt('Nome da pasta');
+            if (!folderName) return;
+            const parent = getFolderByPath();
+            parent.children.push({ id: `f-${Date.now()}`, name: folderName.trim(), type: 'folder', children: [] });
+            commitChange();
+        };
+
+        const createLink = () => {
+            const linkName = window.prompt('Nome do link');
+            if (!linkName) return;
+            const url = window.prompt('URL do link');
+            if (!url) return;
+            const parent = getFolderByPath();
+            parent.children.push({ id: `l-${Date.now()}`, name: linkName.trim(), type: 'link', url: url.trim() });
+            commitChange();
+        };
+
+        const pickFiles = () => fileInput.value?.click();
+
+        const handleFileSelection = event => {
+            const selectedFiles = Array.from(event.target.files || []);
             if (!selectedFiles.length) return;
-
-            await processFiles(selectedFiles);
+            const parent = getFolderByPath();
+            selectedFiles.forEach(file => {
+                parent.children.push({ id: `a-${Date.now()}-${Math.random()}`, name: file.name, type: 'file', size: file.size });
+            });
+            commitChange();
             event.target.value = '';
         };
 
-        const walkFileTree = entry =>
-            new Promise(resolve => {
-                if (!entry) return resolve([]);
-                if (entry.isFile) {
-                    entry.file(file => {
-                        file.relativePath = entry.fullPath?.replace(/^\/+/, '') || file.webkitRelativePath || file.name;
-                        resolve([file]);
-                    });
-                    return;
-                }
-                if (!entry.isDirectory) return resolve([]);
-                const reader = entry.createReader();
-                reader.readEntries(async entries => {
-                    const chunks = await Promise.all(entries.map(child => walkFileTree(child)));
-                    resolve(chunks.flat());
-                });
-            });
-
-        const extractDroppedFiles = async dataTransfer => {
-            const entries = Array.from(dataTransfer?.items || [])
-                .map(item => (item?.webkitGetAsEntry ? item.webkitGetAsEntry() : null))
-                .filter(Boolean);
-            if (!entries.length) return Array.from(dataTransfer?.files || []);
-            const allFiles = await Promise.all(entries.map(entry => walkFileTree(entry)));
-            return allFiles.flat();
+        const openEntry = entry => {
+            if (entry.type === 'folder') currentPath.value = [...currentPath.value, entry.name];
         };
 
-        const processFiles = async fileList => {
-            isProcessing.value = true;
-            const filesToProcess = Array.from(fileList);
-
-            // Single mode handling
-            if (type.value === 'single') {
-                if (filesToProcess.length > 1) {
-                    emit('trigger-event', {
-                        name: 'error',
-                        event: {
-                            code: 'SINGLE_MODE_MULTIPLE_FILES',
-                            data: {
-                                message: 'Multiple files provided in single file mode',
-                                count: filesToProcess.length,
-                                acceptedCount: 1,
-                            },
-                        },
-                    });
-                }
-
-                filesToProcess.splice(1);
-                setFiles([]);
-            }
-
-            let availableSlots = Infinity;
-            if (type.value === 'multi' && maxFiles.value > 0) {
-                availableSlots = maxFiles.value - files.value.length;
-                if (availableSlots <= 0) {
-                    emit('trigger-event', {
-                        name: 'error',
-                        event: {
-                            code: 'MAX_FILES_REACHED',
-                            data: {
-                                message: `Maximum number of files (${maxFiles.value}) reached`,
-                                maxFiles: maxFiles.value,
-                                currentCount: files.value.length,
-                            },
-                        },
-                    });
-
-                    wwLib.wwNotification.open({
-                        text: { en: `Maximum number of files (${maxFiles.value}) reached` },
-                        color: 'warning',
-                    });
-
-                    isProcessing.value = false;
-                    return;
-                } else if (filesToProcess.length > availableSlots) {
-                    emit('trigger-event', {
-                        name: 'error',
-                        event: {
-                            code: 'TOO_MANY_FILES',
-                            data: {
-                                message: `Only ${availableSlots} more files can be added`,
-                                providedCount: filesToProcess.length,
-                                availableSlots: availableSlots,
-                                maxFiles: maxFiles.value,
-                                currentCount: files.value.length,
-                            },
-                        },
-                    });
-                }
-            }
-
-            // Process valid files
-            const limitedFiles = filesToProcess.slice(0, availableSlots);
-            const processedFiles = [];
-
-            // Only calculate currentTotalSize for multi-file mode
-            const currentTotalSize =
-                type.value === 'multi' && Array.isArray(files.value)
-                    ? files.value.reduce((sum, f) => sum + (f.size || 0), 0)
-                    : 0;
-
-            for (const file of limitedFiles) {
-                const validationResult = validateFile(file, {
-                    maxFileSize: maxFileSize.value,
-                    minFileSize: minFileSize.value,
-                    // Only apply maxTotalFileSize in multi-file mode
-                    maxTotalFileSize: type.value === 'multi' ? maxTotalFileSize.value : undefined,
-                    currentTotalSize: type.value === 'multi' ? currentTotalSize : 0,
-                    acceptedTypes: acceptedFileTypes.value,
-                });
-
-                if (validationResult.valid) {
-                    file.id = `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-                    file.mimeType = file.type;
-                    file.relativePath = file.relativePath || file.webkitRelativePath || file.name;
-                    file.directory = (file.relativePath || '').includes('/')
-                        ? (file.relativePath || '').split('/').slice(0, -1).join('/')
-                        : '';
-                    if (exposeBase64.value) file.base64 = await fileToBase64(file);
-                    if (exposeBinary.value) file.binary = await fileToBinary(file);
-                    processedFiles.push(file);
-                } else {
-                    console.warn(`File validation failed: ${validationResult.reason}`);
-                    emit('trigger-event', {
-                        name: 'error',
-                        event: {
-                            code: 'VALIDATION_ERROR',
-                            data: {
-                                message: validationResult.reason,
-                                fileName: file.name,
-                                fileSize: file.size,
-                                fileType: file.type,
-                                constraint: validationResult.constraint,
-                            },
-                        },
-                    });
-
-                    /* wwEditor:start */
-                    wwLib.wwNotification.open({
-                        text: { en: validationResult.reason },
-                        color: 'error',
-                    });
-                    /* wwEditor:end */
-                }
-            }
-
-            if (processedFiles.length > 0) {
-                if (type.value === 'single') {
-                    setFiles(processedFiles);
-                    emit('trigger-event', {
-                        name: 'change',
-                        event: { value: processedFiles },
-                    });
-                    isProcessing.value = false;
-                } else {
-                    const currentFiles = [...files.value];
-                    let newFiles = [...currentFiles];
-
-                    const addNextFile = index => {
-                        newFiles = [...newFiles, processedFiles[index]];
-                        setFiles(newFiles);
-
-                        if (index < processedFiles.length - 1) {
-                            setTimeout(() => addNextFile(index + 1), 150);
-                        } else {
-                            emit('trigger-event', {
-                                name: 'change',
-                                event: { value: newFiles },
-                            });
-                            isProcessing.value = false;
-                        }
-                    };
-
-                    // Start adding files with a small initial delay
-                    setTimeout(() => addNextFile(0), 50);
-                    return;
-                }
-            }
-
-            isProcessing.value = false;
+        const goUp = () => {
+            currentPath.value = currentPath.value.slice(0, -1);
         };
 
-        const removeFile = index => {
-            if (isDisabled.value || isReadonly.value) return;
-
-            const removedFile = fileList.value[index] || null;
-            if (removedFile) {
-                const deletedFileEntry = {
-                    ...removedFile,
-                    id: removedFile.id || `deleted-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-                    isFromInitialValue: Boolean(removedFile.isFromInitialValue),
-                };
-                setDeletedFile([...(Array.isArray(deletedFile.value) ? deletedFile.value : []), deletedFileEntry]);
-                setDeletedFilesCount((deletedFilesCount.value || 0) + 1);
-            }
-
-            const updatedFiles = [...files.value.filter((_, i) => i !== index)];
-            setFiles(updatedFiles);
-
-            emit('trigger-event', {
-                name: 'change',
-                event: { value: updatedFiles },
-            });
+        const renameEntry = entry => {
+            const newName = window.prompt('Novo nome', entry.name);
+            if (!newName) return;
+            entry.name = newName.trim();
+            commitChange();
         };
 
-        const getSupabase = () => wwLib?.wwPlugins?.supabase?.instance || null;
-
-        const isHttpUrl = value => typeof value === 'string' && /^https?:\/\//i.test(value);
-        const sanitizeBucket = value => (typeof value === 'string' ? value.trim().replace(/^\/+|\/+$/g, '') : '');
-        const sanitizeStoragePath = value =>
-            typeof value === 'string' ? value.trim().replace(/^\/+/, '').replace(/\?.*$/, '') : '';
-
-        const resolveStorageLocation = file => {
-            const rawBucket = sanitizeBucket(
-                file?.bucket || file?.storageBucket || file?.StorageBucket || file?.storagebucket || ''
-            );
-            let rawPath = sanitizeStoragePath(
-                file?.storagePath || file?.StoragePath || file?.storagepath || file?.path || ''
-            );
-
-            if (!rawPath && isHttpUrl(file?.url)) {
-                return { bucket: rawBucket, storagePath: '', directUrl: file.url };
-            }
-
-            if (rawPath && rawBucket && rawPath.startsWith(`${rawBucket}/`)) {
-                rawPath = rawPath.slice(rawBucket.length + 1);
-            }
-
-            if (!rawBucket && rawPath.includes('/')) {
-                const [bucketFromPath, ...rest] = rawPath.split('/');
-                return {
-                    bucket: sanitizeBucket(bucketFromPath),
-                    storagePath: sanitizeStoragePath(rest.join('/')),
-                    directUrl: isHttpUrl(file?.url) ? file.url : null,
-                };
-            }
-
-            return { bucket: rawBucket, storagePath: rawPath, directUrl: isHttpUrl(file?.url) ? file.url : null };
+        const removeEntry = entry => {
+            const parent = getFolderByPath();
+            parent.children = (parent.children || []).filter(item => item.id !== entry.id);
+            commitChange();
         };
 
-        const resolveFileUrl = async (file, { download = false } = {}) => {
-            if (!file) return null;
-            if (!download && file.url) return file.url;
-            const localFile = file instanceof File ? file : file?.file;
-            if (localFile instanceof File) return URL.createObjectURL(localFile);
-            const supabase = getSupabase();
-            const { bucket, storagePath, directUrl } = resolveStorageLocation(file);
-            if (!supabase?.storage || !bucket || !storagePath) return directUrl || null;
-            const options = {};
-            if (download) options.download = file.name || 'download';
-            if (file?.isImage && !download) options.transform = { width: 400, resize: 'contain' };
-            const { data, error } = await supabase.storage.from(bucket).createSignedUrl(storagePath, 3600, options);
-            if (error) return null;
-            const signedUrl = data?.signedUrl || null;
-            if (!download) {
-                file.url = signedUrl;
-                file.previewUrl = signedUrl;
-            }
-            file.bucket = bucket;
-            file.storagePath = storagePath;
-            return signedUrl;
-        };
+        watch(isReadonly, value => emit(value ? 'add-state' : 'remove-state', 'readonly'), { immediate: true });
+        watch(isDisabled, value => emit(value ? 'add-state' : 'remove-state', 'disabled'), { immediate: true });
 
-        const previewUnavailableMessage = computed(() => translatePhrase('Preview not available for this file type.'));
+        const useForm = inject('_wwForm:useForm', () => {});
+        useForm(files, { fieldName: computed(() => props.content.fieldName) }, { elementState: props.wwElementState, emit, sidepanelFormPath: 'form', setValue: setFiles });
 
-        const getFileExtension = file =>
-            (file?.name || '')
-                .split('.')
-                .pop()
-                ?.toLowerCase() || '';
-
-        const getPreviewMode = file => {
-            const ext = getFileExtension(file);
-            const type = (file?.type || file?.mimeType || file?.contentType || '').toLowerCase();
-
-            if (
-                type.startsWith('image/') ||
-                ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg', 'pdf', 'txt', 'log', 'csv', 'json'].includes(ext)
-            ) {
-                return 'direct';
-            }
-
-            if (['xls', 'xlsx', 'xlsm', 'xlsb', 'doc', 'docx', 'ppt', 'pptx'].includes(ext)) {
-                return 'office';
-            }
-
-            return 'unsupported';
-        };
-
-        const canPreviewFile = file => getPreviewMode(file) !== 'unsupported';
-
-        const getPreviewHint = file => (canPreviewFile(file) ? '' : previewUnavailableMessage.value);
-
-        const isPreviewModalOpen = ref(false);
-        const previewModalUrl = ref('');
-        const previewModalTitle = ref('');
-        const previewModalType = ref('unsupported');
-        const previewModalText = ref('');
-
-        const closePreviewModal = () => {
-            if (previewModalUrl.value && previewModalUrl.value.startsWith('blob:')) {
-                URL.revokeObjectURL(previewModalUrl.value);
-            }
-            previewModalUrl.value = '';
-            previewModalText.value = '';
-            previewModalType.value = 'unsupported';
-            previewModalTitle.value = '';
-            isPreviewModalOpen.value = false;
-        };
-
-        const previewFileByIndex = async index => {
-            const file = fileList.value[index];
-            if (!file) return;
-            const previewMode = getPreviewMode(file);
-            if (previewMode === 'unsupported') return;
-            const url = await resolveFileUrl(file);
-            if (!url) return;
-            previewModalTitle.value = file?.relativePath || file?.name || 'Preview';
-
-            if (previewMode === 'office') {
-                previewModalType.value = 'office';
-                previewModalUrl.value = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(url)}`;
-            } else if (file.isImage || (file.type || '').startsWith('image/')) {
-                previewModalType.value = 'image';
-                previewModalUrl.value = url;
-            } else if ((file.type || '').includes('pdf') || getFileExtension(file) === 'pdf') {
-                previewModalType.value = 'pdf';
-                previewModalUrl.value = url;
-            } else if (['txt', 'log', 'csv', 'json'].includes(getFileExtension(file))) {
-                previewModalType.value = 'text';
-                previewModalUrl.value = '';
-                try {
-                    const response = await fetch(url);
-                    previewModalText.value = await response.text();
-                } catch (error) {
-                    previewModalText.value = 'Não foi possível carregar o preview deste arquivo.';
-                }
-            } else {
-                previewModalType.value = 'unsupported';
-                previewModalUrl.value = '';
-                previewModalText.value = previewUnavailableMessage.value;
-            }
-
-            isPreviewModalOpen.value = true;
-        };
-
-        const downloadFileByIndex = async index => {
-            const file = fileList.value[index];
-            if (!file) return;
-            const url = await resolveFileUrl(file, { download: true });
-            if (!url) return;
-            try {
-                const response = await fetch(url);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const blob = await response.blob();
-                const blobUrl = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = blobUrl;
-                a.download = file.name || 'download';
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                URL.revokeObjectURL(blobUrl);
-            } catch (error) {
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = file.name || 'download';
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-            }
-        };
-
-        watch(
-            fileList,
-            async list => {
-                const items = Array.isArray(list) ? list : [];
-                await Promise.all(
-                    items.map(async file => {
-                        if (!file || !file.isImage || file.previewUrl || file.url) return;
-                        const preview = await resolveFileUrl(file);
-                        if (preview) file.previewUrl = preview;
-                    })
-                );
-            },
-            { immediate: true, deep: true }
-        );
-
-        const reorderFiles = (fromIndex, toIndex) => {
-            if (isDisabled.value || isReadonly.value || !reorder.value) return;
-
-            const newFiles = [...files.value];
-            const [movedItem] = newFiles.splice(fromIndex, 1);
-            newFiles.splice(toIndex, 0, movedItem);
-            setFiles(newFiles);
-
-            emit('trigger-event', {
-                name: 'change',
-                event: { value: newFiles },
-            });
-        };
-
-        const clearFiles = () => {
-            setFiles([]);
-        };
-
-        const getAllowedTypesLabel = () => {
-            switch (extensions.value) {
-                case 'image':
-                    return 'Images';
-                case 'video':
-                    return 'Videos';
-                case 'audio':
-                    return 'Audio files';
-                case 'pdf':
-                    return 'PDF files';
-                case 'csv':
-                    return 'CSV files';
-                case 'excel':
-                    return 'Excel files';
-                case 'word':
-                    return 'Word documents';
-                case 'json':
-                    return 'JSON files';
-                case 'custom':
-                    return customExtensions.value;
-                default:
-                    return 'All files';
-            }
-        };
-
-        wwLib.wwElement.useRegisterElementLocalContext('fileUpload', localData.value.fileUpload, {
-            clearFiles: {
-                description: 'Clear all files',
-                method: clearFiles,
-                editor: { label: 'Clear Files', group: 'File Upload', icon: 'trash' },
-            },
-        });
-
-        watch(
-            isReadonly,
-            value => {
-                if (value) {
-                    emit('add-state', 'readonly');
-                } else {
-                    emit('remove-state', 'readonly');
-                }
-            },
-            { immediate: true }
-        );
-
-        watch(
-            isDisabled,
-            value => {
-                if (value) {
-                    emit('add-state', 'disabled');
-                } else {
-                    emit('remove-state', 'disabled');
-                }
-            },
-            { immediate: true }
-        );
-
-        // Connect drag animation handlers
-        const handleDragOver = animationHandleDragOver;
-        const handleDragLeave = animationHandleDragLeave;
-        const handleMouseMove = animationHandleMouseMove;
+        ensureTree();
 
         return {
-            status,
-            fileInput,
-            isDragging,
-            fileList,
-            hasFiles,
             isDisabled,
             isReadonly,
-            acceptedFileTypes,
-            extensionsMessage,
-            maxFileMessage,
-            openFileExplorer,
-            handleDragOver,
-            handleDragLeave,
-            handleDrop,
+            currentPath,
+            currentEntries,
+            fileInput,
+            createFolder,
+            createLink,
+            pickFiles,
             handleFileSelection,
-            removeFile,
-            downloadFileByIndex,
-            previewFileByIndex,
-            isPreviewModalOpen,
-            previewModalUrl,
-            previewModalTitle,
-            previewModalType,
-            previewModalText,
-            closePreviewModal,
-            canPreviewFile,
-            getPreviewHint,
-            directoryInputEnabled,
-            reorderFiles,
-            getAllowedTypesLabel,
-            iconHTML,
-            uploadIconPosition,
-            handleMouseMove,
-            extensionsMessageStyle,
-            maxFileMessageStyle,
-            labelMessage,
-            labelMessageStyle,
-            type,
-            reorder,
-            drop,
-            maxFileSize,
-            minFileSize,
-            maxFiles,
-            required,
-            extensions,
-            customExtensions,
-            showUploadIcon,
-            uploadIcon,
-            uploadIconColor,
-            uploadIconSize,
-            uploadIconMargin,
-            enableCircleAnimation,
-            circleSize,
-            circleColor,
-            circleOpacity,
-            animationSpeed,
-
-            safeDropzoneBorderWidth,
-            safeDropzoneBorderStyle,
-            safeDropzoneBorderColor,
-            safeDropzoneBorderRadius,
-            safeDropzonePadding,
-            safeDropzoneMinHeight,
-            safeDropzoneBackground,
-            safeDropzoneBackgroundHover,
-            safeDropzoneBackgroundDragging,
-            safeLabelFontSize,
-            safeLabelFontFamily,
-            safeLabelFontWeight,
-            safeLabelColor,
-            safeFileDetailsFontSize,
-            safeFileDetailsColor,
-            safeProgressBarColor,
-            safeLabelMarginBottom,
-            safeProgressBarBackground,
-            dropzoneEl,
-            circleEl,
-            mouseX,
-            mouseY,
-            targetX,
-            targetY,
-            isAnimating,
-            isProcessing,
-            isEditing,
-
-            clearFiles,
-
-            /* wwEditor:start */
-            selectParentElement,
-            /* wwEditor:end */
+            openEntry,
+            goUp,
+            renameEntry,
+            removeEntry,
         };
     },
 };
 </script>
 
-<style lang="scss" scoped>
-.ww-file-upload {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    position: relative;
-
-    &__input {
-        opacity: 0;
-        background: rgba(0, 0, 0, 0);
-        border: 0;
-        bottom: -1px;
-        font-size: 0;
-        height: 1px;
-        left: 0;
-        outline: none;
-        padding: 0;
-        position: absolute;
-        right: 0;
-        width: 100%;
-    }
-
-    &__dropzone {
-        position: relative;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        background-color: v-bind('safeDropzoneBackground');
-        border: v-bind('safeDropzoneBorderWidth') v-bind('safeDropzoneBorderStyle') v-bind('safeDropzoneBorderColor');
-        border-radius: v-bind('safeDropzoneBorderRadius');
-        padding: v-bind('safeDropzonePadding');
-        min-height: v-bind('safeDropzoneMinHeight');
-        cursor: v-bind('isEditing ? "unset" : "pointer"');
-        transition: all 0.3s ease;
-        isolation: isolate;
-
-        &:hover {
-            border-color: v-bind('safeDropzoneBorderColor');
-            background-color: v-bind('safeDropzoneBackgroundHover');
-        }
-    }
-
-    &--has-files &__dropzone {
-        margin-bottom: 16px;
-    }
-
-    &__content {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        width: 100%;
-        pointer-events: none;
-        position: relative;
-        z-index: 2;
-
-        &--top {
-            flex-direction: column;
-        }
-
-        &--right {
-            flex-direction: row-reverse;
-            justify-content: center;
-            text-align: right;
-        }
-
-        &--bottom {
-            flex-direction: column-reverse;
-        }
-
-        &--left {
-            flex-direction: row;
-            justify-content: center;
-            text-align: left;
-        }
-    }
-
-    &__text {
-        display: flex;
-        flex-direction: column;
-        pointer-events: none;
-    }
-
-    &__icon {
-        font-size: v-bind('uploadIconSize');
-        color: v-bind('uploadIconColor');
-        width: 1em;
-        height: 1em;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-shrink: 0;
-        pointer-events: none;
-        margin: v-bind('uploadIconMargin');
-
-        > :deep(svg) {
-            width: 100%;
-            height: 100%;
-        }
-    }
-
-    &__info {
-        display: block;
-    }
-
-    &--dragging {
-        .ww-file-upload__dropzone {
-            background-color: v-bind('safeDropzoneBackgroundDragging');
-        }
-    }
-
-    &--disabled {
-        opacity: 0.6;
-        pointer-events: none;
-
-        .ww-file-upload__dropzone {
-            cursor: not-allowed;
-            background-color: v-bind('safeDropzoneBackground');
-        }
-    }
-
-    &--readonly {
-        .ww-file-upload__dropzone {
-            cursor: default;
-            background-color: v-bind('safeDropzoneBackground');
-        }
-    }
-
-    &__hover-circle {
-        position: absolute;
-        border-radius: 50%;
-        pointer-events: none;
-        z-index: -1;
-        transform: translate(-50%, -50%);
-        transition: opacity 0.3s ease-out, transform 0.3s ease-out;
-        will-change: transform, opacity;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        backface-visibility: hidden;
-    }
-
-    &__preview-modal-backdrop {
-        position: fixed;
-        inset: 0;
-        z-index: 9999;
-        background: rgba(15, 23, 42, 0.55);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 24px;
-    }
-
-    &__preview-modal {
-        width: min(980px, 100%);
-        max-height: min(85vh, 920px);
-        background: #fff;
-        border-radius: 12px;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-    }
-    &__preview-modal-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 10px 14px;
-        border-bottom: 1px solid #e2e8f0;
-    }
-    &__preview-modal-title {
-        font-size: 14px;
-        font-weight: 600;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-        overflow: hidden;
-    }
-    &__preview-modal-close {
-        border: none;
-        background: transparent;
-        font-size: 18px;
-        cursor: pointer;
-    }
-    &__preview-modal-body {
-        padding: 12px;
-        overflow: auto;
-        min-height: 240px;
-    }
-    &__preview-image,
-    &__preview-iframe {
-        width: 100%;
-        min-height: 60vh;
-        border: none;
-    }
-    &__preview-text {
-        margin: 0;
-        white-space: pre-wrap;
-        font-size: 13px;
-        color: #334155;
-    }
-}
+<style scoped>
+.explorer { border: 1px solid #d1d5db; border-radius: 8px; padding: 12px; background: #fff; }
+.toolbar { display: flex; gap: 8px; margin-bottom: 8px; }
+.path { font-size: 12px; color: #6b7280; margin-bottom: 8px; }
+.list { border: 1px solid #e5e7eb; border-radius: 6px; min-height: 160px; }
+.item { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-bottom: 1px solid #f3f4f6; }
+.item:last-child { border-bottom: none; }
+.item.nav { cursor: pointer; color: #2563eb; }
+.name { cursor: pointer; }
+.actions { display: flex; gap: 6px; }
+.hidden { display: none; }
+.is-disabled { opacity: 0.7; }
 </style>
