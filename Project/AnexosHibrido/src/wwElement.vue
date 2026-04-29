@@ -998,8 +998,8 @@ export default {
     }
 
     &__add-tile {
-        width: 48px;
-        height: 48px;
+        width: v-bind('content?.fileTileWidth || "120px"');
+        height: v-bind('content?.fileTileHeight || "120px"');
         border: 1px dashed v-bind('safeDropzoneBorderColor');
         border-radius: 6px;
         background-color: v-bind('safeDropzoneBackground');

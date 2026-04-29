@@ -89,6 +89,8 @@ export default {
                 isCollapsible: true,
                 properties: [
                     'fileListTitle',
+                    'fileTileWidth',
+                    'fileTileHeight',
                     'fileItemBackground',
                     'fileItemBorderColor',
                     'fileItemBorderRadius',
@@ -878,6 +880,38 @@ export default {
         },
 
         // ======== FILE LIST PROPERTIES ========
+        fileTileWidth: {
+            label: { en: 'Tile width' },
+            type: 'Length',
+            section: 'style',
+            options: {
+                unitChoices: [
+                    { value: 'px', label: 'px', min: 40, max: 500 },
+                    { value: '%', label: '%', min: 10, max: 100 },
+                ],
+            },
+            defaultValue: '120px',
+            classes: true,
+            states: true,
+            responsive: true,
+            bindable: true,
+        },
+        fileTileHeight: {
+            label: { en: 'Tile height' },
+            type: 'Length',
+            section: 'style',
+            options: {
+                unitChoices: [
+                    { value: 'px', label: 'px', min: 40, max: 500 },
+                    { value: 'vh', label: 'vh', min: 5, max: 80 },
+                ],
+            },
+            defaultValue: '120px',
+            classes: true,
+            states: true,
+            responsive: true,
+            bindable: true,
+        },
         fileItemBackground: {
             label: { en: 'Background color' },
             type: 'Color',
