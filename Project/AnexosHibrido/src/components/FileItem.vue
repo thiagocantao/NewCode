@@ -273,17 +273,19 @@ export default {
     }
 
     &__info {
-        flex: 1;
-        min-width: 0;
+        width: v-bind('content?.fileTileWidth || "120px"');
+        height: v-bind('content?.fileTileHeight || "120px"');
         position: relative;
         z-index: 1;
         display: flex;
+        flex-direction: column;
         align-items: center;
+        justify-content: center;
         gap: 10px;
     }
     &__preview {
-        width: 48px;
-        height: 48px;
+        width: 100%;
+        height: calc(100% - 30px);
         border: 1px solid #e5e7eb;
         border-radius: 6px;
         background: #f8fafc;
@@ -303,9 +305,11 @@ export default {
         cursor: not-allowed;
     }
     &__meta {
+        width: 100%;
         min-width: 0;
         display: flex;
         flex-direction: column;
+        align-items: center;
     }
     &__thumb {
         width: 100%;
@@ -323,6 +327,8 @@ export default {
         font-size: v-bind('content?.fileNameFontSize || "14px"');
         font-weight: v-bind('content?.fileNameFontWeight || 500');
         margin-bottom: 4px;
+        width: 100%;
+        text-align: center;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
