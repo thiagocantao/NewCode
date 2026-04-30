@@ -16,17 +16,19 @@
         ></div>
 
         <div class="ww-file-item__info">
-            <button
-                type="button"
-                class="ww-file-item__preview"
-                :disabled="isDisabled"
-                @click="$emit('preview')"
-                :aria-label="`Preview ${file.name}`"
-                :title="previewHint || null"
-                :class="{ 'ww-file-item__preview--not-allowed': !canPreview }"
-            >
-                <img v-if="isImage && previewUrl" :src="previewUrl" alt="" class="ww-file-item__thumb" />
-                <i v-else :class="['ww-file-item__file-icon', fileIcon]" aria-hidden="true"></i>
+            <div class="ww-file-item__preview-wrap">
+                <button
+                    type="button"
+                    class="ww-file-item__preview"
+                    :disabled="isDisabled"
+                    @click="$emit('preview')"
+                    :aria-label="`Preview ${file.name}`"
+                    :title="previewHint || null"
+                    :class="{ 'ww-file-item__preview--not-allowed': !canPreview }"
+                >
+                    <img v-if="isImage && previewUrl" :src="previewUrl" alt="" class="ww-file-item__thumb" />
+                    <i v-else :class="['ww-file-item__file-icon', fileIcon]" aria-hidden="true"></i>
+                </button>
 
                 <div class="ww-file-item__actions">
                     <button
@@ -51,8 +53,7 @@
                         <i class="fa-regular fa-trash-can" aria-hidden="true"></i>
                     </button>
                 </div>
-            </button>
-
+            </div>
             <div class="ww-file-item__meta">
                 <div class="ww-file-item__name" :style="fileNameStyles">{{ file.name }}</div>
                 <div class="ww-file-item__details" :style="fileDetailsStyles" v-if="showFileInfo">
@@ -211,9 +212,15 @@ export default {
         gap: 10px;
     }
 
-    &__preview {
+    &__preview-wrap {
         width: 100%;
         height: calc(100% - 30px);
+        position: relative;
+    }
+
+    &__preview {
+        width: 100%;
+        height: 100%;
         border: 1px solid #e5e7eb;
         border-radius: 6px;
         background: #f8fafc;
@@ -266,7 +273,7 @@ export default {
         z-index: 2;
     }
 
-    &__preview:hover &__actions {
+    &__preview-wrap:hover &__actions {
         opacity: 1;
         pointer-events: auto;
     }
