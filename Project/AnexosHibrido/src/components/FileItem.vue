@@ -98,8 +98,19 @@ export default {
 
         
 
-        const resolvedName = computed(() => props.file?.name || props.file?.fileName || props.file?.FileName || props.file?.originalName || '');
-        const resolvedType = computed(() => (props.file?.type || props.file?.mimeType || props.file?.contentType || props.file?.ContentType || '').toLowerCase());
+        const resolvedName = computed(
+            () => props.file?.name || props.file?.fileName || props.file?.FileName || props.file?.originalName || ''
+        );
+        const resolvedType = computed(() =>
+            (
+                props.file?.type ||
+                props.file?.mimeType ||
+                props.file?.contentType ||
+                props.file?.ContentType ||
+                props.file?.mime_type ||
+                ''
+            ).toLowerCase()
+        );
 
         const formattedSize = computed(() => {
             const n = props.file.size || 0;
@@ -117,8 +128,28 @@ export default {
         });
 
         const previewUrl = ref(null);
+        const getDataUrlFromBase64 = value => {
+            if (!value || typeof value !== 'string') return null;
+            if (value.startsWith('data:')) return value;
+            const sanitized = value.replace(/\s/g, '');
+            if (!sanitized) return null;
+            const mime = resolvedType.value || 'image/png';
+            return `data:${mime};base64,${sanitized}`;
+        };
+
         const updatePreviewUrl = () => {
-            previewUrl.value = props.file?.previewUrl || props.file?.url || null;
+            const base64Preview =
+                getDataUrlFromBase64(props.file?.base64) ||
+                getDataUrlFromBase64(props.file?.base64Data) ||
+                getDataUrlFromBase64(props.file?.Base64Data);
+            previewUrl.value =
+                props.file?.previewUrl ||
+                props.file?.url ||
+                props.file?.downloadUrl ||
+                props.file?.downloadURL ||
+                props.file?.thumbnailUrl ||
+                base64Preview ||
+                null;
             const localFile = props.file instanceof File ? props.file : props.file?.file;
             if (!previewUrl.value && localFile instanceof File && isImage.value) {
                 previewUrl.value = URL.createObjectURL(localFile);
@@ -145,7 +176,22 @@ export default {
         });
 
         onMounted(updatePreviewUrl);
-        watch(() => [props.file?.previewUrl, props.file?.url, resolvedName.value, resolvedType.value], updatePreviewUrl, { immediate: true });
+        watch(
+            () => [
+                props.file?.previewUrl,
+                props.file?.url,
+                props.file?.downloadUrl,
+                props.file?.downloadURL,
+                props.file?.thumbnailUrl,
+                props.file?.base64,
+                props.file?.base64Data,
+                props.file?.Base64Data,
+                resolvedName.value,
+                resolvedType.value,
+            ],
+            updatePreviewUrl,
+            { immediate: true }
+        );
         onBeforeUnmount(() => {
             if (previewUrl.value && previewUrl.value.startsWith('blob:')) URL.revokeObjectURL(previewUrl.value);
         });
