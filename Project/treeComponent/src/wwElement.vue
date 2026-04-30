@@ -10,10 +10,10 @@
                 :aria-label="translatedTexts.add"
                 :title="translatedTexts.add"
             >
-                <span class="material-symbols-outlined">add</span>
+                <i class="fa-solid fa-plus" aria-hidden="true"></i>
             </button>
             <div class="search-box">
-                <span class="material-symbols-outlined search-icon">search</span>
+                <i class="fa-solid fa-magnifying-glass search-icon" aria-hidden="true"></i>
                 <input
                     v-model="searchText"
                     class="search-input"
@@ -39,13 +39,15 @@
                     :aria-label="isExpanded(row.id) ? translatedTexts.collapse : translatedTexts.expand"
                     :title="isExpanded(row.id) ? translatedTexts.collapse : translatedTexts.expand"
                 >
-                    <span class="material-symbols-outlined">
-                        {{ row.hasChildren && isExpanded(row.id) ? 'folder_open' : 'folder' }}
-                    </span>
+                    <i
+                        class="fa-solid"
+                        :class="row.hasChildren && isExpanded(row.id) ? 'fa-angle-up' : 'fa-angle-down'"
+                        aria-hidden="true"
+                    ></i>
                 </button>
                 <span v-else class="toggle-placeholder"></span>
 
-                <span v-if="row.icon" class="material-symbols-outlined node-icon">{{ row.icon }}</span>
+                <i v-if="row.icon" class="fa-solid node-icon" :class="normalizeNodeIconClass(row.icon)" aria-hidden="true"></i>
                 <template v-if="isRowBeingEdited(row)">
                     <div class="node-label-edit" @click.stop>
                         <input
@@ -64,7 +66,7 @@
                             :aria-label="translatedTexts.cancel"
                             @click.stop="cancelRenameEdit"
                         >
-                            <span class="material-symbols-outlined node-icon">close</span>
+                            <i class="fa-solid fa-xmark node-icon" aria-hidden="true"></i>
                         </button>
                         <button
                             class="icon-button row-action-button row-action-button--confirm"
@@ -74,7 +76,7 @@
                             :aria-label="translatedTexts.confirm"
                             @click.stop="confirmRenameEdit(row)"
                         >
-                            <span class="material-symbols-outlined node-icon">check</span>
+                            <i class="fa-solid fa-check node-icon" aria-hidden="true"></i>
                         </button>
                     </div>
                 </template>
@@ -90,7 +92,7 @@
                         :aria-label="translatedTexts.addChild"
                         @click.stop="onAddChild(row.raw)"
                     >
-                        <span class="material-symbols-outlined node-icon">add</span>
+                        <i class="fa-solid fa-plus node-icon" aria-hidden="true"></i>
                     </button>
                     <button
                         v-if="row.canRename"
@@ -101,7 +103,7 @@
                         :aria-label="translatedTexts.rename"
                         @click.stop="startRenameEdit(row)"
                     >
-                        <span class="material-symbols-outlined node-icon">edit</span>
+                        <i class="fa-solid fa-pen node-icon" aria-hidden="true"></i>
                     </button>
                     <button
                         v-if="row.canDelete && !isRowBeingEdited(row)"
@@ -112,7 +114,7 @@
                         :aria-label="translatedTexts.delete"
                         @click.stop="onDelete(row.raw)"
                     >
-                        <span class="material-symbols-outlined node-icon">delete</span>
+                        <i class="fa-solid fa-trash node-icon" aria-hidden="true"></i>
                     </button>
                 </div>
             </div>
@@ -476,6 +478,12 @@ import { translatePhrase } from './translation';
         },
         hideContextActions() {
             this.contextNodeId = null;
+        },
+        normalizeNodeIconClass(icon) {
+            const value = `${icon || ''}`.trim();
+            if (!value) return '';
+            if (value.includes('fa-')) return value;
+            return `fa-${value}`;
         },
         escapeRegex(value) {
             return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -871,7 +879,7 @@ import { translatePhrase } from './translation';
         opacity: 0.5;
     }
 
-    .material-symbols-outlined {
+    .fa-solid {
         font-size: 18px;
         line-height: 1;
     }
