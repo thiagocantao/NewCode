@@ -213,6 +213,15 @@ export default {
             bindable: true,
             defaultValue: '#e7f1ff',
         },
+        showToolbar: {
+            label: {
+                en: 'Show search/add toolbar',
+                pt: 'Exibir barra de busca/adicionar',
+            },
+            type: 'boolean',
+            bindable: true,
+            defaultValue: true,
+        },
         readOnly: {
             label: {
                 en: 'Read only',
