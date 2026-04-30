@@ -38,6 +38,23 @@ export default {
             bindable: true,
             defaultValue: [],
         },
+        columns: {
+            label: { en: 'Columns (JSON)' },
+            type: 'array',
+            bindable: true,
+            defaultValue: [],
+            options: {
+                item: {
+                    type: 'object',
+                    defaultValue: {
+                        field: 'label',
+                        title: 'Label',
+                        position: 1,
+                        flex: 1,
+                    },
+                },
+            },
+        },
         labelField: {
             label: { en: 'Label field' },
             type: 'text',
