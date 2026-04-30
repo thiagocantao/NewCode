@@ -14,6 +14,7 @@
                 backgroundColor: content.progressBarColor || '#EEEEEE',
             }"
         ></div>
+
         <div class="ww-file-item__info">
             <button
                 type="button"
@@ -54,9 +55,7 @@
                 <div class="ww-file-item__name" :style="fileNameStyles">{{ file.name }}</div>
                 <div class="ww-file-item__details" :style="fileDetailsStyles" v-if="showFileInfo">
                     <span>{{ formattedSize }}</span>
-                    <span v-if="status && status.uploadProgress !== undefined">
-                        • {{ `${Math.round(status.uploadProgress)}%` }}
-                    </span>
+                    <span v-if="status && status.uploadProgress !== undefined">• {{ `${Math.round(status.uploadProgress)}%` }}</span>
                 </div>
             </div>
         </div>
@@ -68,47 +67,21 @@ import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 export default {
     props: {
-        file: {
-            type: Object,
-            required: true,
-        },
-        status: {
-            type: Object,
-            required: true,
-        },
-        index: {
-            type: Number,
-            required: true,
-        },
-        isReadonly: {
-            type: Boolean,
-            default: false,
-        },
-        isDisabled: {
-            type: Boolean,
-            default: false,
-        },
-        canPreview: {
-            type: Boolean,
-            default: true,
-        },
-        previewHint: {
-            type: String,
-            default: '',
-        },
+        file: { type: Object, required: true },
+        status: { type: Object, required: true },
+        index: { type: Number, required: true },
+        isReadonly: { type: Boolean, default: false },
+        isDisabled: { type: Boolean, default: false },
+        canPreview: { type: Boolean, default: true },
+        previewHint: { type: String, default: '' },
     },
     emits: ['remove', 'download', 'preview'],
     setup(props) {
         const fileUpload = inject('_wwFileUpload', {
             files: computed(() => []),
             content: computed(() => ({})),
-            isDisabled: computed(() => false),
-            isReadonly: computed(() => false),
-            isSingleMode: computed(() => true),
-            acceptedTypes: computed(() => ''),
         });
 
-        const filesCount = computed(() => fileUpload.files.value.length);
         const content = computed(() => fileUpload.content?.value || {});
         const showFileInfo = computed(() => content.value?.showFileInfo);
 
@@ -119,8 +92,6 @@ export default {
             padding: content.value?.fileItemPadding || '12px',
             margin: content.value?.fileItemMargin || '0 0 8px 0',
             boxShadow: content.value?.fileItemShadow || '0 2px 4px rgba(0, 0, 0, 0.05)',
-            position: 'relative',
-            overflow: 'hidden',
         }));
 
         const fileNameStyles = computed(() => ({
@@ -129,52 +100,44 @@ export default {
             fontWeight: content.value?.fileNameFontWeight || 500,
             color: content.value?.fileNameColor || 'inherit',
         }));
-
-        const fileDetailsStyles = computed(() => ({
-            fontFamily: content.value?.fileDetailsFontFamily || 'inherit',
-            fontSize: content.value?.fileDetailsFontSize || '12px',
-            fontWeight: content.value?.fileDetailsFontWeight || 'normal',
-            color: content.value?.fileDetailsColor || '#888',
-        }));
-
+        const fileNameStyles = computed(() => ({ fontSize: content.value?.fileNameFontSize || '14px' }));
+        const fileDetailsStyles = computed(() => ({ fontSize: content.value?.fileDetailsFontSize || '12px' }));
         const actionButtonStyles = computed(() => ({
             width: content.value?.actionButtonSize || '28px',
             height: content.value?.actionButtonSize || '28px',
             backgroundColor: content.value?.actionButtonBackground || '#fff',
             color: content.value?.actionButtonColor || '#666',
             borderRadius: content.value?.actionButtonBorderRadius || '4px',
-            margin: content.value?.actionButtonMargin || '0 0 0 4px',
         }));
 
         const formattedSize = computed(() => {
             const fileSizeInBytes = props.file.size || 0;
-
             if (fileSizeInBytes === 0) return '0 B';
-
             const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-            const i = Math.floor(Math.log(fileSizeInBytes) / Math.log(1024));
-            return `${(fileSizeInBytes / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
+            const i = Math.floor(Math.log(n) / Math.log(1024));
+            return `${(n / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
         });
+
         const isImage = computed(() => {
-            const type = (props.file?.type || props.file?.mimeType || props.file?.contentType || '').toLowerCase();
+            const type = (props.file?.type || props.file?.mimeType || '').toLowerCase();
             if (type.startsWith('image/')) return true;
             const ext = (props.file?.name || '').split('.').pop()?.toLowerCase();
             return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(ext);
         });
 
         const previewUrl = ref(null);
-
         const updatePreviewUrl = () => {
             const currentValue = props.file?.previewUrl || props.file?.url || null;
             if (currentValue) {
                 previewUrl.value = currentValue;
                 return;
             }
+
             const localFile = props.file instanceof File ? props.file : props.file?.file;
-            if (localFile instanceof File && isImage.value) {
+            if (!previewUrl.value && localFile instanceof File && isImage.value) {
                 previewUrl.value = URL.createObjectURL(localFile);
-                return;
             }
+
             previewUrl.value = null;
         };
 
@@ -195,21 +158,13 @@ export default {
             updatePreviewUrl();
         });
 
-        watch(
-            () => [props.file?.previewUrl, props.file?.url, props.file?.name, props.file?.type],
-            () => updatePreviewUrl(),
-            { immediate: true }
-        );
-
         onBeforeUnmount(() => {
-            if (previewUrl.value && previewUrl.value.startsWith('blob:')) {
-                URL.revokeObjectURL(previewUrl.value);
-            }
+            if (previewUrl.value && previewUrl.value.startsWith('blob:')) URL.revokeObjectURL(previewUrl.value);
         });
 
         return {
-            formattedSize,
-            filesCount,
+            content,
+            showFileInfo,
             fileItemStyles,
             fileNameStyles,
             fileDetailsStyles,
@@ -236,9 +191,6 @@ export default {
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     transform-origin: center;
     position: relative;
-    z-index: 1;
-    backface-visibility: hidden;
-    will-change: transform, opacity;
     overflow: hidden;
 
     &__progress {
@@ -247,21 +199,8 @@ export default {
         left: 0;
         height: 100%;
         z-index: 0;
-        transition: width 1.2s ease;
+        transition: width 0.4s ease;
         opacity: 0.2;
-    }
-
-    &:hover {
-        border-color: v-bind('content?.fileItemHoverBorderColor || content?.fileItemBorderColor || "#ddd"');
-        background-color: v-bind('content?.fileItemHoverBackground || content?.fileItemBackground || "#fff"');
-        box-shadow: v-bind(
-            'content?.fileItemHoverShadow || content?.fileItemShadow || "0 2px 4px rgba(0, 0, 0, 0.05)"'
-        );
-    }
-
-    &--disabled {
-        opacity: 0.6;
-        pointer-events: none;
     }
 
     &__info {
@@ -284,6 +223,7 @@ export default {
         justify-content: center;
         flex-shrink: 0;
         cursor: pointer;
+        position: relative;
 
         &:disabled {
             opacity: 0.7;
@@ -294,17 +234,20 @@ export default {
     &__preview--not-allowed {
         cursor: not-allowed;
     }
+
     &__meta {
         min-width: 0;
         display: flex;
         flex-direction: column;
     }
+
     &__thumb {
         width: 100%;
         height: 100%;
         object-fit: cover;
         border-radius: 6px;
     }
+
     &__file-icon {
         font-size: 30px;
         color: #64748b;
@@ -348,28 +291,16 @@ export default {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: v-bind('content?.actionButtonSize || "28px"');
-        height: v-bind('content?.actionButtonSize || "28px"');
-        border-radius: v-bind('content?.actionButtonBorderRadius || "4px"');
-        border: 1px solid v-bind('content?.actionButtonBorderColor || content?.fileItemBorderColor || "#eee"');
-        background-color: v-bind('content?.actionButtonBackground || "#fff"');
-        color: v-bind('content?.actionButtonColor || "#666"');
-        margin-left: v-bind('(content?.actionButtonMargin || "0 0 0 4px").split(" ")[3] || "4px"');
+        border: 1px solid #d1d5db;
+        background: #fff;
+        color: #374151;
         cursor: pointer;
-        transition: all 0.2s ease;
-
-        &:hover:not(:disabled) {
-            border-color: v-bind(
-                'content?.actionButtonHoverBorderColor || content?.fileItemHoverBorderColor || "#ddd"'
-            );
-            background-color: v-bind('content?.actionButtonHoverBackground || "#f8f8f8"');
-            transform: scale(1.05);
-        }
 
         &:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
+    }
 
         &--remove:hover:not(:disabled) {
             color: v-bind('content?.actionButtonRemoveHoverColor || content?.progressBarColor || "#999"');
@@ -377,7 +308,6 @@ export default {
         }
     }
 }
-</style>
 
 <style scoped>
 .ww-file-item__file-icon.fa-file-pdf { color: #e53935; }
