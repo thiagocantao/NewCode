@@ -25,8 +25,31 @@
                 :class="{ 'ww-file-item__preview--not-allowed': !canPreview }"
             >
                 <img v-if="isImage && previewUrl" :src="previewUrl" alt="" class="ww-file-item__thumb" />
-                <i v-else :class="['ww-file-item__file-icon', fileIcon]"></i>
+                <i v-else :class="['ww-file-item__file-icon', fileIcon]" aria-hidden="true"></i>
             </button>
+                <div class="ww-file-item__actions">
+                    <button
+                        type="button"
+                        class="ww-file-item__btn"
+                        :disabled="isDisabled"
+                        @click.stop="$emit('download')"
+                        :style="actionButtonStyles"
+                        aria-label="Download file"
+                    >
+                        <i class="fa-solid fa-download" aria-hidden="true"></i>
+                    </button>
+                    <button
+                        v-if="!isReadonly"
+                        type="button"
+                        class="ww-file-item__btn ww-file-item__btn--remove"
+                        :disabled="isDisabled || isReadonly"
+                        @click.stop="$emit('remove')"
+                        :style="actionButtonStyles"
+                        aria-label="Remove file"
+                    >
+                        <i class="fa-regular fa-trash-can" aria-hidden="true"></i>
+                    </button>
+                </div>
             <div class="ww-file-item__meta">
                 <div class="ww-file-item__name" :style="fileNameStyles">{{ file.name }}</div>
                 <div class="ww-file-item__details" :style="fileDetailsStyles" v-if="showFileInfo">
@@ -36,29 +59,6 @@
                     </span>
                 </div>
             </div>
-        </div>
-        <div class="ww-file-item__actions">
-            <button
-                type="button"
-                class="ww-file-item__btn"
-                :disabled="isDisabled"
-                @click="$emit('download')"
-                :style="actionButtonStyles"
-                aria-label="Download file"
-            >
-                <span class="material-symbols-outlined">download</span>
-            </button>
-            <button
-                v-if="!isReadonly"
-                type="button"
-                class="ww-file-item__btn ww-file-item__btn--remove"
-                :disabled="isDisabled || isReadonly"
-                @click="$emit('remove')"
-                :style="actionButtonStyles"
-                aria-label="Remove file"
-            >
-                <div class="icon" v-html="removeIcon"></div>
-            </button>
         </div>
     </li>
 </template>
@@ -180,23 +180,18 @@ export default {
 
         const fileIcon = computed(() => {
             const ext = (props.file?.name || '').split('.').pop()?.toLowerCase();
-            if (ext === 'pdf') return 'fa-solid fa-file-pdf';
-            if (['doc', 'docx'].includes(ext)) return 'fa-solid fa-file-word';
-            if (['xls', 'xlsx', 'csv'].includes(ext)) return 'fa-solid fa-file-excel';
-            if (['ppt', 'pptx'].includes(ext)) return 'fa-solid fa-file-powerpoint';
-            if (['txt', 'log'].includes(ext)) return 'fa-solid fa-file-lines';
-            return 'fa-solid fa-file';
+            if (ext === 'pdf') return 'fa-regular fa-file-pdf';
+            if (['doc', 'docx'].includes(ext)) return 'fa-regular fa-file-word';
+            if (['xls', 'xlsx', 'csv'].includes(ext)) return 'fa-regular fa-file-excel';
+            if (['ppt', 'pptx'].includes(ext)) return 'fa-regular fa-file-powerpoint';
+            if (['txt', 'log'].includes(ext)) return 'fa-regular fa-file-lines';
+            if (['zip', 'rar', '7z'].includes(ext)) return 'fa-regular fa-file-zipper';
+            if (['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(ext)) return 'fa-regular fa-file-video';
+            if (['mp3', 'wav', 'ogg', 'aac'].includes(ext)) return 'fa-regular fa-file-audio';
+            return 'fa-regular fa-file';
         });
 
-        const { getIcon } = wwLib.useIcons();
-        const removeIcon = ref(null);
-
-        onMounted(async () => {
-            try {
-                removeIcon.value = await getIcon('lucide/trash');
-            } catch (e) {
-                removeIcon.value = null;
-            }
+        onMounted(() => {
             updatePreviewUrl();
         });
 
@@ -221,7 +216,6 @@ export default {
             actionButtonStyles,
             content,
             showFileInfo,
-            removeIcon,
             isImage,
             previewUrl,
             fileIcon,
@@ -231,15 +225,13 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined');
-
 .ww-file-item {
     display: flex;
     align-items: center;
     padding: v-bind('content?.fileItemPadding || "12px"');
     border: 1px solid v-bind('content?.fileItemBorderColor || "#eee"');
     border-radius: v-bind('content?.fileItemBorderRadius || "6px"');
-    margin-bottom: 0;
+    margin-bottom: v-bind('(content?.fileItemMargin || "0 0 8px 0").split(" ")[2] || "8px"');
     background-color: v-bind('content?.fileItemBackground || "#fff"');
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     transform-origin: center;
@@ -273,19 +265,17 @@ export default {
     }
 
     &__info {
-        width: v-bind('content?.fileTileWidth || "120px"');
-        height: v-bind('content?.fileTileHeight || "120px"');
+        flex: 1;
+        min-width: 0;
         position: relative;
         z-index: 1;
         display: flex;
-        flex-direction: column;
         align-items: center;
-        justify-content: center;
         gap: 10px;
     }
     &__preview {
-        width: 100%;
-        height: calc(100% - 30px);
+        width: 48px;
+        height: 48px;
         border: 1px solid #e5e7eb;
         border-radius: 6px;
         background: #f8fafc;
@@ -305,11 +295,9 @@ export default {
         cursor: not-allowed;
     }
     &__meta {
-        width: 100%;
         min-width: 0;
         display: flex;
         flex-direction: column;
-        align-items: center;
     }
     &__thumb {
         width: 100%;
@@ -318,8 +306,7 @@ export default {
         border-radius: 6px;
     }
     &__file-icon {
-        font-family: 'Material Symbols Outlined';
-        font-size: 24px;
+        font-size: 30px;
         color: #64748b;
     }
 
@@ -327,8 +314,6 @@ export default {
         font-size: v-bind('content?.fileNameFontSize || "14px"');
         font-weight: v-bind('content?.fileNameFontWeight || 500');
         margin-bottom: 4px;
-        width: 100%;
-        text-align: center;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -341,17 +326,22 @@ export default {
     }
 
     &__actions {
+        position: absolute;
+        top: 6px;
+        right: 6px;
         display: flex;
         align-items: center;
-        margin-left: 12px;
-        opacity: 0.7;
+        gap: 4px;
+        opacity: 0;
+        pointer-events: none;
         transition: opacity 0.2s ease;
-        position: relative;
-        z-index: 1;
+        z-index: 2;
     }
 
-    &:hover &__actions {
+    &__preview:hover + &__actions,
+    &__actions:hover {
         opacity: 1;
+        pointer-events: auto;
     }
 
     &__btn {
@@ -385,24 +375,9 @@ export default {
             color: v-bind('content?.actionButtonRemoveHoverColor || content?.progressBarColor || "#999"');
             border-color: v-bind('content?.actionButtonRemoveHoverColor || content?.progressBarColor || "#999"');
         }
-
-        .icon {
-            width: 50%;
-            height: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            :deep(svg) {
-                width: 100% !important;
-                height: 100% !important;
-                display: block;
-            }
-        }
     }
 }
 </style>
-
 
 <style scoped>
 .ww-file-item__file-icon.fa-file-pdf { color: #e53935; }
