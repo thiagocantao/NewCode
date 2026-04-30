@@ -39,9 +39,11 @@
             </div>
             <div v-for="row in visibleRows" :key="`row-${row.id}`" class="tree-row"
                 :class="{ 'tree-row--selected': selectedNodeId === row.id, 'tree-row--drag-over': dropTargetRowId === row.id }"
-                :style="{ '--row-indent': `${row.depth * 16 + 8}px` }" :draggable="canDragRow(row)"
+                :draggable="canDragRow(row)"
                 @dragstart="onDragStart(row, $event)" @dragover="onDragOver(row, $event)" @drop="onDrop(row, $event)"
                 @dragend="onDragEnd" @click="onNodeClick(row)" @contextmenu.prevent.stop>
+                <span class="row-indent-spacer" :style="{ width: `${row.depth * 16 + 8}px` }"></span>
+
                 <button
                     v-if="row.showToggle"
                     class="toggle-button"
@@ -107,9 +109,9 @@
                     <span v-else class="node-label" v-html="highlightLabel(row.label)"></span>
                 </template>
 
-                <div v-if="selectedNodeId === row.id && !isReadOnly && !isEditingAnyNode" class="row-actions" @click.stop>
+                <div class="row-actions" :class="{ 'row-actions--visible': (selectedNodeId === row.id) && !isReadOnly && !isEditingAnyNode }" @click.stop>
                     <button
-                        v-if="row.canAddChild && !isRowBeingEdited(row)"
+                        v-if="row.canAddChild && !isRowBeingEdited(row) && !isReadOnly && !isEditingAnyNode"
                         class="icon-button row-action-button"
                         type="button"
                         :style="iconButtonStyle"
@@ -120,7 +122,7 @@
                         <i class="fa fa-plus node-icon" aria-hidden="true"></i>
                     </button>
                     <button
-                        v-if="row.canRename"
+                        v-if="row.canRename && !isReadOnly && !isEditingAnyNode"
                         class="icon-button row-action-button"
                         type="button"
                         :style="iconButtonStyle"
@@ -131,7 +133,7 @@
                         <i class="fa fa-pencil node-icon" aria-hidden="true"></i>
                     </button>
                     <button
-                        v-if="row.canDelete && !isRowBeingEdited(row)"
+                        v-if="row.canDelete && !isRowBeingEdited(row) && !isReadOnly && !isEditingAnyNode"
                         class="icon-button row-action-button"
                         type="button"
                         :style="iconButtonStyle"
@@ -207,9 +209,6 @@ import { translatePhrase } from './translation';
         isReadOnly() {
             return this.content.readOnly === true;
         },
-        isRenameIconVisible() {
-            return this.content.showRenameIcon === true;
-        },
         isEditingAnyNode() {
             return !!this.editingNodeId;
         },
@@ -226,8 +225,8 @@ import { translatePhrase } from './translation';
                 order: this.content.orderField || 'order',
                 icon: this.content.iconField || '',
                 type: this.content.typeField || 'type',
-                renameVisible: this.content.renameIconVisibleField || this.content.renameVisibleField || '',
-                deleteVisible: this.content.deleteIconVisibleField || this.content.deleteVisibleField || '',
+                renameVisible: this.content.renameIconVisibleField || '',
+                deleteVisible: this.content.deleteIconVisibleField || '',
             };
         },
         normalizedColumns() {
@@ -416,6 +415,8 @@ import { translatePhrase } from './translation';
                 '--icon-button-hover-bg': this.content.iconButtonHoverBackground || '#e2e6ea',
                 '--icon-color': this.content.iconButtonColor || '#263238',
                 '--icon-hover-color': this.content.iconButtonHoverColor || '#0d6efd',
+                '--node-icon-color': this.content.nodeIconColor || '#777',
+                '--node-icon-bg': this.content.nodeIconBackground || 'transparent',
             };
         },
         toggleButtonStyle() {
@@ -628,7 +629,6 @@ import { translatePhrase } from './translation';
         },
         onRename(node, nextLabel = null) {
             if (this.isReadOnly) return;
-            if (!this.isRenameIconVisible) return;
             if (!this.canRenameNode(node)) return;
 
             const payload = node && typeof node === 'object' ? { ...node } : {};
@@ -867,10 +867,6 @@ import { translatePhrase } from './translation';
             this.dropTargetRowId = null;
         },
         canRenameNode(node) {
-            if (!this.isRenameIconVisible) {
-                return false;
-            }
-
             const fieldName = `${this.fieldMap.renameVisible ?? ''}`.trim();
 
             if (!fieldName) {
@@ -1024,8 +1020,8 @@ import { translatePhrase } from './translation';
 
     .tree-header__indent,
     .toggle-placeholder {
-        width: 28px;
-        flex: 0 0 28px;
+        width: 36px;
+        flex: 0 0 36px;
     }
 
     .tree-header__icon-spacer {
@@ -1040,11 +1036,7 @@ import { translatePhrase } from './translation';
 
     
 
-    .toggle-button,
-    .toggle-placeholder {
-        margin-left: var(--row-indent, 8px);
-    }
-.tree-row:hover,
+    .tree-row:hover,
     .tree-row--selected,
     .tree-row--drag-over {
         background: var(--row-selected-bg);
@@ -1085,16 +1077,32 @@ import { translatePhrase } from './translation';
 
     .node-icon {
         font-size: 22px;
-        color: #777;
+        color: var(--node-icon-color);
+        background: var(--node-icon-bg);
+        border-radius: 4px;
     }
     .node-icon--placeholder {
         display: inline-block;
     }
 
 
+    .row-indent-spacer {
+        flex: 0 0 auto;
+    }
+
     .row-actions {
         display: inline-flex;
         gap: 4px;
+        width: 84px;
+        flex: 0 0 84px;
+        justify-content: flex-end;
+        visibility: hidden;
+        pointer-events: none;
+    }
+
+    .row-actions--visible {
+        visibility: visible;
+        pointer-events: auto;
     }
 
     .row-actions .row-action-button,
