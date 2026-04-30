@@ -4,7 +4,7 @@
         :class="{ 'ww-file-item--disabled': isDisabled }"
         :style="fileItemStyles"
         role="listitem"
-        :aria-label="`File: ${file.name}, Size: ${formattedSize}`"
+        :aria-label="`File: ${resolvedName || 'Attachment'}, Size: ${formattedSize}`"
     >
         <div
             v-if="status && status.uploadProgress !== undefined"
@@ -21,7 +21,7 @@
                 class="ww-file-item__preview"
                 :disabled="isDisabled"
                 @click="$emit('preview')"
-                :aria-label="`Preview ${file.name}`"
+                :aria-label="`Preview ${resolvedName || 'attachment'}`"
                 :title="previewHint || null"
                 :class="{ 'ww-file-item__preview--not-allowed': !canPreview }"
             >
@@ -54,7 +54,7 @@
             </button>
 
             <div class="ww-file-item__meta">
-                <div class="ww-file-item__name" :style="fileNameStyles">{{ file.name }}</div>
+                <div class="ww-file-item__name" :style="fileNameStyles">{{ resolvedName }}</div>
                 <div class="ww-file-item__details" :style="fileDetailsStyles" v-if="showFileInfo">
                     <span>{{ formattedSize }}</span>
                     <span v-if="status && status.uploadProgress !== undefined">• {{ `${Math.round(status.uploadProgress)}%` }}</span>
@@ -94,6 +94,11 @@ export default {
             height: content.value?.actionButtonSize || '28px',
         }));
 
+        
+
+        const resolvedName = computed(() => props.file?.name || props.file?.fileName || props.file?.FileName || props.file?.originalName || '');
+        const resolvedType = computed(() => (props.file?.type || props.file?.mimeType || props.file?.contentType || props.file?.ContentType || '').toLowerCase());
+
         const formattedSize = computed(() => {
             const n = props.file.size || 0;
             if (!n) return '0 B';
@@ -103,9 +108,9 @@ export default {
         });
 
         const isImage = computed(() => {
-            const type = (props.file?.type || props.file?.mimeType || '').toLowerCase();
+            const type = resolvedType.value;
             if (type.startsWith('image/')) return true;
-            const ext = (props.file?.name || '').split('.').pop()?.toLowerCase();
+            const ext = (resolvedName.value || '').split('.').pop()?.toLowerCase();
             return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(ext);
         });
 
@@ -119,7 +124,7 @@ export default {
         };
 
         const fileIcon = computed(() => {
-            const ext = (props.file?.name || '').split('.').pop()?.toLowerCase();
+            const ext = (resolvedName.value || '').split('.').pop()?.toLowerCase();
             if (ext === 'pdf') return 'fa fa-file-pdf-o';
             if (['doc', 'docx'].includes(ext)) return 'fa fa-file-word-o';
             if (['xls', 'xlsx', 'csv'].includes(ext)) return 'fa fa-file-excel-o';
@@ -129,12 +134,12 @@ export default {
         });
 
         onMounted(updatePreviewUrl);
-        watch(() => [props.file?.previewUrl, props.file?.url, props.file?.name, props.file?.type], updatePreviewUrl, { immediate: true });
+        watch(() => [props.file?.previewUrl, props.file?.url, resolvedName.value, resolvedType.value], updatePreviewUrl, { immediate: true });
         onBeforeUnmount(() => {
             if (previewUrl.value && previewUrl.value.startsWith('blob:')) URL.revokeObjectURL(previewUrl.value);
         });
 
-        return { content, showFileInfo, formattedSize, fileNameStyles, fileDetailsStyles, actionButtonStyles, isImage, previewUrl, fileIcon, fileItemStyles };
+        return { content, showFileInfo, formattedSize, fileNameStyles, fileDetailsStyles, actionButtonStyles, isImage, previewUrl, fileIcon, fileItemStyles, resolvedName };
     },
 };
 </script>

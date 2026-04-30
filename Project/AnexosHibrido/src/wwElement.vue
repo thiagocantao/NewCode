@@ -277,20 +277,23 @@ export default {
             if (!Array.isArray(value)) return [];
             return value
                 .map(item => {
-                    const name = item?.FileName || item?.fileName;
-                    const storageBucket = item?.StorageBucket || item?.storageBucket;
-                    const storagePath = item?.StoragePath || item?.storagePath;
-                    if (!name || !storageBucket || !storagePath) return null;
+                    const name = item?.FileName || item?.fileName || item?.name || item?.originalName;
+                    const storageBucket = item?.StorageBucket || item?.storageBucket || item?.bucket;
+                    const storagePath = item?.StoragePath || item?.storagePath || item?.path;
+                    const directUrl = item?.Url || item?.url || item?.signedUrl || null;
+                    if (!name || (!storageBucket && !storagePath && !directUrl)) return null;
                     const kind = getFileKind(name);
                     return {
-                        id: item?.AttachmentID || item?.attachmentId || `init-${storagePath}`,
+                        id: item?.AttachmentID || item?.attachmentId || item?.id || `init-${storagePath || name}`,
                         name,
                         size: Number(item?.SizeBytes || item?.size || 0),
                         type: item?.ContentType || item?.contentType || 'application/octet-stream',
                         mimeType: item?.ContentType || item?.contentType || 'application/octet-stream',
-                        attachmentId: item?.AttachmentID || item?.attachmentId || null,
-                        bucket: storageBucket,
-                        storagePath,
+                        attachmentId: item?.AttachmentID || item?.attachmentId || item?.id || null,
+                        bucket: storageBucket || null,
+                        storagePath: storagePath || '',
+                        url: directUrl,
+                        previewUrl: directUrl,
                         createdDate: item?.CreatedDate || null,
                         createdBy: item?.CreatedBy || null,
                         isImage: kind === 'image',
