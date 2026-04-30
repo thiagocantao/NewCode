@@ -944,7 +944,7 @@ import { translatePhrase } from './translation';
     .fa {
         font-size: 16px;
         line-height: 1;
-        font-weight: 400;
+        font-weight: 900;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
     }
