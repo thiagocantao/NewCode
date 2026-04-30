@@ -24,6 +24,19 @@
         </div>
 
         <div class="tree-manager__content">
+            <div v-if="normalizedColumns.length" class="tree-header">
+                <div class="tree-header__indent"></div>
+                <div v-if="showIconColumn" class="tree-header__icon-spacer"></div>
+                <div
+                    v-for="column in normalizedColumns"
+                    :key="`header-${column.field}-${column.position}`"
+                    class="tree-header__cell"
+                    :style="getColumnStyle(column)"
+                >
+                    {{ column.title }}
+                </div>
+                <div class="tree-header__actions-spacer"></div>
+            </div>
             <div v-for="row in visibleRows" :key="`row-${row.id}`" class="tree-row"
                 :class="{ 'tree-row--selected': selectedNodeId === row.id, 'tree-row--drag-over': dropTargetRowId === row.id }"
                 :style="{ paddingLeft: `${row.depth * 16 + 8}px` }" :draggable="canDragRow(row)"
@@ -46,6 +59,7 @@
                 <span v-else class="toggle-placeholder"></span>
 
                 <span v-if="row.icon" class="material-symbols-outlined node-icon">{{ row.icon }}</span>
+                <span v-else-if="showIconColumn" class="node-icon node-icon--placeholder"></span>
                 <template v-if="isRowBeingEdited(row)">
                     <div class="node-label-edit" @click.stop>
                         <input
@@ -78,7 +92,18 @@
                         </button>
                     </div>
                 </template>
-                <span v-else class="node-label" v-html="highlightLabel(row.label)"></span>
+                <template v-else>
+                    <template v-if="normalizedColumns.length">
+                        <div
+                            v-for="column in normalizedColumns"
+                            :key="`cell-${row.id}-${column.field}`"
+                            class="tree-cell"
+                            :style="getColumnStyle(column)"
+                            v-html="highlightCell(row, column.field)"
+                        ></div>
+                    </template>
+                    <span v-else class="node-label" v-html="highlightLabel(row.label)"></span>
+                </template>
 
                 <div v-if="selectedNodeId === row.id && !isReadOnly && !isEditingAnyNode" class="row-actions" @click.stop>
                     <button
@@ -202,6 +227,29 @@ import { translatePhrase } from './translation';
                 renameVisible: this.content.renameIconVisibleField || this.content.renameVisibleField || '',
                 deleteVisible: this.content.deleteIconVisibleField || this.content.deleteVisibleField || '',
             };
+        },
+        normalizedColumns() {
+            const source = Array.isArray(this.content.columns) ? this.content.columns : [];
+            return source
+                .filter(column => column && typeof column === 'object' && `${column.field ?? ''}`.trim())
+                .map(column => {
+                    const field = `${column.field}`.trim();
+                    const title = `${column.title ?? field}`.trim() || field;
+                    const position = Number(column.position);
+                    const width = typeof column.width === 'string' ? column.width.trim() : '';
+                    const flex = Number(column.flex);
+                    return {
+                        field,
+                        title,
+                        position: Number.isFinite(position) ? position : Number.MAX_SAFE_INTEGER,
+                        width,
+                        flex: Number.isFinite(flex) ? flex : null,
+                    };
+                })
+                .sort((a, b) => a.position - b.position);
+        },
+        showIconColumn() {
+            return this.visibleRows.some(row => !!row.icon);
         },
         allowedChildrenTypesSet() {
             const source = this.content.allowedChildrenTypes;
@@ -424,6 +472,24 @@ import { translatePhrase } from './translation';
             }
 
             return `${node?.[this.fieldMap.label] ?? ''}`;
+        },
+        getColumnStyle(column) {
+            const style = {};
+            if (column.width) {
+                style.flex = '0 0 auto';
+                style.width = column.width;
+            } else if (Number.isFinite(column.flex) && column.flex > 0) {
+                style.flex = `${column.flex} ${column.flex} 0`;
+                style.minWidth = 0;
+            } else {
+                style.flex = '1 1 0';
+                style.minWidth = 0;
+            }
+            return style;
+        },
+        highlightCell(row, field) {
+            const value = row?.raw?.[field];
+            return this.highlightLabel(value === undefined || value === null ? '' : `${value}`);
         },
         getNodeOrder(node, nodeId) {
             const fieldName = `${this.fieldMap.order ?? ''}`.trim();
@@ -933,6 +999,36 @@ import { translatePhrase } from './translation';
         padding-right: 8px;
         transition: background-color 0.2s ease;
     }
+    .tree-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 32px;
+        padding: 0 8px;
+        border-bottom: 1px solid #e9ecef;
+        font-weight: 600;
+        color: #495057;
+        position: sticky;
+        top: 0;
+        background: #fff;
+        z-index: 2;
+    }
+
+    .tree-header__indent,
+    .toggle-placeholder {
+        width: 28px;
+        flex: 0 0 28px;
+    }
+
+    .tree-header__icon-spacer {
+        width: 22px;
+        flex: 0 0 22px;
+    }
+
+    .tree-header__actions-spacer {
+        width: 84px;
+        flex: 0 0 84px;
+    }
 
     .tree-row:hover,
     .tree-row--selected,
@@ -940,14 +1036,21 @@ import { translatePhrase } from './translation';
         background: var(--row-selected-bg);
     }
 
-    .toggle-placeholder {
-        width: 28px;
-    }
-
     .node-label {
         white-space: nowrap;
         flex: 1;
         color: #555
+    }
+    .tree-header__cell,
+    .tree-cell {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+    }
+
+    .tree-cell {
+        color: #555;
     }
 
     .node-label-edit {
@@ -969,6 +1072,9 @@ import { translatePhrase } from './translation';
     .node-icon {
         font-size: 22px;
         color: #777;
+    }
+    .node-icon--placeholder {
+        display: inline-block;
     }
 
 
