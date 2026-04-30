@@ -120,11 +120,36 @@ export default {
             return `${(n / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
         });
 
+        const IMAGE_EXTENSIONS = new Set([
+            'apng', 'avif', 'bmp', 'cur', 'gif', 'heic', 'heif', 'ico', 'jfif', 'jpeg', 'jpg', 'pjpeg', 'pjp',
+            'png', 'svg', 'tif', 'tiff', 'webp',
+        ]);
+
+        const getExtension = value => {
+            if (!value || typeof value !== 'string') return '';
+            const sanitized = value.split('?')[0].split('#')[0];
+            const extension = sanitized.split('.').pop()?.toLowerCase();
+            return extension && extension !== sanitized.toLowerCase() ? extension : '';
+        };
+
         const isImage = computed(() => {
             const type = resolvedType.value;
             if (type.startsWith('image/')) return true;
-            const ext = (resolvedName.value || '').split('.').pop()?.toLowerCase();
-            return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(ext);
+            const dataUrl = props.file?.base64 || props.file?.base64Data || props.file?.Base64Data || '';
+            if (typeof dataUrl === 'string' && dataUrl.startsWith('data:image/')) return true;
+
+            const extensionCandidates = [
+                resolvedName.value,
+                props.file?.url,
+                props.file?.downloadUrl,
+                props.file?.downloadURL,
+                props.file?.previewUrl,
+                props.file?.thumbnailUrl,
+            ]
+                .map(getExtension)
+                .filter(Boolean);
+
+            return extensionCandidates.some(ext => IMAGE_EXTENSIONS.has(ext));
         });
 
         const previewUrl = ref(null);
