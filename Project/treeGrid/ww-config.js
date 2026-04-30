@@ -30,6 +30,17 @@ export default {
             action: 'clearSelectedNode',
             args: [],
         },
+        {
+            label: { en: 'Search nodes', pt: 'Buscar nós' },
+            action: 'searchNodes',
+            args: [
+                {
+                    name: 'text',
+                    type: 'text',
+                    label: { en: 'Search text', pt: 'Texto de busca' },
+                },
+            ],
+        },
     ],
     properties: {
         data: {

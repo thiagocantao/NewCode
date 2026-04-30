@@ -166,6 +166,9 @@ import { translatePhrase } from './translation';
             clearSelectedNode() {
                 this.clearSelectedNode();
             },
+            searchNodes(text) {
+                this.searchNodes(text);
+            },
         },
     },
     data() {
@@ -686,6 +689,9 @@ import { translatePhrase } from './translation';
             this.contextNodeId = null;
             this.selectedNodeId = null;
             this.setSelectedItemId?.(null);
+        },
+        searchNodes(text) {
+            this.searchText = `${text ?? ''}`;
         },
         onNodeClick(row) {
         if (this.isEditingAnyNode && this.editingNodeId !== row?.id) {
