@@ -128,16 +128,27 @@ export default {
         });
 
         const previewUrl = ref(null);
+        const getDataUrlFromBase64 = value => {
+            if (!value || typeof value !== 'string') return null;
+            if (value.startsWith('data:')) return value;
+            const sanitized = value.replace(/\s/g, '');
+            if (!sanitized) return null;
+            const mime = resolvedType.value || 'image/png';
+            return `data:${mime};base64,${sanitized}`;
+        };
+
         const updatePreviewUrl = () => {
+            const base64Preview =
+                getDataUrlFromBase64(props.file?.base64) ||
+                getDataUrlFromBase64(props.file?.base64Data) ||
+                getDataUrlFromBase64(props.file?.Base64Data);
             previewUrl.value =
                 props.file?.previewUrl ||
                 props.file?.url ||
                 props.file?.downloadUrl ||
                 props.file?.downloadURL ||
                 props.file?.thumbnailUrl ||
-                props.file?.base64 ||
-                props.file?.base64Data ||
-                props.file?.Base64Data ||
+                base64Preview ||
                 null;
             const localFile = props.file instanceof File ? props.file : props.file?.file;
             if (!previewUrl.value && localFile instanceof File && isImage.value) {
