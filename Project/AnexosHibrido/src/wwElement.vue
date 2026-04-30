@@ -59,6 +59,43 @@
             @change="handleFileSelection"
         />
     </div>
+
+    <div v-if="isPreviewModalOpen" class="ww-preview-modal__overlay" @click.self="closePreviewModal">
+        <div class="ww-preview-modal__content">
+            <div class="ww-preview-modal__actions">
+                <button type="button" class="ww-preview-modal__action-button" @click="downloadFileByIndex(previewIndex)">
+                    <span class="material-symbols-outlined" aria-hidden="true">download</span>
+                </button>
+                <button type="button" class="ww-preview-modal__action-button" @click="closePreviewModal">
+                    <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                </button>
+            </div>
+
+            <div class="ww-preview-modal__body">
+                <template v-if="previewFile && previewMode === 'direct' && previewFile.isImage">
+                    <img :src="previewSource" :alt="previewFile.name || 'Attachment preview'" class="ww-preview-modal__image" />
+                </template>
+
+                <template v-else-if="previewFile && previewMode === 'direct' && previewFile.isPdf">
+                    <iframe :src="previewSource" class="ww-preview-modal__iframe" title="PDF preview"></iframe>
+                </template>
+
+                <template v-else-if="previewFile && previewMode === 'direct' && previewFile.isTxt">
+                    <iframe :src="previewSource" class="ww-preview-modal__iframe" title="Text preview"></iframe>
+                </template>
+
+                <template v-else-if="previewFile && previewMode === 'office'">
+                    <iframe :src="previewSource" class="ww-preview-modal__iframe" title="Document preview"></iframe>
+                </template>
+
+                <template v-else>
+                    <div class="ww-preview-modal__not-viewable">{{ previewUnavailableMessage }}</div>
+                </template>
+            </div>
+
+            <div v-if="previewFile" class="ww-preview-modal__name">{{ previewFile.name }}</div>
+        </div>
+    </div>
 </template>
 
 <script>
@@ -109,6 +146,10 @@ export default {
         const circleEl = ref(null);
         const iconText = ref(null);
         const isProcessing = ref(false);
+        const isPreviewModalOpen = ref(false);
+        const previewIndex = ref(-1);
+        const previewSource = ref('');
+        const previewMode = ref('unsupported');
 
         const extensionsMessage = computed(() => props.content?.extensionsMessage || null);
         const maxFileMessage = computed(() => props.content?.maxFileMessage || null);
@@ -748,17 +789,27 @@ export default {
         const canPreviewFile = file => getPreviewMode(file) !== 'unsupported';
 
         const getPreviewHint = file => (canPreviewFile(file) ? '' : previewUnavailableMessage.value);
+        const previewFile = computed(() => fileList.value[previewIndex.value] || null);
+
+        const closePreviewModal = () => {
+            isPreviewModalOpen.value = false;
+            previewIndex.value = -1;
+            previewSource.value = '';
+            previewMode.value = 'unsupported';
+        };
 
         const previewFileByIndex = async index => {
             const file = fileList.value[index];
             if (!file) return;
-            const previewMode = getPreviewMode(file);
-            if (previewMode === 'unsupported') return;
+            const mode = getPreviewMode(file);
+            if (mode === 'unsupported') return;
             const url = await resolveFileUrl(file);
             if (!url) return;
-            const previewUrl =
-                previewMode === 'office' ? `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(url)}` : url;
-            window.open(previewUrl, '_blank', 'noopener,noreferrer');
+            previewMode.value = mode;
+            previewSource.value =
+                mode === 'office' ? `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(url)}` : url;
+            previewIndex.value = index;
+            isPreviewModalOpen.value = true;
         };
 
         const downloadFileByIndex = async index => {
@@ -902,6 +953,13 @@ export default {
             removeFile,
             downloadFileByIndex,
             previewFileByIndex,
+            isPreviewModalOpen,
+            previewFile,
+            previewSource,
+            previewMode,
+            previewIndex,
+            closePreviewModal,
+            previewUnavailableMessage,
             canPreviewFile,
             getPreviewHint,
             reorderFiles,
@@ -1115,6 +1173,82 @@ export default {
         will-change: transform, opacity;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         backface-visibility: hidden;
+    }
+}
+
+.ww-preview-modal {
+    &__overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        padding: 24px;
+    }
+
+    &__content {
+        position: relative;
+        width: min(1000px, 95vw);
+        max-height: 92vh;
+        background: #fff;
+        border-radius: 12px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    &__actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+
+    &__action-button {
+        width: 36px;
+        height: 36px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        background: #fff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+
+    &__body {
+        min-height: 240px;
+        max-height: calc(92vh - 120px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+    }
+
+    &__image,
+    &__iframe {
+        width: 100%;
+        height: 100%;
+        min-height: 240px;
+        border: 0;
+        object-fit: contain;
+    }
+
+    &__name {
+        font-size: 14px;
+        text-align: center;
+        color: #374151;
+        word-break: break-word;
+    }
+
+    &__not-viewable {
+        color: #6b7280;
+        padding: 24px;
+        text-align: center;
     }
 }
 </style>

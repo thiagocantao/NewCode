@@ -59,7 +59,7 @@
                 <div class="ww-file-item__name" :style="fileNameStyles">{{ resolvedName }}</div>
                 <div class="ww-file-item__details" :style="fileDetailsStyles" v-if="showFileInfo">
                     <span>{{ formattedSize }}</span>
-                    <span v-if="status && status.uploadProgress !== undefined">• {{ `${Math.round(status.uploadProgress)}%` }}</span>
+                    <span v-if="status && status.uploadProgress !== undefined">{{ `${Math.round(status.uploadProgress)}%` }}</span>
                 </div>
             </div>
         </div>
