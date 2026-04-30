@@ -10,10 +10,10 @@
                 :aria-label="translatedTexts.add"
                 :title="translatedTexts.add"
             >
-                <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                <i class="fa fa-plus" aria-hidden="true"></i>
             </button>
             <div class="search-box">
-                <i class="fa-solid fa-magnifying-glass search-icon" aria-hidden="true"></i>
+                <i class="fa fa-search search-icon" aria-hidden="true"></i>
                 <input
                     v-model="searchText"
                     class="search-input"
@@ -39,7 +39,7 @@
             </div>
             <div v-for="row in visibleRows" :key="`row-${row.id}`" class="tree-row"
                 :class="{ 'tree-row--selected': selectedNodeId === row.id, 'tree-row--drag-over': dropTargetRowId === row.id }"
-                :style="{ paddingLeft: `${row.depth * 16 + 8}px` }" :draggable="canDragRow(row)"
+                :style="{ '--row-indent': `${row.depth * 16 + 8}px` }" :draggable="canDragRow(row)"
                 @dragstart="onDragStart(row, $event)" @dragover="onDragOver(row, $event)" @drop="onDrop(row, $event)"
                 @dragend="onDragEnd" @click="onNodeClick(row)" @contextmenu.prevent.stop>
                 <button
@@ -53,14 +53,14 @@
                     :title="isExpanded(row.id) ? translatedTexts.collapse : translatedTexts.expand"
                 >
                     <i
-                        class="fa-solid"
+                        class="fa"
                         :class="row.hasChildren && isExpanded(row.id) ? 'fa-angle-up' : 'fa-angle-down'"
                         aria-hidden="true"
                     ></i>
                 </button>
                 <span v-else class="toggle-placeholder"></span>
 
-                <i v-if="row.icon" class="fa-solid node-icon" :class="normalizeNodeIconClass(row.icon)" aria-hidden="true"></i>
+                <i v-if="row.icon" class="fa node-icon" :class="normalizeNodeIconClass(row.icon)" aria-hidden="true"></i>
                 <span v-else-if="showIconColumn" class="node-icon node-icon--placeholder"></span>
                 <template v-if="isRowBeingEdited(row)">
                     <div class="node-label-edit" @click.stop>
@@ -80,7 +80,7 @@
                             :aria-label="translatedTexts.cancel"
                             @click.stop="cancelRenameEdit"
                         >
-                            <i class="fa-solid fa-xmark node-icon" aria-hidden="true"></i>
+                            <i class="fa fa-times node-icon" aria-hidden="true"></i>
                         </button>
                         <button
                             class="icon-button row-action-button row-action-button--confirm"
@@ -90,7 +90,7 @@
                             :aria-label="translatedTexts.confirm"
                             @click.stop="confirmRenameEdit(row)"
                         >
-                            <i class="fa-solid fa-check node-icon" aria-hidden="true"></i>
+                            <i class="fa fa-check node-icon" aria-hidden="true"></i>
                         </button>
                     </div>
                 </template>
@@ -117,7 +117,7 @@
                         :aria-label="translatedTexts.addChild"
                         @click.stop="onAddChild(row.raw)"
                     >
-                        <i class="fa-solid fa-plus node-icon" aria-hidden="true"></i>
+                        <i class="fa fa-plus node-icon" aria-hidden="true"></i>
                     </button>
                     <button
                         v-if="row.canRename"
@@ -128,7 +128,7 @@
                         :aria-label="translatedTexts.rename"
                         @click.stop="startRenameEdit(row)"
                     >
-                        <i class="fa-solid fa-pen node-icon" aria-hidden="true"></i>
+                        <i class="fa fa-pencil node-icon" aria-hidden="true"></i>
                     </button>
                     <button
                         v-if="row.canDelete && !isRowBeingEdited(row)"
@@ -139,7 +139,7 @@
                         :aria-label="translatedTexts.delete"
                         @click.stop="onDelete(row.raw)"
                     >
-                        <i class="fa-solid fa-trash node-icon" aria-hidden="true"></i>
+                        <i class="fa fa-trash node-icon" aria-hidden="true"></i>
                     </button>
                 </div>
             </div>
@@ -945,7 +945,7 @@ import { translatePhrase } from './translation';
         opacity: 0.5;
     }
 
-    .fa-solid {
+    .fa {
         font-size: 18px;
         line-height: 1;
     }
@@ -1038,7 +1038,13 @@ import { translatePhrase } from './translation';
         flex: 0 0 84px;
     }
 
-    .tree-row:hover,
+    
+
+    .toggle-button,
+    .toggle-placeholder {
+        margin-left: var(--row-indent, 8px);
+    }
+.tree-row:hover,
     .tree-row--selected,
     .tree-row--drag-over {
         background: var(--row-selected-bg);
