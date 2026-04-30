@@ -1,6 +1,6 @@
 <template>
     <div class="tree-manager" :style="containerStyle" @click="hideContextActions">
-        <div class="tree-manager__toolbar">
+        <div v-if="showToolbar" class="tree-manager__toolbar">
             <button
                 v-if="!isReadOnly"
                 class="icon-button"
@@ -211,6 +211,10 @@ import { translatePhrase } from './translation';
         },
         isReadOnly() {
             return this.content.readOnly === true;
+        },
+
+        showToolbar() {
+            return this.content.showToolbar !== false;
         },
         isEditingAnyNode() {
             return !!this.editingNodeId;
