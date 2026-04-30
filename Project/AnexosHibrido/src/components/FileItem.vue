@@ -25,7 +25,31 @@
                 :class="{ 'ww-file-item__preview--not-allowed': !canPreview }"
             >
                 <img v-if="isImage && previewUrl" :src="previewUrl" alt="" class="ww-file-item__thumb" />
-                <i v-else :class="['ww-file-item__file-icon', fileIcon]"></i>
+                <i v-else :class="['ww-file-item__file-icon', fileIcon]" aria-hidden="true"></i>
+
+                <div class="ww-file-item__actions">
+                    <button
+                        type="button"
+                        class="ww-file-item__btn"
+                        :disabled="isDisabled"
+                        @click.stop="$emit('download')"
+                        :style="actionButtonStyles"
+                        aria-label="Download file"
+                    >
+                        <i class="fa-solid fa-download" aria-hidden="true"></i>
+                    </button>
+                    <button
+                        v-if="!isReadonly"
+                        type="button"
+                        class="ww-file-item__btn ww-file-item__btn--remove"
+                        :disabled="isDisabled || isReadonly"
+                        @click.stop="$emit('remove')"
+                        :style="actionButtonStyles"
+                        aria-label="Remove file"
+                    >
+                        <i class="fa-regular fa-trash-can" aria-hidden="true"></i>
+                    </button>
+                </div>
             </button>
             <div class="ww-file-item__meta">
                 <div class="ww-file-item__name" :style="fileNameStyles">{{ file.name }}</div>
@@ -37,29 +61,6 @@
                 </div>
             </div>
         </div>
-        <div class="ww-file-item__actions">
-            <button
-                type="button"
-                class="ww-file-item__btn"
-                :disabled="isDisabled"
-                @click="$emit('download')"
-                :style="actionButtonStyles"
-                aria-label="Download file"
-            >
-                <span class="material-symbols-outlined">download</span>
-            </button>
-            <button
-                v-if="!isReadonly"
-                type="button"
-                class="ww-file-item__btn ww-file-item__btn--remove"
-                :disabled="isDisabled || isReadonly"
-                @click="$emit('remove')"
-                :style="actionButtonStyles"
-                aria-label="Remove file"
-            >
-                <div class="icon" v-html="removeIcon"></div>
-            </button>
-        </div>
     </li>
 </template>
 
@@ -68,47 +69,21 @@ import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 export default {
     props: {
-        file: {
-            type: Object,
-            required: true,
-        },
-        status: {
-            type: Object,
-            required: true,
-        },
-        index: {
-            type: Number,
-            required: true,
-        },
-        isReadonly: {
-            type: Boolean,
-            default: false,
-        },
-        isDisabled: {
-            type: Boolean,
-            default: false,
-        },
-        canPreview: {
-            type: Boolean,
-            default: true,
-        },
-        previewHint: {
-            type: String,
-            default: '',
-        },
+        file: { type: Object, required: true },
+        status: { type: Object, required: true },
+        index: { type: Number, required: true },
+        isReadonly: { type: Boolean, default: false },
+        isDisabled: { type: Boolean, default: false },
+        canPreview: { type: Boolean, default: true },
+        previewHint: { type: String, default: '' },
     },
     emits: ['remove', 'download', 'preview'],
     setup(props) {
         const fileUpload = inject('_wwFileUpload', {
             files: computed(() => []),
             content: computed(() => ({})),
-            isDisabled: computed(() => false),
-            isReadonly: computed(() => false),
-            isSingleMode: computed(() => true),
-            acceptedTypes: computed(() => ''),
         });
 
-        const filesCount = computed(() => fileUpload.files.value.length);
         const content = computed(() => fileUpload.content?.value || {});
         const showFileInfo = computed(() => content.value?.showFileInfo);
 
@@ -119,8 +94,6 @@ export default {
             padding: content.value?.fileItemPadding || '12px',
             margin: content.value?.fileItemMargin || '0 0 8px 0',
             boxShadow: content.value?.fileItemShadow || '0 2px 4px rgba(0, 0, 0, 0.05)',
-            position: 'relative',
-            overflow: 'hidden',
         }));
 
         const fileNameStyles = computed(() => ({
@@ -143,18 +116,16 @@ export default {
             backgroundColor: content.value?.actionButtonBackground || '#fff',
             color: content.value?.actionButtonColor || '#666',
             borderRadius: content.value?.actionButtonBorderRadius || '4px',
-            margin: content.value?.actionButtonMargin || '0 0 0 4px',
         }));
 
         const formattedSize = computed(() => {
             const fileSizeInBytes = props.file.size || 0;
-
             if (fileSizeInBytes === 0) return '0 B';
-
             const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
             const i = Math.floor(Math.log(fileSizeInBytes) / Math.log(1024));
             return `${(fileSizeInBytes / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
         });
+
         const isImage = computed(() => {
             const type = (props.file?.type || props.file?.mimeType || props.file?.contentType || '').toLowerCase();
             if (type.startsWith('image/')) return true;
@@ -170,41 +141,33 @@ export default {
                 previewUrl.value = currentValue;
                 return;
             }
+
             const localFile = props.file instanceof File ? props.file : props.file?.file;
             if (localFile instanceof File && isImage.value) {
                 previewUrl.value = URL.createObjectURL(localFile);
                 return;
             }
+
             previewUrl.value = null;
         };
 
         const fileIcon = computed(() => {
             const ext = (props.file?.name || '').split('.').pop()?.toLowerCase();
-            if (ext === 'pdf') return 'fa-solid fa-file-pdf';
-            if (['doc', 'docx'].includes(ext)) return 'fa-solid fa-file-word';
-            if (['xls', 'xlsx', 'csv'].includes(ext)) return 'fa-solid fa-file-excel';
-            if (['ppt', 'pptx'].includes(ext)) return 'fa-solid fa-file-powerpoint';
-            if (['txt', 'log'].includes(ext)) return 'fa-solid fa-file-lines';
-            return 'fa-solid fa-file';
+            if (ext === 'pdf') return 'fa-regular fa-file-pdf';
+            if (['doc', 'docx'].includes(ext)) return 'fa-regular fa-file-word';
+            if (['xls', 'xlsx', 'csv'].includes(ext)) return 'fa-regular fa-file-excel';
+            if (['ppt', 'pptx'].includes(ext)) return 'fa-regular fa-file-powerpoint';
+            if (['txt', 'log'].includes(ext)) return 'fa-regular fa-file-lines';
+            if (['zip', 'rar', '7z'].includes(ext)) return 'fa-regular fa-file-zipper';
+            if (['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(ext)) return 'fa-regular fa-file-video';
+            if (['mp3', 'wav', 'ogg', 'aac'].includes(ext)) return 'fa-regular fa-file-audio';
+            return 'fa-regular fa-file';
         });
 
-        const { getIcon } = wwLib.useIcons();
-        const removeIcon = ref(null);
-
-        onMounted(async () => {
-            try {
-                removeIcon.value = await getIcon('lucide/trash');
-            } catch (e) {
-                removeIcon.value = null;
-            }
-            updatePreviewUrl();
+        onMounted(updatePreviewUrl);
+        watch(() => [props.file?.previewUrl, props.file?.url, props.file?.name, props.file?.type], updatePreviewUrl, {
+            immediate: true,
         });
-
-        watch(
-            () => [props.file?.previewUrl, props.file?.url, props.file?.name, props.file?.type],
-            () => updatePreviewUrl(),
-            { immediate: true }
-        );
 
         onBeforeUnmount(() => {
             if (previewUrl.value && previewUrl.value.startsWith('blob:')) {
@@ -213,15 +176,13 @@ export default {
         });
 
         return {
-            formattedSize,
-            filesCount,
+            content,
+            showFileInfo,
             fileItemStyles,
             fileNameStyles,
             fileDetailsStyles,
             actionButtonStyles,
-            content,
-            showFileInfo,
-            removeIcon,
+            formattedSize,
             isImage,
             previewUrl,
             fileIcon,
@@ -231,22 +192,11 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined');
-
 .ww-file-item {
     display: flex;
     align-items: center;
-    padding: v-bind('content?.fileItemPadding || "12px"');
-    border: 1px solid v-bind('content?.fileItemBorderColor || "#eee"');
-    border-radius: v-bind('content?.fileItemBorderRadius || "6px"');
-    margin-bottom: 0;
-    background-color: v-bind('content?.fileItemBackground || "#fff"');
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-    transform-origin: center;
+    transition: all 0.3s ease;
     position: relative;
-    z-index: 1;
-    backface-visibility: hidden;
-    will-change: transform, opacity;
     overflow: hidden;
 
     &__progress {
@@ -255,21 +205,8 @@ export default {
         left: 0;
         height: 100%;
         z-index: 0;
-        transition: width 1.2s ease;
+        transition: width 0.4s ease;
         opacity: 0.2;
-    }
-
-    &:hover {
-        border-color: v-bind('content?.fileItemHoverBorderColor || content?.fileItemBorderColor || "#ddd"');
-        background-color: v-bind('content?.fileItemHoverBackground || content?.fileItemBackground || "#fff"');
-        box-shadow: v-bind(
-            'content?.fileItemHoverShadow || content?.fileItemShadow || "0 2px 4px rgba(0, 0, 0, 0.05)"'
-        );
-    }
-
-    &--disabled {
-        opacity: 0.6;
-        pointer-events: none;
     }
 
     &__info {
@@ -283,6 +220,7 @@ export default {
         justify-content: center;
         gap: 10px;
     }
+
     &__preview {
         width: 100%;
         height: calc(100% - 30px);
@@ -294,6 +232,7 @@ export default {
         justify-content: center;
         flex-shrink: 0;
         cursor: pointer;
+        position: relative;
 
         &:disabled {
             opacity: 0.7;
@@ -304,6 +243,7 @@ export default {
     &__preview--not-allowed {
         cursor: not-allowed;
     }
+
     &__meta {
         width: 100%;
         min-width: 0;
@@ -311,103 +251,73 @@ export default {
         flex-direction: column;
         align-items: center;
     }
+
     &__thumb {
         width: 100%;
         height: 100%;
         object-fit: cover;
         border-radius: 6px;
     }
+
     &__file-icon {
-        font-family: 'Material Symbols Outlined';
-        font-size: 24px;
+        font-size: 40px;
         color: #64748b;
     }
 
-    &__name {
-        font-size: v-bind('content?.fileNameFontSize || "14px"');
-        font-weight: v-bind('content?.fileNameFontWeight || 500');
-        margin-bottom: 4px;
-        width: 100%;
-        text-align: center;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        color: v-bind('content?.fileNameColor || "inherit"');
-    }
-
-    &__details {
-        font-size: v-bind('content?.fileDetailsFontSize || "12px"');
-        color: v-bind('content?.fileDetailsColor || "#888"');
-    }
-
     &__actions {
+        position: absolute;
+        top: 6px;
+        right: 6px;
         display: flex;
-        align-items: center;
-        margin-left: 12px;
-        opacity: 0.7;
+        gap: 4px;
+        opacity: 0;
+        pointer-events: none;
         transition: opacity 0.2s ease;
-        position: relative;
-        z-index: 1;
+        z-index: 2;
     }
 
-    &:hover &__actions {
+    &__preview:hover &__actions {
         opacity: 1;
+        pointer-events: auto;
     }
 
     &__btn {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: v-bind('content?.actionButtonSize || "28px"');
-        height: v-bind('content?.actionButtonSize || "28px"');
-        border-radius: v-bind('content?.actionButtonBorderRadius || "4px"');
-        border: 1px solid v-bind('content?.actionButtonBorderColor || content?.fileItemBorderColor || "#eee"');
-        background-color: v-bind('content?.actionButtonBackground || "#fff"');
-        color: v-bind('content?.actionButtonColor || "#666"');
-        margin-left: v-bind('(content?.actionButtonMargin || "0 0 0 4px").split(" ")[3] || "4px"');
+        border: 1px solid #d1d5db;
+        background: #fff;
+        color: #374151;
         cursor: pointer;
-        transition: all 0.2s ease;
-
-        &:hover:not(:disabled) {
-            border-color: v-bind(
-                'content?.actionButtonHoverBorderColor || content?.fileItemHoverBorderColor || "#ddd"'
-            );
-            background-color: v-bind('content?.actionButtonHoverBackground || "#f8f8f8"');
-            transform: scale(1.05);
-        }
 
         &:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
+    }
 
-        &--remove:hover:not(:disabled) {
-            color: v-bind('content?.actionButtonRemoveHoverColor || content?.progressBarColor || "#999"');
-            border-color: v-bind('content?.actionButtonRemoveHoverColor || content?.progressBarColor || "#999"');
-        }
-
-        .icon {
-            width: 50%;
-            height: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            :deep(svg) {
-                width: 100% !important;
-                height: 100% !important;
-                display: block;
-            }
-        }
+    &__name {
+        width: 100%;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 }
-</style>
 
-
-<style scoped>
-.ww-file-item__file-icon.fa-file-pdf { color: #e53935; }
-.ww-file-item__file-icon.fa-file-word { color: #3b73b9; }
-.ww-file-item__file-icon.fa-file-excel { color: #2e7d32; }
-.ww-file-item__file-icon.fa-file-powerpoint { color: #d84315; }
-.ww-file-item__file-icon.fa-file-lines { color: #546e7a; }
+.ww-file-item__file-icon.fa-file-pdf {
+    color: #e53935;
+}
+.ww-file-item__file-icon.fa-file-word {
+    color: #3b73b9;
+}
+.ww-file-item__file-icon.fa-file-excel {
+    color: #2e7d32;
+}
+.ww-file-item__file-icon.fa-file-powerpoint {
+    color: #d84315;
+}
+.ww-file-item__file-icon.fa-file-lines {
+    color: #546e7a;
+}
 </style>
