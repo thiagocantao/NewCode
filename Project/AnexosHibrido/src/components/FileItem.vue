@@ -14,6 +14,7 @@
                 backgroundColor: content.progressBarColor || '#EEEEEE',
             }"
         ></div>
+
         <div class="ww-file-item__info">
             <div class="ww-file-item__preview-wrap">
                 <button
@@ -57,9 +58,7 @@
                 <div class="ww-file-item__name" :style="fileNameStyles">{{ file.name }}</div>
                 <div class="ww-file-item__details" :style="fileDetailsStyles" v-if="showFileInfo">
                     <span>{{ formattedSize }}</span>
-                    <span v-if="status && status.uploadProgress !== undefined">
-                        • {{ `${Math.round(status.uploadProgress)}%` }}
-                    </span>
+                    <span v-if="status && status.uploadProgress !== undefined">• {{ `${Math.round(status.uploadProgress)}%` }}</span>
                 </div>
             </div>
         </div>
@@ -104,14 +103,8 @@ export default {
             fontWeight: content.value?.fileNameFontWeight || 500,
             color: content.value?.fileNameColor || 'inherit',
         }));
-
-        const fileDetailsStyles = computed(() => ({
-            fontFamily: content.value?.fileDetailsFontFamily || 'inherit',
-            fontSize: content.value?.fileDetailsFontSize || '12px',
-            fontWeight: content.value?.fileDetailsFontWeight || 'normal',
-            color: content.value?.fileDetailsColor || '#888',
-        }));
-
+        const fileNameStyles = computed(() => ({ fontSize: content.value?.fileNameFontSize || '14px' }));
+        const fileDetailsStyles = computed(() => ({ fontSize: content.value?.fileDetailsFontSize || '12px' }));
         const actionButtonStyles = computed(() => ({
             width: content.value?.actionButtonSize || '28px',
             height: content.value?.actionButtonSize || '28px',
@@ -124,19 +117,18 @@ export default {
             const fileSizeInBytes = props.file.size || 0;
             if (fileSizeInBytes === 0) return '0 B';
             const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-            const i = Math.floor(Math.log(fileSizeInBytes) / Math.log(1024));
-            return `${(fileSizeInBytes / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
+            const i = Math.floor(Math.log(n) / Math.log(1024));
+            return `${(n / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
         });
 
         const isImage = computed(() => {
-            const type = (props.file?.type || props.file?.mimeType || props.file?.contentType || '').toLowerCase();
+            const type = (props.file?.type || props.file?.mimeType || '').toLowerCase();
             if (type.startsWith('image/')) return true;
             const ext = (props.file?.name || '').split('.').pop()?.toLowerCase();
             return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(ext);
         });
 
         const previewUrl = ref(null);
-
         const updatePreviewUrl = () => {
             const currentValue = props.file?.previewUrl || props.file?.url || null;
             if (currentValue) {
@@ -145,9 +137,8 @@ export default {
             }
 
             const localFile = props.file instanceof File ? props.file : props.file?.file;
-            if (localFile instanceof File && isImage.value) {
+            if (!previewUrl.value && localFile instanceof File && isImage.value) {
                 previewUrl.value = URL.createObjectURL(localFile);
-                return;
             }
 
             previewUrl.value = null;
@@ -172,9 +163,7 @@ export default {
         });
 
         onBeforeUnmount(() => {
-            if (previewUrl.value && previewUrl.value.startsWith('blob:')) {
-                URL.revokeObjectURL(previewUrl.value);
-            }
+            if (previewUrl.value && previewUrl.value.startsWith('blob:')) URL.revokeObjectURL(previewUrl.value);
         });
 
         return {
