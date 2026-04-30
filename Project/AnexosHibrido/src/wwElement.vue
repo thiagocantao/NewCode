@@ -1191,7 +1191,7 @@ export default {
     &__content {
         position: relative;
         width: min(1000px, 95vw);
-        max-height: 92vh;
+        max-height: 90vh;
         background: #fff;
         border-radius: 12px;
         padding: 16px;
@@ -1220,7 +1220,7 @@ export default {
 
     &__body {
         min-height: 240px;
-        max-height: calc(92vh - 120px);
+        max-height: calc(90vh - 120px);
         display: flex;
         align-items: center;
         justify-content: center;

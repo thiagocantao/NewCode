@@ -230,6 +230,7 @@ export default {
 .ww-file-item { position: relative;
 &__info { width: v-bind('content?.fileTileWidth || "120px"'); }
 &__preview { width: 100%; height: v-bind('content?.fileTileHeight || "120px"'); display: flex; align-items: center; justify-content: center; position: relative; border: 1px solid #e5e7eb; border-radius: 6px; background: #fff; overflow: hidden; }
+&__preview:hover { cursor: pointer; }
 &__thumb { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; }
 &__file-icon { font-size: 42px; color: #64748b; line-height: 1; }
 &__actions { position: absolute; top: 6px; right: 6px; display: flex; gap: 4px; opacity: 0; pointer-events: none; transition: opacity .2s; }
