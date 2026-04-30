@@ -26,7 +26,9 @@
                 :class="{ 'ww-file-item__preview--not-allowed': !canPreview }"
             >
                 <img v-if="isImage && previewUrl" :src="previewUrl" alt="" class="ww-file-item__thumb" />
-                <i v-else :class="['ww-file-item__file-icon', fileIcon]"></i>
+                <span v-else :class="['ww-file-item__file-icon', 'material-symbols-outlined', fileIconClass]">
+                    {{ fileIcon }}
+                </span>
 
                 <div class="ww-file-item__actions">
                     <button
@@ -37,7 +39,7 @@
                         :style="actionButtonStyles"
                         aria-label="Download file"
                     >
-                        <i class="fa fa-download" aria-hidden="true"></i>
+                        <span class="material-symbols-outlined" aria-hidden="true">download</span>
                     </button>
                     <button
                         v-if="!isReadonly"
@@ -48,7 +50,7 @@
                         :style="actionButtonStyles"
                         aria-label="Remove file"
                     >
-                        <i class="fa fa-trash-o" aria-hidden="true"></i>
+                        <span class="material-symbols-outlined" aria-hidden="true">delete</span>
                     </button>
                 </div>
             </button>
@@ -125,12 +127,21 @@ export default {
 
         const fileIcon = computed(() => {
             const ext = (resolvedName.value || '').split('.').pop()?.toLowerCase();
-            if (ext === 'pdf') return 'fa fa-file-pdf-o';
-            if (['doc', 'docx'].includes(ext)) return 'fa fa-file-word-o';
-            if (['xls', 'xlsx', 'csv'].includes(ext)) return 'fa fa-file-excel-o';
-            if (['ppt', 'pptx'].includes(ext)) return 'fa fa-file-powerpoint-o';
-            if (['txt', 'log'].includes(ext)) return 'fa fa-file-text-o';
-            return 'fa fa-file-o';
+            if (ext === 'pdf') return 'picture_as_pdf';
+            if (['doc', 'docx'].includes(ext)) return 'description';
+            if (['xls', 'xlsx', 'csv'].includes(ext)) return 'table_chart';
+            if (['ppt', 'pptx'].includes(ext)) return 'slideshow';
+            if (['txt', 'log'].includes(ext)) return 'article';
+            return 'insert_drive_file';
+        });
+        const fileIconClass = computed(() => {
+            const ext = (resolvedName.value || '').split('.').pop()?.toLowerCase();
+            if (ext === 'pdf') return 'ww-file-item__file-icon--pdf';
+            if (['doc', 'docx'].includes(ext)) return 'ww-file-item__file-icon--word';
+            if (['xls', 'xlsx', 'csv'].includes(ext)) return 'ww-file-item__file-icon--excel';
+            if (['ppt', 'pptx'].includes(ext)) return 'ww-file-item__file-icon--powerpoint';
+            if (['txt', 'log'].includes(ext)) return 'ww-file-item__file-icon--text';
+            return '';
         });
 
         onMounted(updatePreviewUrl);
@@ -139,7 +150,7 @@ export default {
             if (previewUrl.value && previewUrl.value.startsWith('blob:')) URL.revokeObjectURL(previewUrl.value);
         });
 
-        return { content, showFileInfo, formattedSize, fileNameStyles, fileDetailsStyles, actionButtonStyles, isImage, previewUrl, fileIcon, fileItemStyles, resolvedName };
+        return { content, showFileInfo, formattedSize, fileNameStyles, fileDetailsStyles, actionButtonStyles, isImage, previewUrl, fileIcon, fileItemStyles, resolvedName, fileIconClass };
     },
 };
 </script>
@@ -147,17 +158,17 @@ export default {
 <style lang="scss" scoped>
 .ww-file-item { position: relative;
 &__info { width: v-bind('content?.fileTileWidth || "120px"'); }
-&__preview { width: 100%; height: calc(100% - 30px); position: relative; border: 1px solid #e5e7eb; border-radius: 6px; }
+&__preview { width: 100%; height: v-bind('content?.fileTileHeight || "120px"'); display: flex; align-items: center; justify-content: center; position: relative; border: 1px solid #e5e7eb; border-radius: 6px; background: #fff; overflow: hidden; }
 &__thumb { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; }
-&__file-icon { font-size: 42px; color: #64748b; }
+&__file-icon { font-size: 42px; color: #64748b; line-height: 1; }
 &__actions { position: absolute; top: 6px; right: 6px; display: flex; gap: 4px; opacity: 0; pointer-events: none; transition: opacity .2s; }
 &__preview:hover &__actions { opacity: 1; pointer-events: auto; }
 &__btn { display:flex; align-items:center; justify-content:center; border:1px solid #e5e7eb; border-radius:4px; background:#fff; cursor:pointer; }
-&__meta { text-align:center; }
+&__meta { text-align:center; margin-top: 6px; }
 }
-.ww-file-item__file-icon.fa-file-pdf-o { color: #e53935; }
-.ww-file-item__file-icon.fa-file-word-o { color: #3b73b9; }
-.ww-file-item__file-icon.fa-file-excel-o { color: #2e7d32; }
-.ww-file-item__file-icon.fa-file-powerpoint-o { color: #d84315; }
-.ww-file-item__file-icon.fa-file-text-o { color: #546e7a; }
+.ww-file-item__file-icon--pdf { color: #e53935; }
+.ww-file-item__file-icon--word { color: #3b73b9; }
+.ww-file-item__file-icon--excel { color: #2e7d32; }
+.ww-file-item__file-icon--powerpoint { color: #d84315; }
+.ww-file-item__file-icon--text { color: #546e7a; }
 </style>
