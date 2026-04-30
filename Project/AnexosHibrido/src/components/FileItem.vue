@@ -16,20 +16,18 @@
         ></div>
 
         <div class="ww-file-item__info">
-            <div class="ww-file-item__preview-wrap">
-                <button
-                    type="button"
-                    class="ww-file-item__preview"
-                    :disabled="isDisabled"
-                    @click="$emit('preview')"
-                    :aria-label="`Preview ${file.name}`"
-                    :title="previewHint || null"
-                    :class="{ 'ww-file-item__preview--not-allowed': !canPreview }"
-                >
-                    <img v-if="isImage && previewUrl" :src="previewUrl" alt="" class="ww-file-item__thumb" />
-                    <i v-else :class="['ww-file-item__file-icon', fileIcon]" aria-hidden="true"></i>
-                </button>
-
+            <button
+                type="button"
+                class="ww-file-item__preview"
+                :disabled="isDisabled"
+                @click="$emit('preview')"
+                :aria-label="`Preview ${file.name}`"
+                :title="previewHint || null"
+                :class="{ 'ww-file-item__preview--not-allowed': !canPreview }"
+            >
+                <img v-if="isImage && previewUrl" :src="previewUrl" alt="" class="ww-file-item__thumb" />
+                <i v-else :class="['ww-file-item__file-icon', fileIcon]" aria-hidden="true"></i>
+            </button>
                 <div class="ww-file-item__actions">
                     <button
                         type="button"
@@ -53,7 +51,6 @@
                         <i class="fa-regular fa-trash-can" aria-hidden="true"></i>
                     </button>
                 </div>
-            </div>
             <div class="ww-file-item__meta">
                 <div class="ww-file-item__name" :style="fileNameStyles">{{ file.name }}</div>
                 <div class="ww-file-item__details" :style="fileDetailsStyles" v-if="showFileInfo">
@@ -157,9 +154,8 @@ export default {
             return 'fa-regular fa-file';
         });
 
-        onMounted(updatePreviewUrl);
-        watch(() => [props.file?.previewUrl, props.file?.url, props.file?.name, props.file?.type], updatePreviewUrl, {
-            immediate: true,
+        onMounted(() => {
+            updatePreviewUrl();
         });
 
         onBeforeUnmount(() => {
@@ -173,7 +169,8 @@ export default {
             fileNameStyles,
             fileDetailsStyles,
             actionButtonStyles,
-            formattedSize,
+            content,
+            showFileInfo,
             isImage,
             previewUrl,
             fileIcon,
@@ -186,7 +183,13 @@ export default {
 .ww-file-item {
     display: flex;
     align-items: center;
-    transition: all 0.3s ease;
+    padding: v-bind('content?.fileItemPadding || "12px"');
+    border: 1px solid v-bind('content?.fileItemBorderColor || "#eee"');
+    border-radius: v-bind('content?.fileItemBorderRadius || "6px"');
+    margin-bottom: v-bind('(content?.fileItemMargin || "0 0 8px 0").split(" ")[2] || "8px"');
+    background-color: v-bind('content?.fileItemBackground || "#fff"');
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    transform-origin: center;
     position: relative;
     overflow: hidden;
 
@@ -201,26 +204,17 @@ export default {
     }
 
     &__info {
-        width: v-bind('content?.fileTileWidth || "120px"');
-        height: v-bind('content?.fileTileHeight || "120px"');
+        flex: 1;
+        min-width: 0;
         position: relative;
         z-index: 1;
         display: flex;
-        flex-direction: column;
         align-items: center;
-        justify-content: center;
         gap: 10px;
     }
-
-    &__preview-wrap {
-        width: 100%;
-        height: calc(100% - 30px);
-        position: relative;
-    }
-
     &__preview {
-        width: 100%;
-        height: 100%;
+        width: 48px;
+        height: 48px;
         border: 1px solid #e5e7eb;
         border-radius: 6px;
         background: #f8fafc;
@@ -242,11 +236,9 @@ export default {
     }
 
     &__meta {
-        width: 100%;
         min-width: 0;
         display: flex;
         flex-direction: column;
-        align-items: center;
     }
 
     &__thumb {
@@ -257,8 +249,23 @@ export default {
     }
 
     &__file-icon {
-        font-size: 40px;
+        font-size: 30px;
         color: #64748b;
+    }
+
+    &__name {
+        font-size: v-bind('content?.fileNameFontSize || "14px"');
+        font-weight: v-bind('content?.fileNameFontWeight || 500');
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: v-bind('content?.fileNameColor || "inherit"');
+    }
+
+    &__details {
+        font-size: v-bind('content?.fileDetailsFontSize || "12px"');
+        color: v-bind('content?.fileDetailsColor || "#888"');
     }
 
     &__actions {
@@ -266,6 +273,7 @@ export default {
         top: 6px;
         right: 6px;
         display: flex;
+        align-items: center;
         gap: 4px;
         opacity: 0;
         pointer-events: none;
@@ -273,7 +281,8 @@ export default {
         z-index: 2;
     }
 
-    &__preview-wrap:hover &__actions {
+    &__preview:hover + &__actions,
+    &__actions:hover {
         opacity: 1;
         pointer-events: auto;
     }
@@ -293,28 +302,17 @@ export default {
         }
     }
 
-    &__name {
-        width: 100%;
-        text-align: center;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        &--remove:hover:not(:disabled) {
+            color: v-bind('content?.actionButtonRemoveHoverColor || content?.progressBarColor || "#999"');
+            border-color: v-bind('content?.actionButtonRemoveHoverColor || content?.progressBarColor || "#999"');
+        }
     }
 }
 
-.ww-file-item__file-icon.fa-file-pdf {
-    color: #e53935;
-}
-.ww-file-item__file-icon.fa-file-word {
-    color: #3b73b9;
-}
-.ww-file-item__file-icon.fa-file-excel {
-    color: #2e7d32;
-}
-.ww-file-item__file-icon.fa-file-powerpoint {
-    color: #d84315;
-}
-.ww-file-item__file-icon.fa-file-lines {
-    color: #546e7a;
-}
+<style scoped>
+.ww-file-item__file-icon.fa-file-pdf { color: #e53935; }
+.ww-file-item__file-icon.fa-file-word { color: #3b73b9; }
+.ww-file-item__file-icon.fa-file-excel { color: #2e7d32; }
+.ww-file-item__file-icon.fa-file-powerpoint { color: #d84315; }
+.ww-file-item__file-icon.fa-file-lines { color: #546e7a; }
 </style>
