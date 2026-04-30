@@ -88,12 +88,6 @@ export default {
             bindable: true,
             defaultValue: '',
         },
-        deleteVisibleField: {
-            label: { en: 'Delete visibility field' },
-            type: 'text',
-            bindable: true,
-            defaultValue: '',
-        },
         deleteIconVisibleField: {
             label: {
                 en: 'Delete icon visible field',
@@ -102,15 +96,6 @@ export default {
             type: 'text',
             bindable: true,
             defaultValue: '',
-        },
-        showRenameIcon: {
-            label: {
-                en: 'Show rename icon',
-                pt: 'Exibir ícone de renomear',
-            },
-            type: 'boolean',
-            bindable: true,
-            defaultValue: false,
         },
         renameIconVisibleField: {
             label: {
@@ -186,6 +171,18 @@ export default {
             type: 'text',
             bindable: true,
             defaultValue: '#6c757d',
+        },
+        nodeIconColor: {
+            label: { en: 'Node/action icon color' },
+            type: 'text',
+            bindable: true,
+            defaultValue: '#777',
+        },
+        nodeIconBackground: {
+            label: { en: 'Node/action icon background' },
+            type: 'text',
+            bindable: true,
+            defaultValue: 'transparent',
         },
         searchPlaceholder: {
             label: { en: 'Search placeholder' },
