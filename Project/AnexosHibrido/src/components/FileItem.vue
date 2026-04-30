@@ -1,5 +1,5 @@
 <template>
-    <li
+    <div
         class="ww-file-item"
         :class="{ 'ww-file-item--disabled': isDisabled }"
         :style="fileItemStyles"
@@ -63,7 +63,7 @@
                 </div>
             </div>
         </div>
-    </li>
+    </div>
 </template>
 
 <script>
