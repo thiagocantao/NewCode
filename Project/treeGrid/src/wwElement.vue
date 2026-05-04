@@ -315,7 +315,7 @@ import { translatePhrase } from './translation';
             const map = new Map();
             const roots = [];
 
-            this.normalizedData.forEach(item => {
+            this.normalizedData.forEach((item, index) => {
                 const id = item?.[this.fieldMap.id];
                 if (id === undefined || id === null || id === '') return;
                 
@@ -334,6 +334,7 @@ import { translatePhrase } from './translation';
                 type: `${item?.[this.fieldMap.type] ?? ''}`.trim(),
                 order: this.getNodeOrder(item, normalizedId),
                 raw: item,
+                sourceIndex: index,
                 children: [],
                 });
             });
@@ -593,7 +594,13 @@ import { translatePhrase } from './translation';
         },
         sortNodesByOrder(nodes) {
             nodes.sort((a, b) => {
-                if (a.order !== b.order) return a.order - b.order;
+                const hasOrderA = Number.isFinite(a.order) && a.order !== Number.MAX_SAFE_INTEGER;
+                const hasOrderB = Number.isFinite(b.order) && b.order !== Number.MAX_SAFE_INTEGER;
+
+                if (hasOrderA && hasOrderB && a.order !== b.order) return a.order - b.order;
+                if (hasOrderA !== hasOrderB) return hasOrderA ? -1 : 1;
+
+                if (a.sourceIndex !== b.sourceIndex) return a.sourceIndex - b.sourceIndex;
                 return `${a.id}`.localeCompare(`${b.id}`);
             });
         },
