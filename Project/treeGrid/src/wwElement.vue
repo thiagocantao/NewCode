@@ -124,6 +124,11 @@
                                     <span class="tree-cell-progress__label">{{ getProgressPercent(row, column.field) }}%</span>
                                 </div>
                             </template>
+                            <template v-else-if="column.type === 'divcolor'">
+                                <div class="tree-cell-div-color" :style="getDivColorStyle(row, column)">
+                                    <span v-html="highlightCell(row, column)"></span>
+                                </div>
+                            </template>
                             <template v-else>
                                 <span v-html="highlightCell(row, column)"></span>
                             </template>
@@ -271,11 +276,15 @@ import { translatePhrase } from './translation';
                     const flex = Number(column.flex);
                     const type = `${column.type ?? 'text'}`.trim().toLowerCase();
                     const userNameField = `${column.UserName ?? column.userName ?? ''}`.trim();
+                    const color = `${column.Color ?? column.color ?? ''}`.trim();
+                    const bgColor = `${column.BgColor ?? column.bgColor ?? ''}`.trim();
                     return {
                         field,
                         title,
                         type,
                         userNameField,
+                        color,
+                        bgColor,
                         position: Number.isFinite(position) ? position : Number.MAX_SAFE_INTEGER,
                         width,
                         flex: Number.isFinite(flex) ? flex : null,
@@ -553,6 +562,24 @@ import { translatePhrase } from './translation';
             }
 
             return `${value}`;
+        },
+
+        getDivColorStyle(row, column) {
+            const style = {
+                padding: '2px 6px',
+                borderRadius: '4px',
+            };
+
+            const colorField = column.color;
+            const bgColorField = column.bgColor;
+
+            const textColor = colorField ? `${row?.raw?.[colorField] ?? ''}`.trim() : '';
+            const backgroundColor = bgColorField ? `${row?.raw?.[bgColorField] ?? ''}`.trim() : '';
+
+            if (textColor) style.color = textColor;
+            if (backgroundColor) style.backgroundColor = backgroundColor;
+
+            return style;
         },
         getAvatarUserName(row, column) {
             const field = column.userNameField;
@@ -1251,6 +1278,11 @@ import { translatePhrase } from './translation';
         color: #495057;
         font-size: 12px;
         font-weight: 600;
+    }
+
+
+    .tree-cell-div-color {
+        display: inline-block;
     }
 
     .tree-cell-progress {
