@@ -125,7 +125,7 @@
                                 </div>
                             </template>
                             <template v-else-if="column.type === 'divcolor'">
-                                <div class="tree-cell-div-color" :style="getDivColorStyle(column)">
+                                <div class="tree-cell-div-color" :style="getDivColorStyle(row, column)">
                                     <span v-html="highlightCell(row, column)"></span>
                                 </div>
                             </template>
@@ -564,14 +564,20 @@ import { translatePhrase } from './translation';
             return `${value}`;
         },
 
-        getDivColorStyle(column) {
+        getDivColorStyle(row, column) {
             const style = {
                 padding: '2px 6px',
                 borderRadius: '4px',
             };
 
-            if (column.color) style.color = column.color;
-            if (column.bgColor) style.backgroundColor = column.bgColor;
+            const colorField = column.color;
+            const bgColorField = column.bgColor;
+
+            const textColor = colorField ? `${row?.raw?.[colorField] ?? ''}`.trim() : '';
+            const backgroundColor = bgColorField ? `${row?.raw?.[bgColorField] ?? ''}`.trim() : '';
+
+            if (textColor) style.color = textColor;
+            if (backgroundColor) style.backgroundColor = backgroundColor;
 
             return style;
         },
