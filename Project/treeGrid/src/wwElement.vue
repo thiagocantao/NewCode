@@ -112,8 +112,8 @@
                                         class="tree-cell-avatar__image"
                                         alt="avatar"
                                     />
-                                    <span v-else class="tree-cell-avatar__fallback">{{ getAvatarFallback(row, column) }}</span>
-                                    <span class="tree-cell-avatar__name" v-html="highlightLabel(getAvatarUserName(row, column))"></span>
+                                    <span v-else-if="hasAvatarFallback(row, column)" class="tree-cell-avatar__fallback">{{ getAvatarFallback(row, column) }}</span>
+                                    <span v-if="getAvatarUserName(row, column)" class="tree-cell-avatar__name" v-html="highlightLabel(getAvatarUserName(row, column))"></span>
                                 </div>
                             </template>
                             <template v-else-if="column.type === 'progress'">
@@ -562,9 +562,14 @@ import { translatePhrase } from './translation';
             const value = `${row?.raw?.[field] ?? ''}`.trim();
             return value || '';
         },
+        hasAvatarFallback(row, column) {
+            const hasImage = !!this.getAvatarImageUrl(row, column.field);
+            const hasName = !!this.getAvatarUserName(row, column).trim();
+            return !hasImage && hasName;
+        },
         getAvatarFallback(row, column) {
             const name = this.getAvatarUserName(row, column).trim();
-            return name ? name.charAt(0).toUpperCase() : '?';
+            return name ? name.charAt(0).toUpperCase() : '';
         },
         getProgressPercent(row, field) {
             const value = Number(row?.raw?.[field]);
