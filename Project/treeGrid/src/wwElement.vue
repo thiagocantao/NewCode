@@ -566,7 +566,7 @@ import { translatePhrase } from './translation';
 
         getDivColorStyle(row, column) {
             const style = {
-                padding: '2px 6px',
+                padding: '6px 12px',
                 borderRadius: '4px',
             };
 
@@ -576,7 +576,10 @@ import { translatePhrase } from './translation';
             const textColor = colorField ? `${row?.raw?.[colorField] ?? ''}`.trim() : '';
             const backgroundColor = bgColorField ? `${row?.raw?.[bgColorField] ?? ''}`.trim() : '';
 
-            if (textColor) style.color = textColor;
+            if (textColor) {
+                style.color = textColor;
+                style.border = `1px solid ${textColor}`;
+            }
             if (backgroundColor) style.backgroundColor = backgroundColor;
 
             return style;
