@@ -27,21 +27,16 @@
             <div v-if="normalizedColumns.length" class="tree-header">
                 <div class="tree-header__indent"></div>
                 <div v-if="showIconColumn" class="tree-header__icon-spacer"></div>
-                <div
-                    v-for="column in normalizedColumns"
-                    :key="`header-${column.field}-${column.position}`"
-                    class="tree-header__cell"
-                    :style="getColumnStyle(column)"
-                >
+                <div v-for="column in normalizedColumns" :key="`header-${column.field}-${column.position}`"
+                    class="tree-header__cell" :style="getColumnStyle(column)">
                     {{ column.title }}
                 </div>
                 <div class="tree-header__actions-spacer"></div>
             </div>
             <div v-for="row in visibleRows" :key="`row-${row.id}`" class="tree-row"
                 :class="{ 'tree-row--selected': selectedNodeId === row.id, 'tree-row--drag-over': dropTargetRowId === row.id }"
-                :draggable="canDragRow(row)"
-                @dragstart="onDragStart(row, $event)" @dragover="onDragOver(row, $event)" @drop="onDrop(row, $event)"
-                @dragend="onDragEnd" @click="onNodeClick(row)" @contextmenu.prevent.stop>
+                :draggable="canDragRow(row)" @dragstart="onDragStart(row, $event)" @dragover="onDragOver(row, $event)"
+                @drop="onDrop(row, $event)" @dragend="onDragEnd" @click="onNodeClick(row)" @contextmenu.prevent.stop>
                 <span class="row-indent-spacer" :style="{ width: `${row.depth * 16 + 8}px` }"></span>
 
                 <button
@@ -98,12 +93,8 @@
                 </template>
                 <template v-else>
                     <template v-if="normalizedColumns.length">
-                        <div
-                            v-for="column in normalizedColumns"
-                            :key="`cell-${row.id}-${column.field}`"
-                            class="tree-cell"
-                            :style="getColumnStyle(column)"
-                        >
+                        <div v-for="column in normalizedColumns" :key="`cell-${row.id}-${column.field}`"
+                            class="tree-cell" :style="getColumnStyle(column)">
                             <template v-if="column.type === 'avatar'">
                                 <div class="tree-cell-avatar">
                                     <img
@@ -119,7 +110,8 @@
                             <template v-else-if="column.type === 'progress'">
                                 <div class="tree-cell-progress">
                                     <div class="tree-cell-progress__bar">
-                                        <div class="tree-cell-progress__fill" :style="{ width: `${getProgressPercent(row, column.field)}%` }"></div>
+                                        <div class="tree-cell-progress__fill"
+                                            :style="{ width: `${getProgressPercent(row, column.field)}%` }"></div>
                                     </div>
                                     <span class="tree-cell-progress__label">{{ getProgressPercent(row, column.field) }}%</span>
                                 </div>
@@ -137,7 +129,9 @@
                     <span v-else class="node-label" v-html="highlightLabel(row.label)"></span>
                 </template>
 
-                <div class="row-actions" :class="{ 'row-actions--visible': (selectedNodeId === row.id) && !isReadOnly && !isEditingAnyNode }" @click.stop>
+                <div class="row-actions"
+                    :class="{ 'row-actions--visible': (selectedNodeId === row.id) && !isReadOnly && !isEditingAnyNode }"
+                    @click.stop>
                     <button
                         v-if="row.canAddChild && !isRowBeingEdited(row) && !isReadOnly && !isEditingAnyNode"
                         class="icon-button row-action-button"
@@ -179,7 +173,7 @@
 </template>
 
 <script>
-import { translatePhrase } from './translation';
+    import { translatePhrase } from './translation';
 
     export default {
     props: {
@@ -566,7 +560,7 @@ import { translatePhrase } from './translation';
 
         getDivColorStyle(row, column) {
             const style = {
-                padding: '6px 12px',
+                padding: '3px 10px',
                 borderRadius: '4px',
             };
 
@@ -1129,6 +1123,7 @@ import { translatePhrase } from './translation';
         padding-right: 8px;
         transition: background-color 0.2s ease;
     }
+
     .tree-header {
         display: flex;
         align-items: center;
@@ -1160,7 +1155,7 @@ import { translatePhrase } from './translation';
         flex: 0 0 84px;
     }
 
-    
+
 
     .tree-row:hover,
     .tree-row--selected,
@@ -1173,6 +1168,7 @@ import { translatePhrase } from './translation';
         flex: 1;
         color: #555
     }
+
     .tree-header__cell,
     .tree-cell {
         white-space: nowrap;
@@ -1207,6 +1203,7 @@ import { translatePhrase } from './translation';
         background: var(--node-icon-bg);
         border-radius: 4px;
     }
+
     .node-icon--placeholder {
         display: inline-block;
     }
@@ -1316,6 +1313,7 @@ import { translatePhrase } from './translation';
         font-size: 12px;
         color: #495057;
     }
+
     .empty-state {
         padding: 12px;
         color: #6c757d;
