@@ -103,8 +103,31 @@
                             :key="`cell-${row.id}-${column.field}`"
                             class="tree-cell"
                             :style="getColumnStyle(column)"
-                            v-html="highlightCell(row, column.field)"
-                        ></div>
+                        >
+                            <template v-if="column.type === 'avatar'">
+                                <div class="tree-cell-avatar">
+                                    <img
+                                        v-if="getAvatarImageUrl(row, column.field)"
+                                        :src="getAvatarImageUrl(row, column.field)"
+                                        class="tree-cell-avatar__image"
+                                        alt="avatar"
+                                    />
+                                    <span v-else class="tree-cell-avatar__fallback">{{ getAvatarFallback(row, column) }}</span>
+                                    <span class="tree-cell-avatar__name" v-html="highlightLabel(getAvatarUserName(row, column))"></span>
+                                </div>
+                            </template>
+                            <template v-else-if="column.type === 'progress'">
+                                <div class="tree-cell-progress">
+                                    <div class="tree-cell-progress__bar">
+                                        <div class="tree-cell-progress__fill" :style="{ width: `${getProgressPercent(row, column.field)}%` }"></div>
+                                    </div>
+                                    <span class="tree-cell-progress__label">{{ getProgressPercent(row, column.field) }}%</span>
+                                </div>
+                            </template>
+                            <template v-else>
+                                <span v-html="highlightCell(row, column)"></span>
+                            </template>
+                        </div>
                     </template>
                     <span v-else class="node-label" v-html="highlightLabel(row.label)"></span>
                 </template>
@@ -246,9 +269,13 @@ import { translatePhrase } from './translation';
                     const position = Number(column.position);
                     const width = typeof column.width === 'string' ? column.width.trim() : '';
                     const flex = Number(column.flex);
+                    const type = `${column.type ?? 'text'}`.trim().toLowerCase();
+                    const userNameField = `${column.UserName ?? column.userName ?? ''}`.trim();
                     return {
                         field,
                         title,
+                        type,
+                        userNameField,
                         position: Number.isFinite(position) ? position : Number.MAX_SAFE_INTEGER,
                         width,
                         flex: Number.isFinite(flex) ? flex : null,
@@ -497,9 +524,53 @@ import { translatePhrase } from './translation';
             }
             return style;
         },
-        highlightCell(row, field) {
-            const value = row?.raw?.[field];
-            return this.highlightLabel(value === undefined || value === null ? '' : `${value}`);
+        highlightCell(row, column) {
+            const value = row?.raw?.[column.field];
+            const formatted = this.formatColumnValue(value, column.type);
+            return this.highlightLabel(formatted);
+        },
+        formatColumnValue(value, type) {
+            if (value === undefined || value === null || value === '') return '';
+
+            if (type === 'date') {
+                const parsed = new Date(value);
+                if (Number.isNaN(parsed.getTime())) return `${value}`;
+                return new Intl.DateTimeFormat(undefined, {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                }).format(parsed);
+            }
+
+            if (type === 'currency') {
+                const numberValue = Number(value);
+                if (!Number.isFinite(numberValue)) return `${value}`;
+                return new Intl.NumberFormat(undefined, {
+                    style: 'currency',
+                    currency: this.content.currencyCode || 'BRL',
+                }).format(numberValue);
+            }
+
+            return `${value}`;
+        },
+        getAvatarUserName(row, column) {
+            const field = column.userNameField;
+            if (!field) return '';
+            return `${row?.raw?.[field] ?? ''}`;
+        },
+        getAvatarImageUrl(row, field) {
+            const value = `${row?.raw?.[field] ?? ''}`.trim();
+            return value || '';
+        },
+        getAvatarFallback(row, column) {
+            const name = this.getAvatarUserName(row, column).trim();
+            return name ? name.charAt(0).toUpperCase() : '?';
+        },
+        getProgressPercent(row, field) {
+            const value = Number(row?.raw?.[field]);
+            if (!Number.isFinite(value)) return 0;
+            const percent = Math.round(value * 100);
+            return Math.min(100, Math.max(0, percent));
         },
         getNodeOrder(node, nodeId) {
             const fieldName = `${this.fieldMap.order ?? ''}`.trim();
@@ -1140,6 +1211,64 @@ import { translatePhrase } from './translation';
         color: #fff;
     }
 
+
+    .tree-cell-avatar {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .tree-cell-avatar__image,
+    .tree-cell-avatar__fallback {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        flex: 0 0 24px;
+    }
+
+    .tree-cell-avatar__image {
+        object-fit: cover;
+        border: 1px solid #dee2e6;
+    }
+
+    .tree-cell-avatar__fallback {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #e9ecef;
+        color: #495057;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .tree-cell-progress {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .tree-cell-progress__bar {
+        flex: 1;
+        min-width: 80px;
+        height: 8px;
+        border-radius: 999px;
+        background: #e9ecef;
+        overflow: hidden;
+    }
+
+    .tree-cell-progress__fill {
+        height: 100%;
+        background: #0d6efd;
+        border-radius: 999px;
+    }
+
+    .tree-cell-progress__label {
+        min-width: 40px;
+        text-align: right;
+        font-size: 12px;
+        color: #495057;
+    }
     .empty-state {
         padding: 12px;
         color: #6c757d;
