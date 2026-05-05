@@ -23,43 +23,16 @@
       </template>
 
       <template v-else-if="field.fieldType === 'DEADLINE'">
-        <div style="position: relative;">
-          <div
-            class="deadline-visual"
-            :class="[
-              deadlineColorClass,
-              { 'readonly-field': isReadOnly, 'deadline-empty': !deadlineHasValue }
-            ]"
-            :title="deadlineOriginalFormatted"
-            role="button"
-            :tabindex="isDeadlineDisplayOnly || isReadOnly ? -1 : 0"
-            @mousedown.stop
-            @touchstart.stop
-            @click="!isDeadlineDisplayOnly && openDeadlinePicker()"
-            @keydown.enter.prevent="!isDeadlineDisplayOnly && openDeadlinePicker()"
-            @keydown.space.prevent="!isDeadlineDisplayOnly && openDeadlinePicker()"
-          >
-            <template v-if="deadlineHasValue">
-              <span class="deadline-diff-display">{{ deadlineDiff }}</span>
-            </template>
-            <template v-else>
-              <span class="material-symbols-outlined deadline-empty-icon">calendar_month</span>
-              <span class="deadline-empty-text">{{ translateText('Select') }}</span>
-            </template>
-          </div>
-          <CustomDatePicker
-            ref="deadlineDatePicker"
-            v-model="deadlineValue"
-            :disabled="isReadOnly"
-            :show-time="true"
-            :open-up-offset="60"
-            @mousedown.stop
-            @touchstart.stop
-            @update:modelValue="onDeadlineChange"
-            :class="['field-input', 'date-input', { error: !!error && isMandatory }, { 'readonly-field': isReadOnly }]"
-            style="position: absolute; top: 0; left: 0; width: 100%; height: 0; overflow: hidden;"
-          />
-        </div>
+        <CustomDatePicker
+          v-model="localValue"
+          :disabled="isReadOnly"
+          :show-time="true"
+          :error="!!error && isMandatory"
+          @mousedown.stop
+          @touchstart.stop
+          @update:modelValue="onDateChange"
+          :class="['field-input', 'date-input', { error: !!error && isMandatory }, { 'readonly-field': isReadOnly }]"
+        />
       </template>
 
       <template v-else-if="field.fieldType === 'DECIMAL'">
