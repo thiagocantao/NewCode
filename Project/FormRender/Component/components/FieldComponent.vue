@@ -114,8 +114,7 @@
           </div>
           <div ref="rte" :contenteditable="!field.is_readonly" dir="ltr"
             :class="['field-input', 'rich-text-input', { 'readonly-field': field.is_readonly }]"
-            :data-placeholder="placeholderText"
-            @input="onContentEditableInput" @blur="updateValue">
+            :data-placeholder="placeholderText" @input="onContentEditableInput" @blur="updateValue">
           </div>
         </div>
       </template>
@@ -147,7 +146,7 @@
 </template>
 
 <script>
-import CustomAlert from './CustomAlert.vue';
+  import CustomAlert from './CustomAlert.vue';
 import CustomDatePicker from './CustomDatePicker.vue';
 import { SUPABASE_IMAGE_BUCKET } from './supabaseBuckets';
 import { translatePhrase } from '../translation';
@@ -231,6 +230,10 @@ export default {
       return {};
     },
     componentStyleVars() {
+      if (this.field && this.field.fieldType === 'DEADLINE') {
+        return {};
+      }
+
       const tokens = this.themeTokens || {};
       return {
         '--text-input-bg': tokens.inputBG || '#FFFFFF',
@@ -1115,7 +1118,6 @@ export default {
   }
 
   .date-input :deep(.dp-input) {
-    border: none;
     background: transparent;
     padding: 0 32px 0 8px;
     height: 100%;
