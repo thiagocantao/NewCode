@@ -17,27 +17,9 @@
           :class="['field-input', 'date-input', { error: error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]" />
       </template>
       <template v-else-if="field.fieldType === 'DEADLINE'">
-        <div style="position:relative;">
-          <div class="deadline-visual" :class="[
-              deadlineColorClass,
-              { 'readonly-field': field.is_readonly, 'deadline-empty': !deadlineHasValue }
-            ]" :title="deadlineOriginalFormatted" role="button" :tabindex="field.is_readonly ? -1 : 0"
-            @click="openDeadlinePicker" @keydown.enter.prevent="openDeadlinePicker"
-            @keydown.space.prevent="openDeadlinePicker">
-            <template v-if="deadlineHasValue">
-              <span class="deadline-diff-display">{{ deadlineDisplay }}</span>
-            </template>
-            <template v-else>
-              <span class="material-symbols-outlined deadline-empty-icon">calendar_month</span>
-              <span class="deadline-empty-text">{{ t('Select') }}</span>
-            </template>
-          </div>
-          <CustomDatePicker ref="deadlineDatePicker" v-model="deadlineValue" :disabled="field.is_readonly"
-            :show-time="true" :open-up-offset="60" @update:modelValue="onDeadlineChange"
-            :class="['field-input', 'date-input', { error: error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]"
-            style="position:absolute;top:0;left:0;width:100%;height:0;overflow:hidden;" />
-
-        </div>
+        <CustomDatePicker v-model="deadlineValue" :disabled="field.is_readonly" :show-time="true"
+          @update:modelValue="onDeadlineChange"
+          :class="['field-input', 'date-input', { error: error && field.is_mandatory }, { 'readonly-field': field.is_readonly }]" />
       </template>
       <template v-else-if="field.fieldType === 'DECIMAL'">
         <input
@@ -249,10 +231,6 @@ export default {
       return {};
     },
     componentStyleVars() {
-      if (this.field && this.field.fieldType === 'DEADLINE') {
-        return {};
-      }
-
       const tokens = this.themeTokens || {};
       return {
         '--text-input-bg': tokens.inputBG || '#FFFFFF',

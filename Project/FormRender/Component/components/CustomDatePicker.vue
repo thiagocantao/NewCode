@@ -49,6 +49,7 @@
         <input type="time" v-model="timePart" @input="onTimeInput" />
       </div>
       <div class="dp-actions">
+        <button type="button" class="dp-action dp-action-primary" @click="confirmSelection">{{ labelSelect }}</button>
         <button type="button" class="dp-action" @click="pickToday">{{ labelToday }}</button>
         <button type="button" class="dp-action" @click="clearDate">{{ labelClear }}</button>
       </div>
@@ -79,6 +80,7 @@ export default {
 
     const labelToday = computed(() => t('Today'));
     const labelClear = computed(() => t('Clear'));
+    const labelSelect = computed(() => t('Select'));
 
     function toYMD(date) {
       const y = date.getFullYear();
@@ -293,6 +295,10 @@ export default {
       emit('update:modelValue', '');
       closeDp();
     }
+    function confirmSelection() {
+      emitValue();
+      closeDp();
+    }
 
     function onTimeInput(e){
       timePart.value = e.target.value;
@@ -335,8 +341,10 @@ export default {
       displayDate,
       labelToday,
       labelClear,
+      labelSelect,
       timePart,
       onTimeInput,
+      confirmSelection,
       showTime: props.showTime,
       disabled: props.disabled,
       error: props.error
