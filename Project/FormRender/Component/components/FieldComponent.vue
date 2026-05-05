@@ -231,10 +231,6 @@ export default {
       return {};
     },
     componentStyleVars() {
-      if (this.field && this.field.fieldType === 'DEADLINE') {
-        return {};
-      }
-
       const tokens = this.themeTokens || {};
       return {
         '--text-input-bg': tokens.inputBG || '#FFFFFF',
