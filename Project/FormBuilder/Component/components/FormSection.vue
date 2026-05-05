@@ -661,12 +661,30 @@ function normalizeOptions(raw) {
             }
           },
           onEnd: (evt) => {
-            if (evt && evt.to && evt.oldIndex !== undefined && evt.newIndex !== undefined && evt.oldIndex !== evt.newIndex) {
+            if (!evt || evt.from !== evt.to) {
+              return;
+            }
+
+            if (evt.oldIndex !== undefined && evt.newIndex !== undefined && evt.oldIndex !== evt.newIndex) {
               // Reordene o array fields conforme a nova ordem
               const movedField = props.section.fields.splice(evt.oldIndex, 1)[0];
               props.section.fields.splice(evt.newIndex, 0, movedField);
 
               // Atualize as posições dos campos conforme a nova ordem
+              props.section.fields.forEach((field, idx) => {
+                field.position = idx + 1;
+              });
+
+              emit('update-section');
+            }
+          },
+          onRemove: (evt) => {
+            if (!evt || evt.from === evt.to || evt.oldIndex === undefined) {
+              return;
+            }
+
+            const removedField = props.section.fields.splice(evt.oldIndex, 1)[0];
+            if (removedField) {
               props.section.fields.forEach((field, idx) => {
                 field.position = idx + 1;
               });
