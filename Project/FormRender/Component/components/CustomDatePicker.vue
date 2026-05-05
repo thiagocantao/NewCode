@@ -290,10 +290,8 @@ export default {
       }
     }
     function clearDate(){
-      selectedDate.value = '';
-      if(props.showTime) timePart.value = '00:00';
-      emit('update:modelValue', '');
-      closeDp();
+      draftDate.value = '';
+      if(props.showTime) draftTimePart.value = '00:00';
     }
     function confirmSelection() {
       selectedDate.value = draftDate.value;
