@@ -46,7 +46,7 @@
         </button>
       </div>
       <div v-if="showTime" class="dp-time">
-        <input type="time" v-model="timePart" @input="onTimeInput" />
+        <input type="time" v-model="popupTimePart" @input="onTimeInput" />
       </div>
       <div class="dp-actions">
         <button type="button" class="dp-action dp-action-primary" @click="confirmSelection">{{ labelSelect }}</button>
@@ -112,6 +112,8 @@ export default {
     const POPUP_Z_INDEX = 2147483647;
     const selectedDate = ref('');
     const timePart = ref('00:00');
+    const draftDate = ref('');
+    const draftTimePart = ref('00:00');
 
     watch(
       () => props.modelValue,
@@ -157,7 +159,7 @@ export default {
     function makeCell(date, inMonth){
       const label = date.getDate();
       const today = new Date();
-      const selected = parseYMD(selectedDate.value);
+      const selected = parseYMD(dpOpen.value ? draftDate.value : selectedDate.value);
       return {
         label,
         dateStr: toYMD(date),
@@ -254,9 +256,11 @@ export default {
       const base = parseYMD(selectedDate.value) || new Date();
       dpMonth.value = base.getMonth();
       dpYear.value = base.getFullYear();
+      draftDate.value = selectedDate.value;
+      draftTimePart.value = timePart.value || '00:00';
       if(props.showTime && !selectedDate.value){
         const pad = n => String(n).padStart(2,'0');
-        timePart.value = `${pad(base.getHours())}:${pad(base.getMinutes())}`;
+        draftTimePart.value = `${pad(base.getHours())}:${pad(base.getMinutes())}`;
       }
       dpOpen.value = true;
       nextTick(() => {
@@ -275,19 +279,15 @@ export default {
     function nextMonth(){ dpMonth.value = dpMonth.value === 11 ? 0 : dpMonth.value + 1; if (dpMonth.value === 0) dpYear.value++; nextTick(updatePopoverPosition); }
     function selectDay(d){
       if(!d.inMonth) return;
-      selectedDate.value = d.dateStr;
-      emitValue();
-      if(!props.showTime) closeDp();
+      draftDate.value = d.dateStr;
     }
     function pickToday(){
       const now = new Date();
-      selectedDate.value = toYMD(now);
+      draftDate.value = toYMD(now);
       if(props.showTime){
         const pad = n => String(n).padStart(2,'0');
-        timePart.value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+        draftTimePart.value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
       }
-      emitValue();
-      closeDp();
     }
     function clearDate(){
       selectedDate.value = '';
@@ -296,13 +296,14 @@ export default {
       closeDp();
     }
     function confirmSelection() {
+      selectedDate.value = draftDate.value;
+      timePart.value = draftTimePart.value;
       emitValue();
       closeDp();
     }
 
     function onTimeInput(e){
-      timePart.value = e.target.value;
-      emitValue();
+      draftTimePart.value = e.target.value;
     }
 
     function onDocClick(e){
@@ -321,6 +322,13 @@ export default {
       if (!selectedDate.value) return '';
       const base = formatDateByStyle(selectedDate.value, formatStyle);
       return props.showTime ? `${base} ${timePart.value}` : base;
+    });
+
+    const popupTimePart = computed({
+      get: () => draftTimePart.value,
+      set: value => {
+        draftTimePart.value = value;
+      }
     });
 
     return {
@@ -343,6 +351,7 @@ export default {
       labelClear,
       labelSelect,
       timePart,
+      popupTimePart,
       onTimeInput,
       confirmSelection,
       showTime: props.showTime,
