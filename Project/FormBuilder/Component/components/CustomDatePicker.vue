@@ -51,6 +51,7 @@
       <div class="dp-actions">
         <button type="button" class="dp-action" @click="pickToday">{{ labelToday }}</button>
         <button type="button" class="dp-action" @click="clearDate">{{ labelClear }}</button>
+        <button type="button" class="dp-action dp-action-primary" @click="applySelection">{{ labelSelect }}</button>
       </div>
     </div>
   </div>
@@ -84,6 +85,7 @@ export default {
     ];
     const labelToday = computed(() => (isPt.value ? 'Hoje' : translateText('Today')));
     const labelClear = computed(() => (isPt.value ? 'Limpar' : translateText('Clear')));
+    const labelSelect = computed(() => (isPt.value ? 'Selecionar' : translateText('Select')));
 
     function toYMD(date) {
       const y = date.getFullYear();
@@ -284,8 +286,6 @@ export default {
     function selectDay(d){
       if(!d.inMonth) return;
       selectedDate.value = d.dateStr;
-      emitValue();
-      if(!props.showTime) closeDp();
     }
     function pickToday(){
       const now = new Date();
@@ -306,7 +306,11 @@ export default {
 
     function onTimeInput(e){
       timePart.value = e.target.value;
+    }
+
+    function applySelection(){
       emitValue();
+      closeDp();
     }
 
     function onDocClick(e){
@@ -345,8 +349,10 @@ export default {
       displayDate,
       labelToday,
       labelClear,
+      labelSelect,
       timePart,
       onTimeInput,
+      applySelection,
       showTime: props.showTime,
       disabled: props.disabled,
       error: props.error
