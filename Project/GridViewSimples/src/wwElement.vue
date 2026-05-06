@@ -573,6 +573,7 @@ export default {
           suppressCellFocus: true,
           suppressColumnsToolPanel: true,
           cellStyle: {
+            right: "5px",
             textAlign: "center",
             paddingLeft: "0",
             paddingRight: "0",
@@ -580,9 +581,10 @@ export default {
           },
           cellRenderer: (params) => {
             const selectable = this.isRowSelectableByCondition(params?.data);
+            const lockTitle = translatePhrase("The record cannot be deleted");
             return selectable
               ? ""
-              : '<span style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;"><i class="fa fa-lock" style="font-size:16px;line-height:1;" aria-hidden="true" title="Row not selectable"></i></span>';
+              : `<span><i class="fa fa-lock" style="font-size:15px;line-height:1;" aria-hidden="true" title="${lockTitle}"></i></span>`;
           },
         });
       }
