@@ -162,10 +162,57 @@ export default {
             throw new Error('Formato não suportado. Use CSV ou disponibilize XLSX no contexto da aplicação.');
         },
         parseCsv(content) {
-            return content
-                .split(/\r?\n/)
-                .filter(line => line.trim() !== '')
-                .map(line => line.split(',').map(part => part.trim()));
+            const delimiter = this.resolveImportDelimiter(content);
+            const rows = [];
+            let current = '';
+            let insideQuotes = false;
+            let row = [];
+
+            const pushValue = () => {
+                row.push(current.trim());
+                current = '';
+            };
+
+            const pushRow = () => {
+                if (row.length || current) {
+                    pushValue();
+                }
+                if (row.length) {
+                    rows.push(row);
+                }
+                row = [];
+            };
+
+            for (let i = 0; i < content.length; i++) {
+                const char = content[i];
+                if (char === '"') {
+                    if (insideQuotes && content[i + 1] === '"') {
+                        current += '"';
+                        i++;
+                    } else {
+                        insideQuotes = !insideQuotes;
+                    }
+                } else if (char === delimiter && !insideQuotes) {
+                    pushValue();
+                } else if ((char === '\n' || char === '\r') && !insideQuotes) {
+                    if (char === '\r' && content[i + 1] === '\n') i++;
+                    pushRow();
+                } else {
+                    current += char;
+                }
+            }
+
+            if (current || row.length) {
+                pushRow();
+            }
+
+            return rows.filter(parsedRow => parsedRow.some(value => String(value).trim() !== ''));
+        },
+        resolveImportDelimiter(content) {
+            const firstLine = (content || '').split(/\r?\n/, 1)[0] || '';
+            const semicolonCount = (firstLine.match(/;/g) || []).length;
+            const commaCount = (firstLine.match(/,/g) || []).length;
+            return semicolonCount > commaCount ? ';' : ',';
         },
         resetFileInput() {
             if (this.$refs.fileInput) this.$refs.fileInput.value = '';
