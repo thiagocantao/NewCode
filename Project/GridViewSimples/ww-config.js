@@ -65,6 +65,7 @@ export default {
         "rowSelection",
         "enableClickSelection",
         "disableCheckboxes",
+        "showDisabledSelectionLockIcon",
         "selectAll",
         "selectAllRows",
         "disableRowSelectionCondition",
@@ -191,6 +192,17 @@ export default {
       type: "Title",
       label: "Selection",
       editorOnly: true,
+    },
+    showDisabledSelectionLockIcon: {
+      label: { en: "Show lock on disabled selection" },
+      type: "OnOff",
+      section: "settings",
+      defaultValue: true,
+      bindable: true,
+      propertyHelp: {
+        tooltip:
+          "Display a lock icon in rows where selection checkbox is disabled.",
+      },
     },
     layout: {
       type: "TextSelect",

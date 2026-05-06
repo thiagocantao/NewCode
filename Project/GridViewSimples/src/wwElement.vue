@@ -364,7 +364,7 @@ export default {
       };
     },
     columnDefs() {
-      return this.content.columns.map((col) => {
+      const mappedColumns = this.content.columns.map((col) => {
         
         // Forçar cellDataType para 'dateString' se for 'date' ou 'dateString'
         if (col.cellDataType === 'date') col.cellDataType = 'dateString';
@@ -551,6 +551,45 @@ export default {
           }
         }
       });
+
+      if (
+        this.content.showDisabledSelectionLockIcon !== false &&
+        this.content.rowSelection === "multiple" &&
+        !this.content.disableCheckboxes
+      ) {
+        mappedColumns.push({
+          colId: "__lock_selection__",
+          headerName: "",
+          width: 52,
+          minWidth: 52,
+          maxWidth: 52,
+          sortable: false,
+          filter: false,
+          resizable: false,
+          suppressNavigable: true,
+          lockPosition: true,
+          suppressHeaderContextMenu: true,
+          suppressHeaderMenuButton: true,
+          suppressCellFocus: true,
+          suppressColumnsToolPanel: true,
+          cellStyle: {
+            right: "5px",
+            textAlign: "center",
+            paddingLeft: "0",
+            paddingRight: "0",
+            overflow: "hidden",
+          },
+          cellRenderer: (params) => {
+            const selectable = this.isRowSelectableByCondition(params?.data);
+            const lockTitle = translatePhrase("The record cannot be deleted");
+            return selectable
+              ? ""
+              : `<span><i class="fa fa-lock" style="font-size:15px;line-height:1;" aria-hidden="true" title="${lockTitle}"></i></span>`;
+          },
+        });
+      }
+
+      return mappedColumns;
     },
     rowSelection() {
       if (this.content.rowSelection === "multiple") {
@@ -560,28 +599,7 @@ export default {
           headerCheckbox: !this.content.disableCheckboxes,
           selectAll: this.content.selectAll || "all",
           enableClickSelection: this.content.enableClickSelection,
-          isRowSelectable: (rowNode) => {
-            const cond = this.content.disableRowSelectionCondition;
-            if (!cond) return true;
-            let expr = cond.replace(/@([a-zA-Z0-9_çÇãÃáÁéÉíÍóÓúÚêÊôÔâÂàÀèÈìÌòÒùÙüÜñÑ]+)/g, (match, p1) => {
-              const val = rowNode.data && rowNode.data[p1];
-              if (val === undefined || val === null) return 'null';
-              if (typeof val === 'string') return `"${val.replace(/"/g, '\\"')}"`;
-              if (typeof val === 'boolean' || typeof val === 'number') return val;
-              return 'null';
-            });
-            // Troca operadores lógicos
-            expr = expr.replace(/\bAND\b/gi, '&&').replace(/\bOR\b/gi, '||');
-            // Troca apenas = isolado por ===
-            expr = expr.replace(/([^=!<>])=([^=])/g, '$1===$2');
-            // Não faz mais conversão de datas, pois o JSON já está em ISO
-            try {
-              return !eval(expr);
-            } catch (e) {
-              
-              return true;
-            }
-          }
+          isRowSelectable: (rowNode) => this.isRowSelectableByCondition(rowNode?.data),
         };
       } else if (this.content.rowSelection === "single") {
         return {
@@ -732,6 +750,24 @@ export default {
         event.api.setFocusedCell(nextRowIndex, targetColumn);
         event.api.startEditingCell(startEditParams);
       });
+    },
+    isRowSelectableByCondition(rowData) {
+      const cond = this.content.disableRowSelectionCondition;
+      if (!cond) return true;
+      let expr = cond.replace(/@([a-zA-Z0-9_çÇãÃáÁéÉíÍóÓúÚêÊôÔâÂàÀèÈìÌòÒùÙüÜñÑ]+)/g, (match, p1) => {
+        const val = rowData && rowData[p1];
+        if (val === undefined || val === null) return 'null';
+        if (typeof val === 'string') return `"${val.replace(/"/g, '\\"')}"`;
+        if (typeof val === 'boolean' || typeof val === 'number') return val;
+        return 'null';
+      });
+      expr = expr.replace(/\bAND\b/gi, '&&').replace(/\bOR\b/gi, '||');
+      expr = expr.replace(/([^=!<>])=([^=])/g, '$1===$2');
+      try {
+        return !eval(expr);
+      } catch (e) {
+        return true;
+      }
     },
     onRowClicked(event) {
       const colId = event.column && event.column.getColId && event.column.getColId();
