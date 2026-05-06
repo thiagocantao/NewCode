@@ -560,20 +560,29 @@ export default {
         mappedColumns.push({
           colId: "__lock_selection__",
           headerName: "",
-          width: 36,
-          minWidth: 36,
-          maxWidth: 36,
+          width: 52,
+          minWidth: 52,
+          maxWidth: 52,
           sortable: false,
           filter: false,
           resizable: false,
+          suppressNavigable: true,
+          lockPosition: true,
+          suppressHeaderContextMenu: true,
           suppressHeaderMenuButton: true,
+          suppressCellFocus: true,
           suppressColumnsToolPanel: true,
-          cellStyle: { textAlign: "center" },
+          cellStyle: {
+            textAlign: "center",
+            paddingLeft: "0",
+            paddingRight: "0",
+            overflow: "hidden",
+          },
           cellRenderer: (params) => {
             const selectable = this.isRowSelectableByCondition(params?.data);
             return selectable
               ? ""
-              : '<i class="fa fa-lock" aria-hidden="true" title="Row not selectable"></i>';
+              : '<span style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;"><i class="fa fa-lock" style="font-size:16px;line-height:1;" aria-hidden="true" title="Row not selectable"></i></span>';
           },
         });
       }
