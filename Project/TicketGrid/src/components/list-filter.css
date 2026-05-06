@@ -1,0 +1,454 @@
+/* Filtro customizado para campos do tipo list */
+.list-filter,
+.list-editor {
+  padding: 25px 10px 8px 10px !important;
+  min-width: 260px;
+  max-width: 350px;
+  max-height: 340px;
+  background: #fff;
+  border: 1px solid #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.067);
+  font-size: 15px;
+  font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif);
+  overflow: hidden;
+  position: relative;
+}
+
+.filter-list {
+  max-height: 220px;
+  overflow-y: auto;
+  background: transparent;
+  border-radius: 12px;
+  margin-bottom: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: #bdbdbd transparent;
+}
+
+/* Barra de rolagem moderna e sem setas */
+.filter-list::-webkit-scrollbar {
+  width: 6px;
+  background: transparent;
+  border-radius: 12px;
+}
+
+.filter-list::-webkit-scrollbar-thumb {
+  background: #bdbdbd;
+  border-radius: 12px;
+}
+
+.filter-list::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Remove as setas (botões) da barra de rolagem no Chrome/Safari/Edge */
+.filter-list::-webkit-scrollbar-button {
+  display: none;
+  height: 0;
+}
+
+:is(.list-filter, .list-editor) .filter-list,
+:is(.list-filter, .list-editor) .filter-item,
+:is(.list-filter, .list-editor) .filter-label {
+  font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif);
+  font-size: 13px;
+}
+
+:is(.list-filter, .list-editor) .filter-header { margin-bottom: 10px; }
+
+:is(.list-filter, .list-editor) .field-search {
+  position: relative;
+  padding: 0 0 10px 0;
+}
+
+:is(.list-filter, .list-editor) .search-input {
+  width: 100%;
+  padding: 7px 36px 7px 13px;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  font-size: 13px;
+  font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif);
+  outline: none;
+  background: #fff;
+  color: #444;
+  box-sizing: border-box;
+}
+
+:is(.list-filter, .list-editor) .search-input::placeholder {
+  color: #aaa;
+  font-size: 13px;
+  font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif);
+}
+
+:is(.list-filter, .list-editor) .search-icon {
+  position: absolute;
+  right: 12px;
+  top: 16px;
+  transform: translateY(-50%);
+  color: #999;
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:is(.list-filter, .list-editor) .search-icon i.material-symbols-outlined-search {
+  font-family: 'Material Symbols Outlined';
+  font-size: 19px;
+  font-style: normal;
+  font-weight: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+:is(.list-filter, .list-editor) .filter-list {
+  max-height: 250px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
+
+:is(.list-filter, .list-editor) .select-all-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e0e0e0;
+  font-size: 13px;
+  font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif);
+  color: #444;
+  gap: 8px;
+}
+
+:is(.list-filter, .list-editor) .select-all-row label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 6px 8px 6px 8px;
+  border-radius: 8px;
+  transition: background 0.15s;
+  width: 100%;
+}
+
+:is(.list-filter, .list-editor) .select-all-row label:hover { background: #f6f7fa; }
+
+:is(.list-filter, .list-editor) .select-all-checkbox {
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  border: 2px solid #bfc6d1;
+  accent-color: #5e6a75;
+  background: #fff;
+  transition: border-color 0.2s, background 0.2s;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+:is(.list-filter, .list-editor) .filter-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px 6px 8px;
+  font-size: 13px;
+  font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif);
+  cursor: pointer;
+  gap: 8px;
+  border-radius: 8px;
+  transition: background 0.15s;
+  justify-content: flex-start;
+}
+
+
+:is(.list-filter, .list-editor) .filter-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  border: 2px solid #bfc6d1;
+  accent-color: #5e6a75;
+  background: #fff;
+  transition: border-color 0.2s, background 0.2s;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+:is(.list-filter, .list-editor) .filter-item input[type="checkbox"]:checked {
+  background: #5e6a75;
+  border-color: #5e6a75;
+}
+:is(.list-filter, .list-editor) .filter-item input[type="checkbox"]:focus { outline: none; }
+
+:is(.list-filter, .list-editor) .filter-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+  display: inline-block;
+  color: #444;
+  font-size: 13px;
+  font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif);
+}
+
+/* Specific styles for Deadline filter */
+.deadline-filter { max-width: none; max-height: none; overflow: visible; }
+
+.deadline-filter .field-search { padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid #ccc; }
+.deadline-filter .field-search .search-input { padding: 7px 36px 7px 13px; }
+.deadline-filter .filter-list { max-height: none; overflow: visible; }
+.deadline-filter .filter-item { width: 100%; padding: 12px 12px; margin-bottom: 8px; }
+
+.deadline-filter .filter-item.custom {
+  border-top: 1px solid #ccc;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.deadline-filter .filter-item.custom .arrow-icon {
+  margin-left: auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #424242;
+  font-size: 20px !important;
+  cursor:pointer;
+  flex-shrink: 0;
+}
+
+.deadline-filter .custom-header { display: flex; align-items: center; margin-bottom: 8px; }
+.deadline-filter .custom-header .back-btn {
+
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #424242;
+  font-size: 20px !important;
+  line-height: 1;
+  padding: 0;
+  margin-right: 6px;
+}
+.deadline-filter .custom-header .custom-title { margin-left: auto; font-size: 13px; }
+
+.deadline-filter .custom-select {
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif);
+  background: #fff;
+  color: #444;
+  box-sizing: border-box;
+}
+
+.deadline-filter .custom-range { display: flex; align-items: center; gap: 4px; margin-bottom: 8px; }
+.deadline-filter .custom-range.between-mode { flex-direction: column; align-items: stretch; }
+
+.deadline-filter .custom-range input[type="date"] {
+  flex: 1;
+  padding: 6px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif);
+  color: #444;
+  box-sizing: border-box;
+}
+
+/* Estilos para opções de usuário com avatar */
+:is(.list-filter, .list-editor) .user-option { display: flex; align-items: center; gap: 8px; }
+:is(.list-filter, .list-editor) .avatar-outer {
+  width: 24px; height: 24px; border-radius: 50%; border: 1px solid #FFFFFF;
+  display: flex; align-items: center; justify-content: center; background: #fff; flex-shrink: 0;
+  box-shadow: 0 0 0 1px var(--grid-view-dinamica-avatar-shadow, #3A4663);
+}
+:is(.list-filter, .list-editor) .avatar-middle {
+  width: 22px; height: 22px; border-radius: 50%; border: 2px solid #fff;
+  display: flex; align-items: center; justify-content: center; background: #fff;
+}
+:is(.list-filter, .list-editor) .user-avatar {
+  width: 18px; height: 18px; border-radius: 50%; background: var(--grid-view-dinamica-avatar-bg, #4B6CB7);
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+:is(.list-filter, .list-editor) .user-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+:is(.list-filter, .list-editor) .user-initial {
+  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 400; background: transparent; color: #fff; border-radius: 50%; letter-spacing: 0.5px;
+}
+
+:is(.list-filter, .list-editor) .editor-close {
+  position: absolute; top: 2px; right: 8px; font-size: 18px; color: #888; cursor: pointer; line-height: 1;
+}
+
+/* ---- DatePicker base ---- */
+.dp-wrapper { position: relative; display: inline-flex; align-items: center; gap: 6px; }
+.dp-input { width: 160px; padding: 8px 10px; border: 1px solid #d0d5dd; border-radius: 8px; background: #fff; font: 14px/1.2 var(--grid-view-dinamica-font-family, Roboto, Arial, sans-serif); cursor: pointer; }
+.dp-input[disabled] { background: #f2f4f7; color: #98a2b3; cursor: not-allowed; }
+.dp-icon { border: 0; background: transparent; cursor: pointer; padding: 4px; border-radius: 6px; }
+.dp-icon:hover { background: #f2f4f7; }
+
+.datepicker-pop { position: fixed; z-index: 9999; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.08); width: 280px; padding: 8px; user-select: none; }
+.dp-header { display: flex; align-items: center; justify-content: space-between; padding: 4px 4px 8px; }
+.dp-title { font: 600 14px/1.2 Inter, system-ui, Arial; }
+.dp-nav {
+  border: 1px solid #ccc;
+  background: #f7f7f7;
+  border-radius: 6px;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 2px 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.dp-nav:active { transform: translateY(1px); }
+
+.dp-weekdays, .dp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.dp-weekdays { padding: 4px 2px; color: #6b7280; font: 600 11px/1 Inter, sans-serif; text-transform: uppercase; letter-spacing: .02em; }
+.dp-weekday { text-align: center; }
+.dp-grid { padding: 6px 2px 4px; }
+.dp-cell {
+  border: 1px solid transparent;
+  height: 30px;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  font: 500 13px/1 Inter, sans-serif;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.dp-cell:hover { background: #f3f4f6; }
+.dp-cell.is-muted { color: #9ca3af; }
+.dp-cell.is-selected { background: #e7f0ff; border-color: #84a9ff; }
+.dp-cell.is-today { outline: 1px dashed #aaa; }
+
+.dp-actions { display: flex; gap: 6px; justify-content: flex-end; padding: 8px; flex-wrap: wrap; }
+.dp-action {
+  flex: 1;
+  border: 1px solid #ccc;
+  background: #f7f7f7;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  font: 600 12px/1 Inter;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.dp-action:hover { background: #f9fafb; }
+
+.list-filter.deadline-filter { min-width: 280px; }
+.field-search { position: relative; margin-bottom: 8px; }
+.field-search .search-input { width: 100%; padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 8px; }
+.filter-list { display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow: auto; }
+.filter-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 8px; cursor: pointer; }
+.filter-item:hover { background: #f3f4f6; }
+.filter-item.selected { background: #e0e7ff; }
+.filter-item.custom.selected,
+.filter-item.clear.selected {
+  background: transparent;
+}
+.custom-header { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.custom-title { font-weight: 400; }
+.custom-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.custom-select { flex: 1; height: 32px; border: 1px solid #e5e7eb; border-radius: 8px; padding: 0 8px; }
+.custom-range { display: flex; flex-direction: column; gap: 8px; margin: 8px 0; }
+.picker-row { display: grid; grid-template-columns: 60px 1fr; align-items: center; gap: 8px; }
+.picker-label { color: #6b7280; font: 600 12px/1 Inter; }
+.custom-actions { display: flex; gap: 6px; }
+.apply-btn, .cancel-btn {
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: #f7f7f7;
+  flex: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: #424242;
+}
+.apply-btn:hover:not(:disabled),
+.cancel-btn:hover { background: #ececec; }
+.apply-btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+/* Garante que o popup não seja clipado por containers do menu (usa Teleport→body) */
+.dp-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147483646 !important; /* ↑ sobe o nível do backdrop */
+  background: transparent !important;
+}
+
+.datepicker-pop {
+  position: fixed !important;
+  z-index: 2147483647 !important; /* ↑ garante no topo */
+  width: 280px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 10px 30px rgba(0,0,0,.08);
+  padding: 8px;
+}
+
+/* Botões do calendário podem ser afetados por resets (ex.: button{all:unset}) */
+.dp-nav, .dp-cell, .dp-action, .dp-icon {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.dp-nav {
+  min-width: 28px;
+  min-height: 28px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #f7f7f7;
+  padding: 2px 8px;
+}
+.dp-cell {
+  height: 30px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  padding: 0 0.25rem;
+}
+.dp-action {
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  padding: 0 .5rem;
+  background: #f7f7f7;
+}
+.dp-icon { padding: 4px; border-radius: 6px; }
+.dp-cell.is-selected { background: #e7f0ff; border-color: #84a9ff; }
+.dp-cell.is-today { outline: 1px dashed #aaa; }
+
+/* Garanta que a fonte de ícone exista (Material Symbols) */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined', sans-serif !important;
+  font-weight: normal; font-style: normal; line-height: 1;
+  letter-spacing: normal; text-transform: none; display: inline-block;
+  white-space: nowrap; word-wrap: normal; direction: ltr;
+  -webkit-font-feature-settings: 'liga'; -webkit-font-smoothing: antialiased;
+}
