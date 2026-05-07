@@ -2859,6 +2859,7 @@ setTimeout(() => {
             field: colCopy.field,
             sortable: colCopy.sortable,
             filter: isResponsible ? ResponsibleUserFilterRenderer : ListFilterRenderer,
+            filterParams: isResponsible ? {} : { getFilterOptions: () => getFilterOptionsAsync() },
             cellRenderer: isResponsible ? 'UserCellRenderer' : 'FormatterCellRenderer',
             cellRendererParams: {
               useCustomFormatter: colCopy.useCustomFormatter,
@@ -2915,6 +2916,24 @@ setTimeout(() => {
               params.api?.refreshCells?.({ columns: [fieldKey], force: true });
               return opts;
             });
+          };
+          const getFilterOptionsAsync = async () => {
+            const colCache = this.columnOptions[fieldKey] || {};
+            const cachedLists = Object.values(colCache).filter(Array.isArray);
+            if (cachedLists.length) {
+              const dedupe = new Map();
+              cachedLists.flat().forEach(opt => {
+                if (!opt) return;
+                const value = opt.value ?? opt.id ?? opt.name;
+                const key = value == null ? '' : String(value);
+                if (!dedupe.has(key)) dedupe.set(key, opt);
+              });
+              return Array.from(dedupe.values());
+            }
+            const loaded = await this.getColumnOptions(colCopy, undefined, { force: true });
+            if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
+            this.columnOptions[fieldKey][this.getOptionsCacheKey(colCopy, undefined)] = loaded;
+            return loaded || [];
           };
 
           if (
@@ -3072,6 +3091,24 @@ setTimeout(() => {
                   return opts;
                 });
               };
+              const getFilterOptionsAsync = async () => {
+                const colCache = this.columnOptions[fieldKey] || {};
+                const cachedLists = Object.values(colCache).filter(Array.isArray);
+                if (cachedLists.length) {
+                  const dedupe = new Map();
+                  cachedLists.flat().forEach(opt => {
+                    if (!opt) return;
+                    const value = opt.value ?? opt.id ?? opt.name;
+                    const key = value == null ? '' : String(value);
+                    if (!dedupe.has(key)) dedupe.set(key, opt);
+                  });
+                  return Array.from(dedupe.values());
+                }
+                const loaded = await this.getColumnOptions(colCopy, undefined, { force: true });
+                if (!this.columnOptions[fieldKey]) this.columnOptions[fieldKey] = {};
+                this.columnOptions[fieldKey][this.getOptionsCacheKey(colCopy, undefined)] = loaded;
+                return loaded || [];
+              };
 
               const staticOptions = Array.isArray(colCopy.options)
                 ? colCopy.options
@@ -3088,6 +3125,7 @@ setTimeout(() => {
                 field: colCopy.field,
                 sortable: colCopy.sortable,
                 filter: isResponsible ? ResponsibleUserFilterRenderer : ListFilterRenderer,
+                filterParams: isResponsible ? {} : { getFilterOptions: () => getFilterOptionsAsync() },
                 cellRenderer: isResponsible ? 'UserCellRenderer' : 'FormatterCellRenderer',
                 cellRendererParams: {
                   useCustomFormatter: colCopy.useCustomFormatter,
