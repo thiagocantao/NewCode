@@ -96,6 +96,7 @@
                         @touchstart.stop
                       />
                     </div>
+                    <button type="button" class="dropdown-clear-link" @click.stop="clearHeaderSelection('priority')">Clear</button>
                     <div
                       v-if="getFilteredHeaderOptions('priority').length === 0"
                       class="custom-dropdown-no-options"
@@ -151,6 +152,7 @@
                         @touchstart.stop
                       />
                     </div>
+                    <button type="button" class="dropdown-clear-link" @click.stop="clearHeaderSelection('category')">Clear</button>
                     <div
                       v-if="getFilteredHeaderOptions('category').length === 0"
                       class="custom-dropdown-no-options"
@@ -206,6 +208,7 @@
                         @touchstart.stop
                       />
                     </div>
+                    <button type="button" class="dropdown-clear-link" @click.stop="clearHeaderSelection('subcategory')">Clear</button>
                     <div
                       v-if="getFilteredHeaderOptions('subcategory').length === 0"
                       class="custom-dropdown-no-options"
@@ -261,6 +264,7 @@
                         @touchstart.stop
                       />
                     </div>
+                    <button type="button" class="dropdown-clear-link" @click.stop="clearHeaderSelection('thirdLevelCategory')">Clear</button>
                     <div
                       v-if="getFilteredHeaderOptions('thirdLevelCategory').length === 0"
                       class="custom-dropdown-no-options"
@@ -321,6 +325,7 @@
                           @touchstart.stop
                         />
                       </div>
+                      <button type="button" class="dropdown-clear-link" @click.stop="clearHeaderSelection('assignee')">Clear</button>
                       <div
                         v-if="getFilteredHeaderOptions('assignee').length === 0"
                         class="custom-dropdown-no-options"
@@ -377,6 +382,7 @@
                           @touchstart.stop
                         />
                       </div>
+                      <button type="button" class="dropdown-clear-link" @click.stop="clearHeaderSelection('status')">Clear</button>
                       <div
                         v-if="getFilteredHeaderOptions('status').length === 0"
                         class="custom-dropdown-no-options"
@@ -1116,6 +1122,24 @@ return;
 
       headerSelectedLabels[key] = label;
       model.value = newValue ?? '';
+      closeAllHeaderDropdowns();
+    };
+    const resetHeaderFieldValue = key => {
+      const model = headerFieldModels[key];
+      if (!model) return;
+      model.value = '';
+      headerSelectedLabels[key] = '';
+    };
+    const clearHeaderSelection = key => {
+      resetHeaderFieldValue(key);
+
+      if (key === 'category') {
+        resetHeaderFieldValue('subcategory');
+        resetHeaderFieldValue('thirdLevelCategory');
+      } else if (key === 'subcategory') {
+        resetHeaderFieldValue('thirdLevelCategory');
+      }
+
       closeAllHeaderDropdowns();
     };
 
@@ -2714,6 +2738,7 @@ return;
       getHeaderSelectedLabel,
       isHeaderOptionSelected,
       selectHeaderOption,
+      clearHeaderSelection,
       computeSelectWidthStyle,
       translateText,
       showTranslatedMessage,
@@ -3223,6 +3248,19 @@ i.material-symbols-outlined-search {
 .list-search-input:hover {
   border-color: #bdbdbd !important;
   background: #fff;
+}
+
+.dropdown-clear-link {
+  border: none;
+  background: transparent;
+  color: #3b82f6;
+  cursor: pointer;
+  font-size: 0.8rem;
+  margin: 0 14px 8px auto;
+  padding: 0;
+  text-align: right;
+  text-decoration: underline;
+  display: block;
 }
 
 .tag-select-wrapper {

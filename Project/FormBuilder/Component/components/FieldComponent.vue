@@ -179,6 +179,15 @@
                 autofocus
               />
             </div>
+            <button
+              type="button"
+              class="dropdown-clear-link"
+              @click.stop="clearDropdownSelection"
+              @mousedown.stop
+              @touchstart.stop
+            >
+              Clear
+            </button>
             <div
               v-if="filteredListOptions.length === 0"
               class="custom-dropdown-no-options"
@@ -846,6 +855,11 @@ export default {
       this.updateValue(option.value);
       this.dropdownOpen = false;
     },
+    clearDropdownSelection() {
+      this.localValue = '';
+      this.updateValue('');
+      this.dropdownOpen = false;
+    },
     getScrollParent(element) {
       let style = getComputedStyle(element);
       const excludeStaticParent = style.position === 'absolute';
@@ -1444,6 +1458,19 @@ export default {
   .list-search-input:hover {
     border-color: #bdbdbd !important;
     background: #fff;
+  }
+
+  .dropdown-clear-link {
+    border: none;
+    background: transparent;
+    color: #3b82f6;
+    cursor: pointer;
+    font-size: 0.8rem;
+    margin: 0 14px 8px auto;
+    padding: 0;
+    text-align: right;
+    text-decoration: underline;
+    display: block;
   }
 
   .custom-dropdown-wrapper {
