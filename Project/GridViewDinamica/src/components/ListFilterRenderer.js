@@ -279,6 +279,7 @@ export default class ListFilterRenderer {
           return {
             value: normalizedValue,
             label: displayText,
+            class_name: item?.statusClassTitle ?? null,
           };
         })
         .filter(option => option && option.value !== undefined && option.value !== null);
@@ -588,7 +589,13 @@ export default class ListFilterRenderer {
       return {
         value: normalizedValue,
         label: normalizedLabel,
-        class_name: opt.class_name ?? opt.className ?? opt.class ?? null,
+        class_name:
+          opt.class_name ??
+          opt.statusClassTitle ??
+          opt.statusclasstitle ??
+          opt.className ??
+          opt.class ??
+          null,
       };
     }
 
@@ -740,7 +747,13 @@ export default class ListFilterRenderer {
       return {
         value: normalizedValue,
         label: normalizedLabel,
-        class_name: opt.class_name ?? opt.className ?? opt.class ?? null,
+        class_name:
+          opt.class_name ??
+          opt.statusClassTitle ??
+          opt.statusclasstitle ??
+          opt.className ??
+          opt.class ??
+          null,
       };
     }
 
