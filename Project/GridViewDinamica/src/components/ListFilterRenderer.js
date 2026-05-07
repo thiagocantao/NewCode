@@ -8,6 +8,9 @@ export default class ListFilterRenderer {
     this.filteredValues = [];
     this.selectAll = false;
     this.formattedValues = [];
+    this.groupByRawKey = new Map();
+    this.statusClassByName = new Map();
+    this.groupExpandedState = {};
     this.rendererConfig = {};
     this.statusLookupMap = null;
     this.isStatusField = false;
@@ -276,6 +279,7 @@ export default class ListFilterRenderer {
           return {
             value: normalizedValue,
             label: displayText,
+            class_name: item?.statusClassTitle ?? null,
           };
         })
         .filter(option => option && option.value !== undefined && option.value !== null);
@@ -383,7 +387,11 @@ export default class ListFilterRenderer {
       const rawValue = opt.value;
       const display = opt.label != null ? opt.label : opt.value;
       const formatted = this.formatDisplayValue(this.ensureDisplayText(display), colDef);
-      return { raw: rawValue, formatted };
+      const statusName = this.stripHtml(this.ensureDisplayText(display)).trim().toLowerCase();
+      if (statusName && opt.class_name) {
+        this.statusClassByName.set(statusName, String(opt.class_name));
+      }
+      return { raw: rawValue, formatted, groupName: opt.class_name };
     });
 
     const uniqueMap = new Map();
@@ -399,6 +407,13 @@ export default class ListFilterRenderer {
 
     this.allValues = unique.map(item => item.raw);
     this.formattedValues = unique.map(item => item.formatted);
+    this.groupByRawKey = new Map(
+      unique.map(item => [this.buildRawKey(item.raw), item.groupName || translatePhrase('Ungrouped')])
+    );
+    this.groupExpandedState = {};
+    this.groupByRawKey.forEach(groupName => {
+      if (this.groupExpandedState[groupName] === undefined) this.groupExpandedState[groupName] = true;
+    });
     this.filteredValues = [...this.allValues];
     this.selectedValues = this.selectedValues.map(value => this.resolveRawValue(value));
     return true;
@@ -436,6 +451,10 @@ export default class ListFilterRenderer {
       const match = options.find(o => o.value == rawValue);
       const baseDisplay = match ? (match.label != null ? match.label : match.value) : rawValue;
       const display = this.ensureDisplayText(baseDisplay);
+      const normalizedStatusName = this.stripHtml(display).trim().toLowerCase();
+      if (normalizedStatusName && match?.class_name) {
+        this.statusClassByName.set(normalizedStatusName, String(match.class_name));
+      }
 
       let formatted = display;
       try {
@@ -484,6 +503,13 @@ export default class ListFilterRenderer {
 
     this.allValues = unique.map(item => item.raw);
     this.formattedValues = unique.map(item => item.formatted);
+    this.groupByRawKey = new Map(
+      unique.map(item => {
+        const statusName = this.stripHtml(this.ensureDisplayText(item.formatted)).trim().toLowerCase();
+        const groupName = this.statusClassByName.get(statusName) || translatePhrase('Ungrouped');
+        return [this.buildRawKey(item.raw), groupName];
+      })
+    );
     this.filteredValues = [...this.allValues];
     this.selectedValues = this.selectedValues.map(value => this.resolveRawValue(value));
   }
@@ -563,10 +589,17 @@ export default class ListFilterRenderer {
       return {
         value: normalizedValue,
         label: normalizedLabel,
+        class_name:
+          opt.class_name ??
+          opt.statusClassTitle ??
+          opt.statusclasstitle ??
+          opt.className ??
+          opt.class ??
+          null,
       };
     }
 
-    return { value: opt, label: opt == null ? '' : String(opt) };
+    return { value: opt, label: opt == null ? '' : String(opt), class_name: null };
   }
 
   formatDisplayValue(display, colDef) {
@@ -714,11 +747,18 @@ export default class ListFilterRenderer {
       return {
         value: normalizedValue,
         label: normalizedLabel,
+        class_name:
+          opt.class_name ??
+          opt.statusClassTitle ??
+          opt.statusclasstitle ??
+          opt.className ??
+          opt.class ??
+          null,
       };
     }
 
 
-    return { value: opt, label: opt == null ? '' : String(opt) };
+    return { value: opt, label: opt == null ? '' : String(opt), class_name: null };
   }
 
   formatDisplayValue(display, colDef) {
@@ -876,7 +916,7 @@ export default class ListFilterRenderer {
       this.filteredValues.length > 0 &&
       this.filteredValues.every(v => this.selectedValues.includes(v));
 
-    this.filterList.innerHTML = this.filteredValues.map((rawValue) => {
+    const renderItem = rawValue => {
       const idx = this.allValues.indexOf(rawValue);
       const formattedValue = this.formattedValues[idx] || rawValue;
       const checked = this.selectedValues.includes(rawValue) ? 'checked' : '';
@@ -888,7 +928,74 @@ export default class ListFilterRenderer {
           <span class="filter-label" title="${title}">${formattedValue}</span>
         </label>
       `;
-    }).join('');
+    };
+
+    const hasGroupedStatus = this.isStatusField && this.groupByRawKey && this.groupByRawKey.size > 0;
+    if (hasGroupedStatus) {
+      const grouped = this.filteredValues.reduce((acc, rawValue) => {
+        const idx = this.allValues.indexOf(rawValue);
+        const formattedValue = this.formattedValues[idx] || rawValue;
+        const statusName = this.stripHtml(this.ensureDisplayText(formattedValue)).trim().toLowerCase();
+        const groupName =
+          this.groupByRawKey.get(this.buildRawKey(rawValue)) ||
+          this.statusClassByName.get(statusName) ||
+          translatePhrase('Ungrouped');
+        if (!acc[groupName]) acc[groupName] = [];
+        acc[groupName].push(rawValue);
+        return acc;
+      }, {});
+
+      this.filterList.innerHTML = Object.entries(grouped).map(([groupName, values]) => {
+        const expanded = this.groupExpandedState[groupName] !== false;
+        const caret = expanded ? 'expand_more' : 'chevron_right';
+        const allChecked = values.length > 0 && values.every(v => this.selectedValues.includes(v));
+        const someChecked = !allChecked && values.some(v => this.selectedValues.includes(v));
+        const content = expanded ? values.map(renderItem).join('') : '';
+        return `<div class="filter-group">
+          <div class="filter-group-header-row">
+            <label class="filter-group-check">
+              <input type="checkbox" class="group-select-checkbox" data-group="${groupName}" ${allChecked ? 'checked' : ''} ${someChecked ? 'data-indeterminate=\"true\"' : ''} />
+            </label>
+            <button type="button" class="filter-group-header" data-group="${groupName}">
+              <span class="material-symbols-outlined">${caret}</span>
+              <span class="group-title">${groupName}</span>
+            </button>
+          </div>
+          <div class="filter-group-options">${content}</div>
+        </div>`;
+      }).join('');
+
+      this.filterList.querySelectorAll('.filter-group-header').forEach(header => {
+        header.addEventListener('click', () => {
+          const groupName = header.getAttribute('data-group');
+          this.groupExpandedState[groupName] = !this.groupExpandedState[groupName];
+          this.renderFilterList();
+        });
+      });
+      this.filterList.querySelectorAll('.group-select-checkbox').forEach(checkbox => {
+        if (checkbox.dataset.indeterminate === 'true') {
+          checkbox.indeterminate = true;
+        }
+        checkbox.addEventListener('change', () => {
+          const groupName = checkbox.getAttribute('data-group');
+          const values = grouped[groupName] || [];
+          if (checkbox.checked) {
+            values.forEach(v => {
+              if (!this.selectedValues.includes(v)) this.selectedValues.push(v);
+            });
+          } else {
+            this.selectedValues = this.selectedValues.filter(v => !values.includes(v));
+          }
+          this.selectAllCheckbox.checked =
+            this.filteredValues.length > 0 &&
+            this.filteredValues.every(v => this.selectedValues.includes(v));
+          this.renderFilterList();
+          this.applyFilter();
+        });
+      });
+    } else {
+      this.filterList.innerHTML = this.filteredValues.map(renderItem).join('');
+    }
 
     this.filterList.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
       checkbox.addEventListener('change', (e) => {
