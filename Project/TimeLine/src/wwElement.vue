@@ -66,6 +66,36 @@
               </div>
             </template>
 
+            <!-- SLAUpdated -->
+            <template v-else-if="(item.TagControl || item.tagControl) === 'SLAUpdated'">
+              <div class="activity-added-card">
+                <div class="activity-added-card__left">
+                  <div class="activity-added-card__title">{{ item.Title }}</div>
+                  <div class="activity-added-card__subtitle">
+                    {{ item.NameFieldModified }}
+                  </div>
+                  <dl class="activity-added-card__list">
+                    <div class="row value-change">
+                      <dt></dt>
+                      <dd class="value-change__values">
+                        <span class="value-chip old">
+                          {{ item.OldValueTitle }}
+                        </span>
+                        <i class="material-symbols-outlined arrow">arrow_forward</i>
+                        <span class="value-chip new">
+                          {{ item.NewValueTitle }}
+                        </span>
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+                <div class="activity-added-card__right">
+                  <div class="activity-added-card__created-by">{{ item.CreatedByName }}</div>
+                  <div class="activity-added-card__created-date">{{ formatDateDash(item.CreatedDate) }}</div>
+                </div>
+              </div>
+            </template>
+
             <!-- FieldUpdated -->
             <template v-else-if="(item.TagControl || item.tagControl) === 'FieldUpdated'">
               <!-- FORMATED_TEXT -->
