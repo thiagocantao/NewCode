@@ -152,7 +152,6 @@
                         @touchstart.stop
                       />
                     </div>
-                    <button type="button" class="dropdown-clear-link" @click.stop="clearHeaderSelection('category')">Clear</button>
                     <div
                       v-if="getFilteredHeaderOptions('category').length === 0"
                       class="custom-dropdown-no-options"
@@ -172,16 +171,17 @@
                     </div>
                   </div>
                 </div>
+                <button type="button" class="header-inline-clear-link" @click.stop="clearHeaderSelection('category')">Clear</button>
               </div>
               <div
                 class="select-wrapper tag-select-wrapper"
                 :style="computeSelectWidthStyle(headerSubcategory, translateText('Subcategory'))"
                 v-if="headerFieldPresence.subcategory"
-              >
-                <div
-                  class="custom-dropdown-wrapper header-dropdown-wrapper"
-                  :ref="el => setHeaderDropdownRef('subcategory', el)"
                 >
+                  <div
+                    class="custom-dropdown-wrapper header-dropdown-wrapper"
+                    :ref="el => setHeaderDropdownRef('subcategory', el)"
+                  >
                   <div
                     class="custom-dropdown-selected"
                     :class="{ open: headerDropdownState.subcategory.open }"
@@ -208,7 +208,6 @@
                         @touchstart.stop
                       />
                     </div>
-                    <button type="button" class="dropdown-clear-link" @click.stop="clearHeaderSelection('subcategory')">Clear</button>
                     <div
                       v-if="getFilteredHeaderOptions('subcategory').length === 0"
                       class="custom-dropdown-no-options"
@@ -228,16 +227,17 @@
                     </div>
                   </div>
                 </div>
+                <button type="button" class="header-inline-clear-link" @click.stop="clearHeaderSelection('subcategory')">Clear</button>
               </div>
               <div
                 class="select-wrapper tag-select-wrapper"
                 :style="computeSelectWidthStyle(headerThirdLevelCategory, translateText('Third-level category'))"
                 v-if="headerFieldPresence.thirdLevelCategory"
-              >
-                <div
-                  class="custom-dropdown-wrapper header-dropdown-wrapper"
-                  :ref="el => setHeaderDropdownRef('thirdLevelCategory', el)"
                 >
+                  <div
+                    class="custom-dropdown-wrapper header-dropdown-wrapper"
+                    :ref="el => setHeaderDropdownRef('thirdLevelCategory', el)"
+                  >
                   <div
                     class="custom-dropdown-selected"
                     :class="{ open: headerDropdownState.thirdLevelCategory.open }"
@@ -264,7 +264,6 @@
                         @touchstart.stop
                       />
                     </div>
-                    <button type="button" class="dropdown-clear-link" @click.stop="clearHeaderSelection('thirdLevelCategory')">Clear</button>
                     <div
                       v-if="getFilteredHeaderOptions('thirdLevelCategory').length === 0"
                       class="custom-dropdown-no-options"
@@ -284,6 +283,7 @@
                     </div>
                   </div>
                 </div>
+                <button type="button" class="header-inline-clear-link" @click.stop="clearHeaderSelection('thirdLevelCategory')">Clear</button>
               </div>
             </div>
             <div class="header-tags-rigth">
@@ -1127,7 +1127,12 @@ return;
     const resetHeaderFieldValue = key => {
       const model = headerFieldModels[key];
       if (!model) return;
-      model.value = '';
+
+      if (['category', 'subcategory', 'thirdLevelCategory'].includes(key)) {
+        model.value = null;
+      } else {
+        model.value = '';
+      }
       headerSelectedLabels[key] = '';
     };
     const clearHeaderSelection = key => {
@@ -3261,6 +3266,18 @@ i.material-symbols-outlined-search {
   text-align: right;
   text-decoration: underline;
   display: block;
+}
+
+.header-inline-clear-link {
+  border: none;
+  background: transparent;
+  color: #3b82f6;
+  cursor: pointer;
+  font-size: 0.8rem;
+  margin-left: 6px;
+  padding: 0;
+  text-decoration: underline;
+  white-space: nowrap;
 }
 
 .tag-select-wrapper {
