@@ -311,7 +311,7 @@ export default {
         {
             name: 'fieldsUpdated',
             label: { en: 'On fields updated' },
-            event: { value: [] }
+            event: { value: [], changedField: null }
         },
         {
             name: 'formUpdated',
