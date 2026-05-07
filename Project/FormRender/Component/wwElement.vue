@@ -263,7 +263,7 @@ export default {
     };
 
     const updateFormState = (options) => {
-      const { forceRerender = true } = options || {};
+      const { forceRerender = true, changedField = null } = options || {};
       try {
         const formState = {
           sections: formSections.value.map(section => ({
@@ -287,7 +287,8 @@ export default {
         emit('trigger-event', {
           name: 'fieldsUpdated',
           event: {
-            value: formState.sections.flatMap(section => section.fields)
+            value: formState.sections.flatMap(section => section.fields),
+            changedField
           }
         });
 
@@ -364,7 +365,7 @@ export default {
         const field = section.fields.find(f => f.id === fieldId || f.field_id === fieldId || f.ID === fieldId);
         if (field) {
           field.value = value;
-          updateFormState({ forceRerender: false });
+          updateFormState({ forceRerender: false, changedField: { ...field } });
         }
       }
     };
