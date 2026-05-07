@@ -9,6 +9,7 @@ export default class ListFilterRenderer {
     this.selectAll = false;
     this.formattedValues = [];
     this.groupByRawKey = new Map();
+    this.statusClassByName = new Map();
     this.groupExpandedState = {};
     this.rendererConfig = {};
     this.statusLookupMap = null;
@@ -385,6 +386,10 @@ export default class ListFilterRenderer {
       const rawValue = opt.value;
       const display = opt.label != null ? opt.label : opt.value;
       const formatted = this.formatDisplayValue(this.ensureDisplayText(display), colDef);
+      const statusName = this.stripHtml(this.ensureDisplayText(display)).trim().toLowerCase();
+      if (statusName && opt.class_name) {
+        this.statusClassByName.set(statusName, String(opt.class_name));
+      }
       return { raw: rawValue, formatted, groupName: opt.class_name };
     });
 
@@ -445,6 +450,10 @@ export default class ListFilterRenderer {
       const match = options.find(o => o.value == rawValue);
       const baseDisplay = match ? (match.label != null ? match.label : match.value) : rawValue;
       const display = this.ensureDisplayText(baseDisplay);
+      const normalizedStatusName = this.stripHtml(display).trim().toLowerCase();
+      if (normalizedStatusName && match?.class_name) {
+        this.statusClassByName.set(normalizedStatusName, String(match.class_name));
+      }
 
       let formatted = display;
       try {
@@ -493,6 +502,13 @@ export default class ListFilterRenderer {
 
     this.allValues = unique.map(item => item.raw);
     this.formattedValues = unique.map(item => item.formatted);
+    this.groupByRawKey = new Map(
+      unique.map(item => {
+        const statusName = this.stripHtml(this.ensureDisplayText(item.formatted)).trim().toLowerCase();
+        const groupName = this.statusClassByName.get(statusName) || translatePhrase('Ungrouped');
+        return [this.buildRawKey(item.raw), groupName];
+      })
+    );
     this.filteredValues = [...this.allValues];
     this.selectedValues = this.selectedValues.map(value => this.resolveRawValue(value));
   }
@@ -904,7 +920,13 @@ export default class ListFilterRenderer {
     const hasGroupedStatus = this.isStatusField && this.groupByRawKey && this.groupByRawKey.size > 0;
     if (hasGroupedStatus) {
       const grouped = this.filteredValues.reduce((acc, rawValue) => {
-        const groupName = this.groupByRawKey.get(this.buildRawKey(rawValue)) || translatePhrase('Ungrouped');
+        const idx = this.allValues.indexOf(rawValue);
+        const formattedValue = this.formattedValues[idx] || rawValue;
+        const statusName = this.stripHtml(this.ensureDisplayText(formattedValue)).trim().toLowerCase();
+        const groupName =
+          this.groupByRawKey.get(this.buildRawKey(rawValue)) ||
+          this.statusClassByName.get(statusName) ||
+          translatePhrase('Ungrouped');
         if (!acc[groupName]) acc[groupName] = [];
         acc[groupName].push(rawValue);
         return acc;
