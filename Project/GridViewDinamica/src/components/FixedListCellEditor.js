@@ -36,6 +36,9 @@ export default class FixedListCellEditor {
       tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
     const categoryTags = ['CATEGORYID','SUBCATEGORYID','CATEGORYLEVEL3ID'];
     this.isCategoryField = categoryTags.includes(tag) || categoryTags.includes(identifier);
+    this.isStatusField = tag === 'STATUSID' || identifier === 'STATUSID';
+    this.groupedByClassName = this.isStatusField;
+    this.groupExpandedState = {};
 
 
     // Fixed list options (supports promises)
@@ -47,6 +50,9 @@ export default class FixedListCellEditor {
 
       this.options = (arr || []).map(normalize);
       this.filteredOptions = [...this.options];
+      if (this.groupedByClassName) {
+        this.initializeGroupExpandedState(this.options);
+      }
       this.renderOptions();
     };
 
@@ -248,6 +254,36 @@ export default class FixedListCellEditor {
       const label = this.stripHtml(String(this.formatOption(opt)));
       return label.toLowerCase().includes(t);
     });
+    if (this.groupedByClassName) {
+      this.ensureKnownGroups(this.filteredOptions);
+    }
+    this.renderOptions();
+  }
+
+  getGroupName(opt) {
+    const groupName = opt?.class_name;
+    if (groupName == null || String(groupName).trim() === '') {
+      return translatePhrase('Ungrouped');
+    }
+    return String(groupName);
+  }
+
+  initializeGroupExpandedState(options) {
+    this.groupExpandedState = {};
+    this.ensureKnownGroups(options, true);
+  }
+
+  ensureKnownGroups(options, defaultExpanded = false) {
+    (options || []).forEach(opt => {
+      const groupName = this.getGroupName(opt);
+      if (this.groupExpandedState[groupName] === undefined) {
+        this.groupExpandedState[groupName] = defaultExpanded;
+      }
+    });
+  }
+
+  toggleGroup(groupName) {
+    this.groupExpandedState[groupName] = !this.groupExpandedState[groupName];
     this.renderOptions();
   }
 
@@ -322,6 +358,43 @@ export default class FixedListCellEditor {
   }
 
   renderOptions() {
+    if (this.groupedByClassName) {
+      const groups = this.filteredOptions.reduce((acc, opt) => {
+        const groupName = this.getGroupName(opt);
+        if (!acc[groupName]) acc[groupName] = [];
+        acc[groupName].push(opt);
+        return acc;
+      }, {});
+
+      this.listEl.innerHTML = Object.entries(groups)
+        .map(([groupName, groupOptions]) => {
+          const expanded = this.groupExpandedState[groupName] === true;
+          const caret = expanded ? 'expand_more' : 'chevron_right';
+          const optionsHtml = expanded
+            ? groupOptions
+                .map(opt => {
+                  const formatted = this.formatOption(opt);
+                  const selected = opt.value == this.value ? ' selected' : '';
+                  return `<div class="filter-item grouped-option${selected}" data-value="${opt.value}"><span class="filter-label">${formatted}</span></div>`;
+                })
+                .join('')
+            : '';
+          return `<div class="filter-group">
+              <button type="button" class="filter-group-header" data-group="${groupName}">
+                <span class="material-symbols-outlined">${caret}</span>
+                <span class="group-title">${groupName}</span>
+              </button>
+              <div class="filter-group-options">${optionsHtml}</div>
+            </div>`;
+        })
+        .join('');
+
+      this.listEl.querySelectorAll('.filter-group-header').forEach(el => {
+        el.addEventListener('click', () => {
+          this.toggleGroup(el.getAttribute('data-group'));
+        });
+      });
+    } else {
     this.listEl.innerHTML = this.filteredOptions
       .map(opt => {
         const formatted = this.formatOption(opt);
@@ -345,6 +418,7 @@ export default class FixedListCellEditor {
         return `<div class="filter-item${selected}" data-value="${opt.value}"><span class="filter-label">${formatted}</span></div>`;
       })
       .join('');
+    }
     this.listEl.querySelectorAll('.filter-item').forEach(el => {
       el.addEventListener('click', () => {
         const selectedValue = el.getAttribute('data-value');
