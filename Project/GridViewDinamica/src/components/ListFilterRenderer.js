@@ -948,12 +948,19 @@ export default class ListFilterRenderer {
       this.filterList.innerHTML = Object.entries(grouped).map(([groupName, values]) => {
         const expanded = this.groupExpandedState[groupName] !== false;
         const caret = expanded ? 'expand_more' : 'chevron_right';
+        const allChecked = values.length > 0 && values.every(v => this.selectedValues.includes(v));
+        const someChecked = !allChecked && values.some(v => this.selectedValues.includes(v));
         const content = expanded ? values.map(renderItem).join('') : '';
         return `<div class="filter-group">
-          <button type="button" class="filter-group-header" data-group="${groupName}">
-            <span class="material-symbols-outlined">${caret}</span>
-            <span class="group-title">${groupName}</span>
-          </button>
+          <div class="filter-group-header-row">
+            <label class="filter-group-check">
+              <input type="checkbox" class="group-select-checkbox" data-group="${groupName}" ${allChecked ? 'checked' : ''} ${someChecked ? 'data-indeterminate=\"true\"' : ''} />
+            </label>
+            <button type="button" class="filter-group-header" data-group="${groupName}">
+              <span class="material-symbols-outlined">${caret}</span>
+              <span class="group-title">${groupName}</span>
+            </button>
+          </div>
           <div class="filter-group-options">${content}</div>
         </div>`;
       }).join('');
@@ -963,6 +970,27 @@ export default class ListFilterRenderer {
           const groupName = header.getAttribute('data-group');
           this.groupExpandedState[groupName] = !this.groupExpandedState[groupName];
           this.renderFilterList();
+        });
+      });
+      this.filterList.querySelectorAll('.group-select-checkbox').forEach(checkbox => {
+        if (checkbox.dataset.indeterminate === 'true') {
+          checkbox.indeterminate = true;
+        }
+        checkbox.addEventListener('change', () => {
+          const groupName = checkbox.getAttribute('data-group');
+          const values = grouped[groupName] || [];
+          if (checkbox.checked) {
+            values.forEach(v => {
+              if (!this.selectedValues.includes(v)) this.selectedValues.push(v);
+            });
+          } else {
+            this.selectedValues = this.selectedValues.filter(v => !values.includes(v));
+          }
+          this.selectAllCheckbox.checked =
+            this.filteredValues.length > 0 &&
+            this.filteredValues.every(v => this.selectedValues.includes(v));
+          this.renderFilterList();
+          this.applyFilter();
         });
       });
     } else {

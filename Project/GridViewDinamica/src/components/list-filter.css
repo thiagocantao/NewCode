@@ -171,6 +171,18 @@
   margin-bottom: 6px;
 }
 
+:is(.list-filter, .list-editor) .filter-group-header-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+:is(.list-filter, .list-editor) .filter-group-check {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+}
+
 :is(.list-filter, .list-editor) .filter-group-header {
   width: 100%;
   display: flex;
