@@ -104,6 +104,10 @@
       const identifier = (params.colDef.FieldDB || '').toString().toUpperCase();
       const categoryTags = ['CATEGORYID','SUBCATEGORYID','CATEGORYLEVEL3ID'];
       this.isCategoryField = categoryTags.includes(tag) || categoryTags.includes(identifier);
+      const dataSourceConfig = params.colDef?.dataSource?.dataSource || params.colDef?.dataSource || {};
+      this.enableGroupedStatusOptions =
+        String(dataSourceConfig?.functionName || '').trim().toLowerCase() === 'getstatus';
+      this.groupExpandedState = {};
 
       // Build option array (supports promises)
       const normalize = opt =>
@@ -112,6 +116,9 @@
       const resolveOptions = arr => {
         this.options = (arr || []).map(normalize);
         this.filteredOptions = [...this.options];
+        if (this.enableGroupedStatusOptions) {
+          this.initializeGroupExpandedState(this.options);
+        }
         this.renderOptions();
       };
 
@@ -167,6 +174,32 @@
         const label = this.stripHtml(String(this.formatOption(opt)));
         return label.toLowerCase().includes(t);
       });
+      if (this.enableGroupedStatusOptions) {
+        this.ensureKnownGroups(this.filteredOptions);
+      }
+      this.renderOptions();
+    }
+    getGroupName(opt) {
+      const groupName = opt?.class_name;
+      if (groupName == null || String(groupName).trim() === '') {
+        return translatePhrase('Ungrouped');
+      }
+      return String(groupName);
+    }
+    initializeGroupExpandedState(options) {
+      this.groupExpandedState = {};
+      this.ensureKnownGroups(options, true);
+    }
+    ensureKnownGroups(options, defaultExpanded = false) {
+      (options || []).forEach(opt => {
+        const groupName = this.getGroupName(opt);
+        if (this.groupExpandedState[groupName] === undefined) {
+          this.groupExpandedState[groupName] = defaultExpanded;
+        }
+      });
+    }
+    toggleGroup(groupName) {
+      this.groupExpandedState[groupName] = !this.groupExpandedState[groupName];
       this.renderOptions();
     }
     stripHtml(html) {
@@ -280,6 +313,45 @@
       }
     }
     renderOptions() {
+      if (this.enableGroupedStatusOptions) {
+        const groups = this.filteredOptions.reduce((acc, opt) => {
+          const groupName = this.getGroupName(opt);
+          if (!acc[groupName]) acc[groupName] = [];
+          acc[groupName].push(opt);
+          return acc;
+        }, {});
+
+        const html = Object.entries(groups)
+          .map(([groupName, options]) => {
+            const expanded = this.groupExpandedState[groupName] === true;
+            const caret = expanded ? 'expand_more' : 'chevron_right';
+            const childrenHtml = expanded
+              ? options
+                  .map(opt => {
+                    const formatted = this.formatOption(opt);
+                    const selected = opt.value == this.value ? ' selected' : '';
+                    return `<div class="filter-item grouped-option${selected}" data-value="${opt.value}"><span class="filter-label">${formatted}</span></div>`;
+                  })
+                  .join('')
+              : '';
+            return `<div class="filter-group">
+              <button type="button" class="filter-group-header" data-group="${groupName}">
+                <span class="material-symbols-outlined">${caret}</span>
+                <span class="group-title">${groupName}</span>
+              </button>
+              <div class="filter-group-options">${childrenHtml}</div>
+            </div>`;
+          })
+          .join('');
+
+        this.listEl.innerHTML = html;
+        this.listEl.querySelectorAll('.filter-group-header').forEach(el => {
+          el.addEventListener('click', () => {
+            const groupName = el.getAttribute('data-group');
+            this.toggleGroup(groupName);
+          });
+        });
+      } else {
       this.listEl.innerHTML = this.filteredOptions
         .map(opt => {
           const formatted = this.formatOption(opt);
@@ -287,6 +359,7 @@
           return `<div class="filter-item${selected}" data-value="${opt.value}"><span class="filter-label">${formatted}</span></div>`;
         })
         .join('');
+      }
       this.listEl.querySelectorAll('.filter-item').forEach(el => {
         el.addEventListener('click', () => {
           const selectedValue = el.getAttribute('data-value');
