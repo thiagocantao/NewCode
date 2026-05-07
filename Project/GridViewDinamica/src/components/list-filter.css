@@ -163,6 +163,40 @@
   justify-content: flex-start;
 }
 
+:is(.list-filter, .list-editor) .filter-group {
+  margin-bottom: 6px;
+}
+
+:is(.list-filter, .list-editor) .filter-group-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 8px;
+  color: #2f2f2f;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+}
+
+:is(.list-filter, .list-editor) .filter-group-header:hover {
+  background: #f6f7fa;
+}
+
+:is(.list-filter, .list-editor) .filter-group .group-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:is(.list-filter, .list-editor) .filter-group .filter-group-options {
+  padding-left: 18px;
+}
+
 
 :is(.list-filter, .list-editor) .filter-item input[type="checkbox"] {
   width: 16px;
