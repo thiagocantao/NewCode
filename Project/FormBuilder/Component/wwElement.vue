@@ -1124,12 +1124,22 @@ return;
       model.value = newValue ?? '';
       closeAllHeaderDropdowns();
     };
-    const clearHeaderSelection = key => {
+    const resetHeaderFieldValue = key => {
       const model = headerFieldModels[key];
       if (!model) return;
-
       model.value = '';
       headerSelectedLabels[key] = '';
+    };
+    const clearHeaderSelection = key => {
+      resetHeaderFieldValue(key);
+
+      if (key === 'category') {
+        resetHeaderFieldValue('subcategory');
+        resetHeaderFieldValue('thirdLevelCategory');
+      } else if (key === 'subcategory') {
+        resetHeaderFieldValue('thirdLevelCategory');
+      }
+
       closeAllHeaderDropdowns();
     };
 
@@ -3246,10 +3256,11 @@ i.material-symbols-outlined-search {
   color: #3b82f6;
   cursor: pointer;
   font-size: 0.8rem;
-  margin: 0 14px 8px;
+  margin: 0 14px 8px auto;
   padding: 0;
-  text-align: left;
+  text-align: right;
   text-decoration: underline;
+  display: block;
 }
 
 .tag-select-wrapper {

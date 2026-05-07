@@ -1466,10 +1466,11 @@ export default {
     color: #3b82f6;
     cursor: pointer;
     font-size: 0.8rem;
-    margin: 0 14px 8px;
+    margin: 0 14px 8px auto;
     padding: 0;
-    text-align: left;
+    text-align: right;
     text-decoration: underline;
+    display: block;
   }
 
   .custom-dropdown-wrapper {
