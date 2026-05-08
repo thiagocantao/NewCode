@@ -1071,6 +1071,12 @@ export default {
     }
   }
 
+
+
+  :deep(.ag-paging-row-summary-panel) {
+    display: none !important;
+  }
+
   /* CSS para o filtro customizado ListFilterRenderer */
   .list-filter {
     padding: 10px;
