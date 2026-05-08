@@ -13,66 +13,37 @@
         role="region"
         aria-label="File upload area"
     >
-        <!-- Main upload area -->
-        <div
-            v-if="!isReadonly"
-            ref="dropzoneEl"
-            class="ww-file-upload__dropzone"
-            @click="openFileExplorer"
-            @mousemove="handleMouseMove"
-        >
-            <div
-                v-if="isDragging && !isDisabled && !isReadonly && enableCircleAnimation"
-                ref="circleEl"
-                class="ww-file-upload__hover-circle"
-                :style="{
-                    left: `${mouseX}px`,
-                    top: `${mouseY}px`,
-                    backgroundColor: circleColor,
-                    opacity: circleOpacity,
-                    width: circleSize,
-                    height: circleSize,
-                }"
-            ></div>
+        <div class="ww-file-upload__grid">
+            <button
+                v-if="!isReadonly"
+                type="button"
+                ref="dropzoneEl"
+                class="ww-file-upload__add-tile"
+                :disabled="isDisabled"
+                :aria-label="labelMessage || 'Adicionar anexo'"
+                @click="openFileExplorer"
+                @mousemove="handleMouseMove"
+            >
+                <span class="ww-file-upload__add-icon">+</span>
+            </button>
 
-            <div class="ww-file-upload__content" :class="[`ww-file-upload__content--${uploadIconPosition}`]">
-                <div v-if="showUploadIcon" class="ww-file-upload__icon" v-html="iconHTML" />
-                <div class="ww-file-upload__text">
-                    <div class="ww-file-upload__label" :style="labelMessageStyle">{{ labelMessage }}</div>
-                    <div
-                        class="ww-file-upload__info ww-file-upload__extensions-message"
-                        v-if="extensionsMessage"
-                        :style="extensionsMessageStyle"
-                    >
-                        {{ extensionsMessage }}
-                    </div>
-                    <div
-                        class="ww-file-upload__info ww-file-upload__max-file-message"
-                        v-if="maxFileMessage"
-                        :style="maxFileMessageStyle"
-                    >
-                        {{ maxFileMessage }}
-                    </div>
-                </div>
-            </div>
+            <!-- File list -->
+            <FileList
+                v-if="hasFiles"
+                :files="fileList"
+                :status="status"
+                :type="type"
+                :can-reorder="reorder"
+                :is-readonly="isReadonly"
+                :is-disabled="isDisabled"
+                :can-preview="canPreviewFile"
+                :get-preview-hint="getPreviewHint"
+                @remove="removeFile"
+                @download="downloadFileByIndex"
+                @preview="previewFileByIndex"
+                @reorder="reorderFiles"
+            />
         </div>
-
-        <!-- File list -->
-        <FileList
-            v-if="hasFiles"
-            :files="fileList"
-            :status="status"
-            :type="type"
-            :can-reorder="reorder"
-            :is-readonly="isReadonly"
-            :is-disabled="isDisabled"
-            :can-preview="canPreviewFile"
-            :get-preview-hint="getPreviewHint"
-            @remove="removeFile"
-            @download="downloadFileByIndex"
-            @preview="previewFileByIndex"
-            @reorder="reorderFiles"
-        />
 
         <!-- Hidden file input -->
         <input
@@ -87,6 +58,43 @@
             :aria-label="labelMessage"
             @change="handleFileSelection"
         />
+    </div>
+
+    <div v-if="isPreviewModalOpen" class="ww-preview-modal__overlay" @click.self="closePreviewModal">
+        <div class="ww-preview-modal__content">
+            <div class="ww-preview-modal__actions">
+                <button type="button" class="ww-preview-modal__action-button" @click="downloadFileByIndex(previewIndex)">
+                    <span class="material-symbols-outlined" aria-hidden="true">download</span>
+                </button>
+                <button type="button" class="ww-preview-modal__action-button" @click="closePreviewModal">
+                    <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                </button>
+            </div>
+
+            <div class="ww-preview-modal__body">
+                <template v-if="previewFile && previewMode === 'direct' && previewFile.isImage">
+                    <img :src="previewSource" :alt="previewFile.name || 'Attachment preview'" class="ww-preview-modal__image" />
+                </template>
+
+                <template v-else-if="previewFile && previewMode === 'direct' && previewFile.isPdf">
+                    <iframe :src="previewSource" class="ww-preview-modal__iframe" title="PDF preview"></iframe>
+                </template>
+
+                <template v-else-if="previewFile && previewMode === 'direct' && previewFile.isTxt">
+                    <iframe :src="previewSource" class="ww-preview-modal__iframe" title="Text preview"></iframe>
+                </template>
+
+                <template v-else-if="previewFile && previewMode === 'office'">
+                    <iframe :src="previewSource" class="ww-preview-modal__iframe" title="Document preview"></iframe>
+                </template>
+
+                <template v-else>
+                    <div class="ww-preview-modal__not-viewable">{{ previewUnavailableMessage }}</div>
+                </template>
+            </div>
+
+            <div v-if="previewFile" class="ww-preview-modal__name">{{ previewFile.name }}</div>
+        </div>
     </div>
 </template>
 
@@ -138,6 +146,10 @@ export default {
         const circleEl = ref(null);
         const iconText = ref(null);
         const isProcessing = ref(false);
+        const isPreviewModalOpen = ref(false);
+        const previewIndex = ref(-1);
+        const previewSource = ref('');
+        const previewMode = ref('unsupported');
 
         const extensionsMessage = computed(() => props.content?.extensionsMessage || null);
         const maxFileMessage = computed(() => props.content?.maxFileMessage || null);
@@ -306,20 +318,23 @@ export default {
             if (!Array.isArray(value)) return [];
             return value
                 .map(item => {
-                    const name = item?.FileName || item?.fileName;
-                    const storageBucket = item?.StorageBucket || item?.storageBucket;
-                    const storagePath = item?.StoragePath || item?.storagePath;
-                    if (!name || !storageBucket || !storagePath) return null;
+                    const name = item?.FileName || item?.fileName || item?.name || item?.originalName;
+                    const storageBucket = item?.StorageBucket || item?.storageBucket || item?.bucket;
+                    const storagePath = item?.StoragePath || item?.storagePath || item?.path;
+                    const directUrl = item?.Url || item?.url || item?.signedUrl || null;
+                    if (!name || (!storageBucket && !storagePath && !directUrl)) return null;
                     const kind = getFileKind(name);
                     return {
-                        id: item?.AttachmentID || item?.attachmentId || `init-${storagePath}`,
+                        id: item?.AttachmentID || item?.attachmentId || item?.id || `init-${storagePath || name}`,
                         name,
                         size: Number(item?.SizeBytes || item?.size || 0),
                         type: item?.ContentType || item?.contentType || 'application/octet-stream',
                         mimeType: item?.ContentType || item?.contentType || 'application/octet-stream',
-                        attachmentId: item?.AttachmentID || item?.attachmentId || null,
-                        bucket: storageBucket,
-                        storagePath,
+                        attachmentId: item?.AttachmentID || item?.attachmentId || item?.id || null,
+                        bucket: storageBucket || null,
+                        storagePath: storagePath || '',
+                        url: directUrl,
+                        previewUrl: directUrl,
                         createdDate: item?.CreatedDate || null,
                         createdBy: item?.CreatedBy || null,
                         isImage: kind === 'image',
@@ -425,7 +440,27 @@ export default {
 
         const localData = ref({
             fileUpload: {
-                value: computed(() => fileList.value),
+                value: computed(() => {
+                    return fileList.value.map(file => {
+                        const plainObject = {};
+                        for (const key in file) {
+                            if (Object.prototype.hasOwnProperty.call(file, key)) {
+                                plainObject[key] = file[key];
+                            }
+                        }
+                        plainObject.name = file.name;
+                        plainObject.size = file.size;
+                        plainObject.type = file.type;
+                        plainObject.lastModified = file.lastModified;
+                        plainObject.mimeType = file.mimeType;
+                        plainObject.id = file.id;
+
+                        if (file.base64) plainObject.base64 = file.base64;
+                        if (file.binary) plainObject.binary = file.binary;
+
+                        return plainObject;
+                    });
+                }),
                 status: status,
                 deletedFile: deletedFile,
                 deletedFilesCount: deletedFilesCount,
@@ -580,7 +615,6 @@ export default {
                 if (validationResult.valid) {
                     file.id = `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
                     file.mimeType = file.type;
-                    file.isFromInitialValue = false;
                     if (exposeBase64.value) file.base64 = await fileToBase64(file);
                     if (exposeBinary.value) file.binary = await fileToBinary(file);
                     processedFiles.push(file);
@@ -755,17 +789,27 @@ export default {
         const canPreviewFile = file => getPreviewMode(file) !== 'unsupported';
 
         const getPreviewHint = file => (canPreviewFile(file) ? '' : previewUnavailableMessage.value);
+        const previewFile = computed(() => fileList.value[previewIndex.value] || null);
+
+        const closePreviewModal = () => {
+            isPreviewModalOpen.value = false;
+            previewIndex.value = -1;
+            previewSource.value = '';
+            previewMode.value = 'unsupported';
+        };
 
         const previewFileByIndex = async index => {
             const file = fileList.value[index];
             if (!file) return;
-            const previewMode = getPreviewMode(file);
-            if (previewMode === 'unsupported') return;
+            const mode = getPreviewMode(file);
+            if (mode === 'unsupported') return;
             const url = await resolveFileUrl(file);
             if (!url) return;
-            const previewUrl =
-                previewMode === 'office' ? `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(url)}` : url;
-            window.open(previewUrl, '_blank', 'noopener,noreferrer');
+            previewMode.value = mode;
+            previewSource.value =
+                mode === 'office' ? `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(url)}` : url;
+            previewIndex.value = index;
+            isPreviewModalOpen.value = true;
         };
 
         const downloadFileByIndex = async index => {
@@ -909,6 +953,13 @@ export default {
             removeFile,
             downloadFileByIndex,
             previewFileByIndex,
+            isPreviewModalOpen,
+            previewFile,
+            previewSource,
+            previewMode,
+            previewIndex,
+            closePreviewModal,
+            previewUnavailableMessage,
             canPreviewFile,
             getPreviewHint,
             reorderFiles,
@@ -1000,30 +1051,40 @@ export default {
         width: 100%;
     }
 
-    &__dropzone {
-        position: relative;
-        overflow: hidden;
+    &__grid {
         display: flex;
-        flex-direction: column;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    &__add-tile {
+        width: v-bind('content?.fileTileWidth || "120px"');
+        height: v-bind('content?.fileTileHeight || "120px"');
+        border: 1px dashed v-bind('safeDropzoneBorderColor');
+        border-radius: 6px;
+        background-color: v-bind('safeDropzoneBackground');
+        display: flex;
         align-items: center;
         justify-content: center;
-        background-color: v-bind('safeDropzoneBackground');
-        border: v-bind('safeDropzoneBorderWidth') v-bind('safeDropzoneBorderStyle') v-bind('safeDropzoneBorderColor');
-        border-radius: v-bind('safeDropzoneBorderRadius');
-        padding: v-bind('safeDropzonePadding');
-        min-height: v-bind('safeDropzoneMinHeight');
-        cursor: v-bind('isEditing ? "unset" : "pointer"');
-        transition: all 0.3s ease;
-        isolation: isolate;
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: all 0.2s ease;
 
         &:hover {
-            border-color: v-bind('safeDropzoneBorderColor');
             background-color: v-bind('safeDropzoneBackgroundHover');
+        }
+
+        &:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
         }
     }
 
-    &--has-files &__dropzone {
-        margin-bottom: 16px;
+    &__add-icon {
+        font-size: 34px;
+        line-height: 1;
+        color: v-bind('safeDropzoneBorderColor');
     }
 
     &__content {
@@ -1086,7 +1147,7 @@ export default {
     }
 
     &--dragging {
-        .ww-file-upload__dropzone {
+        .ww-file-upload__add-tile {
             background-color: v-bind('safeDropzoneBackgroundDragging');
         }
     }
@@ -1095,17 +1156,11 @@ export default {
         opacity: 0.6;
         pointer-events: none;
 
-        .ww-file-upload__dropzone {
-            cursor: not-allowed;
-            background-color: v-bind('safeDropzoneBackground');
-        }
+        .ww-file-upload__add-tile { cursor: not-allowed; }
     }
 
     &--readonly {
-        .ww-file-upload__dropzone {
-            cursor: default;
-            background-color: v-bind('safeDropzoneBackground');
-        }
+        .ww-file-upload__add-tile { cursor: default; }
     }
 
     &__hover-circle {
@@ -1118,6 +1173,83 @@ export default {
         will-change: transform, opacity;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         backface-visibility: hidden;
+    }
+}
+
+.ww-preview-modal {
+    &__overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        padding: 24px;
+    }
+
+    &__content {
+        height: 95vh;
+        position: relative;
+        width: 90%;
+        max-height: 90vh;
+        background: #fff;
+        border-radius: 12px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    &__actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+
+    &__action-button {
+        width: 36px;
+        height: 36px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        background: #fff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+
+    &__body {
+        min-height: calc(100% - 90px);
+    max-height: calc(100% - 90px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    }
+
+    &__image,
+    &__iframe {
+        width: 100%;
+        height: 100%;
+        min-height: 240px;
+        border: 0;
+        object-fit: contain;
+    }
+
+    &__name {
+        font-size: 14px;
+        text-align: center;
+        color: #374151;
+        word-break: break-word;
+    }
+
+    &__not-viewable {
+        color: #6b7280;
+        padding: 24px;
+        text-align: center;
     }
 }
 </style>
