@@ -530,7 +530,7 @@ export default {
     async updateValue(event) {
       const eventValue = event?.target?.value ?? event?.value;
       const rawValue = this.field.fieldType === 'FORMATED_TEXT'
-        ? this.localValue
+        ? this.sanitizeFormattedHtml(this.localValue)
         : (eventValue !== undefined ? eventValue : this.localValue);
 
       let value = rawValue;
@@ -712,7 +712,32 @@ export default {
       this.updateValue({ target: { value } });
     },
     onContentEditableInput(event) {
-      this.localValue = event.target.innerHTML;
+      this.localValue = this.sanitizeFormattedHtml(event.target.innerHTML);
+    },
+    sanitizeFormattedHtml(html) {
+      if (typeof document === 'undefined') return String(html ?? '');
+      const container = document.createElement('div');
+      container.innerHTML = String(html ?? '');
+      container.querySelectorAll('script,style,link,meta,iframe,object,embed,form').forEach((node) => node.remove());
+
+      Array.from(container.querySelectorAll('*')).forEach((node) => {
+        [...node.attributes].forEach((attr) => {
+          const name = attr.name.toLowerCase();
+          const value = String(attr.value || '').trim();
+          if (name.startsWith('on') || name === 'style' || name === 'class' || name === 'id') {
+            node.removeAttribute(attr.name);
+            return;
+          }
+          if (name === 'href' && !/^https?:\/\//i.test(value) && !/^mailto:/i.test(value)) {
+            node.removeAttribute(attr.name);
+            return;
+          }
+          if (name === 'src' && !/^https?:\/\//i.test(value) && !/^data:image\//i.test(value)) {
+            node.removeAttribute(attr.name);
+          }
+        });
+      });
+      return container.innerHTML;
     },
     format(cmd) {
       this.$refs.rte && this.$refs.rte.focus();
@@ -807,7 +832,7 @@ export default {
     async renderFormattedTextContent(htmlContent) {
       if (!this.$refs.rte) return;
       const formattedHtml = this.convertFormattedTextToHtml(htmlContent);
-      const processed = await this.processInboundTicketImages(formattedHtml);
+      const processed = await this.processInboundTicketImages(this.sanitizeFormattedHtml(formattedHtml));
       if (this.$refs.rte.innerHTML !== processed) {
         this.$refs.rte.innerHTML = processed;
       }
