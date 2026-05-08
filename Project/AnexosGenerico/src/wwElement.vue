@@ -580,6 +580,7 @@ export default {
                 if (validationResult.valid) {
                     file.id = `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
                     file.mimeType = file.type;
+                    file.isFromInitialValue = false;
                     if (exposeBase64.value) file.base64 = await fileToBase64(file);
                     if (exposeBinary.value) file.binary = await fileToBinary(file);
                     processedFiles.push(file);
