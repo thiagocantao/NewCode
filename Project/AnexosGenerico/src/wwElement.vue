@@ -425,27 +425,7 @@ export default {
 
         const localData = ref({
             fileUpload: {
-                value: computed(() => {
-                    return fileList.value.map(file => {
-                        const plainObject = {};
-                        for (const key in file) {
-                            if (Object.prototype.hasOwnProperty.call(file, key)) {
-                                plainObject[key] = file[key];
-                            }
-                        }
-                        plainObject.name = file.name;
-                        plainObject.size = file.size;
-                        plainObject.type = file.type;
-                        plainObject.lastModified = file.lastModified;
-                        plainObject.mimeType = file.mimeType;
-                        plainObject.id = file.id;
-
-                        if (file.base64) plainObject.base64 = file.base64;
-                        if (file.binary) plainObject.binary = file.binary;
-
-                        return plainObject;
-                    });
-                }),
+                value: computed(() => fileList.value),
                 status: status,
                 deletedFile: deletedFile,
                 deletedFilesCount: deletedFilesCount,
