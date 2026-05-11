@@ -322,6 +322,21 @@ export default {
       });
     };
 
+    const refreshListFieldOptions = async (fieldId) => {
+      const field = sectionFields.value.find(
+        currentField =>
+          currentField.id === fieldId ||
+          currentField.field_id === fieldId ||
+          currentField.ID === fieldId
+      );
+      if (!field) return false;
+      if (!(field.fieldType === 'LIST' || field.fieldType === 'CONTROLLED_LIST')) return false;
+      if (!field.dataSource) return false;
+
+      await loadOptions(field);
+      return true;
+    };
+
     onMounted(() => {
       // Load options for all LIST fields
       sectionFields.value.forEach(field => {
@@ -355,7 +370,8 @@ export default {
       fieldRows,
       autoSave,
       fieldComponents,
-      validateFields
+      validateFields,
+      refreshListFieldOptions
     };
   }
 };

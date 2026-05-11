@@ -471,6 +471,40 @@ export default {
       return valid;
     };
 
+    const refreshListFieldDataSource = async (fieldId) => {
+      if (!fieldId) return false;
+
+      const currentValueByFieldId = new Map();
+      formSections.value.forEach(section => {
+        section.fields.forEach(field => {
+          currentValueByFieldId.set(field.id || field.field_id || field.ID, field.value);
+        });
+      });
+
+      const targets = Array.isArray(sectionComponents.value) ? sectionComponents.value : [];
+      let refreshed = false;
+      for (const sectionComponent of targets) {
+        if (sectionComponent && typeof sectionComponent.refreshListFieldOptions === 'function') {
+          const didRefresh = await sectionComponent.refreshListFieldOptions(fieldId);
+          if (didRefresh) refreshed = true;
+        }
+      }
+
+      if (refreshed) {
+        formSections.value.forEach(section => {
+          section.fields.forEach(field => {
+            const key = field.id || field.field_id || field.ID;
+            if (currentValueByFieldId.has(key)) {
+              field.value = currentValueByFieldId.get(key);
+            }
+          });
+        });
+        updateFormState({ forceRerender: false });
+      }
+
+      return refreshed;
+    };
+
     return {
       isEditing,
       formData,
@@ -499,6 +533,7 @@ export default {
       showFieldUserMenu,
       sectionComponents,
       validateRequiredFields,
+      refreshListFieldDataSource,
       t
     };
   }
