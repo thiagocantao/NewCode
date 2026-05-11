@@ -337,6 +337,11 @@ export default {
             name: 'importFormRequested',
             label: { en: 'On import form requested' },
             event: { value: true }
+        },
+        {
+            name: 'fieldUserMenuClick',
+            label: { en: 'On field user menu click' },
+            event: { sectionId: '', fieldId: '', field: {} }
         }
     ],
     actions: [

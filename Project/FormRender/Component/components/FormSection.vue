@@ -24,6 +24,7 @@ class="action-icon-section"
             :auto-save="autoSave"
             :ticket-closed="ticketClosed"
             @update:value="value => updateFieldValue(field.id, value)"
+            @field-user-menu-click="payload => onFieldUserMenuClick(payload)"
           />
         </div>
       </div>
@@ -91,7 +92,7 @@ export default {
       default: false
     }
   },
-  emits: ['update:value'],
+  emits: ['update:value', 'field-user-menu-click'],
   setup(props, { emit }) {
     
     const isExpanded = ref(true);
@@ -309,6 +310,13 @@ export default {
       emit('update:value', { fieldId, value });
     };
 
+    const onFieldUserMenuClick = (payload) => {
+      emit('field-user-menu-click', {
+        sectionId: props.section.id,
+        ...payload
+      });
+    };
+
     onMounted(() => {
       // Load options for all LIST fields
       sectionFields.value.forEach(field => {
@@ -334,6 +342,7 @@ export default {
       loadingOptions,
       fieldOptions,
       updateFieldValue,
+      onFieldUserMenuClick,
       options,
       loading,
       fieldValues,

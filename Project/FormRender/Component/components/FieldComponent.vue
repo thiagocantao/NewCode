@@ -5,7 +5,16 @@
     :style="componentStyleVars">
     <!-- Label do campo -->
     <label v-if="!field.is_hide_legend" class="field-label">
-      {{ field.name }}
+      <span class="field-label-text">{{ field.name }}</span>
+      <button
+        v-if="field.is_field_user"
+        type="button"
+        class="field-user-menu-button material-symbols-outlined"
+        :aria-label="t('Field options')"
+        @click="onFieldUserMenuClick"
+      >
+        more_horiz
+      </button>
       <span v-if="field.is_mandatory" class="required-indicator">*</span>
     </label>
 
@@ -994,6 +1003,12 @@ export default {
         this.toggleDropdown();
       }
     },
+    onFieldUserMenuClick() {
+      this.$emit('field-user-menu-click', {
+        fieldId: this.field.field_id || this.field.id,
+        field: this.field
+      });
+    }
   },
   mounted() {
     if (this.field.fieldType === 'FORMATED_TEXT' && this.$refs.rte) {
@@ -1032,6 +1047,30 @@ export default {
     margin-bottom: 4px;
     color: #787878;
     padding-left: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .field-label-text {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .field-user-menu-button {
+    border: none;
+    background: transparent;
+    color: #787878;
+    cursor: pointer;
+    padding: 0;
+    font-size: 16px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .field-user-menu-button:hover {
+    color: #4b5563;
   }
 
   .required-indicator {
