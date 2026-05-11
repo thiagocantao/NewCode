@@ -391,13 +391,7 @@ export default {
         {
             action: 'refreshListFieldDataSource',
             label: { en: 'Refresh list field data source' },
-            args: [
-                {
-                    name: 'fieldId',
-                    type: 'string',
-                    label: { en: 'Field ID' }
-                }
-            ]
+            args: []
         }
     ]
 };
