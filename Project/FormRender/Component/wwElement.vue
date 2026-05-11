@@ -39,6 +39,7 @@
               @select-field="selectFieldForProperties"
               @remove-section="handleRemoveSection"
               @update:value="payload => onFieldValueChange(section.id, payload)"
+              @field-user-menu-click="onFieldUserMenuClick"
             />
           </div>
         </template>
@@ -370,6 +371,17 @@ export default {
       }
     };
 
+    const onFieldUserMenuClick = ({ sectionId, fieldId, field }) => {
+      emit('trigger-event', {
+        name: 'fieldUserMenuClick',
+        event: {
+          sectionId,
+          fieldId,
+          field
+        }
+      });
+    };
+
     // Watch for changes in formJson
     watch(() => props.content.formJson, (newValue) => {
       loadFormData();
@@ -474,6 +486,7 @@ export default {
       isLoading,
       renderKey,
       onFieldValueChange,
+      onFieldUserMenuClick,
       autoSave,
       ticketIsClosed,
       sectionComponents,
