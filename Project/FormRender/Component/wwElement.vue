@@ -32,6 +32,7 @@
               :read-only="formReadOnly"
               :auto-save="autoSave"
               :ticket-closed="ticketIsClosed"
+              :show-field-user-menu="showFieldUserMenu"
               @update-section="updateFormState"
               @edit-section="editSection"
               @edit-field="editFormField"
@@ -145,6 +146,12 @@ export default {
       const contentVal = parseAutoSave(props.content.autoSave);
       if (contentVal !== undefined) return contentVal;
 
+      return true;
+    });
+
+    const showFieldUserMenu = computed(() => {
+      if (typeof props.content.showFieldUserMenu === 'boolean') return props.content.showFieldUserMenu;
+      if (typeof props.content.showFieldUserMenu === 'string') return props.content.showFieldUserMenu.toLowerCase() === 'true';
       return true;
     });
 
@@ -489,6 +496,7 @@ export default {
       onFieldUserMenuClick,
       autoSave,
       ticketIsClosed,
+      showFieldUserMenu,
       sectionComponents,
       validateRequiredFields,
       t
