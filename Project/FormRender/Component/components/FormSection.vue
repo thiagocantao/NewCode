@@ -23,6 +23,7 @@ class="action-icon-section"
             :user-id="userId"
             :auto-save="autoSave"
             :ticket-closed="ticketClosed"
+            :show-field-user-menu="showFieldUserMenu"
             @update:value="value => updateFieldValue(field.id, value)"
             @field-user-menu-click="payload => onFieldUserMenuClick(payload)"
           />
@@ -90,6 +91,10 @@ export default {
     ticketClosed: {
       type: Boolean,
       default: false
+    },
+    showFieldUserMenu: {
+      type: Boolean,
+      default: true
     }
   },
   emits: ['update:value', 'field-user-menu-click'],

@@ -7,10 +7,11 @@
     <label v-if="!field.is_hide_legend" class="field-label">
       <span class="field-label-text">{{ field.name }}</span>
       <button
-        v-if="field.is_field_user"
+        v-if="showFieldUserMenuButton"
         type="button"
         class="field-user-menu-button material-symbols-outlined"
         :aria-label="t('Field options')"
+        :title="t('User details')"
         @click="onFieldUserMenuClick"
       >
         more_horiz
@@ -202,6 +203,10 @@ export default {
     ticketClosed: {
       type: Boolean,
       default: false
+    },
+    showFieldUserMenu: {
+      type: Boolean,
+      default: true
     }
   },
   data() {
@@ -401,6 +406,16 @@ export default {
       if (isNaN(deadline.getTime())) return false;
       const now = new Date();
       return (deadline - now) < 0;
+    },
+    hasSelectedValue() {
+      const value = this.localValue;
+      if (Array.isArray(value)) return value.length > 0;
+      if (value === null || value === undefined) return false;
+      if (typeof value === 'string') return value.trim() !== '';
+      return true;
+    },
+    showFieldUserMenuButton() {
+      return Boolean(this.field.is_field_user && this.showFieldUserMenu && this.hasSelectedValue);
     },
     fieldTip() {
       const lang = window?.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342') || 'en-US';
