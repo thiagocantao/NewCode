@@ -387,6 +387,11 @@ export default {
             action: 'validateRequiredFields',
             label: { en: 'Validate required fields' },
             args: []
+        },
+        {
+            action: 'refreshListFieldDataSource',
+            label: { en: 'Refresh list field data source' },
+            args: []
         }
     ]
 };

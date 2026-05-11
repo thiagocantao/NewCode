@@ -471,6 +471,47 @@ export default {
       return valid;
     };
 
+    const refreshListFieldDataSource = async () => {
+      const currentValueByFieldId = new Map();
+      const userFieldIds = new Set();
+
+      formSections.value.forEach(section => {
+        section.fields.forEach(field => {
+          const fieldId = field.id || field.field_id || field.ID;
+          currentValueByFieldId.set(fieldId, field.value);
+          if (field.is_field_user) {
+            userFieldIds.add(fieldId);
+          }
+        });
+      });
+
+      if (!userFieldIds.size) return false;
+
+      const targets = Array.isArray(sectionComponents.value) ? sectionComponents.value : [];
+      let refreshed = false;
+      for (const sectionComponent of targets) {
+        if (sectionComponent && typeof sectionComponent.refreshListFieldOptions === 'function') {
+          for (const fieldId of userFieldIds) {
+            const didRefresh = await sectionComponent.refreshListFieldOptions(fieldId);
+            if (didRefresh) refreshed = true;
+          }
+        }
+      }
+
+      if (!refreshed) return false;
+
+      formSections.value.forEach(section => {
+        section.fields.forEach(field => {
+          const key = field.id || field.field_id || field.ID;
+          if (currentValueByFieldId.has(key)) {
+            field.value = currentValueByFieldId.get(key);
+          }
+        });
+      });
+      updateFormState({ forceRerender: false });
+      return true;
+    };
+
     return {
       isEditing,
       formData,
@@ -499,6 +540,7 @@ export default {
       showFieldUserMenu,
       sectionComponents,
       validateRequiredFields,
+      refreshListFieldDataSource,
       t
     };
   }
