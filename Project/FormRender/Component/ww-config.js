@@ -290,6 +290,22 @@ export default {
             }
             /* wwEditor:end */
         },
+        showFieldUserMenu: {
+            label: { en: 'Show user menu button' },
+            type: 'boolean',
+            section: 'settings',
+            bindable: true,
+            defaultValue: true,
+            /* wwEditor:start */
+            bindingValidation: {
+                type: 'boolean',
+                tooltip: 'Show or hide the 3-dot button for user fields when they have value'
+            },
+            propertyHelp: {
+                tooltip: 'Enable to show the user options button on user fields with selected value'
+            }
+            /* wwEditor:end */
+        },
         autoSave: {
             label: { en: 'Auto save fields' },
             type: 'boolean',
