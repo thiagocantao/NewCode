@@ -7,7 +7,7 @@
     <label v-if="!field.is_hide_legend" class="field-label">
       <span class="field-label-text">{{ field.name }}</span>
       <button
-        v-if="showFieldUserMenuButton"
+        v-if="showFieldUserMenuButton && !field.is_mandatory"
         type="button"
         class="field-user-menu-button material-symbols-outlined"
         :aria-label="t('Field options')"
@@ -17,6 +17,16 @@
         more_horiz
       </button>
       <span v-if="field.is_mandatory" class="required-indicator">*</span>
+      <button
+        v-if="showFieldUserMenuButton && field.is_mandatory"
+        type="button"
+        class="field-user-menu-button material-symbols-outlined"
+        :aria-label="t('Field options')"
+        :title="t('User details')"
+        @click="onFieldUserMenuClick"
+      >
+        more_horiz
+      </button>
     </label>
 
     <!-- Campos de entrada baseados no tipo -->
