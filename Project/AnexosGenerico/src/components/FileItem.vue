@@ -1,412 +1,523 @@
 <template>
-    <li
-        class="ww-file-item"
-        :class="{ 'ww-file-item--disabled': isDisabled }"
-        :style="fileItemStyles"
-        role="listitem"
-        :aria-label="`File: ${file.name}, Size: ${formattedSize}`"
-    >
-        <div
-            v-if="status && status.uploadProgress !== undefined"
-            class="ww-file-item__progress"
-            :style="{
+    <div class="ww-file-item" :class="{ 'ww-file-item--disabled': isDisabled }" :style="fileItemStyles" role="listitem"
+        :aria-label="`File: ${resolvedName || 'Attachment'}, Size: ${formattedSize}`">
+        <div v-if="status && status.uploadProgress !== undefined" class="ww-file-item__progress" :style="{
                 width: `${Math.min(100, Math.round(status.uploadProgress))}%`,
                 backgroundColor: content.progressBarColor || '#EEEEEE',
-            }"
-        ></div>
+            }"></div>
+
         <div class="ww-file-item__info">
-            <button
-                type="button"
-                class="ww-file-item__preview"
-                :disabled="isDisabled"
-                @click="$emit('preview')"
-                :aria-label="`Preview ${file.name}`"
-                :title="previewHint || null"
-                :class="{ 'ww-file-item__preview--not-allowed': !canPreview }"
-            >
-                <img v-if="isImage && previewUrl" :src="previewUrl" alt="" class="ww-file-item__thumb" />
-                <span v-else class="ww-file-item__file-icon">{{ fileIcon }}</span>
-            </button>
+            <div class="ww-file-item__preview" :class="{ 'ww-file-item__preview--not-allowed': !canPreview }"
+                role="button" tabindex="0" :aria-label="`Preview ${resolvedName || 'attachment'}`"
+                :title="previewHint || null" @click="handlePreview" @keydown.enter.prevent="handlePreview"
+                @keydown.space.prevent="handlePreview">
+                <img
+                    v-if="isImage && thumbnailSrc"
+                    :src="thumbnailSrc"
+                    :alt="resolvedName || 'Imagem'"
+                    class="ww-file-item__thumb"
+                    loading="lazy"
+                    @error="handleThumbError"
+                />
+
+                <span v-else :class="['ww-file-item__file-icon', 'material-symbols-outlined', fileIconClass]">
+                    {{ fileIcon }}
+                </span>
+
+                <div class="ww-file-item__actions" @click.stop>
+                    <button
+                        type="button"
+                        class="ww-file-item__btn"
+                        :disabled="isDisabled"
+                        @click="handleDownload"
+                        :style="actionButtonStyles"
+                        aria-label="Download file"
+                    >
+                        <span class="material-symbols-outlined" aria-hidden="true">download</span>
+                    </button>
+                    <button
+                        v-if="!isReadonly"
+                        type="button"
+                        class="ww-file-item__btn ww-file-item__btn--remove"
+                        :disabled="isDisabled || isReadonly"
+                        @click="handleRemove"
+                        :style="actionButtonStyles"
+                        aria-label="Remove file"
+                    >
+                        <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                    </button>
+                </div>
+            </div>
+
             <div class="ww-file-item__meta">
-                <div class="ww-file-item__name" :style="fileNameStyles">{{ file.name }}</div>
+                <div class="ww-file-item__name" :style="fileNameStyles" :title="resolvedName">{{ resolvedName }}</div>
                 <div class="ww-file-item__details" :style="fileDetailsStyles" v-if="showFileInfo">
                     <span>{{ formattedSize }}</span>
-                    <span v-if="status && status.uploadProgress !== undefined">
-                        • {{ `${Math.round(status.uploadProgress)}%` }}
-                    </span>
+                    <span v-if="status && status.uploadProgress !== undefined">{{ `${Math.round(status.uploadProgress)}%` }}</span>
                 </div>
             </div>
         </div>
-        <div class="ww-file-item__actions">
-            <button
-                type="button"
-                class="ww-file-item__btn"
-                :disabled="isDisabled"
-                @click="$emit('download')"
-                :style="actionButtonStyles"
-                aria-label="Download file"
-            >
-                <span class="material-symbols-outlined">download</span>
-            </button>
-            <button
-                v-if="!isReadonly"
-                type="button"
-                class="ww-file-item__btn ww-file-item__btn--remove"
-                :disabled="isDisabled || isReadonly"
-                @click="$emit('remove')"
-                :style="actionButtonStyles"
-                aria-label="Remove file"
-            >
-                <div class="icon" v-html="removeIcon"></div>
-            </button>
-        </div>
-    </li>
+    </div>
 </template>
 
 <script>
-import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, inject, onBeforeUnmount, ref, watch } from 'vue';
 
 export default {
+    name: 'FileItem',
     props: {
-        file: {
-            type: Object,
-            required: true,
-        },
-        status: {
-            type: Object,
-            required: true,
-        },
-        index: {
-            type: Number,
-            required: true,
-        },
-        isReadonly: {
-            type: Boolean,
-            default: false,
-        },
-        isDisabled: {
-            type: Boolean,
-            default: false,
-        },
-        canPreview: {
-            type: Boolean,
-            default: true,
-        },
-        previewHint: {
-            type: String,
-            default: '',
-        },
+        file: { type: Object, required: true },
+        status: { type: Object, default: () => ({}) },
+        index: { type: Number, required: true },
+        isReadonly: { type: Boolean, default: false },
+        isDisabled: { type: Boolean, default: false },
+        canPreview: { type: Boolean, default: true },
+        previewHint: { type: String, default: '' },
     },
     emits: ['remove', 'download', 'preview'],
-    setup(props) {
-        const fileUpload = inject('_wwFileUpload', {
-            files: computed(() => []),
-            content: computed(() => ({})),
-            isDisabled: computed(() => false),
-            isReadonly: computed(() => false),
-            isSingleMode: computed(() => true),
-            acceptedTypes: computed(() => ''),
-        });
-
-        const filesCount = computed(() => fileUpload.files.value.length);
+    setup(props, { emit }) {
+        const fileUpload = inject('_wwFileUpload', { files: computed(() => []), content: computed(() => ({})) });
         const content = computed(() => fileUpload.content?.value || {});
-        const showFileInfo = computed(() => content.value?.showFileInfo);
+        const showFileInfo = computed(() => content.value?.showFileInfo !== false);
+
+        const objectUrl = ref('');
+        const signedThumbUrl = ref('');
+        const thumbLoadFailed = ref(false);
+        const resolvingThumb = ref(false);
 
         const fileItemStyles = computed(() => ({
             backgroundColor: content.value?.fileItemBackground || '#fff',
             borderColor: content.value?.fileItemBorderColor || '#eee',
-            borderRadius: content.value?.fileItemBorderRadius || '6px',
-            padding: content.value?.fileItemPadding || '12px',
-            margin: content.value?.fileItemMargin || '0 0 8px 0',
-            boxShadow: content.value?.fileItemShadow || '0 2px 4px rgba(0, 0, 0, 0.05)',
-            position: 'relative',
-            overflow: 'hidden',
         }));
 
-        const fileNameStyles = computed(() => ({
-            fontFamily: content.value?.fileNameFontFamily || 'inherit',
-            fontSize: content.value?.fileNameFontSize || '14px',
-            fontWeight: content.value?.fileNameFontWeight || 500,
-            color: content.value?.fileNameColor || 'inherit',
-        }));
-
-        const fileDetailsStyles = computed(() => ({
-            fontFamily: content.value?.fileDetailsFontFamily || 'inherit',
-            fontSize: content.value?.fileDetailsFontSize || '12px',
-            fontWeight: content.value?.fileDetailsFontWeight || 'normal',
-            color: content.value?.fileDetailsColor || '#888',
-        }));
-
+        const fileNameStyles = computed(() => ({ fontSize: content.value?.fileNameFontSize || '14px' }));
+        const fileDetailsStyles = computed(() => ({ fontSize: content.value?.fileDetailsFontSize || '12px' }));
         const actionButtonStyles = computed(() => ({
             width: content.value?.actionButtonSize || '28px',
             height: content.value?.actionButtonSize || '28px',
-            backgroundColor: content.value?.actionButtonBackground || '#fff',
-            color: content.value?.actionButtonColor || '#666',
-            borderRadius: content.value?.actionButtonBorderRadius || '4px',
-            margin: content.value?.actionButtonMargin || '0 0 0 4px',
         }));
 
+        const resolvedName = computed(
+            () => props.file?.name || props.file?.fileName || props.file?.FileName || props.file?.originalName || ''
+        );
+
+        const resolvedType = computed(() =>
+            (
+                props.file?.type ||
+                props.file?.mimeType ||
+                props.file?.contentType ||
+                props.file?.ContentType ||
+                props.file?.mime_type ||
+                ''
+            ).toLowerCase()
+        );
+
         const formattedSize = computed(() => {
-            const fileSizeInBytes = props.file.size || 0;
-
-            if (fileSizeInBytes === 0) return '0 B';
-
+            const n = Number(props.file?.size || props.file?.SizeBytes || props.file?.sizeBytes || 0);
+            if (!n) return '0 B';
             const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-            const i = Math.floor(Math.log(fileSizeInBytes) / Math.log(1024));
-            return `${(fileSizeInBytes / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
+            const i = Math.floor(Math.log(n) / Math.log(1024));
+            return `${(n / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
         });
+
+        const IMAGE_EXTENSIONS = new Set([
+            'apng', 'avif', 'bmp', 'cur', 'gif', 'heic', 'heif', 'ico', 'jfif', 'jpeg', 'jpg', 'pjpeg', 'pjp',
+            'png', 'svg', 'tif', 'tiff', 'webp',
+        ]);
+
+        const getExtension = value => {
+            if (!value || typeof value !== 'string') return '';
+            const sanitized = decodeURIComponent(value.split('?')[0].split('#')[0]);
+            const parts = sanitized.split('.');
+            return parts.length > 1 ? parts.pop().toLowerCase() : '';
+        };
+
+        const isNativeFile = value => {
+            if (!value || typeof File === 'undefined') return false;
+            if (value instanceof File) return true;
+            return Object.prototype.toString.call(value) === '[object File]';
+        };
+
+        const getLocalFile = () => {
+            if (isNativeFile(props.file)) return props.file;
+            if (isNativeFile(props.file?.file)) return props.file.file;
+            return null;
+        };
+
+        const isValidImageUrl = value => {
+            if (!value || typeof value !== 'string') return false;
+            return /^(blob:|data:image\/|https?:\/\/)/i.test(value);
+        };
+
         const isImage = computed(() => {
-            const type = (props.file?.type || props.file?.mimeType || props.file?.contentType || '').toLowerCase();
-            if (type.startsWith('image/')) return true;
-            const ext = (props.file?.name || '').split('.').pop()?.toLowerCase();
-            return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(ext);
+            if (props.file?.isImage === true) return true;
+            if (resolvedType.value.startsWith('image/')) return true;
+            if (getLocalFile()?.type?.startsWith('image/')) return true;
+
+            const dataUrl = props.file?.base64 || props.file?.base64Data || props.file?.Base64Data || '';
+            if (typeof dataUrl === 'string' && dataUrl.startsWith('data:image/')) return true;
+
+            const extensionCandidates = [
+                resolvedName.value,
+                props.file?.url,
+                props.file?.previewUrl,
+                props.file?.thumbnailUrl,
+                props.file?.displayUrl,
+                props.file?.signedUrl,
+                props.file?.downloadUrl,
+                props.file?.downloadURL,
+                props.file?.storagePath,
+                props.file?.StoragePath,
+                props.file?.path,
+            ]
+                .map(getExtension)
+                .filter(Boolean);
+
+            return extensionCandidates.some(ext => IMAGE_EXTENSIONS.has(ext));
         });
 
-        const previewUrl = ref(null);
-        const localObjectUrl = ref(null);
+        const getDataUrlFromBase64 = value => {
+            if (!value || typeof value !== 'string') return '';
+            if (value.startsWith('data:image/')) return value;
+            if (value.startsWith('data:')) return '';
+            const sanitized = value.replace(/\s/g, '');
+            if (!sanitized) return '';
+            const mime = resolvedType.value && resolvedType.value.startsWith('image/') ? resolvedType.value : 'image/png';
+            return `data:${mime};base64,${sanitized}`;
+        };
 
-        const revokeLocalObjectUrl = () => {
-            if (localObjectUrl.value) {
-                URL.revokeObjectURL(localObjectUrl.value);
-                localObjectUrl.value = null;
+        const rebuildObjectUrl = () => {
+            if (objectUrl.value) {
+                URL.revokeObjectURL(objectUrl.value);
+                objectUrl.value = '';
+            }
+
+            const localFile = getLocalFile();
+            if (localFile && isImage.value) {
+                objectUrl.value = URL.createObjectURL(localFile);
             }
         };
 
-        const updatePreviewUrl = () => {
-            const currentValue = props.file?.previewUrl || props.file?.url || null;
-            if (currentValue) {
-                if (previewUrl.value !== currentValue) {
-                    revokeLocalObjectUrl();
-                    previewUrl.value = currentValue;
-                }
-                return;
+        const getSupabase = () => {
+            try {
+                return wwLib?.wwPlugins?.supabase?.instance || window?.wwLib?.wwPlugins?.supabase?.instance || null;
+            } catch (e) {
+                return null;
             }
-
-            const localFile = props.file instanceof File ? props.file : props.file?.file;
-            if (localFile instanceof File && isImage.value) {
-                if (!localObjectUrl.value) {
-                    localObjectUrl.value = URL.createObjectURL(localFile);
-                }
-                previewUrl.value = localObjectUrl.value;
-                return;
-            }
-
-            revokeLocalObjectUrl();
-            previewUrl.value = null;
         };
+
+        const isHttpUrl = value => typeof value === 'string' && /^https?:\/\//i.test(value);
+        const sanitizeBucket = value => (typeof value === 'string' ? value.trim().replace(/^\/+|\/+$/g, '') : '');
+        const sanitizeStoragePath = value =>
+            typeof value === 'string' ? value.trim().replace(/^\/+/, '').replace(/\?.*$/, '') : '';
+
+        const resolveStorageLocation = file => {
+            const rawBucket = sanitizeBucket(
+                file?.bucket || file?.storageBucket || file?.StorageBucket || file?.storagebucket || ''
+            );
+            let rawPath = sanitizeStoragePath(
+                file?.storagePath || file?.StoragePath || file?.storagepath || file?.path || ''
+            );
+
+            if (!rawPath && isHttpUrl(file?.url)) {
+                return { bucket: rawBucket, storagePath: '', directUrl: file.url };
+            }
+
+            if (rawPath && rawBucket && rawPath.startsWith(`${rawBucket}/`)) {
+                rawPath = rawPath.slice(rawBucket.length + 1);
+            }
+
+            if (!rawBucket && rawPath.includes('/')) {
+                const [bucketFromPath, ...rest] = rawPath.split('/');
+                return {
+                    bucket: sanitizeBucket(bucketFromPath),
+                    storagePath: sanitizeStoragePath(rest.join('/')),
+                    directUrl: isHttpUrl(file?.url) ? file.url : null,
+                };
+            }
+
+            return { bucket: rawBucket, storagePath: rawPath, directUrl: isHttpUrl(file?.url) ? file.url : null };
+        };
+
+        const resolveSignedThumbnailUrl = async () => {
+            if (!isImage.value || resolvingThumb.value) return;
+
+            const supabase = getSupabase();
+            const { bucket, storagePath } = resolveStorageLocation(props.file);
+
+            if (!supabase?.storage || !bucket || !storagePath) return;
+
+            resolvingThumb.value = true;
+            try {
+                const { data, error } = await supabase.storage.from(bucket).createSignedUrl(storagePath, 3600, {
+                    transform: { width: 400, resize: 'contain' },
+                });
+
+                if (!error && data?.signedUrl) {
+                    signedThumbUrl.value = data.signedUrl;
+                    thumbLoadFailed.value = false;
+
+                    // Mantém o objeto atualizado para o preview/download do componente pai também reutilizar a URL.
+                    if (props.file && typeof props.file === 'object') {
+                        props.file.thumbnailUrl = data.signedUrl;
+                        props.file.previewUrl = props.file.previewUrl || data.signedUrl;
+                        props.file.url = props.file.url || data.signedUrl;
+                    }
+                }
+            } catch (error) {
+                console.warn('Erro ao resolver miniatura da imagem:', error);
+            } finally {
+                resolvingThumb.value = false;
+            }
+        };
+
+        const preferredImageUrl = computed(() => {
+            // Para arquivo recém-selecionado, o objectUrl é sempre a miniatura mais confiável.
+            if (objectUrl.value) return objectUrl.value;
+
+            return (
+                getDataUrlFromBase64(props.file?.base64) ||
+                getDataUrlFromBase64(props.file?.base64Data) ||
+                getDataUrlFromBase64(props.file?.Base64Data) ||
+                props.file?.thumbnailUrl ||
+                signedThumbUrl.value ||
+                props.file?.previewUrl ||
+                props.file?.displayUrl ||
+                props.file?.url ||
+                props.file?.signedUrl ||
+                props.file?.downloadUrl ||
+                props.file?.downloadURL ||
+                ''
+            );
+        });
+
+        const thumbnailSrc = computed(() => {
+            if (!isImage.value) return '';
+            const src = preferredImageUrl.value;
+            return isValidImageUrl(src) ? src : '';
+        });
 
         const fileIcon = computed(() => {
-            const ext = (props.file?.name || '').split('.').pop()?.toLowerCase();
+            const ext = getExtension(resolvedName.value);
+            if (isImage.value) return 'image';
             if (ext === 'pdf') return 'picture_as_pdf';
-            if (['doc', 'docx'].includes(ext)) return 'description';
-            if (['xls', 'xlsx', 'csv'].includes(ext)) return 'table_view';
+            if (['doc', 'docx', 'docm'].includes(ext)) return 'description';
+            if (['xls', 'xlsx', 'xlsm', 'xlsb', 'csv'].includes(ext)) return 'table_chart';
             if (['ppt', 'pptx'].includes(ext)) return 'slideshow';
-            if (['zip', 'rar', '7z'].includes(ext)) return 'folder_zip';
-            return 'draft';
+            if (['txt', 'log', 'json', 'xml', 'html', 'css', 'js', 'md'].includes(ext)) return 'article';
+            return 'insert_drive_file';
         });
 
-        const { getIcon } = wwLib.useIcons();
-        const removeIcon = ref(null);
-
-        onMounted(async () => {
-            try {
-                removeIcon.value = await getIcon('lucide/trash');
-            } catch (e) {
-                removeIcon.value = null;
-            }
+        const fileIconClass = computed(() => {
+            const ext = getExtension(resolvedName.value);
+            if (isImage.value) return 'ww-file-item__file-icon--image';
+            if (ext === 'pdf') return 'ww-file-item__file-icon--pdf';
+            if (['doc', 'docx', 'docm'].includes(ext)) return 'ww-file-item__file-icon--word';
+            if (['xls', 'xlsx', 'xlsm', 'xlsb', 'csv'].includes(ext)) return 'ww-file-item__file-icon--excel';
+            if (['ppt', 'pptx'].includes(ext)) return 'ww-file-item__file-icon--powerpoint';
+            if (['txt', 'log', 'json', 'xml', 'html', 'css', 'js', 'md'].includes(ext)) return 'ww-file-item__file-icon--text';
+            return '';
         });
+
+        const handlePreview = () => {
+            if (props.isDisabled || !props.canPreview) return;
+            emit('preview');
+        };
+
+        const handleDownload = () => {
+            if (props.isDisabled) return;
+            emit('download');
+        };
+
+        const handleRemove = () => {
+            if (props.isDisabled || props.isReadonly) return;
+            emit('remove');
+        };
+
+        const handleThumbError = () => {
+            // Se a URL direta falhar, tenta gerar uma signed URL do Supabase antes de desistir da imagem.
+            if (signedThumbUrl.value && thumbnailSrc.value === signedThumbUrl.value) return;
+            signedThumbUrl.value = '';
+            resolveSignedThumbnailUrl();
+        };
 
         watch(
-            () => [props.file?.previewUrl, props.file?.url, props.file?.name, props.file?.type],
-            () => updatePreviewUrl(),
+            () => [
+                props.file,
+                resolvedName.value,
+                resolvedType.value,
+                props.file?.previewUrl,
+                props.file?.thumbnailUrl,
+                props.file?.url,
+                props.file?.storagePath,
+                props.file?.StoragePath,
+                props.file?.bucket,
+                props.file?.StorageBucket,
+            ],
+            () => {
+                thumbLoadFailed.value = false;
+                signedThumbUrl.value = '';
+                rebuildObjectUrl();
+                resolveSignedThumbnailUrl();
+            },
             { immediate: true }
         );
 
         onBeforeUnmount(() => {
-            revokeLocalObjectUrl();
+            if (objectUrl.value) URL.revokeObjectURL(objectUrl.value);
         });
 
         return {
+            content,
+            showFileInfo,
             formattedSize,
-            filesCount,
-            fileItemStyles,
             fileNameStyles,
             fileDetailsStyles,
             actionButtonStyles,
-            content,
-            showFileInfo,
-            removeIcon,
             isImage,
-            previewUrl,
+            thumbnailSrc,
             fileIcon,
+            fileItemStyles,
+            resolvedName,
+            fileIconClass,
+            handlePreview,
+            handleDownload,
+            handleRemove,
+            handleThumbError,
         };
     },
 };
 </script>
 
 <style lang="scss" scoped>
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined');
-
-.ww-file-item {
-    display: flex;
-    align-items: center;
-    padding: v-bind('content?.fileItemPadding || "12px"');
-    border: 1px solid v-bind('content?.fileItemBorderColor || "#eee"');
-    border-radius: v-bind('content?.fileItemBorderRadius || "6px"');
-    margin-bottom: v-bind('(content?.fileItemMargin || "0 0 8px 0").split(" ")[2] || "8px"');
-    background-color: v-bind('content?.fileItemBackground || "#fff"');
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-    transform-origin: center;
-    position: relative;
-    z-index: 1;
-    backface-visibility: hidden;
-    will-change: transform, opacity;
-    overflow: hidden;
-
-    &__progress {
-        position: absolute;
-        top: 0;
-        left: 0;
-        height: 100%;
-        z-index: 0;
-        transition: width 1.2s ease;
-        opacity: 0.2;
-    }
-
-    &:hover {
-        border-color: v-bind('content?.fileItemHoverBorderColor || content?.fileItemBorderColor || "#ddd"');
-        background-color: v-bind('content?.fileItemHoverBackground || content?.fileItemBackground || "#fff"');
-        box-shadow: v-bind(
-            'content?.fileItemHoverShadow || content?.fileItemShadow || "0 2px 4px rgba(0, 0, 0, 0.05)"'
-        );
-    }
-
-    &--disabled {
-        opacity: 0.6;
-        pointer-events: none;
-    }
-
-    &__info {
-        flex: 1;
-        min-width: 0;
+    .ww-file-item {
         position: relative;
-        z-index: 1;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    &__preview {
-        width: 48px;
-        height: 48px;
-        border: 1px solid #e5e7eb;
-        border-radius: 6px;
-        background: #f8fafc;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        cursor: pointer;
 
-        &:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-        }
-    }
-
-    &__preview--not-allowed {
-        cursor: not-allowed;
-    }
-    &__meta {
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-    }
-    &__thumb {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        border-radius: 6px;
-    }
-    &__file-icon {
-        font-family: 'Material Symbols Outlined';
-        font-size: 24px;
-        color: #64748b;
-    }
-
-    &__name {
-        font-size: v-bind('content?.fileNameFontSize || "14px"');
-        font-weight: v-bind('content?.fileNameFontWeight || 500');
-        margin-bottom: 4px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        color: v-bind('content?.fileNameColor || "inherit"');
-    }
-
-    &__details {
-        font-size: v-bind('content?.fileDetailsFontSize || "12px"');
-        color: v-bind('content?.fileDetailsColor || "#888"');
-    }
-
-    &__actions {
-        display: flex;
-        align-items: center;
-        margin-left: 12px;
-        opacity: 0.7;
-        transition: opacity 0.2s ease;
-        position: relative;
-        z-index: 1;
-    }
-
-    &:hover &__actions {
-        opacity: 1;
-    }
-
-    &__btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: v-bind('content?.actionButtonSize || "28px"');
-        height: v-bind('content?.actionButtonSize || "28px"');
-        border-radius: v-bind('content?.actionButtonBorderRadius || "4px"');
-        border: 1px solid v-bind('content?.actionButtonBorderColor || content?.fileItemBorderColor || "#eee"');
-        background-color: v-bind('content?.actionButtonBackground || "#fff"');
-        color: v-bind('content?.actionButtonColor || "#666"');
-        margin-left: v-bind('(content?.actionButtonMargin || "0 0 0 4px").split(" ")[3] || "4px"');
-        cursor: pointer;
-        transition: all 0.2s ease;
-
-        &:hover:not(:disabled) {
-            border-color: v-bind(
-                'content?.actionButtonHoverBorderColor || content?.fileItemHoverBorderColor || "#ddd"'
-            );
-            background-color: v-bind('content?.actionButtonHoverBackground || "#f8f8f8"');
-            transform: scale(1.05);
+        &--disabled {
+            opacity: 0.6;
+            pointer-events: none;
         }
 
-        &:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        &__info {
+            width: v-bind('content?.fileTileWidth || "120px"');
         }
 
-        &--remove:hover:not(:disabled) {
-            color: v-bind('content?.actionButtonRemoveHoverColor || content?.progressBarColor || "#999"');
-            border-color: v-bind('content?.actionButtonRemoveHoverColor || content?.progressBarColor || "#999"');
-        }
-
-        .icon {
-            width: 50%;
-            height: 50%;
+        &__preview {
+            width: 100%;
+            height: v-bind('content?.fileTileHeight || "120px"');
             display: flex;
             align-items: center;
             justify-content: center;
+            position: relative;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            background: #fff;
+            overflow: hidden;
+            cursor: pointer;
+            user-select: none;
+        }
 
-            :deep(svg) {
-                width: 100% !important;
-                height: 100% !important;
-                display: block;
-            }
+        &__preview--not-allowed {
+            cursor: default;
+        }
+
+        &__preview:focus-visible {
+            outline: 2px solid #2563eb;
+            outline-offset: 2px;
+        }
+
+        &__thumb {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: center;
+            display: block;
+            background: #f8fafc;
+        }
+
+        &__file-icon {
+            font-size: 42px;
+            color: #64748b;
+            line-height: 1;
+        }
+
+        &__actions {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            z-index: 2;
+        }
+
+        &__preview:hover &__actions,
+        &__preview:focus-within &__actions {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        &__btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            background: #fff;
+            color: #111827;
+            cursor: pointer;
+            padding: 0;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+        }
+
+        &__btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        &__meta {
+            text-align: center;
+            margin-top: 6px;
+            min-width: 0;
+        }
+
+        &__name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        &__details {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
     }
-}
+
+    .ww-file-item__file-icon--image {
+        color: #64748b;
+    }
+
+    .ww-file-item__file-icon--pdf {
+        color: #e53935;
+    }
+
+    .ww-file-item__file-icon--word {
+        color: #3b73b9;
+    }
+
+    .ww-file-item__file-icon--excel {
+        color: #2e7d32;
+    }
+
+    .ww-file-item__file-icon--powerpoint {
+        color: #d84315;
+    }
+
+    .ww-file-item__file-icon--text {
+        color: #546e7a;
+    }
 </style>
