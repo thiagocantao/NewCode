@@ -163,18 +163,35 @@ export default {
         });
 
         const previewUrl = ref(null);
+        const localObjectUrl = ref(null);
+
+        const revokeLocalObjectUrl = () => {
+            if (localObjectUrl.value) {
+                URL.revokeObjectURL(localObjectUrl.value);
+                localObjectUrl.value = null;
+            }
+        };
 
         const updatePreviewUrl = () => {
             const currentValue = props.file?.previewUrl || props.file?.url || null;
             if (currentValue) {
-                previewUrl.value = currentValue;
+                if (previewUrl.value !== currentValue) {
+                    revokeLocalObjectUrl();
+                    previewUrl.value = currentValue;
+                }
                 return;
             }
+
             const localFile = props.file instanceof File ? props.file : props.file?.file;
             if (localFile instanceof File && isImage.value) {
-                previewUrl.value = URL.createObjectURL(localFile);
+                if (!localObjectUrl.value) {
+                    localObjectUrl.value = URL.createObjectURL(localFile);
+                }
+                previewUrl.value = localObjectUrl.value;
                 return;
             }
+
+            revokeLocalObjectUrl();
             previewUrl.value = null;
         };
 
@@ -197,7 +214,6 @@ export default {
             } catch (e) {
                 removeIcon.value = null;
             }
-            updatePreviewUrl();
         });
 
         watch(
@@ -207,9 +223,7 @@ export default {
         );
 
         onBeforeUnmount(() => {
-            if (previewUrl.value && previewUrl.value.startsWith('blob:')) {
-                URL.revokeObjectURL(previewUrl.value);
-            }
+            revokeLocalObjectUrl();
         });
 
         return {
