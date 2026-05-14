@@ -1430,8 +1430,8 @@ export default {
 
         &__image,
         &__iframe {
-            width: 100%;
-            height: 100%;
+            max-width: 100%;
+            max-height: 100%;
             min-height: 240px;
             border: 0;
             object-fit: contain;
