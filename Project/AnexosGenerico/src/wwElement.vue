@@ -1422,19 +1422,26 @@ export default {
             max-height: calc(100% - 90px);
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: center;  
             overflow: hidden;
             border: 1px solid #e5e7eb;
             border-radius: 8px;
         }
 
-        &__image,
-        &__iframe {
+        &__image {
             max-width: 100%;
             max-height: 100%;
             min-height: 240px;
             border: 0;
             object-fit: contain;
+        }
+
+        &__iframe {
+        width: 100%;
+        height: 100%;
+        min-height: 240px;
+        border: 0;
+        object-fit: contain;
         }
 
         &__text {
