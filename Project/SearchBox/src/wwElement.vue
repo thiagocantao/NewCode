@@ -54,6 +54,7 @@
         v-else-if="content.type == 'search'"
         class="search-input-wrapper"
         :class="`icon-${searchIconPosition}`"
+        :style="searchWrapperStyle"
         @click="focusInput"
     >
         <div v-if="searchIcon" class="search-icon" :style="searchIconStyle">
@@ -587,10 +588,6 @@ export default {
                 );
             }
 
-            if (isSearchActive.value && props.content.activeColor) {
-                style.backgroundColor = props.content.activeColor;
-            }
-
             if (isSearchActive.value && props.content.activeColorText) {
                 style.color = props.content.activeColorText;
             }
@@ -598,6 +595,10 @@ export default {
             return style;
         });
         const isSearchActive = computed(() => props.content.type === 'search' && !!displayValue.value);
+        const searchWrapperStyle = computed(() => ({
+            backgroundColor:
+                isSearchActive.value && props.content.activeColor ? props.content.activeColor : undefined,
+        }));
         const searchIconStyle = computed(() => ({
             color:
                 isSearchActive.value && props.content.activeColorText
@@ -729,6 +730,7 @@ export default {
             searchIcon,
             searchIconHtml,
             searchIconPosition,
+            searchWrapperStyle,
             searchIconStyle,
             searchInputStyle,
             isSearchActive,
