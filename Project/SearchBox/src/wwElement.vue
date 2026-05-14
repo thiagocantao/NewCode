@@ -588,7 +588,11 @@ export default {
             }
 
             if (isSearchActive.value && props.content.activeColor) {
-                style.borderColor = props.content.activeColor;
+                style.backgroundColor = props.content.activeColor;
+            }
+
+            if (isSearchActive.value && props.content.activeColorText) {
+                style.color = props.content.activeColorText;
             }
 
             return style;
@@ -596,8 +600,8 @@ export default {
         const isSearchActive = computed(() => props.content.type === 'search' && !!displayValue.value);
         const searchIconStyle = computed(() => ({
             color:
-                isSearchActive.value && props.content.activeColor
-                    ? props.content.activeColor
+                isSearchActive.value && props.content.activeColorText
+                    ? props.content.activeColorText
                     : props.content.searchIconColor || undefined,
         }));
 

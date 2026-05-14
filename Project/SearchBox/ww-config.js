@@ -14,7 +14,7 @@ export default {
             'placeholder',
             'readonly',
             'required',
-            ['searchIcon', 'searchIconPosition', 'searchIconColor', 'activeColor'],
+            ['searchIcon', 'searchIconPosition', 'searchIconColor', 'activeColor', 'activeColorText'],
             'debounce',
             'debounceDelay',
         ],
@@ -296,6 +296,23 @@ export default {
         },
         activeColor: {
             label: { en: 'Active color' },
+            type: 'Color',
+            section: 'settings',
+            options: {
+                nullable: true,
+            },
+            bindable: true,
+            hidden: content => content.type !== 'search',
+            /* wwEditor:start */
+            bindingValidation: {
+                cssSupports: 'color',
+                type: 'string',
+                tooltip: 'A string that represents a color code: `"rebeccapurple" | "#00ff00" | "rgb(214, 122, 127)"`',
+            },
+            /* wwEditor:end */
+        },
+        activeColorText: {
+            label: { en: 'Active color text' },
             type: 'Color',
             section: 'settings',
             options: {
