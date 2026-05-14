@@ -1,18 +1,11 @@
 <template>
-    <div
-        class="ww-file-upload"
-        :class="{
+    <div :key="`upload-${componentRenderKey}`" class="ww-file-upload" :class="{
             'ww-file-upload--dragging': isDragging && !isDisabled && !isReadonly,
             'ww-file-upload--disabled': isDisabled,
             'ww-file-upload--readonly': isReadonly,
             'ww-file-upload--has-files': hasFiles,
-        }"
-        @dragover.prevent="handleDragOver"
-        @dragleave.prevent="handleDragLeave"
-        @drop.prevent="handleDrop"
-        role="region"
-        aria-label="File upload area"
-    >
+        }" @dragover.prevent="handleDragOver" @dragleave.prevent="handleDragLeave" @drop.prevent="handleDrop"
+        role="region" aria-label="File upload area">
         <div class="ww-file-upload__grid">
             <button
                 v-if="!isReadonly"
@@ -28,27 +21,17 @@
             </button>
 
             <!-- File list -->
-            <FileList
-                v-if="hasFiles"
-                :files="fileList"
-                :status="status"
-                :type="type"
-                :can-reorder="reorder"
-                :is-readonly="isReadonly"
-                :is-disabled="isDisabled"
-                :can-preview="canPreviewFile"
-                :get-preview-hint="getPreviewHint"
-                @remove="removeFile"
-                @download="downloadFileByIndex"
-                @preview="previewFileByIndex"
-                @reorder="reorderFiles"
-            />
+            <FileList v-if="shouldRenderFileList && hasFiles" :key="`file-list-${componentRenderKey}`" :files="fileList"
+                :status="status" :type="type" :can-reorder="reorder" :is-readonly="isReadonly" :is-disabled="isDisabled"
+                :can-preview="canPreviewFile" :get-preview-hint="getPreviewHint" @remove="removeFile"
+                @download="downloadFileByIndex" @preview="previewFileByIndex" @reorder="reorderFiles" />
         </div>
 
         <!-- Hidden file input -->
         <input
             v-if="!isReadonly"
             ref="fileInput"
+            :key="`input-${componentRenderKey}`"
             type="file"
             class="ww-file-upload__input"
             :multiple="type === 'multi'"
@@ -72,16 +55,16 @@
             </div>
 
             <div class="ww-preview-modal__body">
-                <template v-if="previewFile && previewMode === 'direct' && previewFile.isImage">
+                <template v-if="previewFile && previewMode === 'image'">
                     <img :src="previewSource" :alt="previewFile.name || 'Attachment preview'" class="ww-preview-modal__image" />
                 </template>
 
-                <template v-else-if="previewFile && previewMode === 'direct' && previewFile.isPdf">
+                <template v-else-if="previewFile && previewMode === 'pdf'">
                     <iframe :src="previewSource" class="ww-preview-modal__iframe" title="PDF preview"></iframe>
                 </template>
 
-                <template v-else-if="previewFile && previewMode === 'direct' && previewFile.isTxt">
-                    <iframe :src="previewSource" class="ww-preview-modal__iframe" title="Text preview"></iframe>
+                <template v-else-if="previewFile && previewMode === 'text'">
+                    <pre class="ww-preview-modal__text">{{ previewText }}</pre>
                 </template>
 
                 <template v-else-if="previewFile && previewMode === 'office'">
@@ -99,7 +82,7 @@
 </template>
 
 <script>
-import { ref, computed, watch, provide, inject } from 'vue';
+    import { ref, computed, watch, provide, inject, nextTick } from 'vue';
 import FileList from './components/FileList.vue';
 import { validateFile } from './utils/fileValidation';
 import { fileToBase64, fileToBinary } from './utils/fileProcessing';
@@ -149,6 +132,7 @@ export default {
         const isPreviewModalOpen = ref(false);
         const previewIndex = ref(-1);
         const previewSource = ref('');
+        const previewText = ref('');
         const previewMode = ref('unsupported');
 
         const extensionsMessage = computed(() => props.content?.extensionsMessage || null);
@@ -302,15 +286,28 @@ export default {
             { elementState: props.wwElementState, emit, sidepanelFormPath: 'form', setValue: setFiles }
         );
 
-        const fileList = computed(() => (Array.isArray(files.value) ? files.value : []));
+        const rawFileList = computed(() => (Array.isArray(files.value) ? files.value : []));
+        const manualClearActive = ref(false);
+        const componentRenderKey = ref(0);
+        const shouldRenderFileList = ref(true);
+
+        // Lista efetiva usada pela UI e pelo contexto local.
+        // Quando a action Clear files é executada, essa lista fica vazia mesmo que o
+        // runtime do WeWeb ainda esteja sincronizando a variável interna do componente.
+        const fileList = computed(() => (manualClearActive.value ? [] : rawFileList.value));
         const hasFiles = computed(() => fileList.value.length > 0);
         const previousInitialValueHash = ref('');
 
         const getFileKind = fileName => {
             const ext = (fileName || '').split('.').pop()?.toLowerCase();
-            if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(ext)) return 'image';
+
+            if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg', 'avif', 'heic', 'heif', 'jfif', 'tif', 'tiff', 'ico'].includes(ext)) return 'image';
             if (ext === 'pdf') return 'pdf';
-            if (['txt', 'log'].includes(ext)) return 'txt';
+
+            if (['txt', 'log', 'csv', 'json', 'xml', 'html', 'css', 'js', 'md'].includes(ext)) {
+                return 'text';
+            }
+
             return 'file';
         };
 
@@ -335,11 +332,13 @@ export default {
                         storagePath: storagePath || '',
                         url: directUrl,
                         previewUrl: directUrl,
+                        thumbnailUrl: directUrl,
                         createdDate: item?.CreatedDate || null,
                         createdBy: item?.CreatedBy || null,
                         isImage: kind === 'image',
                         isPdf: kind === 'pdf',
-                        isTxt: kind === 'txt',
+                        isTxt: kind === 'text',
+                        isText: kind === 'text',
                         isFromInitialValue: true,
                     };
                 })
@@ -363,10 +362,19 @@ export default {
             initialValue,
             newValue => {
                 const hash = JSON.stringify(newValue || []);
+
+                // Se o JSON inicial é o mesmo, não reaplica automaticamente.
+                // Isso impede que os anexos voltem logo após executar Clear files.
                 if (hash === previousInitialValueHash.value) return;
+
                 previousInitialValueHash.value = hash;
+                manualClearActive.value = false;
+                shouldRenderFileList.value = true;
+                componentRenderKey.value += 1;
+
                 const normalized = normalizeInitialValue(newValue);
                 setFiles(normalized);
+
                 emit('trigger-event', {
                     name: 'initValueChange',
                     event: { value: normalized },
@@ -438,29 +446,47 @@ export default {
             return iconText.value;
         });
 
+        const isNativeFile = file => {
+            if (!file) return false;
+            if (typeof File !== 'undefined' && file instanceof File) return true;
+            return Object.prototype.toString.call(file) === '[object File]';
+        };
+
+        const toFileUploadValue = file => {
+            if (!file) return file;
+
+            // Arquivos recém anexados precisam continuar sendo o próprio File nativo.
+            // O plugin do Supabase "Upload a file" precisa desse objeto real para gravar o binário.
+            if (isNativeFile(file) && !file.isFromInitialValue) {
+                return file;
+            }
+
+            // Arquivos vindos do Initial Value são apenas metadados de arquivos já salvos.
+            // Esses objetos servem para exibição, preview, download e exclusão, mas não devem ser enviados ao Upload.
+            const plainObject = {};
+            for (const key in file) {
+                if (Object.prototype.hasOwnProperty.call(file, key)) {
+                    plainObject[key] = file[key];
+                }
+            }
+            plainObject.name = file.name;
+            plainObject.size = file.size;
+            plainObject.type = file.type;
+            plainObject.lastModified = file.lastModified;
+            plainObject.mimeType = file.mimeType;
+            plainObject.id = file.id;
+            plainObject.isFromInitialValue = Boolean(file.isFromInitialValue);
+            plainObject.isNewFile = Boolean(file.isNewFile);
+
+            if (file.base64) plainObject.base64 = file.base64;
+            if (file.binary) plainObject.binary = file.binary;
+
+            return plainObject;
+        };
+
         const localData = ref({
             fileUpload: {
-                value: computed(() => {
-                    return fileList.value.map(file => {
-                        const plainObject = {};
-                        for (const key in file) {
-                            if (Object.prototype.hasOwnProperty.call(file, key)) {
-                                plainObject[key] = file[key];
-                            }
-                        }
-                        plainObject.name = file.name;
-                        plainObject.size = file.size;
-                        plainObject.type = file.type;
-                        plainObject.lastModified = file.lastModified;
-                        plainObject.mimeType = file.mimeType;
-                        plainObject.id = file.id;
-
-                        if (file.base64) plainObject.base64 = file.base64;
-                        if (file.binary) plainObject.binary = file.binary;
-
-                        return plainObject;
-                    });
-                }),
+                value: computed(() => fileList.value.map(toFileUploadValue)),
                 status: status,
                 deletedFile: deletedFile,
                 deletedFilesCount: deletedFilesCount,
@@ -529,6 +555,9 @@ export default {
         };
 
         const processFiles = async fileList => {
+            manualClearActive.value = false;
+            shouldRenderFileList.value = true;
+            componentRenderKey.value += 1;
             isProcessing.value = true;
             const filesToProcess = Array.from(fileList);
 
@@ -615,6 +644,26 @@ export default {
                 if (validationResult.valid) {
                     file.id = `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
                     file.mimeType = file.type;
+                    file.isFromInitialValue = false;
+                    file.isNewFile = true;
+                    file.bucket = null;
+                    file.storagePath = '';
+                    file.url = null;
+                    file.previewUrl = null;
+                    file.thumbnailUrl = null;
+
+                    const kind = getFileKind(file.name);
+                    file.isImage = kind === 'image';
+                    file.isPdf = kind === 'pdf';
+                    file.isTxt = kind === 'text';
+                    file.isText = kind === 'text';
+
+                    if (file.isImage && !file.previewUrl) {
+                        file.previewUrl = URL.createObjectURL(file);
+                        file.url = file.previewUrl;
+                        file.thumbnailUrl = file.previewUrl;
+                    }
+
                     if (exposeBase64.value) file.base64 = await fileToBase64(file);
                     if (exposeBinary.value) file.binary = await fileToBinary(file);
                     processedFiles.push(file);
@@ -739,25 +788,61 @@ export default {
 
         const resolveFileUrl = async (file, { download = false } = {}) => {
             if (!file) return null;
-            if (!download && file.url) return file.url;
+
+            if (!download && (file.thumbnailUrl || file.previewUrl || file.url)) {
+                return file.thumbnailUrl || file.previewUrl || file.url;
+            }
+
             const localFile = file instanceof File ? file : file?.file;
-            if (localFile instanceof File) return URL.createObjectURL(localFile);
+
+            if (localFile instanceof File) {
+                if (!file.previewUrl) {
+                    file.previewUrl = URL.createObjectURL(localFile);
+                }
+
+                if (!file.url) {
+                    file.url = file.previewUrl;
+                }
+
+                return file.previewUrl;
+            }
+
             const supabase = getSupabase();
             const { bucket, storagePath, directUrl } = resolveStorageLocation(file);
-            if (!supabase?.storage || !bucket || !storagePath) return directUrl || null;
+
+            if (!supabase?.storage || !bucket || !storagePath) {
+                return directUrl || file.url || file.previewUrl || null;
+            }
+
             const options = {};
-            if (download) options.download = file.name || 'download';
-            if (file?.isImage && !download) options.transform = { width: 400, resize: 'contain' };
+
+            if (download) {
+                options.download = file.name || 'download';
+            }
+
+            if (file?.isImage && !download) {
+                options.transform = { width: 400, resize: 'contain' };
+            }
+
             const { data, error } = await supabase.storage.from(bucket).createSignedUrl(storagePath, 3600, options);
-            if (error) return null;
+
+            if (error) {
+                console.warn('Erro ao gerar signed URL do arquivo:', error);
+                return directUrl || file.url || file.previewUrl || null;
+            }
+
             const signedUrl = data?.signedUrl || null;
-            if (!download) {
+
+            if (!download && signedUrl) {
                 file.url = signedUrl;
                 file.previewUrl = signedUrl;
+                file.thumbnailUrl = file.thumbnailUrl || signedUrl;
             }
+
             file.bucket = bucket;
             file.storagePath = storagePath;
-            return signedUrl;
+
+            return signedUrl || directUrl || file.url || file.previewUrl || null;
         };
 
         const previewUnavailableMessage = computed(() => translatePhrase('Preview not available for this file type.'));
@@ -774,9 +859,20 @@ export default {
 
             if (
                 type.startsWith('image/') ||
-                ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg', 'pdf', 'txt', 'log', 'csv', 'json'].includes(ext)
+                ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(ext)
             ) {
-                return 'direct';
+                return 'image';
+            }
+
+            if (type === 'application/pdf' || ext === 'pdf') {
+                return 'pdf';
+            }
+
+            if (
+                type.startsWith('text/') ||
+                ['txt', 'log', 'csv', 'json', 'xml', 'html', 'css', 'js', 'md'].includes(ext)
+            ) {
+                return 'text';
             }
 
             if (['xls', 'xlsx', 'xlsm', 'xlsb', 'doc', 'docx', 'ppt', 'pptx'].includes(ext)) {
@@ -795,47 +891,92 @@ export default {
             isPreviewModalOpen.value = false;
             previewIndex.value = -1;
             previewSource.value = '';
+            previewText.value = '';
             previewMode.value = 'unsupported';
         };
 
         const previewFileByIndex = async index => {
             const file = fileList.value[index];
             if (!file) return;
+
             const mode = getPreviewMode(file);
             if (mode === 'unsupported') return;
+
             const url = await resolveFileUrl(file);
             if (!url) return;
-            previewMode.value = mode;
-            previewSource.value =
-                mode === 'office' ? `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(url)}` : url;
+
             previewIndex.value = index;
+            previewMode.value = mode;
+            previewSource.value = '';
+            previewText.value = '';
+
+            if (mode === 'office') {
+                previewSource.value = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(url)}`;
+            } else if (mode === 'text') {
+                try {
+                    const response = await fetch(url, { method: 'GET', cache: 'no-store' });
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                    previewText.value = await response.text();
+                } catch (error) {
+                    console.warn('Erro ao carregar preview de texto:', error);
+                    previewText.value = 'Não foi possível carregar o preview deste arquivo.';
+                }
+            } else {
+                previewSource.value = url;
+            }
+
             isPreviewModalOpen.value = true;
         };
 
         const downloadFileByIndex = async index => {
             const file = fileList.value[index];
             if (!file) return;
+
             const url = await resolveFileUrl(file, { download: true });
             if (!url) return;
+
+            const fileName = file.name || 'download';
+
             try {
-                const response = await fetch(url);
+                const response = await fetch(url, {
+                    method: 'GET',
+                    cache: 'no-store',
+                });
+
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
                 const blob = await response.blob();
                 const blobUrl = URL.createObjectURL(blob);
                 const a = document.createElement('a');
+
                 a.href = blobUrl;
-                a.download = file.name || 'download';
+                a.download = fileName;
+                a.style.display = 'none';
+
                 document.body.appendChild(a);
                 a.click();
-                a.remove();
-                URL.revokeObjectURL(blobUrl);
+
+                setTimeout(() => {
+                    a.remove();
+                    URL.revokeObjectURL(blobUrl);
+                }, 100);
             } catch (error) {
+                console.warn('Download via fetch falhou, usando fallback por link:', error);
+
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = file.name || 'download';
+                a.download = fileName;
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+                a.style.display = 'none';
+
                 document.body.appendChild(a);
                 a.click();
-                a.remove();
+
+                setTimeout(() => {
+                    a.remove();
+                }, 100);
             }
         };
 
@@ -843,13 +984,26 @@ export default {
             fileList,
             async list => {
                 const items = Array.isArray(list) ? list : [];
+                let changed = false;
+
                 await Promise.all(
                     items.map(async file => {
-                        if (!file || !file.isImage || file.previewUrl || file.url) return;
+                        if (!file || !file.isImage || file.thumbnailUrl) return;
+
                         const preview = await resolveFileUrl(file);
-                        if (preview) file.previewUrl = preview;
+
+                        if (preview) {
+                            file.previewUrl = file.previewUrl || preview;
+                            file.url = file.url || preview;
+                            file.thumbnailUrl = preview;
+                            changed = true;
+                        }
                     })
                 );
+
+                if (changed) {
+                    setFiles([...items]);
+                }
             },
             { immediate: true, deep: true }
         );
@@ -868,8 +1022,45 @@ export default {
             });
         };
 
-        const clearFiles = () => {
+        const clearFiles = async () => {
+            // Trava visualmente e funcionalmente a lista como vazia.
+            // Isso resolve casos em que o WeWeb demora ou falha em propagar setFiles([])
+            // quando há múltiplos anexos.
+            manualClearActive.value = true;
+            shouldRenderFileList.value = false;
+            componentRenderKey.value += 1;
+
+            // Limpa a variável principal do componente e todos os estados auxiliares.
             setFiles([]);
+            setStatus({});
+
+            // Fecha e limpa o preview, caso o usuário execute a action com o modal aberto.
+            isPreviewModalOpen.value = false;
+            previewIndex.value = -1;
+            previewSource.value = '';
+            previewText.value = '';
+            previewMode.value = 'unsupported';
+
+            // Limpa o input nativo para permitir selecionar novamente os mesmos arquivos.
+            if (fileInput.value) {
+                fileInput.value.value = '';
+            }
+
+            await nextTick();
+
+            // Força desmontagem/remontagem de FileList e input.
+            componentRenderKey.value += 1;
+            shouldRenderFileList.value = true;
+
+            emit('trigger-event', {
+                name: 'change',
+                event: { value: [] },
+            });
+
+            emit('trigger-event', {
+                name: 'clear',
+                event: { value: [] },
+            });
         };
 
         const getAllowedTypesLabel = () => {
@@ -900,7 +1091,7 @@ export default {
         wwLib.wwElement.useRegisterElementLocalContext('fileUpload', localData.value.fileUpload, {
             clearFiles: {
                 description: 'Clear all files',
-                method: clearFiles,
+                method: () => clearFiles(),
                 editor: { label: 'Clear Files', group: 'File Upload', icon: 'trash' },
             },
         });
@@ -940,6 +1131,8 @@ export default {
             isDragging,
             fileList,
             hasFiles,
+            componentRenderKey,
+            shouldRenderFileList,
             isDisabled,
             isReadonly,
             acceptedFileTypes,
@@ -956,6 +1149,7 @@ export default {
             isPreviewModalOpen,
             previewFile,
             previewSource,
+            previewText,
             previewMode,
             previewIndex,
             closePreviewModal,
@@ -1030,226 +1224,246 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.ww-file-upload {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    position: relative;
-
-    &__input {
-        opacity: 0;
-        background: rgba(0, 0, 0, 0);
-        border: 0;
-        bottom: -1px;
-        font-size: 0;
-        height: 1px;
-        left: 0;
-        outline: none;
-        padding: 0;
-        position: absolute;
-        right: 0;
-        width: 100%;
-    }
-
-    &__grid {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: flex-start;
-        gap: 8px;
-    }
-
-    &__add-tile {
-        width: v-bind('content?.fileTileWidth || "120px"');
-        height: v-bind('content?.fileTileHeight || "120px"');
-        border: 1px dashed v-bind('safeDropzoneBorderColor');
-        border-radius: 6px;
-        background-color: v-bind('safeDropzoneBackground');
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        flex-shrink: 0;
-        transition: all 0.2s ease;
-
-        &:hover {
-            background-color: v-bind('safeDropzoneBackgroundHover');
-        }
-
-        &:disabled {
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
-    }
-
-    &__add-icon {
-        font-size: 34px;
-        line-height: 1;
-        color: v-bind('safeDropzoneBorderColor');
-    }
-
-    &__content {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        width: 100%;
-        pointer-events: none;
-        position: relative;
-        z-index: 2;
-
-        &--top {
-            flex-direction: column;
-        }
-
-        &--right {
-            flex-direction: row-reverse;
-            justify-content: center;
-            text-align: right;
-        }
-
-        &--bottom {
-            flex-direction: column-reverse;
-        }
-
-        &--left {
-            flex-direction: row;
-            justify-content: center;
-            text-align: left;
-        }
-    }
-
-    &__text {
+    .ww-file-upload {
         display: flex;
         flex-direction: column;
-        pointer-events: none;
+        width: 100%;
+        position: relative;
+
+        &__input {
+            opacity: 0;
+            background: rgba(0, 0, 0, 0);
+            border: 0;
+            bottom: -1px;
+            font-size: 0;
+            height: 1px;
+            left: 0;
+            outline: none;
+            padding: 0;
+            position: absolute;
+            right: 0;
+            width: 100%;
+        }
+
+        &__grid {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        &__add-tile {
+            width: v-bind('content?.fileTileWidth || "120px"');
+            height: v-bind('content?.fileTileHeight || "120px"');
+            border: 1px dashed v-bind('safeDropzoneBorderColor');
+            border-radius: 6px;
+            background-color: v-bind('safeDropzoneBackground');
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: all 0.2s ease;
+
+            &:hover {
+                background-color: v-bind('safeDropzoneBackgroundHover');
+            }
+
+            &:disabled {
+                cursor: not-allowed;
+                opacity: 0.6;
+            }
+        }
+
+        &__add-icon {
+            font-size: 34px;
+            line-height: 1;
+            color: v-bind('safeDropzoneBorderColor');
+        }
+
+        &__content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            width: 100%;
+            pointer-events: none;
+            position: relative;
+            z-index: 2;
+
+            &--top {
+                flex-direction: column;
+            }
+
+            &--right {
+                flex-direction: row-reverse;
+                justify-content: center;
+                text-align: right;
+            }
+
+            &--bottom {
+                flex-direction: column-reverse;
+            }
+
+            &--left {
+                flex-direction: row;
+                justify-content: center;
+                text-align: left;
+            }
+        }
+
+        &__text {
+            display: flex;
+            flex-direction: column;
+            pointer-events: none;
+        }
+
+        &__icon {
+            font-size: v-bind('uploadIconSize');
+            color: v-bind('uploadIconColor');
+            width: 1em;
+            height: 1em;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-shrink: 0;
+            pointer-events: none;
+            margin: v-bind('uploadIconMargin');
+
+            > :deep(svg) {
+                width: 100%;
+                height: 100%;
+            }
+        }
+
+        &__info {
+            display: block;
+        }
+
+        &--dragging {
+            .ww-file-upload__add-tile {
+                background-color: v-bind('safeDropzoneBackgroundDragging');
+            }
+        }
+
+        &--disabled {
+            opacity: 0.6;
+            pointer-events: none;
+
+            .ww-file-upload__add-tile {
+                cursor: not-allowed;
+            }
+        }
+
+        &--readonly {
+            .ww-file-upload__add-tile {
+                cursor: default;
+            }
+        }
+
+        &__hover-circle {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: -1;
+            transform: translate(-50%, -50%);
+            transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+            will-change: transform, opacity;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            backface-visibility: hidden;
+        }
     }
 
-    &__icon {
-        font-size: v-bind('uploadIconSize');
-        color: v-bind('uploadIconColor');
-        width: 1em;
-        height: 1em;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-shrink: 0;
-        pointer-events: none;
-        margin: v-bind('uploadIconMargin');
+    .ww-preview-modal {
+        &__overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: 24px;
+        }
 
-        > :deep(svg) {
+        &__content {
+            height: 95vh;
+            position: relative;
+            width: 90%;
+            max-height: 90vh;
+            background: #fff;
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        &__actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        &__action-button {
+            width: 36px;
+            height: 36px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        &__body {
+            min-height: calc(100% - 90px);
+            max-height: calc(100% - 90px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+
+        &__image,
+        &__iframe {
             width: 100%;
             height: 100%;
+            min-height: 240px;
+            border: 0;
+            object-fit: contain;
+        }
+
+        &__text {
+            width: 100%;
+            height: 100%;
+            min-height: 240px;
+            margin: 0;
+            padding: 16px;
+            overflow: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-family: Consolas, Monaco, 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #111827;
+            background: #f9fafb;
+        }
+
+        &__name {
+            font-size: 14px;
+            text-align: center;
+            color: #374151;
+            word-break: break-word;
+        }
+
+        &__not-viewable {
+            color: #6b7280;
+            padding: 24px;
+            text-align: center;
         }
     }
-
-    &__info {
-        display: block;
-    }
-
-    &--dragging {
-        .ww-file-upload__add-tile {
-            background-color: v-bind('safeDropzoneBackgroundDragging');
-        }
-    }
-
-    &--disabled {
-        opacity: 0.6;
-        pointer-events: none;
-
-        .ww-file-upload__add-tile { cursor: not-allowed; }
-    }
-
-    &--readonly {
-        .ww-file-upload__add-tile { cursor: default; }
-    }
-
-    &__hover-circle {
-        position: absolute;
-        border-radius: 50%;
-        pointer-events: none;
-        z-index: -1;
-        transform: translate(-50%, -50%);
-        transition: opacity 0.3s ease-out, transform 0.3s ease-out;
-        will-change: transform, opacity;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        backface-visibility: hidden;
-    }
-}
-
-.ww-preview-modal {
-    &__overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.6);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 9999;
-        padding: 24px;
-    }
-
-    &__content {
-        height: 95vh;
-        position: relative;
-        width: 90%;
-        max-height: 90vh;
-        background: #fff;
-        border-radius: 12px;
-        padding: 16px;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-    }
-
-    &__actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 8px;
-    }
-
-    &__action-button {
-        width: 36px;
-        height: 36px;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        background: #fff;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-    }
-
-    &__body {
-        min-height: calc(100% - 90px);
-    max-height: calc(100% - 90px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    }
-
-    &__image,
-    &__iframe {
-        width: 100%;
-        height: 100%;
-        min-height: 240px;
-        border: 0;
-        object-fit: contain;
-    }
-
-    &__name {
-        font-size: 14px;
-        text-align: center;
-        color: #374151;
-        word-break: break-word;
-    }
-
-    &__not-viewable {
-        color: #6b7280;
-        padding: 24px;
-        text-align: center;
-    }
-}
 </style>
