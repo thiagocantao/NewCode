@@ -592,6 +592,10 @@ export default {
                 style.color = props.content.activeColorText;
             }
 
+            if (isSearchActive.value && props.content.activeColor) {
+                style.backgroundColor = props.content.activeColor;
+            }
+
             return style;
         });
         const isSearchActive = computed(() => props.content.type === 'search' && !!displayValue.value);
