@@ -579,10 +579,27 @@ export default {
             { immediate: true }
         );
         const searchInputStyle = computed(() => {
-            if (!searchIcon.value) return {};
-            return searchIconPosition.value === 'right' ? { paddingRight: '2.2em' } : { paddingLeft: '2.2em' };
+            const style = {};
+            if (searchIcon.value) {
+                Object.assign(
+                    style,
+                    searchIconPosition.value === 'right' ? { paddingRight: '2.2em' } : { paddingLeft: '2.2em' }
+                );
+            }
+
+            if (isSearchActive.value && props.content.activeColor) {
+                style.borderColor = props.content.activeColor;
+            }
+
+            return style;
         });
-        const searchIconStyle = computed(() => ({ color: props.content.searchIconColor || undefined }));
+        const isSearchActive = computed(() => props.content.type === 'search' && !!displayValue.value);
+        const searchIconStyle = computed(() => ({
+            color:
+                isSearchActive.value && props.content.activeColor
+                    ? props.content.activeColor
+                    : props.content.searchIconColor || undefined,
+        }));
 
         const inputClasses = computed(() => ({
             hideArrows: props.content.hideArrows && inputType.value === 'number',
@@ -710,6 +727,7 @@ export default {
             searchIconPosition,
             searchIconStyle,
             searchInputStyle,
+            isSearchActive,
             // Currency-related
             handleCurrencyInput,
             handleCurrencyKeydown,
