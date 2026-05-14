@@ -54,6 +54,7 @@
         v-else-if="content.type == 'search'"
         class="search-input-wrapper"
         :class="`icon-${searchIconPosition}`"
+        :style="searchWrapperStyle"
         @click="focusInput"
     >
         <div v-if="searchIcon" class="search-icon" :style="searchIconStyle">
@@ -579,10 +580,31 @@ export default {
             { immediate: true }
         );
         const searchInputStyle = computed(() => {
-            if (!searchIcon.value) return {};
-            return searchIconPosition.value === 'right' ? { paddingRight: '2.2em' } : { paddingLeft: '2.2em' };
+            const style = {};
+            if (searchIcon.value) {
+                Object.assign(
+                    style,
+                    searchIconPosition.value === 'right' ? { paddingRight: '2.2em' } : { paddingLeft: '2.2em' }
+                );
+            }
+
+            if (isSearchActive.value && props.content.activeColorText) {
+                style.color = props.content.activeColorText;
+            }
+
+            return style;
         });
-        const searchIconStyle = computed(() => ({ color: props.content.searchIconColor || undefined }));
+        const isSearchActive = computed(() => props.content.type === 'search' && !!displayValue.value);
+        const searchWrapperStyle = computed(() => ({
+            backgroundColor:
+                isSearchActive.value && props.content.activeColor ? props.content.activeColor : undefined,
+        }));
+        const searchIconStyle = computed(() => ({
+            color:
+                isSearchActive.value && props.content.activeColorText
+                    ? props.content.activeColorText
+                    : props.content.searchIconColor || undefined,
+        }));
 
         const inputClasses = computed(() => ({
             hideArrows: props.content.hideArrows && inputType.value === 'number',
@@ -708,8 +730,10 @@ export default {
             searchIcon,
             searchIconHtml,
             searchIconPosition,
+            searchWrapperStyle,
             searchIconStyle,
             searchInputStyle,
+            isSearchActive,
             // Currency-related
             handleCurrencyInput,
             handleCurrencyKeydown,
