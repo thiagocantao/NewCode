@@ -69,6 +69,10 @@ export default {
                 },
             ],
         },
+        {
+            label: 'Validate required fields',
+            action: 'validateRequiredFields',
+        },
     ],
     triggerEvents: [
         {

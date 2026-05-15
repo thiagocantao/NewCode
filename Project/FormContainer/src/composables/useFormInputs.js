@@ -1,6 +1,16 @@
 import { omit } from 'lodash-es';
 import { computed, watch, provide, ref } from 'vue';
 
+function isValueEmpty(value) {
+    if (value === null || value === undefined) return true;
+    if (typeof value === 'number') return Number.isNaN(value);
+    if (typeof value === 'string') return value.length === 0;
+    if (Array.isArray(value)) return value.length === 0;
+    if (value instanceof Set || value instanceof Map) return value.size === 0;
+    if (typeof value === 'object') return Object.keys(value).length === 0;
+    return false;
+}
+
 export function useFormInputs({ updateInputValidity, removeInputValidity, validationType }) {
     const inputsMap = ref({});
 
@@ -58,7 +68,13 @@ export function useFormInputs({ updateInputValidity, removeInputValidity, valida
         for (const [id, inputs] of Object.entries(inputsMap.value)) {
             for (const [name, input] of Object.entries(inputs)) {
                 if ('forceValidateField' in input) {
-                    const isValid = input.forceValidateField();
+                    let isValid = input.forceValidateField();
+
+                    // Safety check for required fields:
+                    // if value is empty, always mark as invalid even if the input implementation returned true.
+                    if (input.required && isValueEmpty(input.value)) {
+                        isValid = false;
+                    }
                     validityMap[id + name] = isValid;
 
                     if (!isValid) {
