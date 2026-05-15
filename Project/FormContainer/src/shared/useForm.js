@@ -85,6 +85,7 @@ export function useForm(
         [_fieldName.value]: {
             value: value.value,
             isValid: initialIsValid,
+            required: !!required.value,
             pending: false,
             forceValidateField,
             updateValue,
@@ -100,6 +101,15 @@ export function useForm(
             updateFormInput(id, input => {
                 if (input[_fieldName.value]) {
                     input[_fieldName.value].initialValue = newInitialValue;
+                }
+            });
+        });
+    }
+    if (isRef(required)) {
+        watch(required, newRequired => {
+            updateFormInput(id, input => {
+                if (input[_fieldName.value]) {
+                    input[_fieldName.value].required = !!newRequired;
                 }
             });
         });
