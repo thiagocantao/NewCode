@@ -121,6 +121,34 @@ export default {
             updateFormData();
         }
 
+        function setInputBorderValidity(inputName, isInvalid) {
+            if (!formRef.value || !inputName) return;
+
+            const escapedInputName = String(inputName).replace(/"/g, '\\"');
+            const matchingInputs = formRef.value.querySelectorAll(`[name="${escapedInputName}"]`);
+
+            matchingInputs.forEach(inputElement => {
+                if (!inputElement?.style) return;
+
+                if (isInvalid) {
+                    inputElement.style.setProperty('border-color', '#ff4d4f');
+                } else {
+                    inputElement.style.removeProperty('border-color');
+                }
+            });
+        }
+
+        function validateRequiredFields() {
+            const validationResult = forceValidateAllFields();
+            const invalidFieldNames = new Set(validationResult.invalidFields.map(field => field.name));
+
+            Object.keys(formInputs.value || {}).forEach(fieldName => {
+                setInputBorderValidity(fieldName, invalidFieldNames.has(fieldName));
+            });
+
+            return validationResult.isValid;
+        }
+
         const { setValue } = wwLib.wwVariable.useComponentVariable({
             uid: props.wwElementState.uid,
             name: 'form',
@@ -180,6 +208,15 @@ export default {
                     ],
                 },
             },
+            validateRequiredFields: {
+                method: validateRequiredFields,
+                editor: {
+                    label: 'Validate required fields',
+                    elementName: 'Form',
+                    description: 'Validate form required fields and highlight invalid fields with red borders',
+                    args: [],
+                },
+            },
         };
 
         watch(data, newData => setValue(newData), { deep: true, immediate: true });
@@ -221,6 +258,7 @@ Object containing all form inputs. Each input contains:
             formState,
             _setFormState,
             resetForm,
+            validateRequiredFields,
         };
     },
 };
