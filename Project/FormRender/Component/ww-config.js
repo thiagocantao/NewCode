@@ -392,6 +392,34 @@ export default {
             action: 'refreshListFieldDataSource',
             label: { en: 'Refresh list field data source' },
             args: []
+        },
+
+        {
+            action: 'updateFieldValueByTagControlPreUpdate',
+            label: { en: 'Update field value by tag control pre update' },
+            args: [
+                {
+                    name: 'tagControlPreUpdate',
+                    type: 'string',
+                    label: { en: 'Tag control pre update' }
+                },
+                {
+                    name: 'value',
+                    type: 'string',
+                    label: { en: 'New field value' }
+                }
+            ]
+        },
+        {
+            action: 'hasFieldByTagControlPreUpdate',
+            label: { en: 'Check field exists by tag control pre update' },
+            args: [
+                {
+                    name: 'tagControlPreUpdate',
+                    type: 'string',
+                    label: { en: 'Tag control pre update' }
+                }
+            ]
         }
     ]
 };
