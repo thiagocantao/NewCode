@@ -399,14 +399,9 @@ export default {
             label: { en: 'Update field value by tag control pre update' },
             args: [
                 {
-                    name: 'tagControlPreUpdate',
-                    type: 'string',
-                    label: { en: 'Tag control pre update' }
-                },
-                {
-                    name: 'value',
-                    type: 'string',
-                    label: { en: 'New field value' }
+                    name: 'fieldsToUpdate',
+                    type: 'array',
+                    label: { en: 'Fields to update by tag' }
                 }
             ]
         },
