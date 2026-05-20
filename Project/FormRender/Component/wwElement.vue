@@ -389,53 +389,6 @@ export default {
       });
     };
 
-    const findFieldByTagControlPreUpdate = tagControlPreUpdate => {
-      if (!tagControlPreUpdate) return null;
-
-      for (const section of formSections.value) {
-        const field = (section.fields || []).find(
-          currentField => currentField?.tag_control_pre_update === tagControlPreUpdate
-        );
-        if (field) {
-          return { section, field };
-        }
-      }
-
-      return null;
-    };
-
-    const normalizeTagValueActionArgs = (arg1, arg2) => {
-      if (arg1 && typeof arg1 === 'object' && !Array.isArray(arg1)) {
-        return {
-          tagControlPreUpdate: arg1.tag_control_pre_update ?? arg1.tagControlPreUpdate ?? null,
-          value: Object.prototype.hasOwnProperty.call(arg1, 'value') ? arg1.value : arg2
-        };
-      }
-
-      return {
-        tagControlPreUpdate: arg1 ?? null,
-        value: arg2
-      };
-    };
-
-    const setFieldValueByTagControlPreUpdate = (arg1, arg2) => {
-      const { tagControlPreUpdate, value } = normalizeTagValueActionArgs(arg1, arg2);
-      if (!tagControlPreUpdate) return false;
-
-      const fieldInfo = findFieldByTagControlPreUpdate(tagControlPreUpdate);
-      if (!fieldInfo) return false;
-
-      fieldInfo.field.value = value;
-      updateFormState({ forceRerender: false, changedField: { ...fieldInfo.field } });
-      return true;
-    };
-
-    const hasFieldByTagControlPreUpdate = arg1 => {
-      const { tagControlPreUpdate } = normalizeTagValueActionArgs(arg1);
-      if (!tagControlPreUpdate) return false;
-      return !!findFieldByTagControlPreUpdate(tagControlPreUpdate);
-    };
-
     // Watch for changes in formJson
     watch(() => props.content.formJson, (newValue) => {
       loadFormData();
@@ -588,8 +541,6 @@ export default {
       sectionComponents,
       validateRequiredFields,
       refreshListFieldDataSource,
-      setFieldValueByTagControlPreUpdate,
-      hasFieldByTagControlPreUpdate,
       t
     };
   }
