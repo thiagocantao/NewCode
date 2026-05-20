@@ -389,11 +389,22 @@ export default {
       });
     };
 
+    const normalizeTagControlPreUpdate = value => {
+      if (value === null || value === undefined) return '';
+      return String(value).trim().toLowerCase();
+    };
+
+    const readFieldTagControlPreUpdate = field =>
+      field?.tag_control_pre_update ?? field?.tagControlPreUpdate ?? '';
+
     const findFieldByTagControlPreUpdate = (tagControlPreUpdate) => {
-      if (!tagControlPreUpdate) return null;
+      const normalizedTag = normalizeTagControlPreUpdate(tagControlPreUpdate);
+      if (!normalizedTag) return null;
 
       for (const section of formSections.value) {
-        const field = section.fields.find(currentField => currentField.tag_control_pre_update === tagControlPreUpdate);
+        const field = section.fields.find(currentField =>
+          normalizeTagControlPreUpdate(readFieldTagControlPreUpdate(currentField)) === normalizedTag
+        );
         if (field) return field;
       }
 
@@ -403,7 +414,7 @@ export default {
     const normalizeTagControlPreUpdateArgs = (input, maybeValue) => {
       if (typeof input === 'object' && input !== null) {
         return {
-          tagControlPreUpdate: input.tagControlPreUpdate,
+          tagControlPreUpdate: input.tagControlPreUpdate ?? input.tag_control_pre_update,
           value: input.value
         };
       }
