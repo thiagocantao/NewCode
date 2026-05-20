@@ -404,7 +404,24 @@ export default {
       return null;
     };
 
-    const setFieldValueByTagControlPreUpdate = ({ tag_control_pre_update: tagControlPreUpdate, value }) => {
+    const normalizeTagValueActionArgs = (arg1, arg2) => {
+      if (arg1 && typeof arg1 === 'object' && !Array.isArray(arg1)) {
+        return {
+          tagControlPreUpdate: arg1.tag_control_pre_update ?? arg1.tagControlPreUpdate ?? null,
+          value: Object.prototype.hasOwnProperty.call(arg1, 'value') ? arg1.value : arg2
+        };
+      }
+
+      return {
+        tagControlPreUpdate: arg1 ?? null,
+        value: arg2
+      };
+    };
+
+    const setFieldValueByTagControlPreUpdate = (arg1, arg2) => {
+      const { tagControlPreUpdate, value } = normalizeTagValueActionArgs(arg1, arg2);
+      if (!tagControlPreUpdate) return false;
+
       const fieldInfo = findFieldByTagControlPreUpdate(tagControlPreUpdate);
       if (!fieldInfo) return false;
 
@@ -413,8 +430,10 @@ export default {
       return true;
     };
 
-    const hasFieldByTagControlPreUpdate = ({ tag_control_pre_update: tagControlPreUpdate }) => {
-      return Boolean(findFieldByTagControlPreUpdate(tagControlPreUpdate));
+    const hasFieldByTagControlPreUpdate = arg1 => {
+      const { tagControlPreUpdate } = normalizeTagValueActionArgs(arg1);
+      if (!tagControlPreUpdate) return false;
+      return !!findFieldByTagControlPreUpdate(tagControlPreUpdate);
     };
 
     // Watch for changes in formJson
