@@ -415,6 +415,43 @@ export default {
     };
 
     const updateFieldValueByTagControlPreUpdate = (input, maybeValue) => {
+      const parseInputArray = (valueToParse) => {
+        if (Array.isArray(valueToParse)) return valueToParse;
+        if (typeof valueToParse !== 'string') return null;
+
+        try {
+          const parsed = JSON.parse(valueToParse);
+          return Array.isArray(parsed) ? parsed : null;
+        } catch (error) {
+          return null;
+        }
+      };
+
+      const fieldsToUpdate =
+        parseInputArray(input) ||
+        parseInputArray(input?.fieldsToUpdate) ||
+        parseInputArray(input?.values) ||
+        parseInputArray(maybeValue);
+
+      if (fieldsToUpdate?.length) {
+        let hasUpdatedAtLeastOneField = false;
+
+        for (const item of fieldsToUpdate) {
+          if (!item || typeof item !== 'object') continue;
+
+          for (const [tagControlPreUpdate, value] of Object.entries(item)) {
+            const field = findFieldByTagControlPreUpdate(tagControlPreUpdate);
+            if (!field) continue;
+
+            field.value = value;
+            updateFormState({ forceRerender: false, changedField: { ...field } });
+            hasUpdatedAtLeastOneField = true;
+          }
+        }
+
+        return hasUpdatedAtLeastOneField;
+      }
+
       const { tagControlPreUpdate, value } = normalizeTagControlPreUpdateArgs(input, maybeValue);
       const field = findFieldByTagControlPreUpdate(tagControlPreUpdate);
       if (!field) return false;
