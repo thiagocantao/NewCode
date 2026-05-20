@@ -389,6 +389,30 @@ export default {
       });
     };
 
+    const findFieldByTagControlPreUpdate = (tagControlPreUpdate) => {
+      if (!tagControlPreUpdate) return null;
+
+      for (const section of formSections.value) {
+        const field = section.fields.find(currentField => currentField.tag_control_pre_update === tagControlPreUpdate);
+        if (field) return field;
+      }
+
+      return null;
+    };
+
+    const updateFieldValueByTagControlPreUpdate = ({ tagControlPreUpdate, value }) => {
+      const field = findFieldByTagControlPreUpdate(tagControlPreUpdate);
+      if (!field) return false;
+
+      field.value = value;
+      updateFormState({ forceRerender: false, changedField: { ...field } });
+      return true;
+    };
+
+    const hasFieldByTagControlPreUpdate = tagControlPreUpdate => {
+      return Boolean(findFieldByTagControlPreUpdate(tagControlPreUpdate));
+    };
+
     // Watch for changes in formJson
     watch(() => props.content.formJson, (newValue) => {
       loadFormData();
@@ -541,6 +565,8 @@ export default {
       sectionComponents,
       validateRequiredFields,
       refreshListFieldDataSource,
+      updateFieldValueByTagControlPreUpdate,
+      hasFieldByTagControlPreUpdate,
       t
     };
   }
