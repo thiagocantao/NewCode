@@ -389,6 +389,46 @@ export default {
       });
     };
 
+    const findFieldByTagControlPreUpdate = (tagControlPreUpdate) => {
+      if (!tagControlPreUpdate) return null;
+
+      for (const section of formSections.value) {
+        const field = section.fields.find(currentField => currentField.tag_control_pre_update === tagControlPreUpdate);
+        if (field) return field;
+      }
+
+      return null;
+    };
+
+    const normalizeTagControlPreUpdateArgs = (input, maybeValue) => {
+      if (typeof input === 'object' && input !== null) {
+        return {
+          tagControlPreUpdate: input.tagControlPreUpdate,
+          value: input.value
+        };
+      }
+
+      return {
+        tagControlPreUpdate: input,
+        value: maybeValue
+      };
+    };
+
+    const updateFieldValueByTagControlPreUpdate = (input, maybeValue) => {
+      const { tagControlPreUpdate, value } = normalizeTagControlPreUpdateArgs(input, maybeValue);
+      const field = findFieldByTagControlPreUpdate(tagControlPreUpdate);
+      if (!field) return false;
+
+      field.value = value;
+      updateFormState({ forceRerender: false, changedField: { ...field } });
+      return true;
+    };
+
+    const hasFieldByTagControlPreUpdate = input => {
+      const { tagControlPreUpdate } = normalizeTagControlPreUpdateArgs(input);
+      return Boolean(findFieldByTagControlPreUpdate(tagControlPreUpdate));
+    };
+
     // Watch for changes in formJson
     watch(() => props.content.formJson, (newValue) => {
       loadFormData();
@@ -541,6 +581,8 @@ export default {
       sectionComponents,
       validateRequiredFields,
       refreshListFieldDataSource,
+      updateFieldValueByTagControlPreUpdate,
+      hasFieldByTagControlPreUpdate,
       t
     };
   }
