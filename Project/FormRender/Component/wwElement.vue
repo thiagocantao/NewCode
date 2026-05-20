@@ -400,7 +400,22 @@ export default {
       return null;
     };
 
-    const updateFieldValueByTagControlPreUpdate = ({ tagControlPreUpdate, value }) => {
+    const normalizeTagControlPreUpdateArgs = (input, maybeValue) => {
+      if (typeof input === 'object' && input !== null) {
+        return {
+          tagControlPreUpdate: input.tagControlPreUpdate,
+          value: input.value
+        };
+      }
+
+      return {
+        tagControlPreUpdate: input,
+        value: maybeValue
+      };
+    };
+
+    const updateFieldValueByTagControlPreUpdate = (input, maybeValue) => {
+      const { tagControlPreUpdate, value } = normalizeTagControlPreUpdateArgs(input, maybeValue);
       const field = findFieldByTagControlPreUpdate(tagControlPreUpdate);
       if (!field) return false;
 
@@ -409,7 +424,8 @@ export default {
       return true;
     };
 
-    const hasFieldByTagControlPreUpdate = tagControlPreUpdate => {
+    const hasFieldByTagControlPreUpdate = input => {
+      const { tagControlPreUpdate } = normalizeTagControlPreUpdateArgs(input);
       return Boolean(findFieldByTagControlPreUpdate(tagControlPreUpdate));
     };
 
