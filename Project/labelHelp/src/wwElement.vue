@@ -107,10 +107,12 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.label-help-wrapper {
-    display: inline-flex;
+.label-help-wrapper,
+.label-help-wrapper.ww-element {
+    display: inline-flex !important;
     align-items: center;
     gap: 6px;
+    vertical-align: middle;
 }
 
 .-link {
@@ -128,6 +130,18 @@ export default {
 
 .label-help-icon {
     font-size: 0.9em;
+    min-width: 1em;
+    text-align: center;
+}
+
+.label-help-icon::before {
+    font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free';
+    font-weight: 900;
+}
+
+.label-help-icon:empty::after {
+    content: 'ⓘ';
+    font-family: inherit;
 }
 
 .label-help-balloon {
