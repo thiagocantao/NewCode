@@ -41,5 +41,16 @@ export default {
             },
             defaultValue: 'p',
         },
+        helpText: {
+            label: {
+                en: 'Help text',
+                pt: 'Texto de ajuda',
+                fr: "Texte d'aide",
+            },
+            type: 'TextArea',
+            section: 'settings',
+            bindable: true,
+            defaultValue: '',
+        },
     },
 };
