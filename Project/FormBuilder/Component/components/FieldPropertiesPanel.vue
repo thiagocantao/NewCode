@@ -61,6 +61,15 @@
           :placeholder="tipPlaceholder"
         ></textarea>
       </div>
+      <div class="form-group">
+        <label>{{ labelHelpLabel }}</label>
+        <textarea
+          v-model="labelHelpText"
+          class="tip-textarea"
+          @change="updateLabelHelp"
+          :placeholder="labelHelpPlaceholder"
+        ></textarea>
+      </div>
 
       <div class="form-group end-users-group">
         <label class="group-title">End Users</label>
@@ -167,6 +176,14 @@ export default {
       type: String,
       default: 'Enter a tip for this field...'
     },
+    labelHelpLabel: {
+      type: String,
+      default: 'Label help text'
+    },
+    labelHelpPlaceholder: {
+      type: String,
+      default: 'Enter a help text shown near the label...'
+    },
     showOnlyLabel: {
       type: String,
       default: 'Show only'
@@ -186,6 +203,7 @@ export default {
     const isHideLegend = ref(false);
     const columns = ref(1);
     const tipText = ref('');
+    const labelHelpText = ref('');
     const showOnly = ref(false);
     const showOnlyGroups = ref([]);
     const showOnlyOptions = ref([]);
@@ -324,6 +342,7 @@ export default {
         // Handle tip
         const { tipText: nextTipText } = resolveTipState(newField);
         tipText.value = nextTipText;
+        labelHelpText.value = (newField.label_help || '').toString();
       } else {
         resetForm();
       }
@@ -334,6 +353,7 @@ export default {
       isRequired.value = false;
       isHideLegend.value = false;
       tipText.value = '';
+      labelHelpText.value = '';
       showOnly.value = false;
       showOnlyGroups.value = [];
       columns.value = 1;
@@ -404,6 +424,9 @@ export default {
       
       emit('update-field', updatedField);
     };
+    const updateLabelHelp = () => {
+      updateFieldProperty('label_help', (labelHelpText.value || '').toString());
+    };
 
     const loadShowOnlyOptions = () => {
       try {
@@ -473,6 +496,7 @@ export default {
       isHideLegend,
       columns,
       tipText,
+      labelHelpText,
       showOnly,
       showOnlyGroups,
       showOnlyOptions,
@@ -481,6 +505,7 @@ export default {
       isHiddenInEndUserViewTicket,
       updateFieldProperty,
       updateTip,
+      updateLabelHelp,
       updateShowOnlyGroups
     };
   }

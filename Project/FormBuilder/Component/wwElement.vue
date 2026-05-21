@@ -1961,7 +1961,8 @@ return;
         columns: 1,
         is_mandatory: false,
         is_readonly: false,
-        is_hide_legend: false
+        is_hide_legend: false,
+        label_help: ''
       };
       isNewField.value = true;
       fieldModalVisible.value = true;
