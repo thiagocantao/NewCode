@@ -53,6 +53,12 @@ export default {
 
             return rawValue.toString().trim();
         },
+        iconColor() {
+            return (this.content?.iconColor || '#699d8c').toString().trim() || '#699d8c';
+        },
+        iconBackgroundColor() {
+            return (this.content?.iconBackgroundColor || 'transparent').toString().trim() || 'transparent';
+        },
         isEditing() {
             /* wwEditor:start */
             return this.wwEditorState.editMode === wwLib.wwEditorHelper.EDIT_MODES.EDITION;
@@ -138,7 +144,7 @@ export default {
     position: relative;
     display: inline-flex;
     align-items: center;
-    color: #699d8c;
+    color: v-bind(iconColor);
     cursor: help;
     line-height: 1;
 }
@@ -147,16 +153,15 @@ export default {
     font-size: 0.9em;
     min-width: 1em;
     text-align: center;
+    color: v-bind(iconColor);
+    background-color: v-bind(iconBackgroundColor);
+    border-radius: 999px;
+    padding: 2px;
 }
 
 .label-help-icon::before {
     font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free';
     font-weight: 900;
-}
-
-.label-help-icon:empty::after {
-    content: 'ⓘ';
-    font-family: inherit;
 }
 
 .label-help-balloon {

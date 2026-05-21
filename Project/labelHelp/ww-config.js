@@ -52,5 +52,27 @@ export default {
             bindable: true,
             defaultValue: '',
         },
+        iconColor: {
+            label: {
+                en: 'Icon color',
+                pt: 'Cor do ícone',
+                fr: "Couleur de l'icône",
+            },
+            type: 'Color',
+            section: 'settings',
+            bindable: true,
+            defaultValue: '#699d8c',
+        },
+        iconBackgroundColor: {
+            label: {
+                en: 'Icon background color',
+                pt: 'Cor de fundo do ícone',
+                fr: "Couleur de fond de l'icône",
+            },
+            type: 'Color',
+            section: 'settings',
+            bindable: true,
+            defaultValue: 'transparent',
+        },
     },
 };
