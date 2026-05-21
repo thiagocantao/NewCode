@@ -61,17 +61,32 @@ export default {
             return false;
         },
     },
+    mounted() {
+        this.ensureFontAwesome();
+        /* wwEditor:start */
+        this.checkListTags(this.content['_ww-text_text']);
+        /* wwEditor:end */
+    },
     /* wwEditor:start */
     watch: {
         'content._ww-text_text'() {
             this.checkListTags(this.content['_ww-text_text']);
         },
     },
-    mounted() {
-        this.checkListTags(this.content['_ww-text_text']);
-    },
     /* wwEditor:end */
     methods: {
+        ensureFontAwesome() {
+            if (typeof document === 'undefined') return;
+            const id = 'label-help-fontawesome-6';
+            if (document.getElementById(id)) return;
+
+            const link = document.createElement('link');
+            link.id = id;
+            link.rel = 'stylesheet';
+            link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css';
+            link.referrerPolicy = 'no-referrer';
+            document.head.appendChild(link);
+        },
         /* wwEditor:start */
         checkListTags(text) {
             if (this.content.tag === 'p' && text && text[wwLib.wwLang.lang] && text[wwLib.wwLang.lang].indexOf) {
@@ -147,8 +162,8 @@ export default {
 .label-help-balloon {
     position: absolute;
     left: calc(100% + 10px);
-    top: 50%;
-    transform: translateY(-50%);
+    top: calc(50% - 12px);
+    transform: translateY(-100%);
     min-width: 180px;
     max-width: 320px;
     background: #fff;
@@ -177,14 +192,14 @@ export default {
 
 .label-help-balloon::before {
     left: -14px;
-    top: calc(50% + 4px);
+    top: calc(100% - 10px);
     width: 10px;
     height: 10px;
 }
 
 .label-help-balloon::after {
     left: -24px;
-    top: calc(50% + 12px);
+    top: calc(100% - 2px);
     width: 7px;
     height: 7px;
 }
