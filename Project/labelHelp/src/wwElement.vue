@@ -31,9 +31,27 @@ export default {
             return this.wwElementState.props.text;
         },
         helpText() {
-            const contentHelpText = this.content?.helpText;
-            const stateHelpText = this.wwElementState?.props?.helpText;
-            return (contentHelpText ?? stateHelpText ?? '').toString().trim();
+            const candidates = [
+                this.content?.helpText,
+                this.content?._wwText_helpText,
+                this.content?.['_ww-text_helpText'],
+                this.content?._ww_text_helpText,
+                this.content?._ww_textarea_helpText,
+                this.content?.['custom-0']?.helpText,
+                this.wwElementState?.props?.helpText,
+                this.wwElementState?.props?.['custom-0']?.helpText,
+            ];
+
+            const rawValue = candidates.find(value => value !== undefined && value !== null && value !== '');
+            if (!rawValue) return '';
+
+            if (typeof rawValue === 'object') {
+                const lang = wwLib?.wwLang?.lang;
+                const textByLang = (lang && rawValue[lang]) || rawValue.en || rawValue.pt || rawValue.pt_br;
+                return (textByLang || '').toString().trim();
+            }
+
+            return rawValue.toString().trim();
         },
         isEditing() {
             /* wwEditor:start */
