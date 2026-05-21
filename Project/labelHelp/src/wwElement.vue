@@ -31,7 +31,9 @@ export default {
             return this.wwElementState.props.text;
         },
         helpText() {
-            return (this.wwElementState.props.helpText || '').toString().trim();
+            const contentHelpText = this.content?.helpText;
+            const stateHelpText = this.wwElementState?.props?.helpText;
+            return (contentHelpText ?? stateHelpText ?? '').toString().trim();
         },
         isEditing() {
             /* wwEditor:start */
