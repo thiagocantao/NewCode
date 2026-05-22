@@ -789,13 +789,14 @@
             const value = `${icon || ''}`.trim();
             if (!value) return '';
 
-            const hasStylePrefix = /(^|\s)fa-(solid|regular|light|thin|duotone|brands)(\s|$)/.test(value);
-            const hasIconClass = /(^|\s)fa-[\w-]+(\s|$)/.test(value);
+            const parts = value.split(/\s+/).filter(Boolean);
+            const iconClass = parts.find(part => /^fa-[\w-]+$/.test(part) && !/^fa-(solid|regular|light|thin|duotone|brands)$/.test(part));
+            const styleClass = parts.find(part => /^fa-(solid|regular|light|thin|duotone|brands)$/.test(part));
 
-            if (hasStylePrefix && hasIconClass) return value;
-            if (hasIconClass) return `fa-solid ${value}`;
+            const normalizedIconClass = iconClass || `fa-${value.replace(/^fa-/, '')}`;
+            const normalizedStyleClass = styleClass || 'fa-solid';
 
-            return `fa-solid fa-${value}`;
+            return `fa ${normalizedStyleClass} ${normalizedIconClass}`;
         },
         escapeRegex(value) {
             return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
