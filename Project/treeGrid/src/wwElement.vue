@@ -309,7 +309,7 @@
                 .filter(column => column && typeof column === 'object' && `${column.field ?? ''}`.trim())
                 .map(column => {
                     const field = `${column.field}`.trim();
-                    const title = `${column.title ?? field}`.trim() || field;
+                    const title = `${column.title ?? ''}`.trim();
                     const position = Number(column.position);
                     const width = typeof column.width === 'string' ? column.width.trim() : '';
                     const flex = Number(column.flex);
@@ -804,7 +804,7 @@
             const normalizedIconClass = iconClass || `fa-${value.replace(/^fa-/, '')}`;
             const normalizedStyleClass = styleClass || 'fa-solid';
 
-            return `fa ${normalizedStyleClass} ${normalizedIconClass}`;
+            return `${normalizedStyleClass} ${normalizedIconClass}`;
         },
 
         normalizeNodeIconClass(icon) {
