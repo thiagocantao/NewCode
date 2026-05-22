@@ -94,7 +94,7 @@
                 <template v-else>
                     <template v-if="normalizedColumns.length">
                         <div v-for="column in normalizedColumns" :key="`cell-${row.id}-${column.field}`"
-                            class="tree-cell" :style="getColumnStyle(column)">
+                            class="tree-cell" :class="{ 'tree-cell--chiplist': column.type === 'chiplist' }" :style="getColumnStyle(column)">
                             <template v-if="column.type === 'avatar'">
                                 <div class="tree-cell-avatar">
                                     <img
@@ -119,6 +119,43 @@
                             <template v-else-if="column.type === 'divcolor'">
                                 <div class="tree-cell-div-color" :style="getDivColorStyle(row, column)">
                                     <span v-html="highlightCell(row, column)"></span>
+                                </div>
+                            </template>
+                            <template v-else-if="column.type === 'chiplist'">
+                                <div
+                                    class="tree-cell-chip-list"
+                                    @mouseenter="onChipCellHover(row, column, true)"
+                                    @mouseleave="onChipCellHover(row, column, false)"
+                                >
+                                    <div class="tree-cell-chip-list__chips">
+                                        <span
+                                            v-for="(chip, index) in getVisibleChips(row, column)"
+                                            :key="`chip-${row.id}-${column.field}-${index}`"
+                                            class="tree-cell-chip"
+                                            :style="getChipStyle(chip)"
+                                        >
+                                            {{ chip.label }}
+                                        </span>
+                                        <span
+                                            v-if="getHiddenChipCount(row, column) > 0"
+                                            class="tree-cell-chip tree-cell-chip--counter"
+                                        >
+                                            +{{ getHiddenChipCount(row, column) }}
+                                        </span>
+                                    </div>
+                                    <div
+                                        v-if="shouldShowChipPopup(row, column)"
+                                        class="tree-cell-chip-list__popup"
+                                    >
+                                        <span
+                                            v-for="(chip, index) in getChipList(row, column)"
+                                            :key="`popup-chip-${row.id}-${column.field}-${index}`"
+                                            class="tree-cell-chip"
+                                            :style="getChipStyle(chip)"
+                                        >
+                                            {{ chip.label }}
+                                        </span>
+                                    </div>
                                 </div>
                             </template>
                             <template v-else>
@@ -205,6 +242,7 @@
             draggingRowDepth: null,
             dropTargetRowId: null,
             orderOverrides: {},
+            hoveredChipCellKey: null,
             editingNodeId: null,
             editingLabel: '',
             labelOverrides: {},
@@ -558,6 +596,93 @@
             return `${value}`;
         },
 
+
+        getChipCellKey(row, column) {
+            return `${row?.id ?? ''}::${column?.field ?? ''}`;
+        },
+        onChipCellHover(row, column, isHover) {
+            const key = this.getChipCellKey(row, column);
+            this.hoveredChipCellKey = isHover ? key : null;
+        },
+        parseChipList(value) {
+            if (!value) return [];
+            const parsedValue = typeof value === 'string' ? JSON.parse(value) : value;
+            const tags = Array.isArray(parsedValue) ? parsedValue : parsedValue?.tags;
+            if (!Array.isArray(tags)) return [];
+            return tags
+                .map(item => ({
+                    label: `${item?.label ?? ''}`.trim(),
+                    color: `${item?.color ?? ''}`.trim(),
+                }))
+                .filter(item => item.label);
+        },
+        getChipList(row, column) {
+            try {
+                return this.parseChipList(row?.raw?.[column.field]);
+            } catch (error) {
+                return [];
+            }
+        },
+        measureChipWidth(label, isCounter = false) {
+            if (typeof document === 'undefined') return 0;
+            const el = document.createElement('span');
+            el.className = isCounter ? 'tree-cell-chip tree-cell-chip--counter' : 'tree-cell-chip';
+            el.style.position = 'absolute';
+            el.style.visibility = 'hidden';
+            el.style.pointerEvents = 'none';
+            el.style.left = '-9999px';
+            el.textContent = label;
+            document.body.appendChild(el);
+            const width = el.offsetWidth;
+            document.body.removeChild(el);
+            return width;
+        },
+        getChipListLayout(row, column) {
+            const chips = this.getChipList(row, column);
+            const widthRaw = column?.width && `${column.width}`.trim() ? `${column.width}`.trim() : '';
+            const containerWidth = Number.parseFloat(widthRaw);
+            if (!Number.isFinite(containerWidth) || containerWidth <= 0) {
+                return { visible: chips, hiddenCount: 0 };
+            }
+
+            const gap = 4;
+            let usedWidth = 0;
+            let visibleCount = 0;
+
+            for (let index = 0; index < chips.length; index += 1) {
+                const chip = chips[index];
+                const chipWidth = this.measureChipWidth(chip.label);
+                const remaining = chips.length - (index + 1);
+                const counterWidth = remaining > 0 ? this.measureChipWidth(`+${remaining}`, true) + gap : 0;
+                const space = visibleCount > 0 ? gap : 0;
+                if (usedWidth + chipWidth + space + counterWidth <= containerWidth) {
+                    usedWidth += chipWidth + space;
+                    visibleCount += 1;
+                    continue;
+                }
+                break;
+            }
+
+            if (visibleCount === 0 && chips.length > 0) visibleCount = 1;
+            const hiddenCount = Math.max(0, chips.length - visibleCount);
+            return { visible: chips.slice(0, visibleCount), hiddenCount };
+        },
+        getVisibleChips(row, column) {
+            return this.getChipListLayout(row, column).visible;
+        },
+        getHiddenChipCount(row, column) {
+            return this.getChipListLayout(row, column).hiddenCount;
+        },
+        shouldShowChipPopup(row, column) {
+            const key = this.getChipCellKey(row, column);
+            return this.hoveredChipCellKey === key;
+        },
+        getChipStyle(chip) {
+            return {
+                backgroundColor: chip.color || '#E5E7EB',
+                color: '#1f2937',
+            };
+        },
         getDivColorStyle(row, column) {
             const style = {
                 padding: '3px 10px',
@@ -1181,6 +1306,12 @@
         color: #555;
     }
 
+    .tree-cell--chiplist {
+        overflow: visible;
+        position: relative;
+    }
+
+
     .node-label-edit {
         display: inline-flex;
         align-items: center;
@@ -1312,6 +1443,55 @@
         text-align: right;
         font-size: 12px;
         color: #495057;
+    }
+
+
+    .tree-cell-chip-list {
+        position: relative;
+        display: inline-flex;
+        max-width: 100%;
+    }
+
+    .tree-cell-chip-list__chips {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        overflow: hidden;
+        max-width: 100%;
+    }
+
+    .tree-cell-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        line-height: 16px;
+        white-space: nowrap;
+        flex: 0 0 auto;
+    }
+
+    .tree-cell-chip--counter {
+        background: #e5e7eb;
+        color: #374151;
+        font-weight: 600;
+    }
+
+    .tree-cell-chip-list__popup {
+        position: absolute;
+        z-index: 20;
+        top: calc(100% + 6px);
+        left: 0;
+        min-width: 220px;
+        max-width: 340px;
+        padding: 10px;
+        border-radius: 10px;
+        border: 1px solid #e5e7eb;
+        background: #fff;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
     }
 
     .empty-state {
