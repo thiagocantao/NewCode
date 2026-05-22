@@ -57,7 +57,7 @@
                 </button>
                 <span v-else class="toggle-placeholder"></span>
 
-                <i v-if="row.icon" class="fa node-icon" :class="normalizeNodeIconClass(row.icon)" aria-hidden="true"></i>
+                <i v-if="row.icon" class="node-icon" :class="normalizeNodeIconClass(row.icon)" aria-hidden="true"></i>
                 <span v-else-if="showIconColumn" class="node-icon node-icon--placeholder"></span>
                 <template v-if="isRowBeingEdited(row)">
                     <div class="node-label-edit" @click.stop>
@@ -788,8 +788,15 @@
         normalizeNodeIconClass(icon) {
             const value = `${icon || ''}`.trim();
             if (!value) return '';
-            if (value.includes('fa-')) return value;
-            return `fa-${value}`;
+
+            const parts = value.split(/\s+/).filter(Boolean);
+            const iconClass = parts.find(part => /^fa-[\w-]+$/.test(part) && !/^fa-(solid|regular|light|thin|duotone|brands)$/.test(part));
+            const styleClass = parts.find(part => /^fa-(solid|regular|light|thin|duotone|brands)$/.test(part));
+
+            const normalizedIconClass = iconClass || `fa-${value.replace(/^fa-/, '')}`;
+            const normalizedStyleClass = styleClass || 'fa-solid';
+
+            return `fa ${normalizedStyleClass} ${normalizedIconClass}`;
         },
         escapeRegex(value) {
             return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
