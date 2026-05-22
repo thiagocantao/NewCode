@@ -258,6 +258,9 @@
     created() {
         this.initializePublicVariables();
     },
+    mounted() {
+        this.ensureFontAwesome();
+    },
     computed: {
         translatedTexts() {
             return {
@@ -535,6 +538,18 @@
     methods: {
         translate(phrase) {
             return translatePhrase(phrase);
+        },
+        ensureFontAwesome() {
+            if (typeof document === 'undefined') return;
+            const id = 'tree-grid-fontawesome-6';
+            if (document.getElementById(id)) return;
+
+            const link = document.createElement('link');
+            link.id = id;
+            link.rel = 'stylesheet';
+            link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css';
+            link.referrerPolicy = 'no-referrer';
+            document.head.appendChild(link);
         },
         initializePublicVariables() {
             if (typeof wwLib === 'undefined' || !wwLib?.wwVariable?.useComponentVariable) return;
