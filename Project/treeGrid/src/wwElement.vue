@@ -94,7 +94,7 @@
                 <template v-else>
                     <template v-if="normalizedColumns.length">
                         <div v-for="column in normalizedColumns" :key="`cell-${row.id}-${column.field}`"
-                            class="tree-cell" :style="getColumnStyle(column)">
+                            class="tree-cell" :class="{ 'tree-cell--chiplist': column.type === 'chiplist' }" :style="getColumnStyle(column)">
                             <template v-if="column.type === 'avatar'">
                                 <div class="tree-cell-avatar">
                                     <img
@@ -675,7 +675,7 @@
         },
         shouldShowChipPopup(row, column) {
             const key = this.getChipCellKey(row, column);
-            return this.hoveredChipCellKey === key && this.getHiddenChipCount(row, column) > 0;
+            return this.hoveredChipCellKey === key;
         },
         getChipStyle(chip) {
             return {
@@ -1306,6 +1306,12 @@
         color: #555;
     }
 
+    .tree-cell--chiplist {
+        overflow: visible;
+        position: relative;
+    }
+
+
     .node-label-edit {
         display: inline-flex;
         align-items: center;
@@ -1458,7 +1464,7 @@
         display: inline-flex;
         align-items: center;
         padding: 2px 8px;
-        border-radius: 999px;
+        border-radius: 4px;
         font-size: 12px;
         line-height: 16px;
         white-space: nowrap;
