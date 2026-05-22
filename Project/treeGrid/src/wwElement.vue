@@ -158,6 +158,13 @@
                                     </div>
                                 </div>
                             </template>
+                            <template v-else-if="column.type === 'icon'">
+                                <i
+                                    v-if="normalizeFontAwesomeIconClass(row?.raw?.[column.field])"
+                                    :class="normalizeFontAwesomeIconClass(row?.raw?.[column.field])"
+                                    aria-hidden="true"
+                                ></i>
+                            </template>
                             <template v-else>
                                 <span v-html="highlightCell(row, column)"></span>
                             </template>
@@ -302,7 +309,7 @@
                 .filter(column => column && typeof column === 'object' && `${column.field ?? ''}`.trim())
                 .map(column => {
                     const field = `${column.field}`.trim();
-                    const title = `${column.title ?? field}`.trim() || field;
+                    const title = `${column.title ?? ''}`.trim();
                     const position = Number(column.position);
                     const width = typeof column.width === 'string' ? column.width.trim() : '';
                     const flex = Number(column.flex);
@@ -588,8 +595,8 @@
                 const numberValue = Number(value);
                 if (!Number.isFinite(numberValue)) return `${value}`;
                 return new Intl.NumberFormat(undefined, {
-                    style: 'currency',
-                    currency: this.content.currencyCode || 'BRL',
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
                 }).format(numberValue);
             }
 
@@ -785,6 +792,21 @@
         hideContextActions() {
             this.contextNodeId = null;
         },
+
+        normalizeFontAwesomeIconClass(icon) {
+            const value = `${icon || ''}`.trim();
+            if (!value) return '';
+
+            const parts = value.split(/\s+/).filter(Boolean);
+            const iconClass = parts.find(part => /^fa-[\w-]+$/.test(part) && !/^fa-(solid|regular|light|thin|duotone|brands)$/.test(part));
+            const styleClass = parts.find(part => /^fa-(solid|regular|light|thin|duotone|brands)$/.test(part));
+
+            const normalizedIconClass = iconClass || `fa-${value.replace(/^fa-/, '')}`;
+            const normalizedStyleClass = styleClass || 'fa-solid';
+
+            return `${normalizedStyleClass} ${normalizedIconClass}`;
+        },
+
         normalizeNodeIconClass(icon) {
             const value = `${icon || ''}`.trim();
             if (!value) return '';
