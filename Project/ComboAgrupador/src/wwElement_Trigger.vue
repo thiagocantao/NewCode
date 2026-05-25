@@ -46,7 +46,7 @@
                     :ref="setChipRef"
                     v-show="index < visibleChipCount"
                     @click="e => handleChipClick(e, option.value)"
-                    :style="chipStyle"
+                    :style="getChipStyle(option)"
                 >
                     <span v-html="option.label || ''"></span>
                     <div v-html="chipIconUnselect" :style="chipIconStyle" aria-hidden="true"></div>
@@ -222,6 +222,18 @@ export default {
             };
         });
 
+
+        const getChipStyle = option => {
+            const optionChipBgColor = option?.chipBgColor;
+            const optionChipFontColor = option?.chipFontColor;
+
+            return {
+                ...chipStyle.value,
+                'background-color': optionChipBgColor || chipStyle.value['background-color'],
+                color: optionChipFontColor || chipStyle.value.color,
+            };
+        };
+
         const chipIcon = ref(null);
         const chipIconUnselect = ref(null);
 
@@ -352,6 +364,7 @@ export default {
             placeholderStyle,
             chipIcon,
             chipStyle,
+            getChipStyle,
             chipIconStyle,
             chipIconUnselect,
             isOpen,

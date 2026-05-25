@@ -150,6 +150,8 @@ export default {
             'showGroupCheckbox',
             'optionBgColorField',
             'optionFontColorField',
+            'optionChipBgColorField',
+            'optionChipFontColorField',
             'initValueSingle',
             'initValueSingleId',
             'initValueMulti',
@@ -384,6 +386,30 @@ export default {
                 object: sidepanelContent.optionProperties || {},
             }),
         },
+
+        optionChipBgColorField: {
+            label: 'Chip background color column',
+            section: 'settings',
+            states: true,
+            bindable: true,
+            responsive: true,
+            type: 'ObjectPropertyPath',
+            options: (_, sidepanelContent) => ({
+                object: sidepanelContent.optionProperties || {},
+            }),
+        },
+        optionChipFontColorField: {
+            label: 'Chip font color column',
+            section: 'settings',
+            states: true,
+            bindable: true,
+            responsive: true,
+            type: 'ObjectPropertyPath',
+            options: (_, sidepanelContent) => ({
+                object: sidepanelContent.optionProperties || {},
+            }),
+        },
+
         initValueSingle: {
             type: 'Text',
             label: 'Initial value (single)',

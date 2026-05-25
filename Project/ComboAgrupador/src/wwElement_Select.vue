@@ -165,6 +165,8 @@ export default {
         const mappingDisabled = computed(() => props.content.mappingDisabled);
         const mappingBgColor = computed(() => props.content.optionBgColorField);
         const mappingFontColor = computed(() => props.content.optionFontColorField);
+        const mappingChipBgColor = computed(() => props.content.optionChipBgColorField);
+        const mappingChipFontColor = computed(() => props.content.optionChipFontColorField);
 
         const { resolveMappingFormula } = wwLib.wwFormula.useFormula();
 
@@ -827,6 +829,12 @@ export default {
                         value: resolveMappingFormula(toValue(mappingValue), opt) ?? opt.value ?? opt,
                         label: resolveMappingFormula(toValue(mappingLabel), opt) ?? opt.label ?? opt.value ?? opt,
                         disabled: opt.disabled || false,
+                        chipBgColor: toValue(mappingChipBgColor)
+                            ? wwLib.resolveObjectPropertyPath(opt, toValue(mappingChipBgColor))
+                            : null,
+                        chipFontColor: toValue(mappingChipFontColor)
+                            ? wwLib.resolveObjectPropertyPath(opt, toValue(mappingChipFontColor))
+                            : null,
                         data: opt || {},
                     };
                 }
