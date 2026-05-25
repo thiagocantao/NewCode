@@ -193,7 +193,7 @@
                         :style="iconButtonStyle"
                         :title="translatedTexts.rename"
                         :aria-label="translatedTexts.rename"
-                        @click.stop="startRenameEdit(row)"
+                        @click.stop="onRename(row.raw)"
                     >
                         <i class="fa fa-pencil node-icon" aria-hidden="true"></i>
                     </button>
