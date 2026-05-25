@@ -174,7 +174,6 @@
                 </template>
 
                 <div class="row-actions"
-                    :class="{ 'row-actions--visible': (selectedNodeId === row.id) && !isReadOnly && !isEditingAnyNode }"
                     @click.stop>
                     <button
                         v-if="row.canAddChild && !isRowBeingEdited(row) && !isReadOnly && !isEditingAnyNode"
@@ -1398,7 +1397,7 @@
         pointer-events: none;
     }
 
-    .row-actions--visible {
+    .tree-row:hover .row-actions {
         visibility: visible;
         pointer-events: auto;
     }
@@ -1406,6 +1405,10 @@
     .row-actions .row-action-button,
     .row-actions .row-action-button:hover {
         background: transparent;
+    }
+
+    .row-actions .row-action-button .node-icon {
+        font-size: 18px;
     }
 
     .row-action-button--cancel,
