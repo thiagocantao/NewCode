@@ -1164,6 +1164,8 @@ export default {
                 '--table-cell-color': this.content.table?.cellColor || '#000',
                 '--table-cell-padding-x': this.content.table?.cellPaddingX || '8px',
                 '--table-cell-padding-y': this.content.table?.cellPaddingY || '6px',
+                '--initial-font-size': this.content.initialFontSize || this.content.p.fontSize,
+                '--initial-text-color': this.content.initialTextColor || this.content.p.color,
             };
         },
         delay() {
@@ -2418,11 +2420,11 @@ export default {
         width: 100%;
         overflow: auto;
         padding: 8px;
-        font-size: var(--p-fontSize);
+        font-size: var(--initial-font-size, var(--p-fontSize));
         font-family: var(--p-fontFamily);
         font-weight: var(--p-fontSize);
         text-align: var(--p-textAlign);
-        color: var(--p-color);
+        color: var(--initial-text-color, var(--p-color));
         line-height: var(--p-lineHeight);
         &-focused {
             outline: unset;
