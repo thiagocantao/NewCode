@@ -51,6 +51,7 @@ export default {
             'hideMenu',
             'wrapMenu',
             'initialValue',
+            ['initialFontSize', 'initialTextColor'],
             'orderedLines',
             'output',
             'placeholder',
@@ -260,6 +261,31 @@ export default {
             },
             type: 'Textarea',
             defaultValue: '',
+            bindable: true,
+        },
+        initialFontSize: {
+            section: 'settings',
+            label: {
+                en: 'Initial font size',
+            },
+            type: 'Length',
+            options: {
+                unitChoices: [{ value: 'px', label: 'px', min: 1, max: 100 }],
+                noRange: true,
+            },
+            defaultValue: '16px',
+            bindable: true,
+        },
+        initialTextColor: {
+            section: 'settings',
+            label: {
+                en: 'Initial text color',
+            },
+            type: 'Color',
+            options: {
+                nullable: true,
+            },
+            defaultValue: '#000000',
             bindable: true,
         },
         orderedLines: {
