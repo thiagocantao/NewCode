@@ -55,7 +55,6 @@ export default {
       ],
     ],
     customSettingsPropertiesOrder: [
-      "addRowCaption",
       "rowData",
       "idFormula",
       "generateColumns",
@@ -853,6 +852,8 @@ export default {
       states: true,
       classes: true,
     },
+<<<<<<< codex/add-gridviewinput-component-e8obzb
+=======
     addRowCaption: {
       label: { en: "Header caption" },
       type: "Text",
@@ -860,6 +861,7 @@ export default {
       bindable: true,
       defaultValue: "Adicionar registro",
     },
+>>>>>>> main
     rowData: {
       label: { en: "Data" },
       type: "ObjectList",
