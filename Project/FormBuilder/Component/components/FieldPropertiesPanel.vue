@@ -36,6 +36,16 @@
           </div>
         </div>
       </div>
+      <div class="form-group" v-if="isRequired">
+        <label>Status obrigatório</label>
+        <QueryMultiSelect
+          :model-value="mandatoryStatuses"
+          :options="mandatoryStatusOptions"
+          :loading="mandatoryStatusesLoading"
+          placeholder="Selecione status"
+          @update:modelValue="updateMandatoryStatuses"
+        />
+      </div>
 
       <div class="form-group toggle">
         <div class="toggle-container">
@@ -209,6 +219,10 @@ export default {
     const showOnlyOptions = ref([]);
     const showOnlyLoading = ref(false);
     const SHOW_ONLY_GROUPS_VARIABLE_ID = '79df4513-8ec5-4a4b-8f2c-d055d9eb30f4';
+    const MANDATORY_STATUS_COLLECTION_ID = '95233031-3746-48c8-8c3c-8722b0075d61';
+    const mandatoryStatuses = ref([]);
+    const mandatoryStatusOptions = ref([]);
+    const mandatoryStatusesLoading = ref(false);
 
     const normalizeBoolean = (value) => {
       if (typeof value === 'boolean') return value;
@@ -295,6 +309,7 @@ export default {
     watch(() => props.selectedField, (newField) => {
       if (newField) {
         isRequired.value = normalizeBoolean(newField.is_mandatory);
+        mandatoryStatuses.value = normalizeShowOnlyGroups(newField.mandatory_statuses);
         isHideLegend.value = normalizeBoolean(newField.is_hide_legend);
         const normalizedShowOnlyGroups = normalizeShowOnlyGroups(
           newField.show_only_groups || newField.show_only_groups_json
@@ -351,6 +366,7 @@ export default {
     // Reset form values
     const resetForm = () => {
       isRequired.value = false;
+      mandatoryStatuses.value = [];
       isHideLegend.value = false;
       tipText.value = '';
       labelHelpText.value = '';
@@ -391,6 +407,15 @@ export default {
           [property]: normalizedGroups,
           show_only: showOnly.value,
           show_only_groups_json: JSON.stringify(normalizedGroups)
+        });
+        return;
+      }
+      if (property === 'is_mandatory' && !value) {
+        mandatoryStatuses.value = [];
+        emit('update-field', {
+          ...props.selectedField,
+          is_mandatory: false,
+          mandatory_statuses: []
         });
         return;
       }
@@ -471,6 +496,52 @@ export default {
       showOnlyGroups.value = normalizedValue;
       updateFieldProperty('show_only_groups', normalizedValue);
     };
+    const loadMandatoryStatusOptions = () => {
+      try {
+        const wwVariable = window?.wwLib?.wwVariable;
+        const wwCollection = window?.wwLib?.wwCollection;
+        const collectionData =
+          typeof wwCollection?.getCollection === 'function'
+            ? wwCollection.getCollection(MANDATORY_STATUS_COLLECTION_ID)
+            : undefined;
+        const getters = wwVariable
+          ? [
+              wwVariable.getValue?.bind(wwVariable),
+              wwVariable.getComponentValue?.bind(wwVariable),
+              wwVariable.get?.bind(wwVariable)
+            ].filter(Boolean)
+          : [];
+        const variableData = getters.reduce((acc, getter) => {
+          if (acc !== undefined) return acc;
+          try {
+            return getter(MANDATORY_STATUS_COLLECTION_ID);
+          } catch (error) {
+            return undefined;
+          }
+        }, undefined);
+        const rawData = Array.isArray(collectionData) ? collectionData : variableData;
+        if (!Array.isArray(rawData)) {
+          mandatoryStatusOptions.value = [];
+          return;
+        }
+        mandatoryStatusOptions.value = rawData
+          .map(item => ({
+            value: item?.id,
+            label: item?.status,
+            group: item?.statusClassTitle || 'Outros',
+            backgroundColor: item?.BackgroundColor,
+            textColor: item?.TextColor
+          }))
+          .filter(item => item.value && item.label);
+      } catch (error) {
+        mandatoryStatusOptions.value = [];
+      }
+    };
+    const updateMandatoryStatuses = (value) => {
+      const normalized = normalizeShowOnlyGroups(value);
+      mandatoryStatuses.value = normalized;
+      updateFieldProperty('mandatory_statuses', normalized);
+    };
 
     watch(showOnly, (value) => {
       if (!value) {
@@ -483,6 +554,9 @@ export default {
     });
 
     onMounted(() => {
+      mandatoryStatusesLoading.value = true;
+      loadMandatoryStatusOptions();
+      mandatoryStatusesLoading.value = false;
       if (showOnly.value) {
         showOnlyLoading.value = true;
         loadShowOnlyOptions();
@@ -501,12 +575,16 @@ export default {
       showOnlyGroups,
       showOnlyOptions,
       showOnlyLoading,
+      mandatoryStatuses,
+      mandatoryStatusOptions,
+      mandatoryStatusesLoading,
       isHiddenInEndUserNewTicket,
       isHiddenInEndUserViewTicket,
       updateFieldProperty,
       updateTip,
       updateLabelHelp,
-      updateShowOnlyGroups
+      updateShowOnlyGroups,
+      updateMandatoryStatuses
     };
   }
 };
