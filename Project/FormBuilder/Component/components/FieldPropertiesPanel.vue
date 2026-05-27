@@ -219,7 +219,6 @@ export default {
     const showOnlyOptions = ref([]);
     const showOnlyLoading = ref(false);
     const SHOW_ONLY_GROUPS_VARIABLE_ID = '79df4513-8ec5-4a4b-8f2c-d055d9eb30f4';
-    const MANDATORY_STATUS_COLLECTION_ID = '95233031-3746-48c8-8c3c-8722b0075d61';
     const mandatoryStatuses = ref([]);
     const mandatoryStatusOptions = ref([]);
     const mandatoryStatusesLoading = ref(false);
@@ -496,30 +495,28 @@ export default {
       showOnlyGroups.value = normalizedValue;
       updateFieldProperty('show_only_groups', normalizedValue);
     };
-    const loadMandatoryStatusOptions = () => {
+    const loadMandatoryStatusOptions = async () => {
       try {
         const wwVariable = window?.wwLib?.wwVariable;
-        const wwCollection = window?.wwLib?.wwCollection;
-        const collectionData =
-          typeof wwCollection?.getCollection === 'function'
-            ? wwCollection.getCollection(MANDATORY_STATUS_COLLECTION_ID)
-            : undefined;
-        const getters = wwVariable
-          ? [
-              wwVariable.getValue?.bind(wwVariable),
-              wwVariable.getComponentValue?.bind(wwVariable),
-              wwVariable.get?.bind(wwVariable)
-            ].filter(Boolean)
-          : [];
-        const variableData = getters.reduce((acc, getter) => {
-          if (acc !== undefined) return acc;
-          try {
-            return getter(MANDATORY_STATUS_COLLECTION_ID);
-          } catch (error) {
-            return undefined;
-          }
-        }, undefined);
-        const rawData = Array.isArray(collectionData) ? collectionData : variableData;
+        const supabase = window?.wwLib?.wwPlugins?.supabase?.instance;
+        if (!supabase?.rpc) {
+          mandatoryStatusOptions.value = [];
+          return;
+        }
+        const payload = {
+          p_idcompany: wwVariable?.getValue?.('5d099f04-cd42-41fd-94ad-22d4de368c3a') ?? null,
+          p_language: wwVariable?.getValue?.('aa44dc4c-476b-45e9-a094-16687e063342') ?? null,
+          p_tagcontrolticketmodel: null,
+          p_ticketid: null,
+          p_loggeduserid: wwVariable?.getValue?.('fc54ab80-1a04-4cfe-a504-793bdcfce5dd') ?? null
+        };
+        const { data, error } = await supabase.rpc('getTicketStatus', payload);
+        if (error) {
+          console.warn('[FieldPropertiesPanel] Error loading mandatory statuses:', error);
+          mandatoryStatusOptions.value = [];
+          return;
+        }
+        const rawData = Array.isArray(data) ? data : [];
         if (!Array.isArray(rawData)) {
           mandatoryStatusOptions.value = [];
           return;
@@ -555,8 +552,10 @@ export default {
 
     onMounted(() => {
       mandatoryStatusesLoading.value = true;
-      loadMandatoryStatusOptions();
-      mandatoryStatusesLoading.value = false;
+      Promise.resolve(loadMandatoryStatusOptions())
+        .finally(() => {
+          mandatoryStatusesLoading.value = false;
+        });
       if (showOnly.value) {
         showOnlyLoading.value = true;
         loadShowOnlyOptions();
