@@ -2250,16 +2250,18 @@ return;
                   ? field.defaultValue
                   : field.value ?? null;
 
+            const isMandatory = normalizeBoolean(field.is_mandatory);
             return {
               id: field.id === field.field_id ? null : field.id || null,
               field_id: field.field_id || field.ID,
               position: field.position || 1,
               columns: parseInt(field.columns) || 1,
-              is_mandatory: normalizeBoolean(field.is_mandatory),
+              is_mandatory: isMandatory,
               is_readonly: normalizeBoolean(field.is_readonly),
               is_hide_legend: normalizeBoolean(field.is_hide_legend),
               show_only: normalizeBoolean(field.show_only),
               show_only_groups: normalizeStringArray(field.show_only_groups),
+              mandatory_statuses: isMandatory ? normalizeStringArray(field.mandatory_statuses) : [],
               is_hidden_in_end_user_new_ticket: normalizeBoolean(
                 field.is_hidden_in_end_user_new_ticket ??
                 field.IsHiddenInEndUserNewTicket ??
@@ -2388,6 +2390,7 @@ return;
         is_hide_legend: Boolean(field.is_hide_legend),
         show_only: normalizeBoolean(field.show_only),
         show_only_groups: normalizeStringArray(field.show_only_groups),
+        mandatory_statuses: normalizeStringArray(field.mandatory_statuses),
         is_hidden_in_end_user_new_ticket: normalizeBoolean(
           field.is_hidden_in_end_user_new_ticket ??
           field.IsHiddenInEndUserNewTicket ??
@@ -2419,6 +2422,7 @@ return;
         is_hide_legend: Boolean(updatedField.is_hide_legend),
         show_only: normalizeBoolean(updatedField.show_only),
         show_only_groups: normalizeStringArray(updatedField.show_only_groups),
+        mandatory_statuses: normalizeStringArray(updatedField.mandatory_statuses),
         is_hidden_in_end_user_new_ticket: normalizeBoolean(
           updatedField.is_hidden_in_end_user_new_ticket ??
           updatedField.IsHiddenInEndUserNewTicket ??
