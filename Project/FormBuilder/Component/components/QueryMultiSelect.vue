@@ -394,7 +394,7 @@ export default {
             backgroundColor: option?.backgroundColor || 'transparent',
             color: option?.textColor || 'inherit',
             padding: option?.backgroundColor ? '2px 8px' : '0',
-            borderRadius: option?.backgroundColor ? '999px' : '0',
+            borderRadius: option?.backgroundColor ? '4px' : '0',
         });
         const getChipStyle = (option) => ({
             backgroundColor: option?.backgroundColor || undefined,
@@ -714,11 +714,16 @@ export default {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-weight: 600;
+    font-weight: 400;
     padding: 8px 12px 4px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
 }
 .query-multi-select__option-chip {
     display: inline-block;
+}
+.query-multi-select__group .query-multi-select__option {
+    padding-left: 24px;
 }
 
 .query-multi-select__option--selected {
