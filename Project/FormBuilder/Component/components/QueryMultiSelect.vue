@@ -721,9 +721,20 @@ export default {
 }
 .query-multi-select__option-chip {
     display: inline-block;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
 }
 .query-multi-select__group .query-multi-select__option {
     padding-left: 24px;
+}
+.query-multi-select__option label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
 }
 
 .query-multi-select__option--selected {
