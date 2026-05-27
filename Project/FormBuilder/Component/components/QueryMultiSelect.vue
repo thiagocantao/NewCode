@@ -21,6 +21,7 @@
                             :key="option.value"
                             class="query-multi-select__chip"
                             :class="{ 'query-multi-select__chip--hidden': index >= visibleChipCount }"
+                            :style="getChipStyle(option)"
                             :ref="setChipRef"
                         >
                             <span class="query-multi-select__chip-label">{{ option.label }}</span>
@@ -72,30 +73,61 @@
                 <div v-if="!hasOptions" class="query-multi-select__state">{{ translateText('No options') }}</div>
                 <div v-else-if="!filteredOptions.length" class="query-multi-select__state">{{ translateText('No results found') }}</div>
                 <ul v-else class="query-multi-select__list">
-                    <li
-                        v-for="option in filteredOptions"
-                        :key="String(option.value)"
-                        class="query-multi-select__option"
-                        :class="{ 'query-multi-select__option--selected': isSelected(option.value) }"
-                    >
-                        <label v-if="isMultiple">
-                            <input
-                                type="checkbox"
-                                :value="String(option.value)"
-                                :checked="isSelected(option.value)"
-                                @change="toggleValue(option.value)"
-                            />
-                            <span>{{ option.label }}</span>
-                        </label>
-                        <button
-                            v-else
-                            type="button"
-                            class="query-multi-select__option-button"
-                            @click="selectSingleValue(option.value)"
+                    <template v-if="hasGroups">
+                        <li v-for="group in groupedFilteredOptions" :key="group.name" class="query-multi-select__group">
+                            <label class="query-multi-select__group-title" v-if="isMultiple">
+                                <input
+                                    type="checkbox"
+                                    :checked="isGroupFullySelected(group.items)"
+                                    :indeterminate.prop="isGroupPartiallySelected(group.items)"
+                                    @change="toggleGroup(group.items)"
+                                />
+                                <span>{{ group.name }}</span>
+                            </label>
+                            <div
+                                v-for="option in group.items"
+                                :key="String(option.value)"
+                                class="query-multi-select__option"
+                                :class="{ 'query-multi-select__option--selected': isSelected(option.value) }"
+                            >
+                                <label v-if="isMultiple">
+                                    <input
+                                        type="checkbox"
+                                        :value="String(option.value)"
+                                        :checked="isSelected(option.value)"
+                                        @change="toggleValue(option.value)"
+                                    />
+                                    <span class="query-multi-select__option-chip" :style="getOptionStyle(option)">{{ option.label }}</span>
+                                </label>
+                            </div>
+                        </li>
+                    </template>
+                    <template v-else>
+                        <li
+                            v-for="option in filteredOptions"
+                            :key="String(option.value)"
+                            class="query-multi-select__option"
+                            :class="{ 'query-multi-select__option--selected': isSelected(option.value) }"
                         >
-                            {{ option.label }}
-                        </button>
-                    </li>
+                            <label v-if="isMultiple">
+                                <input
+                                    type="checkbox"
+                                    :value="String(option.value)"
+                                    :checked="isSelected(option.value)"
+                                    @change="toggleValue(option.value)"
+                                />
+                                <span>{{ option.label }}</span>
+                            </label>
+                            <button
+                                v-else
+                                type="button"
+                                class="query-multi-select__option-button"
+                                @click="selectSingleValue(option.value)"
+                            >
+                                {{ option.label }}
+                            </button>
+                        </li>
+                    </template>
                 </ul>
             </template>
         </div>
@@ -170,6 +202,16 @@ export default {
                 return label.includes(term) || value.includes(term);
             });
         });
+        const groupedFilteredOptions = computed(() => {
+            const groups = new Map();
+            filteredOptions.value.forEach((option) => {
+                const groupName = option?.group || 'Other';
+                if (!groups.has(groupName)) groups.set(groupName, []);
+                groups.get(groupName).push(option);
+            });
+            return Array.from(groups.entries()).map(([name, items]) => ({ name, items }));
+        });
+        const hasGroups = computed(() => groupedFilteredOptions.value.some(group => group.name));
 
         const hasOptions = computed(() => optionsState.value.length > 0);
 
@@ -337,6 +379,27 @@ export default {
             const values = normalizedValue.value.filter((item) => item !== stringValue);
             emitValue(values);
         };
+        const isGroupFullySelected = (items = []) => items.length > 0 && items.every(item => isSelected(item.value));
+        const isGroupPartiallySelected = (items = []) => items.some(item => isSelected(item.value)) && !isGroupFullySelected(items);
+        const toggleGroup = (items = []) => {
+            const values = normalizedValue.value.slice();
+            const itemValues = items.map(item => String(item.value));
+            const shouldSelect = !isGroupFullySelected(items);
+            const next = shouldSelect
+                ? Array.from(new Set([...values, ...itemValues]))
+                : values.filter(value => !itemValues.includes(value));
+            emitValue(next);
+        };
+        const getOptionStyle = (option) => ({
+            backgroundColor: option?.backgroundColor || 'transparent',
+            color: option?.textColor || 'inherit',
+            padding: option?.backgroundColor ? '2px 8px' : '0',
+            borderRadius: option?.backgroundColor ? '999px' : '0',
+        });
+        const getChipStyle = (option) => ({
+            backgroundColor: option?.backgroundColor || undefined,
+            color: option?.textColor || undefined,
+        });
 
         watch(
             normalizedValue,
@@ -449,6 +512,13 @@ export default {
             searchTerm,
             searchInputRef,
             isMultiple,
+            groupedFilteredOptions,
+            hasGroups,
+            isGroupFullySelected,
+            isGroupPartiallySelected,
+            toggleGroup,
+            getOptionStyle,
+            getChipStyle,
             selectSingleValue,
             selectedOption,
             translateText,
@@ -639,6 +709,16 @@ export default {
 .query-multi-select__option {
     padding: 8px 12px;
     border-radius: 4px;
+}
+.query-multi-select__group-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    padding: 8px 12px 4px;
+}
+.query-multi-select__option-chip {
+    display: inline-block;
 }
 
 .query-multi-select__option--selected {
