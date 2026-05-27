@@ -499,13 +499,19 @@ export default {
     const loadMandatoryStatusOptions = () => {
       try {
         const wwVariable = window?.wwLib?.wwVariable;
-        if (!wwVariable) return;
-        const getters = [
-          wwVariable.getValue?.bind(wwVariable),
-          wwVariable.getComponentValue?.bind(wwVariable),
-          wwVariable.get?.bind(wwVariable)
-        ].filter(Boolean);
-        const rawData = getters.reduce((acc, getter) => {
+        const wwCollection = window?.wwLib?.wwCollection;
+        const collectionData =
+          typeof wwCollection?.getCollection === 'function'
+            ? wwCollection.getCollection(MANDATORY_STATUS_COLLECTION_ID)
+            : undefined;
+        const getters = wwVariable
+          ? [
+              wwVariable.getValue?.bind(wwVariable),
+              wwVariable.getComponentValue?.bind(wwVariable),
+              wwVariable.get?.bind(wwVariable)
+            ].filter(Boolean)
+          : [];
+        const variableData = getters.reduce((acc, getter) => {
           if (acc !== undefined) return acc;
           try {
             return getter(MANDATORY_STATUS_COLLECTION_ID);
@@ -513,6 +519,7 @@ export default {
             return undefined;
           }
         }, undefined);
+        const rawData = Array.isArray(collectionData) ? collectionData : variableData;
         if (!Array.isArray(rawData)) {
           mandatoryStatusOptions.value = [];
           return;

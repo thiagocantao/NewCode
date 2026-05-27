@@ -152,6 +152,7 @@
                         @touchstart.stop
                       />
                     </div>
+                    <button type="button" class="dropdown-clear-link" @click.stop="clearHeaderSelection('category')">Clear</button>
                     <div
                       v-if="getFilteredHeaderOptions('category').length === 0"
                       class="custom-dropdown-no-options"
@@ -171,7 +172,6 @@
                     </div>
                   </div>
                 </div>
-                <button type="button" class="header-inline-clear-link" @click.stop="clearHeaderSelection('category')">Clear</button>
               </div>
               <div
                 class="select-wrapper tag-select-wrapper"
@@ -208,6 +208,7 @@
                         @touchstart.stop
                       />
                     </div>
+                    <button type="button" class="dropdown-clear-link" @click.stop="clearHeaderSelection('subcategory')">Clear</button>
                     <div
                       v-if="getFilteredHeaderOptions('subcategory').length === 0"
                       class="custom-dropdown-no-options"
@@ -227,7 +228,6 @@
                     </div>
                   </div>
                 </div>
-                <button type="button" class="header-inline-clear-link" @click.stop="clearHeaderSelection('subcategory')">Clear</button>
               </div>
               <div
                 class="select-wrapper tag-select-wrapper"
@@ -264,6 +264,7 @@
                         @touchstart.stop
                       />
                     </div>
+                    <button type="button" class="dropdown-clear-link" @click.stop="clearHeaderSelection('thirdLevelCategory')">Clear</button>
                     <div
                       v-if="getFilteredHeaderOptions('thirdLevelCategory').length === 0"
                       class="custom-dropdown-no-options"
@@ -283,7 +284,6 @@
                     </div>
                   </div>
                 </div>
-                <button type="button" class="header-inline-clear-link" @click.stop="clearHeaderSelection('thirdLevelCategory')">Clear</button>
               </div>
             </div>
             <div class="header-tags-rigth">
