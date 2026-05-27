@@ -16,10 +16,12 @@ export default class ListCellEditor {
         <input type="text" class="search-input" placeholder="${translatePhrase("Search...")}" />
         <span class="search-icon"><i class="material-symbols-outlined-search">search</i></span>
       </div>
+      <div class="required-fields-popup" style="display:none;"></div>
       <div class="filter-list"></div>
     `;
     this.searchInput = this.eGui.querySelector('.search-input');
     this.listEl = this.eGui.querySelector('.filter-list');
+    this.requiredPopupEl = this.eGui.querySelector('.required-fields-popup');
     this.closeBtn = this.eGui.querySelector('.editor-close');
 
     const tag =
@@ -32,6 +34,10 @@ export default class ListCellEditor {
       tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
     const categoryTags = ['CATEGORYID','SUBCATEGORYID','CATEGORYLEVEL3ID'];
     this.isCategoryField = categoryTags.includes(tag) || categoryTags.includes(identifier);
+
+    this.isStatusColumn = this.checkIfStatusColumn(params.colDef || {});
+    this.isBlockedByRequiredFields = false;
+    this.injectRequiredFieldsPopupCssOnce();
 
     // Build option array (supports promises)
     const normalize = (opt) => {
@@ -48,10 +54,15 @@ export default class ListCellEditor {
       return { value: opt, label: String(opt) };
     };
 
-    const resolveOptions = (arr) => {
+    const resolveOptions = async (arr) => {
       this.options = (arr || []).map(normalize);
       this.filteredOptions = [...this.options];
-      this.renderOptions();
+      if (this.isStatusColumn) {
+        await this.handleRequiredFieldsGate();
+      }
+      if (!this.isBlockedByRequiredFields) {
+        this.renderOptions();
+      }
     };
 
     let optionsPromise;
@@ -99,6 +110,85 @@ export default class ListCellEditor {
         }
       });
     }
+  }
+
+  checkIfStatusColumn(colDef) {
+    const headerName = String(colDef?.headerName || '').trim().toUpperCase();
+    const fieldDb = String(colDef?.FieldDB || '').trim().toUpperCase();
+    const tag = String(colDef?.TagControl || colDef?.tagControl || colDef?.tagcontrol || '').trim().toUpperCase();
+    return headerName === 'XXXXXXXXXXXXXXXXXXX' || fieldDb === 'STATUSID' || tag === 'STATUSID';
+  }
+
+  async handleRequiredFieldsGate() {
+    try {
+      const rowData = this.params?.data || this.params?.node?.data || {};
+      const p_workspaceid = rowData.WorkspaceID || rowData.workspace_id || rowData.workspaceid;
+      const p_ticketid = rowData.TicketID || rowData.ticket_id || rowData.ticketid;
+      const sb = window?.wwLib?.wwPlugins?.supabase;
+      if (!p_workspaceid || !p_ticketid || !sb?.callPostgresFunction) return;
+
+      const response = await sb.callPostgresFunction({
+        functionName: 'checkTicketRequiredFields',
+        params: { p_workspaceid, p_ticketid },
+      });
+      const payload = response?.data || response;
+      if (payload?.has_missing_required_fields === true) {
+        this.isBlockedByRequiredFields = true;
+        const fields = Array.isArray(payload.missing_required_fields)
+          ? payload.missing_required_fields
+          : [];
+        this.renderRequiredFieldsPopup(fields);
+      }
+    } catch (e) {
+    }
+  }
+
+  renderRequiredFieldsPopup(fields) {
+    if (!this.requiredPopupEl || !this.listEl) return;
+    this.listEl.style.display = 'none';
+    const rows = fields
+      .map(field => `<li>${field?.field_name || '-'}</li>`)
+      .join('');
+    this.requiredPopupEl.style.display = 'block';
+    this.requiredPopupEl.innerHTML = `
+      <div class="required-fields-popup__title">${translatePhrase('Status cannot be changed.')}</div>
+      <div class="required-fields-popup__subtitle">${translatePhrase('Required fields not filled:')}</div>
+      <ul class="required-fields-popup__list">${rows}</ul>
+    `;
+  }
+
+  injectRequiredFieldsPopupCssOnce() {
+    const styleId = '__grid_required_fields_popup_css__';
+    if (document.getElementById(styleId)) return;
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+      .required-fields-popup {
+        margin-top: 8px;
+        background: #fff5f5;
+        border: 1px solid #f5c2c7;
+        border-radius: 8px;
+        padding: 12px;
+        color: #842029;
+        font-size: 13px;
+        max-width: 320px;
+      }
+      .required-fields-popup__title {
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+      .required-fields-popup__subtitle {
+        margin-bottom: 6px;
+      }
+      .required-fields-popup__list {
+        margin: 0;
+        padding-left: 18px;
+      }
+      .required-fields-popup__list li {
+        margin-bottom: 4px;
+      }
+    `;
+    document.head.appendChild(style);
   }
 
   filterOptions(text) {
