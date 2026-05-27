@@ -852,16 +852,6 @@ export default {
       states: true,
       classes: true,
     },
-<<<<<<< codex/add-gridviewinput-component-e8obzb
-=======
-    addRowCaption: {
-      label: { en: "Header caption" },
-      type: "Text",
-      section: "settings",
-      bindable: true,
-      defaultValue: "Adicionar registro",
-    },
->>>>>>> main
     rowData: {
       label: { en: "Data" },
       type: "ObjectList",

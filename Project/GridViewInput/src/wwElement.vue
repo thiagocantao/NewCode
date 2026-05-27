@@ -1,12 +1,5 @@
 <template>
   <div ref="rootRef" class="ww-datagrid" :class="{ editing: isEditing, 'grid-hidden': !gridVisible }" :style="cssVars">
-<<<<<<< codex/add-gridviewinput-component-e8obzb
-=======
-    <div class="grid-input-topbar">
-      <button type="button" class="grid-input-add" @click="addRow" aria-label="Adicionar linha">+</button>
-      <span class="grid-input-caption">{{ content.addRowCaption || "Adicionar registro" }}</span>
-    </div>
->>>>>>> main
     <ag-grid-vue :key="gridKey" :rowData="rowData" :columnDefs="columnDefs" :defaultColDef="defaultColDef"
       :domLayout="content.layout === 'auto' ? 'autoHeight' : 'normal'" :style="style" :rowSelection="rowSelection"
       :selection-column-def="{ pinned: true }" :theme="theme" :getRowId="getRowId" :pagination="content.pagination"
@@ -362,39 +355,36 @@ export default {
   computed: {
     rowData() {
       const data = wwLib.wwUtils.getDataFromCollection(this.content.rowData);
-<<<<<<< codex/add-gridviewinput-component-e8obzb
       const rows = Array.isArray(data) ? [...data] : [];
       return [this.createBlankRow(true), ...rows.map((row) => ({ ...row, __isInputRow: false }))];
     },
     defaultColDef() {
       return {
         editable: true,
-=======
-      return Array.isArray(data) ? data ?? [] : [];
-    },
-    defaultColDef() {
-      return {
-        editable: false,
->>>>>>> main
         resizable: this.content.resizableColumns,
       };
     },
     columnDefs() {
-<<<<<<< codex/add-gridviewinput-component-e8obzb
       const actionColumn = {
         colId: "__grid_input_actions__",
         headerName: "",
         pinned: "left",
-        width: 46,
-        minWidth: 46,
-        maxWidth: 46,
+        width: 48,
+        minWidth: 48,
+        maxWidth: 48,
         lockPosition: true,
         sortable: false,
         filter: false,
         resizable: false,
         editable: false,
         suppressMovable: true,
-        cellStyle: { textAlign: "center", padding: "0", display: "flex", alignItems: "center", justifyContent: "center" },
+        cellStyle: {
+          textAlign: "center",
+          padding: "0",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        },
         cellRenderer: (params) => {
           const isInputRow = !!params.data?.__isInputRow;
           const symbol = isInputRow ? "+" : "🗑";
@@ -406,8 +396,7 @@ export default {
           else this.deleteRow(params.rowIndex);
         },
       };
-=======
->>>>>>> main
+      
       const mappedColumns = this.content.columns.map((col) => {
         
         // Forçar cellDataType para 'dateString' se for 'date' ou 'dateString'
@@ -633,11 +622,8 @@ export default {
         });
       }
 
-<<<<<<< codex/add-gridviewinput-component-e8obzb
       return [actionColumn, ...mappedColumns];
-=======
-      return mappedColumns;
->>>>>>> main
+      
     },
     rowSelection() {
       if (this.content.rowSelection === "multiple") {
@@ -750,7 +736,6 @@ export default {
       });
     },
     syncGridData() {
-<<<<<<< codex/add-gridviewinput-component-e8obzb
       const rows = (this.rowData || [])
         .filter((row) => !row?.__isInputRow)
         .map((row) => {
@@ -767,7 +752,7 @@ export default {
       }, { __isInputRow: isInputRow });
     },
     addRowFromInput(inputRow) {
-      const newRow = { ...inputRow, __isInputRow: false };
+      const newRow = { ...inputRow };
       delete newRow.__isInputRow;
       const currentRows = Array.isArray(this.content.rowData) ? [...this.content.rowData] : [];
       this.$emit("update:content:effect", { rowData: [...currentRows, newRow] });
@@ -779,24 +764,6 @@ export default {
       currentRows.splice(dataIndex, 1);
       this.$emit("update:content:effect", { rowData: currentRows });
     },
-=======
-      if (!this.$.setupState.gridApi?.value) return;
-      const nextRows = [];
-      this.$.setupState.gridApi.value.forEachNode((node) => {
-        if (node?.data) nextRows.push({ ...node.data });
-      });
-      this.$emit("update:content:effect", { rowData: nextRows });
-    },
-    addRow() {
-      const editableColumns = (this.content.columns || []).filter((col) => col.field);
-      const newRow = editableColumns.reduce((acc, col) => {
-        acc[col.field] = null;
-        return acc;
-      }, {});
-      const currentRows = Array.isArray(this.rowData) ? this.rowData : [];
-      this.$emit("update:content:effect", { rowData: [...currentRows, newRow] });
-    },
->>>>>>> main
     onCellKeyDown(event) {
       if (!this.content.enterNextRow || !event?.event) return;
       const keyEvent = event.event;
@@ -1044,17 +1011,7 @@ export default {
     &.grid-hidden {
       visibility: hidden;
 }
-<<<<<<< codex/add-gridviewinput-component-e8obzb
 .grid-input-action-btn {
-=======
-.grid-input-topbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-.grid-input-add {
->>>>>>> main
   width: 24px;
   height: 24px;
   border: 1px solid #d0d7de;
@@ -1064,14 +1021,6 @@ export default {
   font-weight: 700;
   line-height: 1;
 }
-<<<<<<< codex/add-gridviewinput-component-e8obzb
-=======
-.grid-input-caption {
-  font-size: 14px;
-  font-weight: 600;
-}
->>>>>>> main
-
     /* wwEditor:start */
     &.editing {
       &::before {
