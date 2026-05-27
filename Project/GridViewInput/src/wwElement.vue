@@ -396,6 +396,7 @@ export default {
           else this.deleteRow(params.rowIndex);
         },
       };
+      
       const mappedColumns = this.content.columns.map((col) => {
         
         // Forçar cellDataType para 'dateString' se for 'date' ou 'dateString'
@@ -622,6 +623,7 @@ export default {
       }
 
       return [actionColumn, ...mappedColumns];
+      
     },
     rowSelection() {
       if (this.content.rowSelection === "multiple") {
@@ -1019,7 +1021,6 @@ export default {
   font-weight: 700;
   line-height: 1;
 }
-
     /* wwEditor:start */
     &.editing {
       &::before {
