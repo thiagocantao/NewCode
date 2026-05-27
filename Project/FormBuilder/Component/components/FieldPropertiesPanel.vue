@@ -308,7 +308,9 @@ export default {
     watch(() => props.selectedField, (newField) => {
       if (newField) {
         isRequired.value = normalizeBoolean(newField.is_mandatory);
-        mandatoryStatuses.value = normalizeShowOnlyGroups(newField.mandatory_statuses);
+        mandatoryStatuses.value = normalizeShowOnlyGroups(
+          newField.mandatory_for_status_list ?? newField.mandatory_statuses
+        );
         isHideLegend.value = normalizeBoolean(newField.is_hide_legend);
         const normalizedShowOnlyGroups = normalizeShowOnlyGroups(
           newField.show_only_groups || newField.show_only_groups_json
@@ -414,7 +416,7 @@ export default {
         emit('update-field', {
           ...props.selectedField,
           is_mandatory: false,
-          mandatory_statuses: []
+          mandatory_for_status_list: []
         });
         return;
       }
@@ -537,7 +539,7 @@ export default {
     const updateMandatoryStatuses = (value) => {
       const normalized = normalizeShowOnlyGroups(value);
       mandatoryStatuses.value = normalized;
-      updateFieldProperty('mandatory_statuses', normalized);
+      updateFieldProperty('mandatory_for_status_list', normalized);
     };
 
     watch(showOnly, (value) => {

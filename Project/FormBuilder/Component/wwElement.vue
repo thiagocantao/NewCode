@@ -2261,7 +2261,9 @@ return;
               is_hide_legend: normalizeBoolean(field.is_hide_legend),
               show_only: normalizeBoolean(field.show_only),
               show_only_groups: normalizeStringArray(field.show_only_groups),
-              mandatory_statuses: isMandatory ? normalizeStringArray(field.mandatory_statuses) : [],
+              mandatory_for_status_list: isMandatory
+                ? normalizeStringArray(field.mandatory_for_status_list ?? field.mandatory_statuses)
+                : [],
               is_hidden_in_end_user_new_ticket: normalizeBoolean(
                 field.is_hidden_in_end_user_new_ticket ??
                 field.IsHiddenInEndUserNewTicket ??
@@ -2390,7 +2392,9 @@ return;
         is_hide_legend: Boolean(field.is_hide_legend),
         show_only: normalizeBoolean(field.show_only),
         show_only_groups: normalizeStringArray(field.show_only_groups),
-        mandatory_statuses: normalizeStringArray(field.mandatory_statuses),
+        mandatory_for_status_list: normalizeStringArray(
+          field.mandatory_for_status_list ?? field.mandatory_statuses
+        ),
         is_hidden_in_end_user_new_ticket: normalizeBoolean(
           field.is_hidden_in_end_user_new_ticket ??
           field.IsHiddenInEndUserNewTicket ??
@@ -2422,7 +2426,9 @@ return;
         is_hide_legend: Boolean(updatedField.is_hide_legend),
         show_only: normalizeBoolean(updatedField.show_only),
         show_only_groups: normalizeStringArray(updatedField.show_only_groups),
-        mandatory_statuses: normalizeStringArray(updatedField.mandatory_statuses),
+        mandatory_for_status_list: normalizeStringArray(
+          updatedField.mandatory_for_status_list ?? updatedField.mandatory_statuses
+        ),
         is_hidden_in_end_user_new_ticket: normalizeBoolean(
           updatedField.is_hidden_in_end_user_new_ticket ??
           updatedField.IsHiddenInEndUserNewTicket ??
