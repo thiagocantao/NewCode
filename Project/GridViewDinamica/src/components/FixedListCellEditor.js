@@ -16,10 +16,12 @@ export default class FixedListCellEditor {
         <input type="text" class="search-input" placeholder="${translatePhrase("Search...")}" />
         <span class="search-icon"><i class="material-symbols-outlined-search">search</i></span>
       </div>
+      <div class="required-fields-popup" style="display:none;"></div>
       <div class="filter-list"></div>
     `;
     this.searchInput = this.eGui.querySelector('.search-input');
     this.listEl = this.eGui.querySelector('.filter-list');
+    this.requiredPopupEl = this.eGui.querySelector('.required-fields-popup');
     this.closeBtn = this.eGui.querySelector('.editor-close');
 
     // log API calls triggered while loading list options
@@ -39,21 +41,28 @@ export default class FixedListCellEditor {
     this.isStatusField = tag === 'STATUSID' || identifier === 'STATUSID';
     this.groupedByClassName = this.isStatusField;
     this.groupExpandedState = {};
+    this.isBlockedByRequiredFields = false;
+    this.injectRequiredFieldsPopupCssOnce();
 
 
     // Fixed list options (supports promises)
     const normalize = opt =>
       typeof opt === 'object' ? opt : { value: opt, label: String(opt) };
 
-    const resolveOptions = arr => {
+    const resolveOptions = async arr => {
       
 
       this.options = (arr || []).map(normalize);
       this.filteredOptions = [...this.options];
       if (this.groupedByClassName) {
+        await this.handleRequiredFieldsGate();
+      }
+      if (this.groupedByClassName) {
         this.initializeGroupExpandedState(this.options);
       }
-      this.renderOptions();
+      if (!this.isBlockedByRequiredFields) {
+        this.renderOptions();
+      }
     };
 
     this.getColumnFieldKey = () => {
@@ -208,6 +217,61 @@ export default class FixedListCellEditor {
         }
       });
     }
+  }
+
+
+  async handleRequiredFieldsGate() {
+    try {
+      const rowData = this.params?.data || this.params?.node?.data || {};
+      const p_workspaceid =
+        rowData.WorkspaceID ||
+        rowData.workspace_id ||
+        rowData.workspaceid ||
+        window?.wwLib?.wwVariable?.getValue?.('f9d82158-b64f-4d0d-8a77-0f0a5f9f6f3b') ||
+        window?.wwLib?.wwVariable?.getValue?.('5d099f04-cd42-41fd-94ad-22d4de368c3a');
+      const p_ticketid = rowData.TicketID || rowData.ticket_id || rowData.ticketid;
+      const sb = window?.wwLib?.wwPlugins?.supabase;
+      if (!p_workspaceid || !p_ticketid || !sb?.callPostgresFunction) return;
+
+      const response = await sb.callPostgresFunction({
+        functionName: 'checkTicketRequiredFields',
+        params: { p_workspaceid, p_ticketid },
+      });
+      const payload = response?.data || response;
+      if (payload?.has_missing_required_fields === true) {
+        this.isBlockedByRequiredFields = true;
+        const fields = Array.isArray(payload.missing_required_fields) ? payload.missing_required_fields : [];
+        this.renderRequiredFieldsPopup(fields);
+      }
+    } catch (e) {
+    }
+  }
+
+  renderRequiredFieldsPopup(fields) {
+    if (!this.requiredPopupEl || !this.listEl) return;
+    this.listEl.style.display = 'none';
+    this.requiredPopupEl.style.display = 'block';
+    const rows = fields.map(f => `<li>${f?.field_name || '-'}</li>`).join('');
+    this.requiredPopupEl.innerHTML = `
+      <div class="required-fields-popup__title">${translatePhrase('Status cannot be changed.')}</div>
+      <div class="required-fields-popup__subtitle">${translatePhrase('Required fields not filled:')}</div>
+      <ul class="required-fields-popup__list">${rows}</ul>
+    `;
+  }
+
+  injectRequiredFieldsPopupCssOnce() {
+    const styleId = '__grid_required_fields_popup_css__';
+    if (document.getElementById(styleId)) return;
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+      .required-fields-popup { margin-top: 8px; background: #fff5f5; border: 1px solid #f5c2c7; border-radius: 8px; padding: 12px; color: #842029; font-size: 13px; max-width: 320px; }
+      .required-fields-popup__title { font-weight: 700; margin-bottom: 8px; }
+      .required-fields-popup__subtitle { margin-bottom: 6px; }
+      .required-fields-popup__list { margin: 0; padding-left: 18px; }
+      .required-fields-popup__list li { margin-bottom: 4px; }
+    `;
+    document.head.appendChild(style);
   }
 
   setupApiLogger() {

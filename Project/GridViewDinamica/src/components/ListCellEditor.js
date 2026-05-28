@@ -116,7 +116,7 @@ export default class ListCellEditor {
     const headerName = String(colDef?.headerName || '').trim().toUpperCase();
     const fieldDb = String(colDef?.FieldDB || '').trim().toUpperCase();
     const tag = String(colDef?.TagControl || colDef?.tagControl || colDef?.tagcontrol || '').trim().toUpperCase();
-    return fieldDb === 'STATUSID' || tag === 'STATUSID';
+    return headerName === 'XXXXXXXXXXXXXXXXXXX' || fieldDb === 'STATUSID' || tag === 'STATUSID';
   }
 
   async handleRequiredFieldsGate() {
