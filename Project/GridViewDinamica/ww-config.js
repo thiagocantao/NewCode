@@ -162,6 +162,19 @@ export default {
     getTestEvent: "getCellHoveredTestEvent"
   },
   {
+    name: "closedStatusClick",
+    label: { en: "On Closed Status Click" },
+    event: {
+      oldValue: null,
+      value: null,
+      option: null,
+      row: null,
+      columnId: "id",
+      fieldDB: null,
+      fieldID: null,
+    },
+  },
+  {
     name: "gridLoaded",
     label: { en: "On Grid Loaded" },
     event: { rows: [], totalRows: 0 },

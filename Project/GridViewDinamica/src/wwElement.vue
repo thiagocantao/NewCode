@@ -2842,6 +2842,7 @@ setTimeout(() => {
           editable: !!colCopy.editable, // <-- garantir editable
           FieldDB: colCopy.FieldDB, // <-- garantir FieldDB no colDef
           TagControl: colCopy.TagControl,
+          onClosedStatusClick: this.onClosedStatusClick,
           ...(colCopy.pinned === 'left' ? { lockPinned: true, lockPosition: true } : {}),
         };
 
@@ -2961,7 +2962,10 @@ setTimeout(() => {
                 });
               } else {
                 result.cellEditor = tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor : FixedListCellEditor;
-                result.cellEditorParams = params => ({ options: getDsOptionsAsync(params) });
+                result.cellEditorParams = params => ({
+                  options: getDsOptionsAsync(params),
+                  onClosedStatusClick: this.onClosedStatusClick,
+                });
                 const baseRendererParams = result.cellRendererParams;
                 result.cellRendererParams = params => ({
                   ...(typeof baseRendererParams === 'function'
@@ -2983,7 +2987,10 @@ setTimeout(() => {
           if (colCopy.dataSource && colCopy.editable) {
             result.editable = true;
             result.cellEditor = tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor : FixedListCellEditor;
-            result.cellEditorParams = params => ({ options: getDsOptionsAsync(params) });
+            result.cellEditorParams = params => ({
+              options: getDsOptionsAsync(params),
+              onClosedStatusClick: this.onClosedStatusClick,
+            });
             const baseRendererParams = result.cellRendererParams;
             result.cellRendererParams = params => ({
               ...(typeof baseRendererParams === 'function'
@@ -3142,7 +3149,10 @@ setTimeout(() => {
                   options: staticOptions,
                 };
               } else {
-                result.cellEditorParams = params => ({ options: getDsOptionsAsync(params) });
+                result.cellEditorParams = params => ({
+                  options: getDsOptionsAsync(params),
+                  onClosedStatusClick: this.onClosedStatusClick,
+                });
                 const baseRendererParams = result.cellRendererParams;
                 result.cellRendererParams = params => ({
                   ...(typeof baseRendererParams === 'function'
@@ -3519,7 +3529,10 @@ setTimeout(() => {
                   };
                 } else {
                   result.cellEditor = tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor :  FixedListCellEditor;
-                  result.cellEditorParams = params => ({ options: getDsOptionsAsync(params) });
+                  result.cellEditorParams = params => ({
+                    options: getDsOptionsAsync(params),
+                    onClosedStatusClick: this.onClosedStatusClick,
+                  });
                   const baseRendererParams = result.cellRendererParams;
                   result.cellRendererParams = params => ({
                     ...(typeof baseRendererParams === 'function'
@@ -3542,7 +3555,10 @@ setTimeout(() => {
             if (colCopy.dataSource && colCopy.editable) {
               result.editable = true;
               result.cellEditor = tagControl === 'RESPONSIBLEUSERID' ? ResponsibleUserCellEditor : FixedListCellEditor;
-              result.cellEditorParams = params => ({ options: getDsOptionsAsync(params) });
+              result.cellEditorParams = params => ({
+                options: getDsOptionsAsync(params),
+                onClosedStatusClick: this.onClosedStatusClick,
+              });
               const baseRendererParams = result.cellRendererParams;
               result.cellRendererParams = params => ({
                 ...(typeof baseRendererParams === 'function'
@@ -4218,6 +4234,20 @@ setTimeout(() => {
   index: event.index != null ? event.index : null,
   displayIndex: event.displayIndex != null ? event.displayIndex : null,
   },
+  });
+  },
+  onClosedStatusClick(event) {
+  this.$emit("trigger-event", {
+    name: "closedStatusClick",
+    event: {
+      oldValue: event?.oldValue ?? null,
+      value: event?.value ?? null,
+      option: event?.option || null,
+      row: event?.row || null,
+      columnId: event?.columnId || null,
+      fieldDB: event?.fieldDB || null,
+      fieldID: event?.fieldID || null,
+    },
   });
   },
   onCellValueChanged(event) {
