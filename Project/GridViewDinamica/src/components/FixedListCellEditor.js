@@ -438,6 +438,14 @@ export default class FixedListCellEditor {
     return String(statusClassTagControl || '').toUpperCase() === 'CLOSED';
   }
 
+  closeEditorWithoutSaving() {
+    if (this.params?.api && typeof this.params.api.stopEditing === 'function') {
+      this.params.api.stopEditing(true);
+    } else if (typeof this.params?.stopEditing === 'function') {
+      this.params.stopEditing(true);
+    }
+  }
+
   emitClosedStatusClick(option, selectedValue) {
     const colDef = this.params?.colDef || {};
     const columnId =
@@ -541,6 +549,7 @@ export default class FixedListCellEditor {
 
         if (this.isClosedStatusOption(selectedOption)) {
           this.emitClosedStatusClick(selectedOption, selectedValue);
+          this.closeEditorWithoutSaving();
           return;
         }
 
