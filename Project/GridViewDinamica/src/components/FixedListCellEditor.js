@@ -222,13 +222,9 @@ export default class FixedListCellEditor {
 
   async handleRequiredFieldsGate() {
     try {
+      console.log("Agora PASSOU");
       const rowData = this.params?.data || this.params?.node?.data || {};
-      const p_workspaceid =
-        rowData.WorkspaceID ||
-        rowData.workspace_id ||
-        rowData.workspaceid ||
-        window?.wwLib?.wwVariable?.getValue?.('f9d82158-b64f-4d0d-8a77-0f0a5f9f6f3b') ||
-        window?.wwLib?.wwVariable?.getValue?.('5d099f04-cd42-41fd-94ad-22d4de368c3a');
+      const p_workspaceid = window?.wwLib?.wwVariable?.getValue?.("744511f1-3309-41da-a9fd-0721e7dd2f99");
       const p_ticketid = rowData.TicketID || rowData.ticket_id || rowData.ticketid;
       const sb = window?.wwLib?.wwPlugins?.supabase;
       if (!p_workspaceid || !p_ticketid || !sb?.callPostgresFunction) return;
@@ -238,6 +234,9 @@ export default class FixedListCellEditor {
         params: { p_workspaceid, p_ticketid },
       });
       const payload = response?.data || response;
+
+      console.log(payload);
+
       if (payload?.has_missing_required_fields === true) {
         this.isBlockedByRequiredFields = true;
         const fields = Array.isArray(payload.missing_required_fields) ? payload.missing_required_fields : [];
