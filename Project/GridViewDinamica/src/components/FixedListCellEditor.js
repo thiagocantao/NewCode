@@ -19,6 +19,7 @@ export default class FixedListCellEditor {
       <div class="required-fields-popup" style="display:none;"></div>
       <div class="filter-list"></div>
     `;
+    this.searchWrapper = this.eGui.querySelector('.field-search');
     this.searchInput = this.eGui.querySelector('.search-input');
     this.listEl = this.eGui.querySelector('.filter-list');
     this.requiredPopupEl = this.eGui.querySelector('.required-fields-popup');
@@ -248,6 +249,7 @@ export default class FixedListCellEditor {
 
   renderRequiredFieldsPopup(fields) {
     if (!this.requiredPopupEl || !this.listEl) return;
+    if (this.searchWrapper) this.searchWrapper.style.display = 'none';
     this.listEl.style.display = 'none';
     this.requiredPopupEl.style.display = 'block';
     const rows = fields.map(f => `<li>${f?.field_name || '-'}</li>`).join('');
