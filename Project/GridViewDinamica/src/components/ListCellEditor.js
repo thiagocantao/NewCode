@@ -113,10 +113,9 @@ export default class ListCellEditor {
   }
 
   checkIfStatusColumn(colDef) {
-    const headerName = String(colDef?.headerName || '').trim().toUpperCase();
     const fieldDb = String(colDef?.FieldDB || '').trim().toUpperCase();
     const tag = String(colDef?.TagControl || colDef?.tagControl || colDef?.tagcontrol || '').trim().toUpperCase();
-    return headerName === 'XXXXXXXXXXXXXXXXXXX' || fieldDb === 'STATUSID' || tag === 'STATUSID';
+    return fieldDb === 'STATUSID' || tag === 'STATUSID';
   }
 
   async handleRequiredFieldsGate() {
