@@ -422,6 +422,61 @@ export default class FixedListCellEditor {
     return value;
   }
 
+
+  getOptionPropertyCaseInsensitive(opt, propertyName) {
+    if (!opt || typeof opt !== 'object') return undefined;
+    const key = Object.keys(opt).find(k => k.toLowerCase() === propertyName.toLowerCase());
+    return key ? opt[key] : undefined;
+  }
+
+  isClosedStatusOption(opt) {
+    if (!this.isStatusField) return false;
+    const statusClassTagControl = this.getOptionPropertyCaseInsensitive(
+      opt,
+      'statusClassTagControl'
+    );
+    return String(statusClassTagControl || '').toUpperCase() === 'CLOSED';
+  }
+
+  closeEditorWithoutSaving() {
+    if (this.params?.api && typeof this.params.api.stopEditing === 'function') {
+      this.params.api.stopEditing(true);
+    } else if (typeof this.params?.stopEditing === 'function') {
+      this.params.stopEditing(true);
+    }
+  }
+
+  emitClosedStatusClick(option, selectedValue) {
+    const colDef = this.params?.colDef || {};
+    const columnId =
+      this.params?.column && typeof this.params.column.getColId === 'function'
+        ? this.params.column.getColId()
+        : colDef.colId || colDef.field || null;
+    const event = {
+      oldValue: this.value,
+      value: selectedValue,
+      option,
+      row: this.params?.data || this.params?.node?.data || null,
+      columnId,
+      fieldDB: colDef.FieldDB || null,
+      fieldID: colDef.id || null,
+    };
+
+    if (typeof this.params?.onClosedStatusClick === 'function') {
+      this.params.onClosedStatusClick(event);
+      return;
+    }
+
+    if (typeof colDef.onClosedStatusClick === 'function') {
+      colDef.onClosedStatusClick(event);
+      return;
+    }
+
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+      window.dispatchEvent(new CustomEvent('closed-status-click', { detail: event }));
+    }
+  }
+
   renderOptions() {
     if (this.groupedByClassName) {
       const groups = this.filteredOptions.reduce((acc, opt) => {
@@ -440,7 +495,7 @@ export default class FixedListCellEditor {
                 .map(opt => {
                   const formatted = this.formatOption(opt);
                   const selected = opt.value == this.value ? ' selected' : '';
-                  return `<div class="filter-item grouped-option${selected}" data-value="${opt.value}"><span class="filter-label">${formatted}</span></div>`;
+                  return `<div class="filter-item grouped-option${selected}" data-value="${opt.value}" data-option-index="${this.filteredOptions.indexOf(opt)}"><span class="filter-label">${formatted}</span></div>`;
                 })
                 .join('')
             : '';
@@ -472,7 +527,7 @@ export default class FixedListCellEditor {
             ? `<img src="${photo}" alt="" />`
             : `<span class="user-initial">${initial}</span>`;
           return `
-            <div class="filter-item${selected}" data-value="${opt.value}">
+            <div class="filter-item${selected}" data-value="${opt.value}" data-option-index="${this.filteredOptions.indexOf(opt)}">
               <span class="user-option">
                 <span class="avatar-outer"><span class="avatar-middle"><span class="user-avatar">${avatar}</span></span></span>
                 <span class="filter-label">${formatted}</span>
@@ -480,13 +535,24 @@ export default class FixedListCellEditor {
             </div>`;
         }
 
-        return `<div class="filter-item${selected}" data-value="${opt.value}"><span class="filter-label">${formatted}</span></div>`;
+        return `<div class="filter-item${selected}" data-value="${opt.value}" data-option-index="${this.filteredOptions.indexOf(opt)}"><span class="filter-label">${formatted}</span></div>`;
       })
       .join('');
     }
     this.listEl.querySelectorAll('.filter-item').forEach(el => {
       el.addEventListener('click', () => {
         const selectedValue = el.getAttribute('data-value');
+        const optionIndex = Number(el.getAttribute('data-option-index'));
+        const selectedOption = Number.isInteger(optionIndex)
+          ? this.filteredOptions[optionIndex]
+          : this.filteredOptions.find(opt => String(opt.value) === String(selectedValue));
+
+        if (this.isClosedStatusOption(selectedOption)) {
+          this.emitClosedStatusClick(selectedOption, selectedValue);
+          this.closeEditorWithoutSaving();
+          return;
+        }
+
         this.value = selectedValue;
         this.updateDisplayLabel(selectedValue, { refresh: false });
         if (this.params.api && this.params.api.stopEditing) {
