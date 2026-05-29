@@ -76,13 +76,49 @@ export default {
             type: 'TextSelect',
             options: {
                 options: [
-                    { value: 'open', label: 'Open group users' },
                     { value: 'select', label: 'Select group only' },
+                    { value: 'open', label: 'Open group users' },
                 ],
             },
-            defaultValue: 'open',
+            defaultValue: 'select',
             bindable: true,
             description: 'Choose whether clicking a group opens its users or selects the group directly.',
+        },
+
+        showAssignToTeam: {
+            label: { en: 'Show Assign to team' },
+            type: 'OnOff',
+            defaultValue: true,
+            bindable: true,
+            description: 'Display the "Assign to team" option after opening the users of a group.',
+        },
+        popupHorizontalPosition: {
+            label: { en: 'Popup horizontal position' },
+            type: 'TextSelect',
+            options: {
+                options: [
+                    { value: 'left', label: 'Left' },
+                    { value: 'center', label: 'Center' },
+                    { value: 'right', label: 'Right' },
+                ],
+            },
+            defaultValue: 'left',
+            bindable: true,
+            description: 'Horizontal position where the dropdown popup opens.',
+        },
+        popupVerticalPosition: {
+            label: { en: 'Popup vertical position' },
+            type: 'TextSelect',
+            options: {
+                options: [
+                    { value: 'top', label: 'Top' },
+                    { value: 'center', label: 'Center' },
+                    { value: 'bottom', label: 'Bottom' },
+                ],
+            },
+            defaultValue: 'bottom',
+            bindable: true,
+            description: 'Vertical position where the dropdown popup opens.',
         },
         valueColumn: {
             label: { en: 'Value column' },
