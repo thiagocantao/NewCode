@@ -1,3 +1,5 @@
+import { getCellEditorPopupPosition } from "../utils/cellEditorPopupPosition";
+
 export default class ResponsibleUserCellEditor {
   init(params) { 
     this.params = params;
@@ -597,6 +599,10 @@ export default class ResponsibleUserCellEditor {
 
   isPopup() {
     return true;
+  }
+
+  getPopupPosition() {
+    return getCellEditorPopupPosition(this.params, this.eGui);
   }
 
   // CSS injetado (14px, wght 400, ícone groups centralizado)
