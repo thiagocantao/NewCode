@@ -144,7 +144,7 @@
                 :key="user.id || 'u'"
                 class="user-selector__item"
                 :class="{ disabled: user.isEnabled === false }"
-                @click.stop="user.isEnabled === false ? null : isGroupLabel(group.label) ? handleGroupClick(user) : selectUser(user)"
+                @click.stop="user.isEnabled === false ? null : isGroupItem(user) ? handleGroupClick(user) : selectUser(user)"
               >
                 <div class="avatar-outer">
                   <div class="avatar-middle">
@@ -153,7 +153,7 @@
                         <img :src="user.photoUrl || user.PhotoURL || user.PhotoUrl" alt="User Photo" />
                       </template>
                       <template v-else>
-                        <span v-if="isGroupLabel(group.label)" class="material-symbols-outlined user-selector__group-icon">groups</span>
+                        <span v-if="isGroupItem(user)" class="material-symbols-outlined user-selector__group-icon">groups</span>
                         <span v-else class="user-selector__initial" :style="initialStyle">{{ getInitial(user.name) }}</span>
                       </template>
                     </div>
@@ -161,7 +161,7 @@
                 </div>
                 <span class="user-selector__name" :style="nameStyle">{{ user.name }}</span>
                 <span
-                  v-if="user.groupUsers && user.groupUsers.length && groupClickBehavior !== 'select'"
+                  v-if="isGroupItem(user) && effectiveGroupClickBehavior !== 'select'"
                   class="material-symbols-outlined user-selector__chevron"
                   @click.stop="openGroup(user)"
                 >
@@ -179,7 +179,7 @@
             @click.stop="
               user.isEnabled === false
                 ? null
-                : user.groupUsers && user.groupUsers.length
+                : isGroupItem(user)
                   ? handleGroupClick(user)
                   : selectUser(user)
             "
@@ -198,7 +198,7 @@
             </div>
             <span class="user-selector__name" :style="nameStyle">{{ user.name }}</span>
             <span
-              v-if="user.groupUsers && user.groupUsers.length && groupClickBehavior !== 'select'"
+              v-if="isGroupItem(user) && effectiveGroupClickBehavior !== 'select'"
               class="material-symbols-outlined user-selector__chevron"
               @click.stop="openGroup(user)"
             >
@@ -216,7 +216,7 @@
             @click.stop="
               user.isEnabled === false
                 ? null
-                : user.groupUsers && user.groupUsers.length
+                : isGroupItem(user)
                   ? handleGroupClick(user)
                   : selectUser(user)
             "
@@ -236,7 +236,7 @@
             </div>
             <span class="user-selector__name" :style="nameStyle">{{ user.name }}</span>
             <span
-              v-if="user.groupUsers && user.groupUsers.length && groupClickBehavior !== 'select'"
+              v-if="isGroupItem(user) && effectiveGroupClickBehavior !== 'select'"
               class="material-symbols-outlined user-selector__chevron"
               @click.stop="openGroup(user)"
             >
@@ -373,24 +373,39 @@ export default {
       if (!this.maxWidth) return {};
       return { maxWidth: (typeof this.maxWidth === 'number' ? this.maxWidth + 'px' : this.maxWidth) };
     },
+    effectiveGroupClickBehavior: function() {
+      return this.normalizeOptionValue(this.groupClickBehavior, 'select', ['open', 'select']);
+    },
+    effectivePopupHorizontalPosition: function() {
+      return this.normalizeOptionValue(this.popupHorizontalPosition, 'left', ['left', 'center', 'right']);
+    },
+    effectivePopupVerticalPosition: function() {
+      return this.normalizeOptionValue(this.popupVerticalPosition, 'bottom', ['top', 'center', 'bottom']);
+    },
     dropdownPositionStyle: function() {
-      var style = {};
+      var horizontalPosition = this.effectivePopupHorizontalPosition;
+      var verticalPosition = this.effectivePopupVerticalPosition;
+      var style = {
+        top: 'auto',
+        right: 'auto',
+        bottom: 'auto',
+        left: 'auto',
+        transform: 'none'
+      };
       var transforms = [];
 
-      if (this.popupHorizontalPosition === 'center') {
+      if (horizontalPosition === 'center') {
         style.left = '50%';
         transforms.push('translateX(-50%)');
-      } else if (this.popupHorizontalPosition === 'right') {
+      } else if (horizontalPosition === 'right') {
         style.right = '0';
-        style.left = 'auto';
       } else {
         style.left = '0';
       }
 
-      if (this.popupVerticalPosition === 'top') {
+      if (verticalPosition === 'top') {
         style.bottom = '110%';
-        style.top = 'auto';
-      } else if (this.popupVerticalPosition === 'center') {
+      } else if (verticalPosition === 'center') {
         style.top = '50%';
         transforms.push('translateY(-50%)');
       } else {
@@ -510,12 +525,24 @@ export default {
     },
 
     /* ------- Helpers ------- */
+    normalizeOptionValue: function(value, fallback, allowedValues) {
+      var rawValue = value;
+      if (rawValue && typeof rawValue === 'object') {
+        rawValue = rawValue.value || rawValue.id || rawValue.key || rawValue.label;
+      }
+      rawValue = String(rawValue || '').trim().toLowerCase();
+      if (allowedValues.indexOf(rawValue) !== -1) return rawValue;
+      return fallback;
+    },
     getInitial: function(name) {
       return name ? String(name).trim().charAt(0).toUpperCase() : '';
     },
     isGroupLabel: function(label) {
       var value = String(label || '').toUpperCase();
       return ['GROUP', 'GROUPS', 'GRUPO', 'GRUPOS'].includes(value);
+    },
+    isGroupItem: function(item) {
+      return !!(item && item.groupUsers && item.groupUsers.length);
     },
     findGroupById: function(id, list) {
       list = list || this.datasource;
@@ -592,8 +619,8 @@ export default {
       this.updateComponentVariable();
     },
     openGroup: function(group) {
-      if (this.groupClickBehavior === 'select') return;
-      if (group.groupUsers && group.groupUsers.length) {
+      if (this.effectiveGroupClickBehavior === 'select') return;
+      if (this.isGroupItem(group)) {
         this.groupStack.push(this.currentGroup);
         this.currentGroup = group;
         this.currentGroupUsers = this.buildCurrentGroupUsers(group);
@@ -601,7 +628,7 @@ export default {
       }
     },
     handleGroupClick: function(group) {
-      if (this.groupClickBehavior === 'select') {
+      if (this.effectiveGroupClickBehavior === 'select') {
         this.selectGroup(group);
       } else {
         this.openGroup(group);
