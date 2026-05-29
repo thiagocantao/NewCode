@@ -44,6 +44,7 @@
   import FixedListCellEditor from "./components/FixedListCellEditor.js";
   import ResponsibleUserCellEditor from "./components/ResponsibleUserCellEditor.js";
   import { translatePhrase } from "./translation";
+  import { getCellEditorPopupPosition } from "./utils/cellEditorPopupPosition";
   import {
     getCellEditorPopupPosition,
     scheduleCellEditorPopupPositionUpdate,
