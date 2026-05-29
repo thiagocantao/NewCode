@@ -50,6 +50,10 @@
     scheduleCellEditorPopupPositionUpdate,
   } from "./utils/cellEditorPopupPosition";
   import {
+    getCellEditorPopupPosition,
+    scheduleCellEditorPopupPositionUpdate,
+  } from "./utils/cellEditorPopupPosition.js";
+  import {
   applyGlobalGridFontFamily,
   readTypographyVariable,
   DEFAULT_FONT_FAMILY,

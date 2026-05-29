@@ -2,7 +2,7 @@ import { translatePhrase } from "../translation";
 import {
   getCellEditorPopupPosition,
   scheduleCellEditorPopupPositionUpdate,
-} from "../utils/cellEditorPopupPosition";
+} from "../utils/cellEditorPopupPosition.js";
 
 export default class FixedListCellEditor {
   init(params) {

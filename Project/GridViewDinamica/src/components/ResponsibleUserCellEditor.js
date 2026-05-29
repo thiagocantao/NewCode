@@ -1,7 +1,7 @@
 import {
   getCellEditorPopupPosition,
   scheduleCellEditorPopupPositionUpdate,
-} from "../utils/cellEditorPopupPosition";
+} from "../utils/cellEditorPopupPosition.js";
 
 export default class ResponsibleUserCellEditor {
   init(params) { 
