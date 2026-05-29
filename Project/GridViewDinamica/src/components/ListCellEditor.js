@@ -1,8 +1,5 @@
 import { translatePhrase } from "../translation";
-import {
-  getCellEditorPopupPosition,
-  scheduleCellEditorPopupPositionUpdate,
-} from "../utils/cellEditorPopupPosition.js";
+import { getCellEditorPopupPosition } from "../utils/cellEditorPopupPosition";
 
 export default class ListCellEditor {
   init(params) {
@@ -36,7 +33,7 @@ export default class ListCellEditor {
     const identifier = (params.colDef.FieldDB || '').toUpperCase();
     this.isResponsibleUser =
       tag === 'RESPONSIBLEUSERID' || identifier === 'RESPONSIBLEUSERID';
-    const categoryTags = ['CATEGORYID','SUBCATEGORYID','CATEGORYLEVEL3ID'];
+    const categoryTags = ['CATEGORYID', 'SUBCATEGORYID', 'CATEGORYLEVEL3ID'];
     this.isCategoryField = categoryTags.includes(tag) || categoryTags.includes(identifier);
 
     this.isStatusColumn = this.checkIfStatusColumn(params.colDef || {});
@@ -201,7 +198,6 @@ export default class ListCellEditor {
       return label.toLowerCase().includes(t);
     });
     this.renderOptions();
-    scheduleCellEditorPopupPositionUpdate(this.params, this.eGui);
   }
 
   stripHtml(html) {
@@ -270,7 +266,7 @@ export default class ListCellEditor {
         if (styled) return styled;
       }
     } catch (e) {
-      
+
     }
     return value;
   }
@@ -327,7 +323,7 @@ export default class ListCellEditor {
       .map(opt => {
         const formatted = this.formatOption(opt);
         const selected = opt.value == this.value ? ' selected' : '';
-      
+
         if (this.isResponsibleUser) {
           const photo = opt.photo || opt.image || opt.img || '';
           const name = this.stripHtml(String(formatted));
@@ -343,7 +339,7 @@ export default class ListCellEditor {
               </span>
             </div>`;
         }
-      
+
         return `<div class="filter-item${selected}" data-value="${opt.value}"><span class="filter-label">${formatted}</span></div>`;
       })
       .join('');
@@ -359,7 +355,6 @@ export default class ListCellEditor {
         }
       });
     });
-    scheduleCellEditorPopupPositionUpdate(this.params, this.eGui);
   }
 
   getGui() {
@@ -368,7 +363,6 @@ export default class ListCellEditor {
 
   afterGuiAttached() {
     if (this.searchInput) this.searchInput.focus();
-    scheduleCellEditorPopupPositionUpdate(this.params, this.eGui);
   }
 
   getValue() {
@@ -376,7 +370,7 @@ export default class ListCellEditor {
     return this.value;
   }
 
-  destroy() {}
+  destroy() { }
 
   isPopup() {
     return true;
