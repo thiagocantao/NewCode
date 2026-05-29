@@ -101,7 +101,7 @@
     </div>
 
     <!-- Dropdown -->
-    <div v-if="isOpen" class="user-selector__dropdown">
+    <div v-if="isOpen" class="user-selector__dropdown" :style="dropdownPositionStyle">
       <template v-if="currentGroup">
         <div class="user-selector__group-header">
           <span class="material-symbols-outlined user-selector__back" @click.stop="backToRoot">chevron_left</span>
@@ -282,9 +282,24 @@ export default {
     authToken:         String,
     groupClickBehavior: {
       type: String,
-      default: 'open',
+      default: 'select',
       validator: function(value) {
         return ['open', 'select'].indexOf(value) !== -1;
+      }
+    },
+    showAssignToTeam: { type: Boolean, default: true },
+    popupHorizontalPosition: {
+      type: String,
+      default: 'left',
+      validator: function(value) {
+        return ['left', 'center', 'right'].indexOf(value) !== -1;
+      }
+    },
+    popupVerticalPosition: {
+      type: String,
+      default: 'bottom',
+      validator: function(value) {
+        return ['top', 'center', 'bottom'].indexOf(value) !== -1;
       }
     }
   },
@@ -313,11 +328,12 @@ export default {
       if (!this.search) return list;
       var q = String(this.search).toLowerCase();
       if (this.currentGroup) {
-        var assignItem = list[0];
-        var rest = list.slice(1).filter(function(u) {
+        var hasAssignItem = list[0] && list[0].isAssignToTeam;
+        var assignItem = hasAssignItem ? list[0] : null;
+        var rest = (hasAssignItem ? list.slice(1) : list).filter(function(u) {
           return String(u.name || '').toLowerCase().includes(q);
         });
-        return [assignItem].concat(rest);
+        return assignItem ? [assignItem].concat(rest) : rest;
       }
       return list.filter(function(u) {
         return String(u.name || '').toLowerCase().includes(q);
@@ -356,6 +372,33 @@ export default {
     containerStyle: function() {
       if (!this.maxWidth) return {};
       return { maxWidth: (typeof this.maxWidth === 'number' ? this.maxWidth + 'px' : this.maxWidth) };
+    },
+    dropdownPositionStyle: function() {
+      var style = {};
+      var transforms = [];
+
+      if (this.popupHorizontalPosition === 'center') {
+        style.left = '50%';
+        transforms.push('translateX(-50%)');
+      } else if (this.popupHorizontalPosition === 'right') {
+        style.right = '0';
+        style.left = 'auto';
+      } else {
+        style.left = '0';
+      }
+
+      if (this.popupVerticalPosition === 'top') {
+        style.bottom = '110%';
+        style.top = 'auto';
+      } else if (this.popupVerticalPosition === 'center') {
+        style.top = '50%';
+        transforms.push('translateY(-50%)');
+      } else {
+        style.top = '110%';
+      }
+
+      if (transforms.length) style.transform = transforms.join(' ');
+      return style;
     },
     avatarThemeStyle: function() {
       var theme =
@@ -521,6 +564,11 @@ export default {
       this.emitSelection({ userid: null, groupid: null });
       this.updateComponentVariable();
     },
+    buildCurrentGroupUsers: function(group) {
+      var users = (group && group.groupUsers) ? group.groupUsers : [];
+      if (!this.showAssignToTeam) return users;
+      return [{ id: null, name: 'Assign to team', isAssignToTeam: true }].concat(users);
+    },
     selectUser: function(user) {
       var value;
       if (this.currentGroup) {
@@ -548,7 +596,7 @@ export default {
       if (group.groupUsers && group.groupUsers.length) {
         this.groupStack.push(this.currentGroup);
         this.currentGroup = group;
-        this.currentGroupUsers = [{ id: null, name: 'Assign to team', isAssignToTeam: true }].concat(group.groupUsers);
+        this.currentGroupUsers = this.buildCurrentGroupUsers(group);
         this.search = '';
       }
     },
@@ -570,7 +618,7 @@ export default {
     backToRoot: function() {
       this.currentGroup = this.groupStack.length ? this.groupStack.pop() : null;
       this.currentGroupUsers = this.currentGroup
-        ? [{ id: null, name: 'Assign to team', isAssignToTeam: true }].concat(this.currentGroup.groupUsers || [])
+        ? this.buildCurrentGroupUsers(this.currentGroup)
         : [];
       this.search = '';
       this.isOpen = true;
