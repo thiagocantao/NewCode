@@ -1,4 +1,7 @@
-import { getCellEditorPopupPosition } from "../utils/cellEditorPopupPosition";
+import {
+  getCellEditorPopupPosition,
+  scheduleCellEditorPopupPositionUpdate,
+} from "../utils/cellEditorPopupPosition";
 
 export default class ResponsibleUserCellEditor {
   init(params) { 
@@ -123,6 +126,7 @@ export default class ResponsibleUserCellEditor {
     // Render inicial (root)
     this.applyRootFilter();
     this.render();
+    scheduleCellEditorPopupPositionUpdate(this.params, this.eGui);
   }
 
   // --------- HELPERS DE RESOLUÇÃO (nomes por id) ----------
@@ -309,6 +313,7 @@ export default class ResponsibleUserCellEditor {
       this.groupCount.style.display = 'none';
       this.renderRootView();
     }
+    scheduleCellEditorPopupPositionUpdate(this.params, this.eGui);
   }
 
   // ROOT VIEW
@@ -579,6 +584,7 @@ export default class ResponsibleUserCellEditor {
 
   afterGuiAttached() {
     if (this.searchInput) this.searchInput.focus();
+    scheduleCellEditorPopupPositionUpdate(this.params, this.eGui);
   }
 
   getValue() {
