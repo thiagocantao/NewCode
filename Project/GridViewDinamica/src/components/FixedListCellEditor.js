@@ -1,8 +1,5 @@
 import { translatePhrase } from "../translation";
-import {
-  getCellEditorPopupPosition,
-  scheduleCellEditorPopupPositionUpdate,
-} from "../utils/cellEditorPopupPosition.js";
+import { getCellEditorPopupPosition } from "../utils/cellEditorPopupPosition";
 
 export default class FixedListCellEditor {
   init(params) {
@@ -327,7 +324,6 @@ export default class FixedListCellEditor {
       this.ensureKnownGroups(this.filteredOptions);
     }
     this.renderOptions();
-    scheduleCellEditorPopupPositionUpdate(this.params, this.eGui);
   }
 
   getGroupName(opt) {
@@ -567,7 +563,6 @@ export default class FixedListCellEditor {
         }
       });
     });
-    scheduleCellEditorPopupPositionUpdate(this.params, this.eGui);
   }
 
   getGui() {
@@ -576,7 +571,6 @@ export default class FixedListCellEditor {
 
   afterGuiAttached() {
     if (this.searchInput) this.searchInput.focus();
-    scheduleCellEditorPopupPositionUpdate(this.params, this.eGui);
   }
 
   getValue() {
