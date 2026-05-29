@@ -94,7 +94,8 @@
                 <template v-else>
                     <template v-if="normalizedColumns.length">
                         <div v-for="column in normalizedColumns" :key="`cell-${row.id}-${column.field}`"
-                            class="tree-cell" :class="{ 'tree-cell--chiplist': column.type === 'chiplist' }" :style="getColumnStyle(column)">
+                            class="tree-cell" :class="{ 'tree-cell--chiplist': column.type === 'chiplist' }"
+                            :style="getColumnStyle(column)">
                             <template v-if="column.type === 'avatar'">
                                 <div class="tree-cell-avatar">
                                     <img
@@ -122,11 +123,8 @@
                                 </div>
                             </template>
                             <template v-else-if="column.type === 'chiplist'">
-                                <div
-                                    class="tree-cell-chip-list"
-                                    @mouseenter="onChipCellHover(row, column, true)"
-                                    @mouseleave="onChipCellHover(row, column, false)"
-                                >
+                                <div class="tree-cell-chip-list" @mouseenter="onChipCellHover(row, column, true)"
+                                    @mouseleave="onChipCellHover(row, column, false)">
                                     <div class="tree-cell-chip-list__chips">
                                         <span
                                             v-for="(chip, index) in getVisibleChips(row, column)"
@@ -143,10 +141,7 @@
                                             +{{ getHiddenChipCount(row, column) }}
                                         </span>
                                     </div>
-                                    <div
-                                        v-if="shouldShowChipPopup(row, column)"
-                                        class="tree-cell-chip-list__popup"
-                                    >
+                                    <div v-if="shouldShowChipPopup(row, column)" class="tree-cell-chip-list__popup">
                                         <span
                                             v-for="(chip, index) in getChipList(row, column)"
                                             :key="`popup-chip-${row.id}-${column.field}-${index}`"
@@ -173,8 +168,7 @@
                     <span v-else class="node-label" v-html="highlightLabel(row.label)"></span>
                 </template>
 
-                <div class="row-actions"
-                    @click.stop>
+                <div class="row-actions" @click.stop>
                     <button
                         v-if="row.canAddChild && !isRowBeingEdited(row) && !isReadOnly && !isEditingAnyNode"
                         class="icon-button row-action-button"
@@ -718,7 +712,6 @@
 
             if (textColor) {
                 style.color = textColor;
-                style.border = `1px solid ${textColor}`;
             }
             if (backgroundColor) style.backgroundColor = backgroundColor;
 
