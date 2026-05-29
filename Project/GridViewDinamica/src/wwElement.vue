@@ -45,6 +45,10 @@
   import ResponsibleUserCellEditor from "./components/ResponsibleUserCellEditor.js";
   import { translatePhrase } from "./translation";
   import {
+    getCellEditorPopupPosition,
+    scheduleCellEditorPopupPositionUpdate,
+  } from "./utils/cellEditorPopupPosition";
+  import {
   applyGlobalGridFontFamily,
   readTypographyVariable,
   DEFAULT_FONT_FAMILY,
@@ -178,6 +182,7 @@
         this.ensureKnownGroups(this.filteredOptions);
       }
       this.renderOptions();
+      scheduleCellEditorPopupPositionUpdate(this.params, this.eGui);
     }
     getGroupName(opt) {
       const groupName = opt?.class_name;
@@ -372,15 +377,20 @@
           }
         });
       });
+      scheduleCellEditorPopupPositionUpdate(this.params, this.eGui);
     }
     getGui() { return this.eGui; }
-    afterGuiAttached() { if (this.searchInput) this.searchInput.focus(); }
+    afterGuiAttached() {
+      if (this.searchInput) this.searchInput.focus();
+      scheduleCellEditorPopupPositionUpdate(this.params, this.eGui);
+    }
     getValue() {
       this.updateDisplayLabel(this.value);
       return this.value;
     }
     destroy() {}
     isPopup() { return true; }
+    getPopupPosition() { return getCellEditorPopupPosition(this.params, this.eGui); }
   }
   import './components/list-filter.css';
 
