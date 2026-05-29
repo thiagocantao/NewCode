@@ -1,10 +1,7 @@
-import {
-  getCellEditorPopupPosition,
-  scheduleCellEditorPopupPositionUpdate,
-} from "../utils/cellEditorPopupPosition.js";
+import { getCellEditorPopupPosition } from "../utils/cellEditorPopupPosition";
 
 export default class ResponsibleUserCellEditor {
-  init(params) { 
+  init(params) {
     this.params = params;
 
     // Renderer params (mantém compatibilidade com seu formatter/styleArray)
@@ -102,13 +99,13 @@ export default class ResponsibleUserCellEditor {
     this.eGui.querySelector('[data-role="dropdown"]').prepend(closeBtn);
 
     // Refs
-    this.searchRow   = this.eGui.querySelector('[data-role="search-row"]');
+    this.searchRow = this.eGui.querySelector('[data-role="search-row"]');
     this.searchInput = this.eGui.querySelector('.user-selector__input');
     this.groupHeader = this.eGui.querySelector('[data-role="group-header"]');
-    this.backBtn     = this.eGui.querySelector('[data-role="back-btn"]');
-    this.groupTitle  = this.eGui.querySelector('[data-role="group-title"]');
-    this.groupCount  = this.eGui.querySelector('[data-role="group-count"]');
-    this.listEl      = this.eGui.querySelector('[data-role="list"]');
+    this.backBtn = this.eGui.querySelector('[data-role="back-btn"]');
+    this.groupTitle = this.eGui.querySelector('[data-role="group-title"]');
+    this.groupCount = this.eGui.querySelector('[data-role="group-count"]');
+    this.listEl = this.eGui.querySelector('[data-role="list"]');
     this.noResultsEl = this.eGui.querySelector('[data-role="no-results"]');
 
     // Eventos
@@ -126,7 +123,6 @@ export default class ResponsibleUserCellEditor {
     // Render inicial (root)
     this.applyRootFilter();
     this.render();
-    scheduleCellEditorPopupPositionUpdate(this.params, this.eGui);
   }
 
   // --------- HELPERS DE RESOLUÇÃO (nomes por id) ----------
@@ -262,7 +258,7 @@ export default class ResponsibleUserCellEditor {
         if (styled) return styled;
       }
     } catch (e) {
-      
+
     }
     return value;
   }
@@ -314,7 +310,6 @@ export default class ResponsibleUserCellEditor {
       this.groupCount.style.display = 'none';
       this.renderRootView();
     }
-    scheduleCellEditorPopupPositionUpdate(this.params, this.eGui);
   }
 
   // ROOT VIEW
@@ -355,7 +350,7 @@ export default class ResponsibleUserCellEditor {
         const val = btn.getAttribute('data-id');
         // callback opcional
         if (typeof this.params.colDef?.onSelect === 'function') {
-          try { this.params.colDef.onSelect({ userid: val, groupid: null }, this.params); } catch {}
+          try { this.params.colDef.onSelect({ userid: val, groupid: null }, this.params); } catch { }
         }
         this.postGroupAndUser({ p_groupid: null, p_responsibleuserid: val });
         const selected = this.options.find(u => String(u.id || u.value) === String(val));
@@ -396,8 +391,8 @@ export default class ResponsibleUserCellEditor {
     const avatarHTML = isGroupType
       ? `<span style="font-size: 19px; padding-top:3px; padding-left:3px" class="material-symbols-outlined user-selector__group-icon">groups</span>`
       : (photo
-          ? `<img src="${photo}" alt="User Photo" />`
-          : `<span class="user-selector__initial">${this.getInitial(user.name || plain)}</span>`);
+        ? `<img src="${photo}" alt="User Photo" />`
+        : `<span class="user-selector__initial">${this.getInitial(user.name || plain)}</span>`);
 
     return `
       <div class="user-selector__item" ${actionAttr} data-id="${user.id || user.value}">
@@ -424,7 +419,7 @@ export default class ResponsibleUserCellEditor {
       btn.addEventListener('click', () => {
         const payload = { userid: null, groupid: this.currentGroup.id };
         if (typeof this.params.colDef?.onSelect === 'function') {
-          try { this.params.colDef.onSelect(payload, this.params); } catch {}
+          try { this.params.colDef.onSelect(payload, this.params); } catch { }
         }
         this.postGroupAndUser({ p_groupid: this.currentGroup.id, p_responsibleuserid: null });
         this.commitSelection(payload, {
@@ -439,7 +434,7 @@ export default class ResponsibleUserCellEditor {
         const userId = btn.getAttribute('data-id');
         const payload = { userid: userId, groupid: this.currentGroup.id };
         if (typeof this.params.colDef?.onSelect === 'function') {
-          try { this.params.colDef.onSelect(payload, this.params); } catch {}
+          try { this.params.colDef.onSelect(payload, this.params); } catch { }
         }
         this.postGroupAndUser({ p_groupid: this.currentGroup.id, p_responsibleuserid: userId });
 
@@ -473,8 +468,8 @@ export default class ResponsibleUserCellEditor {
     const avatarHTML = isAssign
       ? `<span style="font-size: 19px; " class="material-symbols-outlined user-selector__group-icon">groups</span>`
       : (photo
-          ? `<img src="${photo}" alt="User Photo" />`
-          : `<span class="user-selector__initial">${this.getInitial(name)}</span>`);
+        ? `<img src="${photo}" alt="User Photo" />`
+        : `<span class="user-selector__initial">${this.getInitial(name)}</span>`);
 
     return `
       <div class="user-selector__item" ${actionAttr} ${idAttr}>
@@ -495,7 +490,7 @@ export default class ResponsibleUserCellEditor {
       ? { userid: sel.userid ?? null, groupid: sel.groupid ?? null }
       : { userid: sel ?? null, groupid: null };
 
-    const userId  = payload.userid ?? null;
+    const userId = payload.userid ?? null;
     const groupId = payload.groupid ?? null;
 
     // Mantém payload completo internamente (para getValue/efeitos)
@@ -511,13 +506,13 @@ export default class ResponsibleUserCellEditor {
     if (this.isResponsibleUser) {
       // IDs
       row.ResponsibleUserID = userId;
-      row.AssignedGroupID   = groupId;
+      row.AssignedGroupID = groupId;
 
       // Nomes (usa meta se veio, senão resolve por datasource)
-      const resolvedUserName  = meta.userName  ?? this.getUserNameById(userId);
+      const resolvedUserName = meta.userName ?? this.getUserNameById(userId);
       const resolvedGroupName = meta.groupName ?? this.getGroupNameById(groupId);
 
-      row.ResponsibleUser   = userId  ? resolvedUserName  : null;
+      row.ResponsibleUser = userId ? resolvedUserName : null;
       row.AssignedGroupName = groupId ? resolvedGroupName : null;
     }
 
@@ -567,7 +562,7 @@ export default class ResponsibleUserCellEditor {
         });
       }
     } catch (e) {
-      
+
     }
   }
 
@@ -586,7 +581,6 @@ export default class ResponsibleUserCellEditor {
 
   afterGuiAttached() {
     if (this.searchInput) this.searchInput.focus();
-    scheduleCellEditorPopupPositionUpdate(this.params, this.eGui);
   }
 
   getValue() {
@@ -601,7 +595,7 @@ export default class ResponsibleUserCellEditor {
     return this.value;
   }
 
-  destroy() {}
+  destroy() { }
 
   isPopup() {
     return true;
