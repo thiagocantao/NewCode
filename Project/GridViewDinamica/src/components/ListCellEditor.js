@@ -1,4 +1,5 @@
 import { translatePhrase } from "../translation";
+import { getCellEditorPopupPosition } from "../utils/cellEditorPopupPosition";
 
 export default class ListCellEditor {
   init(params) {
@@ -373,5 +374,9 @@ export default class ListCellEditor {
 
   isPopup() {
     return true;
+  }
+
+  getPopupPosition() {
+    return getCellEditorPopupPosition(this.params, this.eGui);
   }
 }
