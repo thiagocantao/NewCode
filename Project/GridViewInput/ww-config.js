@@ -1,3 +1,21 @@
+const getListDataSourceTemplate = (dataSource) => {
+  let source = dataSource;
+
+  if (typeof source === "string") {
+    try {
+      source = JSON.parse(source);
+    } catch (error) {
+      source = [];
+    }
+  }
+
+  const rows = wwLib.wwUtils.getDataFromCollection(source);
+  if (Array.isArray(rows)) return rows[0] || {};
+  if (!rows || typeof rows !== "object") return {};
+
+  return Object.values(rows).find(value => Array.isArray(value))?.[0] || {};
+};
+
 export default {
   editor: {
     label: {
@@ -976,26 +994,25 @@ export default {
                   array?.item?.cellDataType === "custom",
               },
               listDataSource: {
-                label: "List data source",
-                type: "ObjectList",
-                options: {
-                  useSchema: true,
-                },
+                label: "List data source JSON",
+                type: "RawObject",
+                defaultValue: [],
                 bindable: true,
                 hidden: array?.item?.cellDataType !== "list",
                 bindingValidation: {
                   validations: [
                     { type: "array" },
                     { type: "object" },
+                    { type: "string" },
                   ],
-                  tooltip: "A collection or an array of objects to load the list editor.",
+                  tooltip: "JSON array/object or collection used to load the list editor.",
                 },
               },
               listIdColumn: {
                 label: "List id column",
                 type: "ObjectPropertyPath",
                 options: {
-                  object: wwLib.wwUtils.getDataFromCollection(array?.item?.listDataSource)?.[0] || {},
+                  object: getListDataSourceTemplate(array?.item?.listDataSource),
                 },
                 bindable: true,
                 hidden: array?.item?.cellDataType !== "list",
@@ -1004,7 +1021,7 @@ export default {
                 label: "List label column",
                 type: "ObjectPropertyPath",
                 options: {
-                  object: wwLib.wwUtils.getDataFromCollection(array?.item?.listDataSource)?.[0] || {},
+                  object: getListDataSourceTemplate(array?.item?.listDataSource),
                 },
                 bindable: true,
                 hidden: array?.item?.cellDataType !== "list",

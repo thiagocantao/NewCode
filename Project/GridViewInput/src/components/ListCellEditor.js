@@ -2,7 +2,11 @@ export default class ListCellEditor {
   init(params) {
     this.params = params;
     const colDef = params.colDef || {};
-    this.options = this.normalizeOptions(colDef.listDataSource, colDef.listIdColumn, colDef.listLabelColumn);
+    this.options = this.normalizeOptions(
+      colDef.listDataSource,
+      colDef.listIdColumn,
+      colDef.listLabelColumn
+    );
     this.filteredOptions = [...this.options];
     this.value = params.value;
 
@@ -28,9 +32,7 @@ export default class ListCellEditor {
   }
 
   normalizeOptions(dataSource, idColumn, labelColumn) {
-    const rows = window.wwLib?.wwUtils?.getDataFromCollection
-      ? window.wwLib.wwUtils.getDataFromCollection(dataSource)
-      : dataSource;
+    const rows = this.resolveRows(dataSource);
 
     if (!Array.isArray(rows)) return [];
 
@@ -38,13 +40,42 @@ export default class ListCellEditor {
       if (item && typeof item === 'object') {
         const fallbackIdKey = Object.keys(item).find(key => key.toLowerCase() === 'id');
         const fallbackLabelKey = Object.keys(item).find(key => ['label', 'name', 'title'].includes(key.toLowerCase()));
-        const value = idColumn ? item[idColumn] : item[fallbackIdKey] ?? item.value;
-        const label = labelColumn ? item[labelColumn] : item[fallbackLabelKey] ?? item.label ?? item.name ?? value;
+        const value = idColumn ? this.getValueByPath(item, idColumn) : item[fallbackIdKey] ?? item.value;
+        const label = labelColumn ? this.getValueByPath(item, labelColumn) : item[fallbackLabelKey] ?? item.label ?? item.name ?? value;
         return { value, label: label == null ? '' : String(label) };
       }
 
       return { value: item, label: item == null ? '' : String(item) };
     });
+  }
+
+
+  resolveRows(dataSource) {
+    let source = dataSource;
+
+    if (typeof source === 'string') {
+      try {
+        source = JSON.parse(source);
+      } catch (error) {
+        source = [];
+      }
+    }
+
+    const collectionRows = window.wwLib?.wwUtils?.getDataFromCollection
+      ? window.wwLib.wwUtils.getDataFromCollection(source)
+      : source;
+
+    if (Array.isArray(collectionRows)) return collectionRows;
+    if (!collectionRows || typeof collectionRows !== 'object') return [];
+
+    const arrayValue = Object.values(collectionRows).find(value => Array.isArray(value));
+    return arrayValue || [];
+  }
+
+  getValueByPath(item, path) {
+    return String(path)
+      .split('.')
+      .reduce((value, key) => (value && value[key] !== undefined ? value[key] : undefined), item);
   }
 
   renderOptions() {
@@ -55,7 +86,7 @@ export default class ListCellEditor {
       optionElement.type = 'button';
       optionElement.className = 'grid-list-cell-editor__option';
       optionElement.textContent = option.label;
-      if (option.value === this.value) optionElement.classList.add('selected');
+      if (String(option.value) === String(this.value)) optionElement.classList.add('selected');
 
       optionElement.addEventListener('click', () => {
         this.value = option.value;

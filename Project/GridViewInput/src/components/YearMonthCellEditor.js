@@ -1,7 +1,7 @@
 export default class YearMonthCellEditor {
   init(params) {
     this.params = params;
-    this.mode = params.colDef?.cellDataType === 'month' ? 'month' : 'year';
+    this.mode = params.yearMonthMode || params.colDef?.yearMonthMode || 'year';
     this.value = this.normalizeValue(params.value);
 
     if (this.mode === 'year') {

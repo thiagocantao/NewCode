@@ -491,6 +491,8 @@ export default {
           return result;
         };
 
+        const isEditable = col.editable !== false;
+
         switch (col.cellDataType) {
           case "action": {
             const result = {
@@ -595,7 +597,7 @@ export default {
               field: col.field,
               sortable: col.sortable,
               filter: col.filter,
-              editable: col.editable,
+              editable: isEditable,
               listDataSource: col.listDataSource,
               listIdColumn: col.listIdColumn,
               listLabelColumn: col.listLabelColumn,
@@ -616,28 +618,30 @@ export default {
             if (col.cellDataType === 'dateString') {
               result.filter = 'agDateColumnFilter';
               result.cellDataType = 'dateString';
-              if (col.editable) {
+              if (isEditable) {
                 result.cellEditor = 'agDateStringCellEditor';
               }
             }
             // Garante filtro de data para campos do tipo Year/Month
             if (col.cellDataType === 'year' || col.cellDataType === 'month') {
               result.filter = col.cellDataType === 'year' ? 'agNumberColumnFilter' : 'agTextColumnFilter';
-              result.cellDataType = col.cellDataType === 'year' ? 'number' : 'text';
-              if (col.editable) {
+              result.cellDataType = false;
+              result.yearMonthMode = col.cellDataType;
+              if (isEditable) {
                 result.cellEditor = YearMonthCellEditor;
+                result.cellEditorParams = { yearMonthMode: col.cellDataType };
               }
             }
             // Garante filtro customizado de lista para campos do tipo List
             if (col.cellDataType === 'list') {
               result.filter = ListFilterRenderer;
-              if (col.editable) {
+              if (isEditable) {
                 result.cellEditor = ListCellEditor;
               }
-              const listRows = wwLib.wwUtils.getDataFromCollection(col.listDataSource);
+              const listRows = this.resolveListRows(col.listDataSource);
               if (Array.isArray(listRows) && listRows.length && col.listIdColumn && col.listLabelColumn) {
                 const labelsById = new Map(
-                  listRows.map(item => [String(item?.[col.listIdColumn]), item?.[col.listLabelColumn]])
+                  listRows.map(item => [String(this.getValueByPath(item, col.listIdColumn)), this.getValueByPath(item, col.listLabelColumn)])
                 );
                 result.valueFormatter = params => labelsById.get(String(params.value)) ?? params.value ?? '';
               }
@@ -1000,6 +1004,28 @@ export default {
       return {
         backgroundColor: this.content.selectedActionRowColor,
       };
+    },
+    resolveListRows(dataSource) {
+      let source = dataSource;
+
+      if (typeof source === 'string') {
+        try {
+          source = JSON.parse(source);
+        } catch (error) {
+          source = [];
+        }
+      }
+
+      const rows = wwLib.wwUtils.getDataFromCollection(source);
+      if (Array.isArray(rows)) return rows;
+      if (!rows || typeof rows !== 'object') return [];
+
+      return Object.values(rows).find(value => Array.isArray(value)) || [];
+    },
+    getValueByPath(item, path) {
+      return String(path)
+        .split('.')
+        .reduce((value, key) => (value && value[key] !== undefined ? value[key] : undefined), item);
     },
     /* wwEditor:start */
     generateColumns() {
