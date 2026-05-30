@@ -623,13 +623,16 @@ export default {
               }
             }
             // Garante filtro de data para campos do tipo Year/Month
-            if (col.cellDataType === 'year' || col.cellDataType === 'month') {
+            if (['year', 'month', 'yearMonth'].includes(col.cellDataType)) {
               result.filter = col.cellDataType === 'year' ? 'agNumberColumnFilter' : 'agTextColumnFilter';
               result.cellDataType = false;
               result.yearMonthMode = col.cellDataType;
               if (isEditable) {
                 result.cellEditor = YearMonthCellEditor;
                 result.cellEditorParams = { yearMonthMode: col.cellDataType };
+              }
+              if (col.cellDataType === 'yearMonth') {
+                result.valueFormatter = params => this.formatYearMonthValue(params.value, col.yearMonthFormat);
               }
             }
             // Garante filtro customizado de lista para campos do tipo List
@@ -1004,6 +1007,34 @@ export default {
       return {
         backgroundColor: this.content.selectedActionRowColor,
       };
+    },
+    formatYearMonthValue(value, format = 'YYYY-MM') {
+      if (value == null || value === '') return '';
+      const match = String(value).match(/^(\d{4})-(\d{1,2})/);
+      if (!match) return value;
+
+      const year = match[1];
+      const month = String(match[2]).padStart(2, '0');
+      const monthIndex = Number(month) - 1;
+      const locale = this.content.lang && this.content.lang !== 'custom' ? this.content.lang : undefined;
+      const shortMonth = new Intl.DateTimeFormat(locale, { month: 'short' }).format(new Date(Number(year), monthIndex, 1));
+      const longMonth = new Intl.DateTimeFormat(locale, { month: 'long' }).format(new Date(Number(year), monthIndex, 1));
+
+      switch (format || 'YYYY-MM') {
+        case 'MM/YYYY':
+          return `${month}/${year}`;
+        case 'YYYY/MM':
+          return `${year}/${month}`;
+        case 'MM-YYYY':
+          return `${month}-${year}`;
+        case 'MMM YYYY':
+          return `${shortMonth} ${year}`;
+        case 'MMMM YYYY':
+          return `${longMonth} ${year}`;
+        case 'YYYY-MM':
+        default:
+          return `${year}-${month}`;
+      }
     },
     resolveListRows(dataSource) {
       let source = dataSource;

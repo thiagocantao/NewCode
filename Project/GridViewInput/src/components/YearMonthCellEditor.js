@@ -3,13 +3,15 @@ export default class YearMonthCellEditor {
     this.params = params;
     this.mode = params.yearMonthMode || params.colDef?.yearMonthMode || 'year';
     this.value = this.normalizeValue(params.value);
+    this.selectedYear = this.getInitialYear();
+    this.selectedMonth = this.getInitialMonth();
 
-    if (this.mode === 'year') {
-      this.createYearPicker();
+    if (this.mode === 'month') {
+      this.createMonthPicker();
       return;
     }
 
-    this.createMonthPicker();
+    this.createYearPicker();
   }
 
   createMonthPicker() {
@@ -37,8 +39,7 @@ export default class YearMonthCellEditor {
   }
 
   createYearPicker() {
-    const currentYear = Number(this.value) || new Date().getFullYear();
-    this.decadeStart = Math.floor(currentYear / 10) * 10;
+    this.decadeStart = Math.floor(this.selectedYear / 10) * 10;
 
     this.eGui = document.createElement('div');
     this.eGui.className = 'grid-year-picker';
@@ -55,7 +56,7 @@ export default class YearMonthCellEditor {
       </div>
       <div class="grid-year-picker__years">
         ${years.map(year => `
-          <button type="button" class="grid-year-picker__year${String(year) === String(this.value) ? ' selected' : ''}" data-year="${year}">
+          <button type="button" class="grid-year-picker__year${year === this.selectedYear ? ' selected' : ''}" data-year="${year}">
             ${year}
           </button>
         `).join('')}
@@ -72,7 +73,47 @@ export default class YearMonthCellEditor {
     });
     this.eGui.querySelectorAll('[data-year]').forEach(button => {
       button.addEventListener('click', () => {
-        this.value = button.dataset.year;
+        this.selectedYear = Number(button.dataset.year);
+        this.value = String(this.selectedYear);
+
+        if (this.mode === 'yearMonth') {
+          this.renderMonthStep();
+        } else {
+          this.params.api?.stopEditing?.();
+        }
+      });
+    });
+  }
+
+  renderMonthStep() {
+    const monthFormatter = new Intl.DateTimeFormat(undefined, { month: 'short' });
+    const months = Array.from({ length: 12 }, (_, index) => ({
+      value: String(index + 1).padStart(2, '0'),
+      label: monthFormatter.format(new Date(this.selectedYear, index, 1)),
+    }));
+
+    this.eGui.innerHTML = `
+      <div class="grid-year-picker__header">
+        <button type="button" class="grid-year-picker__nav" data-action="back" aria-label="Back to years">‹</button>
+        <span>${this.selectedYear}</span>
+        <span class="grid-year-picker__nav" aria-hidden="true"></span>
+      </div>
+      <div class="grid-year-picker__years">
+        ${months.map(month => `
+          <button type="button" class="grid-year-picker__year${month.value === this.selectedMonth ? ' selected' : ''}" data-month="${month.value}">
+            ${month.label}
+          </button>
+        `).join('')}
+      </div>
+    `;
+
+    this.eGui.querySelector('[data-action="back"]')?.addEventListener('click', () => {
+      this.renderYearPicker();
+    });
+    this.eGui.querySelectorAll('[data-month]').forEach(button => {
+      button.addEventListener('click', () => {
+        this.selectedMonth = button.dataset.month;
+        this.value = `${this.selectedYear}-${this.selectedMonth}`;
         this.params.api?.stopEditing?.();
       });
     });
@@ -91,13 +132,23 @@ export default class YearMonthCellEditor {
     if (value == null || value === '') return '';
     const stringValue = String(value);
 
-    if (this.mode === 'month') {
-      const match = stringValue.match(/^(\d{4})-(\d{2})/);
-      return match ? `${match[1]}-${match[2]}` : stringValue;
+    if (this.mode === 'month' || this.mode === 'yearMonth') {
+      const match = stringValue.match(/^(\d{4})-(\d{1,2})/);
+      return match ? `${match[1]}-${String(match[2]).padStart(2, '0')}` : stringValue;
     }
 
     const yearMatch = stringValue.match(/\d{4}/);
     return yearMatch ? yearMatch[0] : stringValue;
+  }
+
+  getInitialYear() {
+    const yearMatch = String(this.value || '').match(/\d{4}/);
+    return yearMatch ? Number(yearMatch[0]) : new Date().getFullYear();
+  }
+
+  getInitialMonth() {
+    const monthMatch = String(this.value || '').match(/^\d{4}-(\d{1,2})/);
+    return monthMatch ? String(monthMatch[1]).padStart(2, '0') : String(new Date().getMonth() + 1).padStart(2, '0');
   }
 
   getGui() {
@@ -118,6 +169,6 @@ export default class YearMonthCellEditor {
   }
 
   isPopup() {
-    return this.mode === 'year';
+    return this.mode !== 'month';
   }
 }

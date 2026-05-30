@@ -950,6 +950,7 @@ export default {
                     { value: "dateString", label: "Date" },
                     { value: "year", label: "Year" },
                     { value: "month", label: "Month" },
+                    { value: "yearMonth", label: "YearMonth" },
                     { value: "image", label: "Image" },
                     { value: "action", label: "Action" },
                     { value: "custom", label: "Custom" },
@@ -992,6 +993,23 @@ export default {
                   array?.item?.cellDataType === "image" ||
                   !array?.item?.useCustomLabel ||
                   array?.item?.cellDataType === "custom",
+              },
+              yearMonthFormat: {
+                label: "YearMonth display format",
+                type: "TextSelect",
+                options: {
+                  options: [
+                    { value: "YYYY-MM", label: "YYYY-MM", default: true },
+                    { value: "MM/YYYY", label: "MM/YYYY" },
+                    { value: "YYYY/MM", label: "YYYY/MM" },
+                    { value: "MM-YYYY", label: "MM-YYYY" },
+                    { value: "MMM YYYY", label: "MMM YYYY" },
+                    { value: "MMMM YYYY", label: "MMMM YYYY" },
+                  ],
+                },
+                defaultValue: "YYYY-MM",
+                bindable: true,
+                hidden: array?.item?.cellDataType !== "yearMonth",
               },
               listDataSource: {
                 label: "List data source JSON",
