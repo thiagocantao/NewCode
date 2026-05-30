@@ -11,7 +11,8 @@
       @first-data-rendered="onFirstDataRendered"
       @row-selected="onRowSelected" @selection-changed="onSelectionChanged"
       @cell-value-changed="onCellValueChanged" @filter-changed="onFilterChanged" @sort-changed="onSortChanged"
-      @row-clicked="onRowClicked" @cell-key-down="onCellKeyDown" @cell-editing-stopped="onCellEditingStopped">
+      @cell-clicked="onCellClicked" @row-clicked="onRowClicked" @cell-key-down="onCellKeyDown"
+      @cell-editing-stopped="onCellEditingStopped">
     </ag-grid-vue>
   </div>
 </template>
@@ -92,6 +93,35 @@ export default {
         defaultValue: {},
         readonly: true,
       });
+    const { value: gridRecords, setValue: setGridRecords } =
+      wwLib.wwVariable.useComponentVariable({
+        uid: props.uid,
+        name: "gridRecords",
+        type: "array",
+        defaultValue: [],
+        readonly: true,
+      });
+
+    const sanitizeGridRow = (row) => {
+      const next = { ...(row || {}) };
+      delete next.__isInputRow;
+      delete next.__gridInputRowIndex;
+      delete next.__gridInputRowKey;
+      return next;
+    };
+
+    const normalizeGridRecords = (data) => {
+      const rows = wwLib.wwUtils.getDataFromCollection(data);
+      return Array.isArray(rows) ? rows.map(sanitizeGridRow) : [];
+    };
+
+    watch(
+      () => props.content.rowData,
+      (newData) => {
+        setGridRecords(normalizeGridRecords(newData));
+      },
+      { deep: true, immediate: true }
+    );
 
     const getAppLanguage = () => {
       let value = null;
@@ -314,6 +344,9 @@ export default {
       onSelectionChanged,
       gridApi,
       setSelectedRows,
+      gridRecords,
+      setGridRecords,
+      sanitizeGridRow,
       onFilterChanged,
       onSortChanged,
       onFirstDataRendered,
@@ -350,13 +383,20 @@ export default {
     return {
       pendingEnterEdit: null,
       markedRowId: null,
+      inputRowKey: 0,
     };
   },
   computed: {
     rowData() {
-      const data = wwLib.wwUtils.getDataFromCollection(this.content.rowData);
-      const rows = Array.isArray(data) ? [...data] : [];
-      return [this.createBlankRow(true), ...rows.map((row) => ({ ...row, __isInputRow: false }))];
+      const data = Array.isArray(this.gridRecords) ? this.gridRecords : [];
+      return [
+        this.createBlankRow(true),
+        ...data.map((row, index) => ({
+          ...row,
+          __isInputRow: false,
+          __gridInputRowIndex: index,
+        })),
+      ];
     },
     defaultColDef() {
       return {
@@ -387,13 +427,13 @@ export default {
         },
         cellRenderer: (params) => {
           const isInputRow = !!params.data?.__isInputRow;
-          const symbol = isInputRow ? "+" : "🗑";
+          const iconClass = isInputRow ? "fa-solid fa-plus" : "fa-solid fa-trash";
           const title = isInputRow ? "Incluir linha" : "Excluir linha";
-          return `<button class="grid-input-action-btn" title="${title}">${symbol}</button>`;
+          return `<button class="grid-input-action-btn" type="button" title="${title}" aria-label="${title}"><i class="${iconClass}" aria-hidden="true"></i></button>`;
         },
         onCellClicked: (params) => {
           if (params.data?.__isInputRow) this.addRowFromInput(params.data);
-          else this.deleteRow(params.rowIndex);
+          else this.deleteRow(params.data);
         },
       };
       
@@ -715,7 +755,14 @@ export default {
   },
   methods: {
     getRowId(params) {
-      return this.resolveMappingFormula(this.content.idFormula, params.data);
+      if (params.data?.__isInputRow) {
+        return `__grid_input_row_${params.data.__gridInputRowKey ?? 0}`;
+      }
+      const resolvedId = this.resolveMappingFormula(this.content.idFormula, params.data);
+      if (resolvedId !== undefined && resolvedId !== null && resolvedId !== "") {
+        return resolvedId;
+      }
+      return `__grid_record_${params.data?.__gridInputRowIndex ?? params.node?.rowIndex ?? 0}`;
     },
     onActionTrigger(event) {
       this.$emit("trigger-event", {
@@ -724,7 +771,9 @@ export default {
       });
     },
     onCellValueChanged(event) {
-      this.syncGridData();
+      if (!event.data?.__isInputRow) {
+        this.syncGridData();
+      }
       this.$emit("trigger-event", {
         name: "cellValueChanged",
         event: {
@@ -738,31 +787,58 @@ export default {
     syncGridData() {
       const rows = (this.rowData || [])
         .filter((row) => !row?.__isInputRow)
-        .map((row) => {
-          const next = { ...row };
-          delete next.__isInputRow;
-          return next;
-        });
-      this.$emit("update:content:effect", { rowData: rows });
+        .map((row) => this.sanitizeGridRow(row));
+      this.setGridRecords(rows);
     },
     createBlankRow(isInputRow = false) {
       return (this.content.columns || []).filter((col) => col.field).reduce((acc, col) => {
         acc[col.field] = "";
         return acc;
-      }, { __isInputRow: isInputRow });
+      }, { __isInputRow: isInputRow, __gridInputRowKey: isInputRow ? this.inputRowKey : undefined });
     },
     addRowFromInput(inputRow) {
-      const newRow = { ...inputRow };
-      delete newRow.__isInputRow;
-      const currentRows = Array.isArray(this.content.rowData) ? [...this.content.rowData] : [];
-      this.$emit("update:content:effect", { rowData: [...currentRows, newRow] });
+      const newRow = this.sanitizeGridRow(inputRow);
+      const currentRows = Array.isArray(this.gridRecords) ? [...this.gridRecords] : [];
+      this.setGridRecords([...currentRows, newRow]);
+      this.inputRowKey += 1;
+      this.focusInputRowFirstEditableCell();
     },
-    deleteRow(rowIndex) {
-      const dataIndex = rowIndex - 1;
-      const currentRows = Array.isArray(this.content.rowData) ? [...this.content.rowData] : [];
-      if (dataIndex < 0 || dataIndex >= currentRows.length) return;
+    deleteRow(row) {
+      const dataIndex = Number(row?.__gridInputRowIndex);
+      const currentRows = Array.isArray(this.gridRecords) ? [...this.gridRecords] : [];
+      if (!Number.isInteger(dataIndex) || dataIndex < 0 || dataIndex >= currentRows.length) return;
       currentRows.splice(dataIndex, 1);
-      this.$emit("update:content:effect", { rowData: currentRows });
+      this.setGridRecords(currentRows);
+    },
+    onCellClicked(event) {
+      if (!event.data?.__isInputRow || event.column?.getColId?.() === "__grid_input_actions__") return;
+      this.startInputRowEditing(event.column);
+    },
+    getFirstEditableInputColumn() {
+      if (!this.gridApi) return null;
+      const inputRowNode = this.gridApi.getDisplayedRowAtIndex(0);
+      const columns = this.gridApi.getAllDisplayedColumns?.() || [];
+      return columns.find((column) => {
+        if (column.getColId?.() === "__grid_input_actions__") return false;
+        if (typeof column.isCellEditable === "function") {
+          return column.isCellEditable(inputRowNode);
+        }
+        return column.getColDef?.()?.editable !== false;
+      }) || null;
+    },
+    startInputRowEditing(column) {
+      if (!this.gridApi || !column) return;
+      requestAnimationFrame(() => {
+        this.gridApi.ensureIndexVisible?.(0);
+        this.gridApi.setFocusedCell?.(0, column);
+        this.gridApi.startEditingCell?.({ rowIndex: 0, colKey: column });
+      });
+    },
+    focusInputRowFirstEditableCell() {
+      requestAnimationFrame(() => {
+        const column = this.getFirstEditableInputColumn();
+        this.startInputRowEditing(column);
+      });
     },
     onCellKeyDown(event) {
       if (!this.content.enterNextRow || !event?.event) return;
@@ -1011,16 +1087,25 @@ export default {
     &.grid-hidden {
       visibility: hidden;
 }
-.grid-input-action-btn {
-  width: 24px;
-  height: 24px;
-  border: 1px solid #d0d7de;
-  background: #fff;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 700;
-  line-height: 1;
-}
+    :deep(.grid-input-action-btn) {
+      width: 24px;
+      height: 24px;
+      border: 1px solid #d0d7de;
+      background: #fff;
+      border-radius: 4px;
+      color: var(--ww-data-grid_action-color, #24292f);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      padding: 0;
+    }
+
+    :deep(.grid-input-action-btn i) {
+      font-size: 13px;
+      line-height: 1;
+    }
     /* wwEditor:start */
     &.editing {
       &::before {
