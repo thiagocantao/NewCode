@@ -105,6 +105,7 @@ export default {
       const next = { ...(row || {}) };
       delete next.__isInputRow;
       delete next.__gridInputRowIndex;
+      delete next.__gridInputRowKey;
       return next;
     };
 
@@ -381,6 +382,7 @@ export default {
     return {
       pendingEnterEdit: null,
       markedRowId: null,
+      inputRowKey: 0,
     };
   },
   computed: {
@@ -752,6 +754,9 @@ export default {
   },
   methods: {
     getRowId(params) {
+      if (params.data?.__isInputRow) {
+        return `__grid_input_row_${params.data.__gridInputRowKey ?? 0}`;
+      }
       return this.resolveMappingFormula(this.content.idFormula, params.data);
     },
     onActionTrigger(event) {
@@ -784,12 +789,13 @@ export default {
       return (this.content.columns || []).filter((col) => col.field).reduce((acc, col) => {
         acc[col.field] = "";
         return acc;
-      }, { __isInputRow: isInputRow });
+      }, { __isInputRow: isInputRow, __gridInputRowKey: isInputRow ? this.inputRowKey : undefined });
     },
     addRowFromInput(inputRow) {
       const newRow = this.sanitizeGridRow(inputRow);
       const currentRows = Array.isArray(this.gridRecords) ? [...this.gridRecords] : [];
       this.setGridRecords([...currentRows, newRow]);
+      this.inputRowKey += 1;
     },
     deleteRow(row) {
       const dataIndex = Number(row?.__gridInputRowIndex);
