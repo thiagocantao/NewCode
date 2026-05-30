@@ -1,3 +1,21 @@
+const getListDataSourceTemplate = (dataSource) => {
+  let source = dataSource;
+
+  if (typeof source === "string") {
+    try {
+      source = JSON.parse(source);
+    } catch (error) {
+      source = [];
+    }
+  }
+
+  const rows = wwLib.wwUtils.getDataFromCollection(source);
+  if (Array.isArray(rows)) return rows[0] || {};
+  if (!rows || typeof rows !== "object") return {};
+
+  return Object.values(rows).find(value => Array.isArray(value))?.[0] || {};
+};
+
 export default {
   editor: {
     label: {
@@ -930,6 +948,8 @@ export default {
                     { value: "number", label: "Number" },
                     { value: "boolean", label: "Boolean" },
                     { value: "dateString", label: "Date" },
+                    { value: "year", label: "Year" },
+                    { value: "month", label: "Month" },
                     { value: "image", label: "Image" },
                     { value: "action", label: "Action" },
                     { value: "custom", label: "Custom" },
@@ -972,6 +992,39 @@ export default {
                   array?.item?.cellDataType === "image" ||
                   !array?.item?.useCustomLabel ||
                   array?.item?.cellDataType === "custom",
+              },
+              listDataSource: {
+                label: "List data source JSON",
+                type: "RawObject",
+                defaultValue: [],
+                bindable: true,
+                hidden: array?.item?.cellDataType !== "list",
+                bindingValidation: {
+                  validations: [
+                    { type: "array" },
+                    { type: "object" },
+                    { type: "string" },
+                  ],
+                  tooltip: "JSON array/object or collection used to load the list editor.",
+                },
+              },
+              listIdColumn: {
+                label: "List id column",
+                type: "ObjectPropertyPath",
+                options: {
+                  object: getListDataSourceTemplate(array?.item?.listDataSource),
+                },
+                bindable: true,
+                hidden: array?.item?.cellDataType !== "list",
+              },
+              listLabelColumn: {
+                label: "List label column",
+                type: "ObjectPropertyPath",
+                options: {
+                  object: getListDataSourceTemplate(array?.item?.listDataSource),
+                },
+                bindable: true,
+                hidden: array?.item?.cellDataType !== "list",
               },
               widthAlgo: {
                 type: "TextRadioGroup",

@@ -36,6 +36,8 @@ import ActionCellRenderer from "./components/ActionCellRenderer.vue";
 import ImageCellRenderer from "./components/ImageCellRenderer.vue";
 import WewebCellRenderer from "./components/WewebCellRenderer.vue";
 import ListFilterRenderer from "./components/ListFilterRenderer.js";
+import ListCellEditor from "./components/ListCellEditor.js";
+import YearMonthCellEditor from "./components/YearMonthCellEditor.js";
 import './components/list-filter.css';
 import { translatePhrase } from "./translation";
 
@@ -489,6 +491,8 @@ export default {
           return result;
         };
 
+        const isEditable = col.editable !== false;
+
         switch (col.cellDataType) {
           case "action": {
             const result = {
@@ -593,7 +597,10 @@ export default {
               field: col.field,
               sortable: col.sortable,
               filter: col.filter,
-              editable: col.editable,
+              editable: isEditable,
+              listDataSource: col.listDataSource,
+              listIdColumn: col.listIdColumn,
+              listLabelColumn: col.listLabelColumn,
               cellClass,
               headerClass,
               ...(baseCellStyle ? { cellStyle: baseCellStyle } : {}),
@@ -611,13 +618,33 @@ export default {
             if (col.cellDataType === 'dateString') {
               result.filter = 'agDateColumnFilter';
               result.cellDataType = 'dateString';
-              if (col.editable) {
+              if (isEditable) {
                 result.cellEditor = 'agDateStringCellEditor';
+              }
+            }
+            // Garante filtro de data para campos do tipo Year/Month
+            if (col.cellDataType === 'year' || col.cellDataType === 'month') {
+              result.filter = col.cellDataType === 'year' ? 'agNumberColumnFilter' : 'agTextColumnFilter';
+              result.cellDataType = false;
+              result.yearMonthMode = col.cellDataType;
+              if (isEditable) {
+                result.cellEditor = YearMonthCellEditor;
+                result.cellEditorParams = { yearMonthMode: col.cellDataType };
               }
             }
             // Garante filtro customizado de lista para campos do tipo List
             if (col.cellDataType === 'list') {
               result.filter = ListFilterRenderer;
+              if (isEditable) {
+                result.cellEditor = ListCellEditor;
+              }
+              const listRows = this.resolveListRows(col.listDataSource);
+              if (Array.isArray(listRows) && listRows.length && col.listIdColumn && col.listLabelColumn) {
+                const labelsById = new Map(
+                  listRows.map(item => [String(this.getValueByPath(item, col.listIdColumn)), this.getValueByPath(item, col.listLabelColumn)])
+                );
+                result.valueFormatter = params => labelsById.get(String(params.value)) ?? params.value ?? '';
+              }
             }
 
             return applyCursor(result);
@@ -978,6 +1005,28 @@ export default {
         backgroundColor: this.content.selectedActionRowColor,
       };
     },
+    resolveListRows(dataSource) {
+      let source = dataSource;
+
+      if (typeof source === 'string') {
+        try {
+          source = JSON.parse(source);
+        } catch (error) {
+          source = [];
+        }
+      }
+
+      const rows = wwLib.wwUtils.getDataFromCollection(source);
+      if (Array.isArray(rows)) return rows;
+      if (!rows || typeof rows !== 'object') return [];
+
+      return Object.values(rows).find(value => Array.isArray(value)) || [];
+    },
+    getValueByPath(item, path) {
+      return String(path)
+        .split('.')
+        .reduce((value, key) => (value && value[key] !== undefined ? value[key] : undefined), item);
+    },
     /* wwEditor:start */
     generateColumns() {
       this.$emit("update:content", {
@@ -1305,4 +1354,97 @@ export default {
   .list-filter .clear-btn:hover {
     background: #ffe6e6;
   }
+  :deep(.grid-list-cell-editor) {
+    min-width: 180px;
+    max-height: 260px;
+    padding: 8px;
+    border: 1px solid #d6dce5;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+  }
+
+  :deep(.grid-list-cell-editor__search) {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 8px;
+    padding: 6px 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font: inherit;
+  }
+
+  :deep(.grid-list-cell-editor__options) {
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  :deep(.grid-list-cell-editor__option) {
+    display: block;
+    width: 100%;
+    padding: 6px 8px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  :deep(.grid-list-cell-editor__option:hover),
+  :deep(.grid-list-cell-editor__option.selected) {
+    background: #eef2ff;
+  }
+
+
+  :deep(.grid-year-picker) {
+    width: 220px;
+    padding: 10px;
+    border: 1px solid #d6dce5;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+  }
+
+  :deep(.grid-year-picker__header) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+
+  :deep(.grid-year-picker__nav),
+  :deep(.grid-year-picker__year) {
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+  }
+
+  :deep(.grid-year-picker__nav) {
+    width: 28px;
+    height: 28px;
+    font-size: 20px;
+    line-height: 1;
+  }
+
+  :deep(.grid-year-picker__years) {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+
+  :deep(.grid-year-picker__year) {
+    padding: 8px 4px;
+  }
+
+  :deep(.grid-year-picker__nav:hover),
+  :deep(.grid-year-picker__year:hover),
+  :deep(.grid-year-picker__year.selected) {
+    background: #eef2ff;
+  }
+
 </style>
