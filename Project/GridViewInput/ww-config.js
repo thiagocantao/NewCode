@@ -930,6 +930,8 @@ export default {
                     { value: "number", label: "Number" },
                     { value: "boolean", label: "Boolean" },
                     { value: "dateString", label: "Date" },
+                    { value: "year", label: "Year" },
+                    { value: "month", label: "Month" },
                     { value: "image", label: "Image" },
                     { value: "action", label: "Action" },
                     { value: "custom", label: "Custom" },
@@ -972,6 +974,40 @@ export default {
                   array?.item?.cellDataType === "image" ||
                   !array?.item?.useCustomLabel ||
                   array?.item?.cellDataType === "custom",
+              },
+              listDataSource: {
+                label: "List data source",
+                type: "ObjectList",
+                options: {
+                  useSchema: true,
+                },
+                bindable: true,
+                hidden: array?.item?.cellDataType !== "list",
+                bindingValidation: {
+                  validations: [
+                    { type: "array" },
+                    { type: "object" },
+                  ],
+                  tooltip: "A collection or an array of objects to load the list editor.",
+                },
+              },
+              listIdColumn: {
+                label: "List id column",
+                type: "ObjectPropertyPath",
+                options: {
+                  object: wwLib.wwUtils.getDataFromCollection(array?.item?.listDataSource)?.[0] || {},
+                },
+                bindable: true,
+                hidden: array?.item?.cellDataType !== "list",
+              },
+              listLabelColumn: {
+                label: "List label column",
+                type: "ObjectPropertyPath",
+                options: {
+                  object: wwLib.wwUtils.getDataFromCollection(array?.item?.listDataSource)?.[0] || {},
+                },
+                bindable: true,
+                hidden: array?.item?.cellDataType !== "list",
               },
               widthAlgo: {
                 type: "TextRadioGroup",
