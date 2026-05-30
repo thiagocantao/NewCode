@@ -11,7 +11,8 @@
       @first-data-rendered="onFirstDataRendered"
       @row-selected="onRowSelected" @selection-changed="onSelectionChanged"
       @cell-value-changed="onCellValueChanged" @filter-changed="onFilterChanged" @sort-changed="onSortChanged"
-      @row-clicked="onRowClicked" @cell-key-down="onCellKeyDown" @cell-editing-stopped="onCellEditingStopped">
+      @cell-clicked="onCellClicked" @row-clicked="onRowClicked" @cell-key-down="onCellKeyDown"
+      @cell-editing-stopped="onCellEditingStopped">
     </ag-grid-vue>
   </div>
 </template>
@@ -757,7 +758,11 @@ export default {
       if (params.data?.__isInputRow) {
         return `__grid_input_row_${params.data.__gridInputRowKey ?? 0}`;
       }
-      return this.resolveMappingFormula(this.content.idFormula, params.data);
+      const resolvedId = this.resolveMappingFormula(this.content.idFormula, params.data);
+      if (resolvedId !== undefined && resolvedId !== null && resolvedId !== "") {
+        return resolvedId;
+      }
+      return `__grid_record_${params.data?.__gridInputRowIndex ?? params.node?.rowIndex ?? 0}`;
     },
     onActionTrigger(event) {
       this.$emit("trigger-event", {
@@ -796,6 +801,7 @@ export default {
       const currentRows = Array.isArray(this.gridRecords) ? [...this.gridRecords] : [];
       this.setGridRecords([...currentRows, newRow]);
       this.inputRowKey += 1;
+      this.focusInputRowFirstEditableCell();
     },
     deleteRow(row) {
       const dataIndex = Number(row?.__gridInputRowIndex);
@@ -803,6 +809,36 @@ export default {
       if (!Number.isInteger(dataIndex) || dataIndex < 0 || dataIndex >= currentRows.length) return;
       currentRows.splice(dataIndex, 1);
       this.setGridRecords(currentRows);
+    },
+    onCellClicked(event) {
+      if (!event.data?.__isInputRow || event.column?.getColId?.() === "__grid_input_actions__") return;
+      this.startInputRowEditing(event.column);
+    },
+    getFirstEditableInputColumn() {
+      if (!this.gridApi) return null;
+      const inputRowNode = this.gridApi.getDisplayedRowAtIndex(0);
+      const columns = this.gridApi.getAllDisplayedColumns?.() || [];
+      return columns.find((column) => {
+        if (column.getColId?.() === "__grid_input_actions__") return false;
+        if (typeof column.isCellEditable === "function") {
+          return column.isCellEditable(inputRowNode);
+        }
+        return column.getColDef?.()?.editable !== false;
+      }) || null;
+    },
+    startInputRowEditing(column) {
+      if (!this.gridApi || !column) return;
+      requestAnimationFrame(() => {
+        this.gridApi.ensureIndexVisible?.(0);
+        this.gridApi.setFocusedCell?.(0, column);
+        this.gridApi.startEditingCell?.({ rowIndex: 0, colKey: column });
+      });
+    },
+    focusInputRowFirstEditableCell() {
+      requestAnimationFrame(() => {
+        const column = this.getFirstEditableInputColumn();
+        this.startInputRowEditing(column);
+      });
     },
     onCellKeyDown(event) {
       if (!this.content.enterNextRow || !event?.event) return;
