@@ -54,11 +54,7 @@ export default class ListCellEditor {
     let source = dataSource;
 
     if (typeof source === 'string') {
-      try {
-        source = JSON.parse(source);
-      } catch (error) {
-        source = [];
-      }
+      source = this.parseDataSourceString(source);
     }
 
     const collectionRows = window.wwLib?.wwUtils?.getDataFromCollection
@@ -70,6 +66,27 @@ export default class ListCellEditor {
 
     const arrayValue = Object.values(collectionRows).find(value => Array.isArray(value));
     return arrayValue || [];
+  }
+
+
+  parseDataSourceString(source) {
+    const value = source.trim().replace(/\\n/g, '\n');
+
+    if (!value) return [];
+
+    try {
+      return JSON.parse(value);
+    } catch (error) {
+      const normalizedValue = value
+        .replace(/([{,]\s*)([A-Za-z_$][\w$]*)(\s*:)/g, '$1"$2"$3')
+        .replace(/,\s*([}\]])/g, '$1');
+
+      try {
+        return JSON.parse(normalizedValue);
+      } catch (normalizedError) {
+        return [];
+      }
+    }
   }
 
   getValueByPath(item, path) {

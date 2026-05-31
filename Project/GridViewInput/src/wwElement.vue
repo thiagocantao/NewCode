@@ -1040,11 +1040,7 @@ export default {
       let source = dataSource;
 
       if (typeof source === 'string') {
-        try {
-          source = JSON.parse(source);
-        } catch (error) {
-          source = [];
-        }
+        source = this.parseListDataSourceString(source);
       }
 
       const rows = wwLib.wwUtils.getDataFromCollection(source);
@@ -1052,6 +1048,25 @@ export default {
       if (!rows || typeof rows !== 'object') return [];
 
       return Object.values(rows).find(value => Array.isArray(value)) || [];
+    },
+    parseListDataSourceString(source) {
+      const value = source.trim().replace(/\\n/g, '\n');
+
+      if (!value) return [];
+
+      try {
+        return JSON.parse(value);
+      } catch (error) {
+        const normalizedValue = value
+          .replace(/([{,]\s*)([A-Za-z_$][\w$]*)(\s*:)/g, '$1"$2"$3')
+          .replace(/,\s*([}\]])/g, '$1');
+
+        try {
+          return JSON.parse(normalizedValue);
+        } catch (normalizedError) {
+          return [];
+        }
+      }
     },
     getValueByPath(item, path) {
       return String(path)
