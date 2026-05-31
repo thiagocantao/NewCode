@@ -40,8 +40,8 @@ export default class ListCellEditor {
       if (item && typeof item === 'object') {
         const fallbackIdKey = Object.keys(item).find(key => key.toLowerCase() === 'id');
         const fallbackLabelKey = Object.keys(item).find(key => ['label', 'name', 'title'].includes(key.toLowerCase()));
-        const value = idColumn ? this.getValueByPath(item, idColumn) : item[fallbackIdKey] ?? item.value;
-        const label = labelColumn ? this.getValueByPath(item, labelColumn) : item[fallbackLabelKey] ?? item.label ?? item.name ?? value;
+        const value = this.resolveFieldValue(item, idColumn, [fallbackIdKey, 'value', 'id']);
+        const label = this.resolveFieldValue(item, labelColumn, [fallbackLabelKey, 'label', 'name', 'title'], value);
         return { value, label: label == null ? '' : String(label) };
       }
 
@@ -89,8 +89,46 @@ export default class ListCellEditor {
     }
   }
 
-  getValueByPath(item, path) {
+  resolveFieldValue(item, configuredPath, fallbackPaths = [], fallbackValue = undefined) {
+    const configuredValue = this.getValueByPath(item, configuredPath);
+    if (configuredValue !== undefined && configuredValue !== null && configuredValue !== '') return configuredValue;
+
+    for (const fallbackPath of fallbackPaths) {
+      const fallbackPathValue = this.getValueByPath(item, fallbackPath);
+      if (fallbackPathValue !== undefined && fallbackPathValue !== null && fallbackPathValue !== '') {
+        return fallbackPathValue;
+      }
+    }
+
+    return fallbackValue;
+  }
+
+  normalizePropertyPath(path) {
+    if (path === undefined || path === null || path === '') return null;
+    if (Array.isArray(path)) return path.join('.');
+    if (typeof path === 'object') {
+      return this.normalizePropertyPath(path.path ?? path.value ?? path.key ?? path.name ?? path.id ?? path.property);
+    }
+
     return String(path)
+      .replace(/^context\.mapping\??\.?/, '')
+      .replace(/^context\.item\??\.?/, '')
+      .replace(/^item\./, '')
+      .replace(/^\[['"]?/, '')
+      .replace(/['"]?\]$/, '')
+      .replace(/\[['"]([^'"]+)['"]\]/g, '.$1');
+  }
+
+  getValueByPath(item, path) {
+    const normalizedPath = this.normalizePropertyPath(path);
+    if (!normalizedPath) return undefined;
+
+    if (window.wwLib?.resolveObjectPropertyPath) {
+      const resolvedValue = window.wwLib.resolveObjectPropertyPath(item, normalizedPath);
+      if (resolvedValue !== undefined) return resolvedValue;
+    }
+
+    return normalizedPath
       .split('.')
       .reduce((value, key) => (value && value[key] !== undefined ? value[key] : undefined), item);
   }
