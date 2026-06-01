@@ -38,6 +38,7 @@ import WewebCellRenderer from "./components/WewebCellRenderer.vue";
 import ListFilterRenderer from "./components/ListFilterRenderer.js";
 import ListCellEditor from "./components/ListCellEditor.js";
 import YearMonthCellEditor from "./components/YearMonthCellEditor.js";
+import NumberCellEditor from "./components/NumberCellEditor.js";
 import './components/list-filter.css';
 import { translatePhrase } from "./translation";
 
@@ -640,6 +641,11 @@ export default {
                 );
               };
             }
+            // Garante editor numérico para campos do tipo Number
+            if (col.cellDataType === 'number' && isEditable) {
+              result.cellEditor = NumberCellEditor;
+            }
+
             // Garante filtro de data para campos do tipo Date
             if (col.cellDataType === 'dateString') {
               result.filter = 'agDateColumnFilter';
