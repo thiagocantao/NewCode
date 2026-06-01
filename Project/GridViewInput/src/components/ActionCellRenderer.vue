@@ -1,7 +1,10 @@
 <template>
     <div class="btn-container">
         <button
-            @click.stop="onButtonClicked"
+            @pointerdown.stop.prevent="preventGridEditActivation"
+            @mousedown.stop.prevent="preventGridEditActivation"
+            @dblclick.stop.prevent="preventGridEditActivation"
+            @click.stop.prevent="onButtonClicked"
             class="datagrid-btn"
             :class="params.withFont ? 'with-font' : 'without-font'"
         >
@@ -20,7 +23,11 @@ export default {
         },
     },
     methods: {
+        preventGridEditActivation() {
+            this.params.api?.stopEditing?.();
+        },
         onButtonClicked() {
+            this.params.api?.stopEditing?.();
             this.params.trigger({
                 actionName: this.params.name,
                 id: this.params.node.id,

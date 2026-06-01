@@ -20,6 +20,30 @@ export default class ListCellEditor {
     this.searchInput = this.eGui.querySelector('.grid-list-cell-editor__search');
     this.optionsContainer = this.eGui.querySelector('.grid-list-cell-editor__options');
 
+    Object.assign(this.eGui.style, {
+      maxWidth: '550px',
+      maxHeight: '350px',
+    });
+
+    Object.assign(this.searchInput.style, {
+      borderRadius: '4px',
+      outline: 'none',
+    });
+
+    Object.assign(this.optionsContainer.style, {
+      maxHeight: '294px',
+    });
+
+    this.searchInput.addEventListener('focus', () => {
+      this.searchInput.style.outline = 'none';
+      this.searchInput.style.boxShadow = 'none';
+      this.searchInput.style.borderColor = '#94a3b8';
+    });
+
+    this.searchInput.addEventListener('blur', () => {
+      this.searchInput.style.borderColor = '#cbd5e1';
+    });
+
     this.searchInput.addEventListener('input', event => {
       const query = String(event.target.value || '').toLowerCase();
       this.filteredOptions = this.options.filter(option =>
