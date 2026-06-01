@@ -1010,6 +1010,20 @@ export default {
                   !array?.item?.useCustomLabel ||
                   array?.item?.cellDataType === "custom",
               },
+              numberFormat: {
+                label: "Number display format",
+                type: "TextSelect",
+                options: {
+                  options: [
+                    { value: "raw", label: "No formatting", default: true },
+                    { value: "pt-BR", label: "Brazilian decimal (1.234,56)" },
+                    { value: "en-US", label: "US decimal (1,234.56)" },
+                  ],
+                },
+                defaultValue: "raw",
+                bindable: true,
+                hidden: array?.item?.cellDataType !== "number",
+              },
               yearMonthFormat: {
                 label: "YearMonth display format",
                 type: "TextSelect",
