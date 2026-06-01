@@ -38,6 +38,7 @@ import WewebCellRenderer from "./components/WewebCellRenderer.vue";
 import ListFilterRenderer from "./components/ListFilterRenderer.js";
 import ListCellEditor from "./components/ListCellEditor.js";
 import YearMonthCellEditor from "./components/YearMonthCellEditor.js";
+import NumberCellEditor from "./components/NumberCellEditor.js";
 import './components/list-filter.css';
 import { translatePhrase } from "./translation";
 
@@ -640,6 +641,17 @@ export default {
                 );
               };
             }
+            // Garante editor numérico para campos do tipo Number
+            if (col.cellDataType === 'number') {
+              if (isEditable) {
+                result.cellEditor = NumberCellEditor;
+              }
+              result.valueParser = params => this.parseNumberInput(params.newValue, col.numberFormat);
+              if (!col.useCustomLabel) {
+                result.valueFormatter = params => this.formatNumberValue(params.value, col.numberFormat);
+              }
+            }
+
             // Garante filtro de data para campos do tipo Date
             if (col.cellDataType === 'dateString') {
               result.filter = 'agDateColumnFilter';
@@ -1059,6 +1071,55 @@ export default {
       return {
         backgroundColor: this.content.selectedActionRowColor,
       };
+    },
+    parseNumberInput(value, format = 'raw') {
+      if (value === null || value === undefined || value === '') return null;
+      if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+
+      const sanitizedValue = String(value).replace(/[^0-9.,]/g, '');
+      if (!sanitizedValue) return null;
+
+      const normalizedFormat = format || 'raw';
+      let normalizedValue = sanitizedValue;
+
+      if (normalizedFormat === 'pt-BR') {
+        normalizedValue = sanitizedValue.replace(/\./g, '').replace(',', '.');
+      } else if (normalizedFormat === 'en-US') {
+        normalizedValue = sanitizedValue.replace(/,/g, '');
+      } else {
+        const lastCommaIndex = sanitizedValue.lastIndexOf(',');
+        const lastDotIndex = sanitizedValue.lastIndexOf('.');
+        const decimalSeparatorIndex = Math.max(lastCommaIndex, lastDotIndex);
+
+        if (decimalSeparatorIndex >= 0) {
+          const integerPart = sanitizedValue.slice(0, decimalSeparatorIndex).replace(/[.,]/g, '');
+          const decimalPart = sanitizedValue.slice(decimalSeparatorIndex + 1).replace(/[.,]/g, '');
+          normalizedValue = `${integerPart || '0'}.${decimalPart}`;
+        }
+      }
+
+      const parsedValue = Number(normalizedValue);
+      return Number.isFinite(parsedValue) ? parsedValue : null;
+    },
+    formatNumberValue(value, format = 'raw') {
+      if (value === null || value === undefined || value === '') return '';
+
+      const numericValue = this.parseNumberInput(value, format);
+      if (numericValue === null) return value;
+
+      const integerFormatOptions = Number.isInteger(numericValue)
+        ? { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+        : undefined;
+
+      switch (format || 'raw') {
+        case 'pt-BR':
+          return new Intl.NumberFormat('pt-BR', integerFormatOptions).format(numericValue);
+        case 'en-US':
+          return new Intl.NumberFormat('en-US', integerFormatOptions).format(numericValue);
+        case 'raw':
+        default:
+          return numericValue;
+      }
     },
     formatYearMonthValue(value, format = 'YYYY-MM') {
       if (value == null || value === '') return '';
