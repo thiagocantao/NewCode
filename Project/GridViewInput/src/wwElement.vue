@@ -642,7 +642,7 @@ export default {
                 result.cellEditor = ListCellEditor;
               }
               const listRows = this.resolveListRows(col.listDataSource);
-              if (Array.isArray(listRows) && listRows.length && col.listIdColumn && col.listLabelColumn) {
+              if (Array.isArray(listRows) && listRows.length) {
                 const labelsById = new Map(
                   listRows.map(item => {
                     const id = this.resolveFieldValue(item, col.listIdColumn, ['id', 'value']);

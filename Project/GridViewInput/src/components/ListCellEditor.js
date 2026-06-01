@@ -143,13 +143,36 @@ export default class ListCellEditor {
       optionElement.textContent = option.label;
       if (String(option.value) === String(this.value)) optionElement.classList.add('selected');
 
-      optionElement.addEventListener('click', () => {
-        this.value = option.value;
-        this.params.api?.stopEditing?.();
-      });
+      const selectOption = event => {
+        event.preventDefault();
+        event.stopPropagation();
+        this.selectOption(option);
+      };
+
+      optionElement.addEventListener('pointerdown', selectOption);
+      optionElement.addEventListener('click', selectOption);
 
       this.optionsContainer.appendChild(optionElement);
     });
+  }
+
+  selectOption(option) {
+    this.value = option.value;
+
+    const field = this.params.colDef?.field;
+    if (field && this.params.data) {
+      this.params.data[field] = option.value;
+    }
+
+    if (this.params.api?.refreshCells && this.params.node && field) {
+      this.params.api.refreshCells({
+        rowNodes: [this.params.node],
+        columns: [field],
+        force: true,
+      });
+    }
+
+    this.params.api?.stopEditing?.();
   }
 
   getGui() {
