@@ -11,7 +11,7 @@
       @first-data-rendered="onFirstDataRendered"
       @row-selected="onRowSelected" @selection-changed="onSelectionChanged"
       @cell-value-changed="onCellValueChanged" @filter-changed="onFilterChanged" @sort-changed="onSortChanged"
-      @cell-clicked="onCellClicked" @row-clicked="onRowClicked" @cell-key-down="onCellKeyDown"
+      @cell-clicked="onCellClicked" @cell-mouse-down="onCellMouseDown" @row-clicked="onRowClicked" @cell-key-down="onCellKeyDown"
       @cell-editing-stopped="onCellEditingStopped">
     </ag-grid-vue>
   </div>
@@ -419,6 +419,7 @@ export default {
         filter: false,
         resizable: false,
         editable: false,
+        isGridActionColumn: true,
         suppressClickEdit: true,
         suppressNavigable: true,
         suppressMovable: true,
@@ -441,8 +442,7 @@ export default {
           button.innerHTML = `<i class="${iconClass}" aria-hidden="true"></i>`;
 
           const stopGridEditActivation = (event) => {
-            event.preventDefault();
-            event.stopPropagation();
+            this.preventActionCellEdit(params.api, event);
           };
 
           button.addEventListener("pointerdown", stopGridEditActivation);
@@ -523,13 +523,17 @@ export default {
                 label: translatePhrase(col.actionLabel),
                 trigger: this.onActionTrigger,
                 withFont: !!this.content.actionFont,
+                suppressMouseEventHandling: () => true,
               },
               sortable: false,
 
               filter: false,
               editable: false,
+              isGridActionColumn: true,
               suppressClickEdit: true,
               suppressNavigable: true,
+              onCellMouseDown: (params) => this.preventActionCellEdit(params.api, params.event),
+              onCellClicked: (params) => this.preventActionCellEdit(params.api, params.event),
               cellClass,
               headerClass,
               ...(baseCellStyle ? { cellStyle: baseCellStyle } : {}),
@@ -865,8 +869,31 @@ export default {
       currentRows.splice(dataIndex, 1);
       this.setGridRecords(currentRows);
     },
+    isGridActionColumn(column) {
+      const colDef = column?.getColDef?.();
+      return column?.getColId?.() === "__grid_input_actions__" || colDef?.isGridActionColumn === true;
+    },
+    preventActionCellEdit(api, event) {
+      event?.preventDefault?.();
+      event?.stopPropagation?.();
+      api?.stopEditing?.(true);
+      api?.clearFocusedCell?.();
+      requestAnimationFrame(() => {
+        api?.stopEditing?.(true);
+        api?.clearFocusedCell?.();
+      });
+    },
+    onCellMouseDown(event) {
+      if (this.isGridActionColumn(event.column)) {
+        this.preventActionCellEdit(event.api || this.gridApi, event.event);
+      }
+    },
     onCellClicked(event) {
-      if (!event.data?.__isInputRow || event.column?.getColId?.() === "__grid_input_actions__") return;
+      if (this.isGridActionColumn(event.column)) {
+        this.preventActionCellEdit(event.api || this.gridApi, event.event);
+        return;
+      }
+      if (!event.data?.__isInputRow) return;
       this.startInputRowEditing(event.column);
     },
     getFirstEditableInputColumn() {

@@ -23,11 +23,18 @@ export default {
         },
     },
     methods: {
-        preventGridEditActivation() {
-            this.params.api?.stopEditing?.();
+        preventGridEditActivation(event) {
+            event?.preventDefault?.();
+            event?.stopPropagation?.();
+            this.params.api?.stopEditing?.(true);
+            this.params.api?.clearFocusedCell?.();
+            requestAnimationFrame(() => {
+                this.params.api?.stopEditing?.(true);
+                this.params.api?.clearFocusedCell?.();
+            });
         },
-        onButtonClicked() {
-            this.params.api?.stopEditing?.();
+        onButtonClicked(event) {
+            this.preventGridEditActivation(event);
             this.params.trigger({
                 actionName: this.params.name,
                 id: this.params.node.id,
