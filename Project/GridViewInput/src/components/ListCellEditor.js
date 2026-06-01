@@ -188,6 +188,14 @@ export default class ListCellEditor {
       this.params.data[field] = option.value;
     }
 
+    this.params.onValueSelected?.({
+      value: option.value,
+      field,
+      data: this.params.data,
+      api: this.params.api,
+      node: this.params.node,
+    });
+
     if (this.params.api?.refreshCells && this.params.node && field) {
       this.params.api.refreshCells({
         rowNodes: [this.params.node],
