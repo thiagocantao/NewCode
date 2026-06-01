@@ -1118,7 +1118,7 @@ export default {
           return new Intl.NumberFormat('en-US', integerFormatOptions).format(numericValue);
         case 'raw':
         default:
-          return numericValue;
+          return Number.isInteger(numericValue) ? numericValue.toFixed(2) : numericValue;
       }
     },
     formatYearMonthValue(value, format = 'YYYY-MM') {
