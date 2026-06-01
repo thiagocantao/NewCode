@@ -915,7 +915,7 @@ export default {
     },
     getRequiredColumns() {
       return (this.content.columns || []).filter(
-        (col) => col.required && col.field && col.cellDataType !== "action"
+        (col) => (col.isRequired || col.required) && col.field && col.cellDataType !== "action"
       );
     },
     isEmptyRequiredValue(value) {

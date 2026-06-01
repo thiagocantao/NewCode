@@ -997,11 +997,11 @@ export default {
                 type: "Text",
                 hidden: array?.item?.cellDataType === "action",
               },
-              required: {
-                label: "Required",
+              isRequired: {
+                label: { en: "Required", pt: "Obrigatório" },
                 type: "OnOff",
+                defaultValue: false,
                 bindable: true,
-                hidden: array?.item?.cellDataType === "action",
                 bindingValidation: {
                   type: "boolean",
                   tooltip: "True when the input row must have a value for this column before it can be included.",
