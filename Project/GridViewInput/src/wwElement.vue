@@ -1107,11 +1107,15 @@ export default {
       const numericValue = this.parseNumberInput(value, format);
       if (numericValue === null) return value;
 
+      const integerFormatOptions = Number.isInteger(numericValue)
+        ? { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+        : undefined;
+
       switch (format || 'raw') {
         case 'pt-BR':
-          return new Intl.NumberFormat('pt-BR').format(numericValue);
+          return new Intl.NumberFormat('pt-BR', integerFormatOptions).format(numericValue);
         case 'en-US':
-          return new Intl.NumberFormat('en-US').format(numericValue);
+          return new Intl.NumberFormat('en-US', integerFormatOptions).format(numericValue);
         case 'raw':
         default:
           return numericValue;
