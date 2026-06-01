@@ -714,6 +714,17 @@ export default {
               result.filter = ListFilterRenderer;
               if (isEditable) {
                 result.cellEditor = ListCellEditor;
+                result.cellEditorParams = {
+                  onValueSelected: ({ api, data, field }) => {
+                    requestAnimationFrame(() => {
+                      if (data?.__isInputRow) {
+                        this.clearValidInputField(field, data);
+                      } else {
+                        this.syncGridData(api);
+                      }
+                    });
+                  },
+                };
               }
               const listRows = this.resolveListRows(col.listDataSource);
               if (Array.isArray(listRows) && listRows.length) {
