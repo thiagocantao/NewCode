@@ -1,3 +1,37 @@
+const parseListDataSourceString = (source) => {
+  const value = source.trim().replace(/\\n/g, '\n');
+
+  if (!value) return [];
+
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    const normalizedValue = value
+      .replace(/([{,]\s*)([A-Za-z_$][\w$]*)(\s*:)/g, '$1"$2"$3')
+      .replace(/,\s*([}\]])/g, '$1');
+
+    try {
+      return JSON.parse(normalizedValue);
+    } catch (normalizedError) {
+      return [];
+    }
+  }
+};
+
+const getListDataSourceTemplate = (dataSource) => {
+  let source = dataSource;
+
+  if (typeof source === "string") {
+    source = parseListDataSourceString(source);
+  }
+
+  const rows = wwLib.wwUtils.getDataFromCollection(source);
+  if (Array.isArray(rows)) return rows[0] || {};
+  if (!rows || typeof rows !== "object") return {};
+
+  return Object.values(rows).find(value => Array.isArray(value))?.[0] || {};
+};
+
 export default {
   editor: {
     label: {
@@ -930,6 +964,9 @@ export default {
                     { value: "number", label: "Number" },
                     { value: "boolean", label: "Boolean" },
                     { value: "dateString", label: "Date" },
+                    { value: "year", label: "Year" },
+                    { value: "month", label: "Month" },
+                    { value: "yearMonth", label: "YearMonth" },
                     { value: "image", label: "Image" },
                     { value: "action", label: "Action" },
                     { value: "custom", label: "Custom" },
@@ -972,6 +1009,56 @@ export default {
                   array?.item?.cellDataType === "image" ||
                   !array?.item?.useCustomLabel ||
                   array?.item?.cellDataType === "custom",
+              },
+              yearMonthFormat: {
+                label: "YearMonth display format",
+                type: "TextSelect",
+                options: {
+                  options: [
+                    { value: "YYYY-MM", label: "YYYY-MM", default: true },
+                    { value: "MM/YYYY", label: "MM/YYYY" },
+                    { value: "YYYY/MM", label: "YYYY/MM" },
+                    { value: "MM-YYYY", label: "MM-YYYY" },
+                    { value: "MMM YYYY", label: "MMM YYYY" },
+                    { value: "MMMM YYYY", label: "MMMM YYYY" },
+                  ],
+                },
+                defaultValue: "YYYY-MM",
+                bindable: true,
+                hidden: array?.item?.cellDataType !== "yearMonth",
+              },
+              listDataSource: {
+                label: "List data source JSON",
+                type: "RawObject",
+                defaultValue: [],
+                bindable: true,
+                hidden: array?.item?.cellDataType !== "list",
+                bindingValidation: {
+                  validations: [
+                    { type: "array" },
+                    { type: "object" },
+                    { type: "string" },
+                  ],
+                  tooltip: "JSON array/object or collection used to load the list editor.",
+                },
+              },
+              listIdColumn: {
+                label: "List id column",
+                type: "ObjectPropertyPath",
+                options: {
+                  object: getListDataSourceTemplate(array?.item?.listDataSource),
+                },
+                bindable: true,
+                hidden: array?.item?.cellDataType !== "list",
+              },
+              listLabelColumn: {
+                label: "List label column",
+                type: "ObjectPropertyPath",
+                options: {
+                  object: getListDataSourceTemplate(array?.item?.listDataSource),
+                },
+                bindable: true,
+                hidden: array?.item?.cellDataType !== "list",
               },
               widthAlgo: {
                 type: "TextRadioGroup",

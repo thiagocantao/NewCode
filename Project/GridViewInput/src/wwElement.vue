@@ -36,6 +36,8 @@ import ActionCellRenderer from "./components/ActionCellRenderer.vue";
 import ImageCellRenderer from "./components/ImageCellRenderer.vue";
 import WewebCellRenderer from "./components/WewebCellRenderer.vue";
 import ListFilterRenderer from "./components/ListFilterRenderer.js";
+import ListCellEditor from "./components/ListCellEditor.js";
+import YearMonthCellEditor from "./components/YearMonthCellEditor.js";
 import './components/list-filter.css';
 import { translatePhrase } from "./translation";
 
@@ -489,6 +491,8 @@ export default {
           return result;
         };
 
+        const isEditable = col.editable !== false;
+
         switch (col.cellDataType) {
           case "action": {
             const result = {
@@ -593,7 +597,10 @@ export default {
               field: col.field,
               sortable: col.sortable,
               filter: col.filter,
-              editable: col.editable,
+              editable: isEditable,
+              listDataSource: col.listDataSource,
+              listIdColumn: col.listIdColumn,
+              listLabelColumn: col.listLabelColumn,
               cellClass,
               headerClass,
               ...(baseCellStyle ? { cellStyle: baseCellStyle } : {}),
@@ -611,13 +618,40 @@ export default {
             if (col.cellDataType === 'dateString') {
               result.filter = 'agDateColumnFilter';
               result.cellDataType = 'dateString';
-              if (col.editable) {
+              if (isEditable) {
                 result.cellEditor = 'agDateStringCellEditor';
+              }
+            }
+            // Garante filtro de data para campos do tipo Year/Month
+            if (['year', 'month', 'yearMonth'].includes(col.cellDataType)) {
+              result.filter = col.cellDataType === 'year' ? 'agNumberColumnFilter' : 'agTextColumnFilter';
+              result.cellDataType = false;
+              result.yearMonthMode = col.cellDataType;
+              if (isEditable) {
+                result.cellEditor = YearMonthCellEditor;
+                result.cellEditorParams = { yearMonthMode: col.cellDataType };
+              }
+              if (col.cellDataType === 'yearMonth') {
+                result.valueFormatter = params => this.formatYearMonthValue(params.value, col.yearMonthFormat);
               }
             }
             // Garante filtro customizado de lista para campos do tipo List
             if (col.cellDataType === 'list') {
               result.filter = ListFilterRenderer;
+              if (isEditable) {
+                result.cellEditor = ListCellEditor;
+              }
+              const listRows = this.resolveListRows(col.listDataSource);
+              if (Array.isArray(listRows) && listRows.length) {
+                const labelsById = new Map(
+                  listRows.map(item => {
+                    const id = this.resolveFieldValue(item, col.listIdColumn, ['id', 'value']);
+                    const label = this.resolveFieldValue(item, col.listLabelColumn, ['label', 'name', 'title'], id);
+                    return [String(id), label];
+                  })
+                );
+                result.valueFormatter = params => labelsById.get(String(params.value)) ?? params.value ?? '';
+              }
             }
 
             return applyCursor(result);
@@ -978,6 +1012,107 @@ export default {
         backgroundColor: this.content.selectedActionRowColor,
       };
     },
+    formatYearMonthValue(value, format = 'YYYY-MM') {
+      if (value == null || value === '') return '';
+      const match = String(value).match(/^(\d{4})-(\d{1,2})/);
+      if (!match) return value;
+
+      const year = match[1];
+      const month = String(match[2]).padStart(2, '0');
+      const monthIndex = Number(month) - 1;
+      const locale = this.content.lang && this.content.lang !== 'custom' ? this.content.lang : undefined;
+      const shortMonth = new Intl.DateTimeFormat(locale, { month: 'short' }).format(new Date(Number(year), monthIndex, 1));
+      const longMonth = new Intl.DateTimeFormat(locale, { month: 'long' }).format(new Date(Number(year), monthIndex, 1));
+
+      switch (format || 'YYYY-MM') {
+        case 'MM/YYYY':
+          return `${month}/${year}`;
+        case 'YYYY/MM':
+          return `${year}/${month}`;
+        case 'MM-YYYY':
+          return `${month}-${year}`;
+        case 'MMM YYYY':
+          return `${shortMonth} ${year}`;
+        case 'MMMM YYYY':
+          return `${longMonth} ${year}`;
+        case 'YYYY-MM':
+        default:
+          return `${year}-${month}`;
+      }
+    },
+    resolveListRows(dataSource) {
+      let source = dataSource;
+
+      if (typeof source === 'string') {
+        source = this.parseListDataSourceString(source);
+      }
+
+      const rows = wwLib.wwUtils.getDataFromCollection(source);
+      if (Array.isArray(rows)) return rows;
+      if (!rows || typeof rows !== 'object') return [];
+
+      return Object.values(rows).find(value => Array.isArray(value)) || [];
+    },
+    parseListDataSourceString(source) {
+      const value = source.trim().replace(/\\n/g, '\n');
+
+      if (!value) return [];
+
+      try {
+        return JSON.parse(value);
+      } catch (error) {
+        const normalizedValue = value
+          .replace(/([{,]\s*)([A-Za-z_$][\w$]*)(\s*:)/g, '$1"$2"$3')
+          .replace(/,\s*([}\]])/g, '$1');
+
+        try {
+          return JSON.parse(normalizedValue);
+        } catch (normalizedError) {
+          return [];
+        }
+      }
+    },
+    resolveFieldValue(item, configuredPath, fallbackPaths = [], fallbackValue = undefined) {
+      const configuredValue = this.getValueByPath(item, configuredPath);
+      if (configuredValue !== undefined && configuredValue !== null && configuredValue !== '') return configuredValue;
+
+      for (const fallbackPath of fallbackPaths) {
+        const fallbackPathValue = this.getValueByPath(item, fallbackPath);
+        if (fallbackPathValue !== undefined && fallbackPathValue !== null && fallbackPathValue !== '') {
+          return fallbackPathValue;
+        }
+      }
+
+      return fallbackValue;
+    },
+    normalizePropertyPath(path) {
+      if (path === undefined || path === null || path === '') return null;
+      if (Array.isArray(path)) return path.join('.');
+      if (typeof path === 'object') {
+        return this.normalizePropertyPath(path.path ?? path.value ?? path.key ?? path.name ?? path.id ?? path.property);
+      }
+
+      return String(path)
+        .replace(/^context\.mapping\??\.?/, '')
+        .replace(/^context\.item\??\.?/, '')
+        .replace(/^item\./, '')
+        .replace(/^\[['"]?/, '')
+        .replace(/['"]?\]$/, '')
+        .replace(/\[['"]([^'"]+)['"]\]/g, '.$1');
+    },
+    getValueByPath(item, path) {
+      const normalizedPath = this.normalizePropertyPath(path);
+      if (!normalizedPath) return undefined;
+
+      if (wwLib.resolveObjectPropertyPath) {
+        const resolvedValue = wwLib.resolveObjectPropertyPath(item, normalizedPath);
+        if (resolvedValue !== undefined) return resolvedValue;
+      }
+
+      return normalizedPath
+        .split('.')
+        .reduce((value, key) => (value && value[key] !== undefined ? value[key] : undefined), item);
+    },
     /* wwEditor:start */
     generateColumns() {
       this.$emit("update:content", {
@@ -1305,4 +1440,97 @@ export default {
   .list-filter .clear-btn:hover {
     background: #ffe6e6;
   }
+  :deep(.grid-list-cell-editor) {
+    min-width: 180px;
+    max-height: 260px;
+    padding: 8px;
+    border: 1px solid #d6dce5;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+  }
+
+  :deep(.grid-list-cell-editor__search) {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 8px;
+    padding: 6px 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font: inherit;
+  }
+
+  :deep(.grid-list-cell-editor__options) {
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  :deep(.grid-list-cell-editor__option) {
+    display: block;
+    width: 100%;
+    padding: 6px 8px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  :deep(.grid-list-cell-editor__option:hover),
+  :deep(.grid-list-cell-editor__option.selected) {
+    background: #eef2ff;
+  }
+
+
+  :deep(.grid-year-picker) {
+    width: 220px;
+    padding: 10px;
+    border: 1px solid #d6dce5;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+  }
+
+  :deep(.grid-year-picker__header) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+
+  :deep(.grid-year-picker__nav),
+  :deep(.grid-year-picker__year) {
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+  }
+
+  :deep(.grid-year-picker__nav) {
+    width: 28px;
+    height: 28px;
+    font-size: 20px;
+    line-height: 1;
+  }
+
+  :deep(.grid-year-picker__years) {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+
+  :deep(.grid-year-picker__year) {
+    padding: 8px 4px;
+  }
+
+  :deep(.grid-year-picker__nav:hover),
+  :deep(.grid-year-picker__year:hover),
+  :deep(.grid-year-picker__year.selected) {
+    background: #eef2ff;
+  }
+
 </style>
