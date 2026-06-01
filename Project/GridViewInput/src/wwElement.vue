@@ -7,7 +7,7 @@
       :paginationPageSize="content.paginationPageSize || 10" :paginationPageSizeSelector="false"
       :suppressColumnMoveAnimation="true"
       :suppressMovableColumns="!content.movableColumns" :columnHoverHighlight="content.columnHoverHighlight"
-      :singleClickEdit="content.oneClickEdit" :locale-text="localeText" @grid-ready="onGridReady"
+      :singleClickEdit="content.oneClickEdit" :locale-text="localeText" :tooltipShowDelay="0" @grid-ready="onGridReady"
       @first-data-rendered="onFirstDataRendered"
       @row-selected="onRowSelected" @selection-changed="onSelectionChanged"
       @cell-value-changed="onCellValueChanged" @filter-changed="onFilterChanged" @sort-changed="onSortChanged"
@@ -110,7 +110,7 @@ export default {
         name: "isValid",
         type: "boolean",
         defaultValue: true,
-        readonly: true,
+        readonly: false,
       });
 
     const sanitizeGridRow = (row) => {
@@ -882,7 +882,7 @@ export default {
       if (event.data?.__isInputRow) {
         this.clearValidInputField(event.column.getColId(), event.data);
       } else {
-        this.syncGridData();
+        this.syncGridData(event.api);
       }
       this.$emit("trigger-event", {
         name: "cellValueChanged",
@@ -894,10 +894,30 @@ export default {
         },
       });
     },
-    syncGridData() {
-      const rows = (this.rowData || [])
-        .filter((row) => !row?.__isInputRow)
+    getCurrentGridRows(api = this.gridApi) {
+      const rows = [];
+
+      if (api?.forEachNode) {
+        api.forEachNode((node) => {
+          if (!node?.data?.__isInputRow) rows.push({ ...node.data });
+        });
+      }
+
+      const sourceRows = rows.length
+        ? rows
+        : (this.rowData || []).filter((row) => !row?.__isInputRow);
+
+      return sourceRows
+        .sort((a, b) => {
+          const aIndex = Number(a?.__gridInputRowIndex);
+          const bIndex = Number(b?.__gridInputRowIndex);
+          if (!Number.isInteger(aIndex) || !Number.isInteger(bIndex)) return 0;
+          return aIndex - bIndex;
+        })
         .map((row) => this.sanitizeGridRow(row));
+    },
+    syncGridData(api = this.gridApi) {
+      const rows = this.getCurrentGridRows(api);
       this.setGridRecords(rows);
       this.updateGridValidity(rows);
     },
