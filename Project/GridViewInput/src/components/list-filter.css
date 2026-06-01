@@ -70,6 +70,7 @@
   background: #fff;
   color: #444;
   box-sizing: border-box;
+  outline: none;
 }
 
 .list-filter .search-input::placeholder {
