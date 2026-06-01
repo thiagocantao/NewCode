@@ -167,6 +167,16 @@ export default {
       },
       getTestEvent: "getRowClickedTestEvent",
     },
+    {
+      name: "invalidFields",
+      label: { en: "On invalid fields" },
+      event: {
+        row: null,
+        fields: [],
+        columns: [],
+      },
+      getTestEvent: "getOnInvalidFieldsTestEvent",
+    },
   ],
   actions: [
     {
@@ -986,6 +996,16 @@ export default {
                 label: "Key",
                 type: "Text",
                 hidden: array?.item?.cellDataType === "action",
+              },
+              required: {
+                label: "Required",
+                type: "OnOff",
+                bindable: true,
+                hidden: array?.item?.cellDataType === "action",
+                bindingValidation: {
+                  type: "boolean",
+                  tooltip: "True when the input row must have a value for this column before it can be included.",
+                },
               },
               useCustomLabel: {
                 label: "Custom display value",
