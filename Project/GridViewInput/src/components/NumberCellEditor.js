@@ -14,6 +14,8 @@ export default class NumberCellEditor {
       height: '100%',
       boxSizing: 'border-box',
       font: 'inherit',
+      outline: 'none',
+      boxShadow: 'none',
     });
 
     input.addEventListener('keydown', event => this.handleKeydown(event));
