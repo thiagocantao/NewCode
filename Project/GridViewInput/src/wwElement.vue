@@ -104,6 +104,14 @@ export default {
         defaultValue: [],
         readonly: true,
       });
+    const { value: isValid, setValue: setIsValid } =
+      wwLib.wwVariable.useComponentVariable({
+        uid: props.uid,
+        name: "isValid",
+        type: "boolean",
+        defaultValue: true,
+        readonly: true,
+      });
 
     const sanitizeGridRow = (row) => {
       const next = { ...(row || {}) };
@@ -349,6 +357,8 @@ export default {
       setSelectedRows,
       gridRecords,
       setGridRecords,
+      isValid,
+      setIsValid,
       sanitizeGridRow,
       onFilterChanged,
       onSortChanged,
@@ -388,6 +398,7 @@ export default {
       markedRowId: null,
       inputRowKey: 0,
       invalidInputFields: [],
+      invalidGridCells: [],
     };
   },
   computed: {
@@ -497,18 +508,26 @@ export default {
         const cellClass = cellAlign ? `ag-text-${cellAlign}` : undefined;
         const headerClass = headerAlign ? `ag-header-align-${headerAlign}` : undefined;
         const baseCellStyle = cellAlign ? { textAlign: cellAlign } : undefined;
-        const requiredCellClassRules = col.field
+        const validationCellClassRules = col.field
           ? {
               "grid-input-invalid-cell": (params) =>
                 !!params.data?.__isInputRow && this.invalidInputFields.includes(col.field),
+              "grid-record-invalid-cell": (params) => this.isInvalidGridCell(params.data, col.field),
             }
           : undefined;
 
         const withRequiredValidation = (result) => {
-          if (requiredCellClassRules) {
+          if (validationCellClassRules) {
             result.cellClassRules = {
               ...(result.cellClassRules || {}),
-              ...requiredCellClassRules,
+              ...validationCellClassRules,
+            };
+            const userTooltipValueGetter = result.tooltipValueGetter;
+            result.tooltipValueGetter = (params) => {
+              if (this.isInvalidGridCell(params.data, col.field)) return "Valor inválido";
+              return typeof userTooltipValueGetter === "function"
+                ? userTooltipValueGetter(params)
+                : undefined;
             };
           }
           return result;
@@ -880,6 +899,7 @@ export default {
         .filter((row) => !row?.__isInputRow)
         .map((row) => this.sanitizeGridRow(row));
       this.setGridRecords(rows);
+      this.updateGridValidity(rows);
     },
     createBlankRow(isInputRow = false) {
       return (this.content.columns || []).filter((col) => col.field).reduce((acc, col) => {
@@ -910,7 +930,9 @@ export default {
       this.invalidInputFields = [];
       const newRow = this.sanitizeGridRow(inputRow);
       const currentRows = Array.isArray(this.gridRecords) ? [...this.gridRecords] : [];
-      this.setGridRecords([...currentRows, newRow]);
+      const nextRows = [...currentRows, newRow];
+      this.setGridRecords(nextRows);
+      this.updateGridValidity(nextRows);
       this.inputRowKey += 1;
     },
     getRequiredColumns() {
@@ -943,12 +965,43 @@ export default {
         force: true,
       });
     },
+    getGridCellValidationKey(rowIndex, field) {
+      return `${rowIndex}:${field}`;
+    },
+    isInvalidGridCell(row, field) {
+      if (!row || row.__isInputRow || !field) return false;
+      const rowIndex = Number(row.__gridInputRowIndex);
+      if (!Number.isInteger(rowIndex)) return false;
+      return this.invalidGridCells.includes(this.getGridCellValidationKey(rowIndex, field));
+    },
+    updateGridValidity(records = this.gridRecords) {
+      const rows = Array.isArray(records) ? records : [];
+      const requiredColumns = this.getRequiredColumns();
+      const invalidGridCells = [];
+
+      rows.forEach((row, rowIndex) => {
+        requiredColumns.forEach((col) => {
+          if (this.isEmptyRequiredValue(row?.[col.field])) {
+            invalidGridCells.push(this.getGridCellValidationKey(rowIndex, col.field));
+          }
+        });
+      });
+
+      this.invalidGridCells = invalidGridCells;
+      this.setIsValid(invalidGridCells.length === 0);
+      this.refreshGridValidation();
+    },
+    refreshGridValidation() {
+      if (!this.gridApi?.refreshCells) return;
+      this.gridApi.refreshCells({ force: true });
+    },
     deleteRow(row) {
       const dataIndex = Number(row?.__gridInputRowIndex);
       const currentRows = Array.isArray(this.gridRecords) ? [...this.gridRecords] : [];
       if (!Number.isInteger(dataIndex) || dataIndex < 0 || dataIndex >= currentRows.length) return;
       currentRows.splice(dataIndex, 1);
       this.setGridRecords(currentRows);
+      this.updateGridValidity(currentRows);
     },
     isGridActionColumn(column) {
       const colDef = column?.getColDef?.();
@@ -1356,8 +1409,21 @@ export default {
     },
     /* wwEditor:end */
   },
-  /* wwEditor:start */
   watch: {
+    gridRecords: {
+      handler(newRecords) {
+        this.updateGridValidity(newRecords);
+      },
+      deep: true,
+      immediate: true,
+    },
+    "content.columns": {
+      handler() {
+        this.updateGridValidity();
+      },
+      deep: true,
+    },
+    /* wwEditor:start */
     columnDefs: {
       async handler() {
         if (this.wwEditorState?.boundProps?.columns) return;
@@ -1400,8 +1466,8 @@ export default {
         }, 0);
       }
     },
+    /* wwEditor:end */
   },
-  /* wwEditor:end */
 };
 </script>
 
@@ -1432,7 +1498,8 @@ export default {
       line-height: 1;
     }
 
-    :deep(.ag-cell.grid-input-invalid-cell) {
+    :deep(.ag-cell.grid-input-invalid-cell),
+    :deep(.ag-cell.grid-record-invalid-cell) {
       border: 1px solid #e53935 !important;
       box-shadow: inset 0 0 0 1px #e53935;
     }
