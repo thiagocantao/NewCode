@@ -11,7 +11,7 @@
       @first-data-rendered="onFirstDataRendered"
       @row-selected="onRowSelected" @selection-changed="onSelectionChanged"
       @cell-value-changed="onCellValueChanged" @filter-changed="onFilterChanged" @sort-changed="onSortChanged"
-      @cell-clicked="onCellClicked" @row-clicked="onRowClicked" @cell-key-down="onCellKeyDown"
+      @cell-clicked="onCellClicked" @cell-mouse-down="onCellMouseDown" @row-clicked="onRowClicked" @cell-key-down="onCellKeyDown"
       @cell-editing-stopped="onCellEditingStopped">
     </ag-grid-vue>
   </div>
@@ -419,6 +419,9 @@ export default {
         filter: false,
         resizable: false,
         editable: false,
+        isGridActionColumn: true,
+        suppressClickEdit: true,
+        suppressNavigable: true,
         suppressMovable: true,
         cellStyle: {
           textAlign: "center",
@@ -431,11 +434,27 @@ export default {
           const isInputRow = !!params.data?.__isInputRow;
           const iconClass = isInputRow ? "fa-solid fa-plus" : "fa-solid fa-trash";
           const title = isInputRow ? "Incluir linha" : "Excluir linha";
-          return `<button class="grid-input-action-btn" type="button" title="${title}" aria-label="${title}"><i class="${iconClass}" aria-hidden="true"></i></button>`;
-        },
-        onCellClicked: (params) => {
-          if (params.data?.__isInputRow) this.addRowFromInput(params.data);
-          else this.deleteRow(params.data);
+          const button = document.createElement("button");
+          button.className = "grid-input-action-btn";
+          button.type = "button";
+          button.title = title;
+          button.setAttribute("aria-label", title);
+          button.innerHTML = `<i class="${iconClass}" aria-hidden="true"></i>`;
+
+          const stopGridEditActivation = (event) => {
+            this.preventActionCellEdit(params.api, event);
+          };
+
+          button.addEventListener("pointerdown", stopGridEditActivation);
+          button.addEventListener("mousedown", stopGridEditActivation);
+          button.addEventListener("dblclick", stopGridEditActivation);
+          button.addEventListener("click", (event) => {
+            stopGridEditActivation(event);
+            if (params.data?.__isInputRow) this.addRowFromInput(params.data);
+            else this.deleteRow(params.data);
+          });
+
+          return button;
         },
       };
       
@@ -504,10 +523,17 @@ export default {
                 label: translatePhrase(col.actionLabel),
                 trigger: this.onActionTrigger,
                 withFont: !!this.content.actionFont,
+                suppressMouseEventHandling: () => true,
               },
               sortable: false,
 
               filter: false,
+              editable: false,
+              isGridActionColumn: true,
+              suppressClickEdit: true,
+              suppressNavigable: true,
+              onCellMouseDown: (params) => this.preventActionCellEdit(params.api, params.event),
+              onCellClicked: (params) => this.preventActionCellEdit(params.api, params.event),
               cellClass,
               headerClass,
               ...(baseCellStyle ? { cellStyle: baseCellStyle } : {}),
@@ -835,7 +861,6 @@ export default {
       const currentRows = Array.isArray(this.gridRecords) ? [...this.gridRecords] : [];
       this.setGridRecords([...currentRows, newRow]);
       this.inputRowKey += 1;
-      this.focusInputRowFirstEditableCell();
     },
     deleteRow(row) {
       const dataIndex = Number(row?.__gridInputRowIndex);
@@ -844,8 +869,31 @@ export default {
       currentRows.splice(dataIndex, 1);
       this.setGridRecords(currentRows);
     },
+    isGridActionColumn(column) {
+      const colDef = column?.getColDef?.();
+      return column?.getColId?.() === "__grid_input_actions__" || colDef?.isGridActionColumn === true;
+    },
+    preventActionCellEdit(api, event) {
+      event?.preventDefault?.();
+      event?.stopPropagation?.();
+      api?.stopEditing?.(true);
+      api?.clearFocusedCell?.();
+      requestAnimationFrame(() => {
+        api?.stopEditing?.(true);
+        api?.clearFocusedCell?.();
+      });
+    },
+    onCellMouseDown(event) {
+      if (this.isGridActionColumn(event.column)) {
+        this.preventActionCellEdit(event.api || this.gridApi, event.event);
+      }
+    },
     onCellClicked(event) {
-      if (!event.data?.__isInputRow || event.column?.getColId?.() === "__grid_input_actions__") return;
+      if (this.isGridActionColumn(event.column)) {
+        this.preventActionCellEdit(event.api || this.gridApi, event.event);
+        return;
+      }
+      if (!event.data?.__isInputRow) return;
       this.startInputRowEditing(event.column);
     },
     getFirstEditableInputColumn() {
@@ -1442,7 +1490,8 @@ export default {
   }
   :deep(.grid-list-cell-editor) {
     min-width: 180px;
-    max-height: 260px;
+    max-width: 550px;
+    max-height: 350px;
     padding: 8px;
     border: 1px solid #d6dce5;
     border-radius: 8px;
@@ -1456,12 +1505,19 @@ export default {
     margin-bottom: 8px;
     padding: 6px 8px;
     border: 1px solid #cbd5e1;
-    border-radius: 6px;
+    border-radius: 4px;
     font: inherit;
   }
 
+  :deep(.grid-list-cell-editor__search:focus),
+  :deep(.grid-list-cell-editor__search:focus-visible) {
+    border-color: #94a3b8;
+    outline: none;
+    box-shadow: none;
+  }
+
   :deep(.grid-list-cell-editor__options) {
-    max-height: 200px;
+    max-height: 294px;
     overflow-y: auto;
   }
 
