@@ -3,30 +3,35 @@
         <!-- SINGLE SELECT -->
         <div v-if="isSingleSelect" :style="triggerStyle">
             <template v-if="isOptionSelected">
-                <div class="user-option-content">
-                    <template v-if="isUsersCombo">
-                        <div class="avatar-outer" v-if="!selectedIsGroup">
-                            <div class="avatar-middle">
-                                <div class="user-selector__avatar">
-                                    <img
-                                        v-if="selectedAvatarUrl"
-                                        :src="selectedAvatarUrl"
-                                        :alt="translateText('User avatar')"
-                                    />
-                                    <div v-else class="user-selector__initial">{{ selectedInitial }}</div>
+                <div
+                    class="ww-input-select__chip ww-input-select__chip--single"
+                    :style="getChipStyle(selectedOption)"
+                >
+                    <div class="user-option-content">
+                        <template v-if="isUsersCombo">
+                            <div class="avatar-outer" v-if="!selectedIsGroup">
+                                <div class="avatar-middle">
+                                    <div class="user-selector__avatar">
+                                        <img
+                                            v-if="selectedAvatarUrl"
+                                            :src="selectedAvatarUrl"
+                                            :alt="translateText('User avatar')"
+                                        />
+                                        <div v-else class="user-selector__initial">{{ selectedInitial }}</div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="avatar-outer group-avatar-wrapper" v-else>
-                            <div class="avatar-middle">
-                                <div class="user-selector__avatar">
-                                    <span class="material-symbols-outlined user-selector__group-icon">groups</span>
+                            <div class="avatar-outer group-avatar-wrapper" v-else>
+                                <div class="avatar-middle">
+                                    <div class="user-selector__avatar">
+                                        <span class="material-symbols-outlined user-selector__group-icon">groups</span>
+                                    </div>
                                 </div>
-                            </div>
 
-                        </div>
-                    </template>
-                    <span :style="selectedValueStyle" v-html="selectedLabel || ''"></span>
+                            </div>
+                        </template>
+                        <span :style="selectedValueStyle" v-html="selectedLabel || ''"></span>
+                    </div>
                 </div>
             </template>
             <span v-else :style="placeholderStyle">{{ data.placeholder }}</span>
@@ -96,18 +101,17 @@ export default {
         const isSingleSelect = computed(() => props.content.selectType === 'single');
 
         const placeholder = computed(() => translateText(wwLib.wwLang.getText(props.content.placeholder)));
-        const selectedLabel = computed(() => {
-            return localContext.value?.data?.select?.active?.details?.label;
+        const selectedOption = computed(() => {
+            const details = localContext.value?.data?.select?.active?.details;
+            return Array.isArray(details) ? details[0] : details;
         });
-        const isOptionSelected = computed(
-            () =>
-                !!localContext.value?.data?.select?.active?.details?.label ||
-                localContext.value?.data?.select?.active?.details?.length > 0
-        );
+        const selectedLabel = computed(() => selectedOption.value?.label);
+        const isOptionSelected = computed(() => {
+            const details = localContext.value?.data?.select?.active?.details;
+            return Array.isArray(details) ? details.length > 0 : !!details?.label;
+        });
         const isUsersCombo = computed(() => props.content.isUsers || false);
-        const selectedOptionData = computed(
-            () => localContext.value?.data?.select?.active?.details?.data || {}
-        );
+        const selectedOptionData = computed(() => selectedOption.value?.data || {});
         const selectedAvatarUrl = computed(
             () =>
                 selectedOptionData.value?.photoUrl ||
@@ -180,7 +184,7 @@ export default {
             return {
                 'font-size': props.content.selectedFontSize,
                 'font-family': props.content.selectedFontFamily,
-                color: props.content.selectedFontColor,
+                color: 'inherit',
                 'font-weight': props.content.selectedFontWeight,
                 'text-align': props.content.selectedTextAlign,
                 width: '100%',
@@ -355,6 +359,7 @@ export default {
         return {
             isSingleSelect,
             data,
+            selectedOption,
             selectedLabel,
             isOptionSelected,
             localContext,
@@ -407,6 +412,19 @@ export default {
             gap: 5px;
             cursor: pointer;
         }
+    }
+
+    .ww-input-select__chip {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 5px;
+        cursor: pointer;
+    }
+
+    .ww-input-select__chip--single {
+        max-width: 100%;
+        overflow: hidden;
     }
 }
 
