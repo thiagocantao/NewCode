@@ -510,14 +510,33 @@ export default {
             emit('trigger-event', { name: 'addNew', event: { value } });
         };
 
+        const getSingleSelectionValue = value => {
+            if (Array.isArray(value)) {
+                return value.length ? value[0] : null;
+            }
+            return value === undefined ? null : value;
+        };
+
+        const getValueForComponentVariable = value => {
+            if (selectType.value === 'single' && Array.isArray(variableValue.value)) {
+                const singleValue = getSingleSelectionValue(value);
+                return singleValue === null || singleValue === undefined ? [] : [singleValue];
+            }
+            return value;
+        };
+
+        const setComponentValue = value => {
+            setValue(getValueForComponentVariable(value));
+        };
+
         const updateValue = value => {
             if (selectType.value === 'single') {
                 // Check if value is an array
                 if (Array.isArray(value)) {
                     console.warn('Single select component received an array value. Only the first value will be used.');
-                    value = value[0];
+                    value = getSingleSelectionValue(value);
                 }
-                setValue(value);
+                setComponentValue(value);
                 emit('trigger-event', { name: 'change', event: { value } });
             } else {
                 // Check if value is an array
@@ -556,15 +575,19 @@ export default {
             if (!option && !options?.length > 1) return;
             if (option?.[1]?.disabled) return;
 
-            const originalValue = selectType.value === 'single' ? variableValue.value : [...(Array.isArray(variableValue.value) ? variableValue.value : [])];
+            const originalValue =
+                selectType.value === 'single'
+                    ? getSingleSelectionValue(variableValue.value)
+                    : [...(Array.isArray(variableValue.value) ? variableValue.value : [])];
             let valueChanged = false;
             let eventValue;
 
             if (selectType.value === 'single') {
-                if (variableValue.value === value) {
+                if (areValuesEqual(originalValue, value)) {
                     // Unselect ?
                     if (props.content.unselectOnClick) {
-                        setValue(null);
+                        setComponentValue(null);
+                        eventValue = null;
                         valueChanged = true;
                         if (props.content.closeOnSelect) {
                             closeDropdown();
@@ -572,11 +595,12 @@ export default {
                     }
                 } else if (props.content.selectOnClick) {
                     // Select ?
-                    setValue(value);
+                    setComponentValue(value);
+                    eventValue = value;
                     valueChanged = true;
                     if (props.content.closeOnSelect) closeDropdown();
                 }
-                eventValue = variableValue.value;
+                eventValue = valueChanged ? eventValue : getSingleSelectionValue(variableValue.value);
             } else {
                 const currentValue = Array.isArray(variableValue.value) ? [...variableValue.value] : [];
 
@@ -699,8 +723,9 @@ export default {
         }
 
         function resetValue() {
-            setValue(initValue.value || null);
-            emit('trigger-event', { name: 'change', event: { value: initValue.value || null } });
+            const value = initValue.value || null;
+            setComponentValue(value);
+            emit('trigger-event', { name: 'change', event: { value } });
         }
 
         function handleClickOutside(event) {
@@ -744,7 +769,10 @@ export default {
         function handleInitialFocus() {
             if (!variableValue.value) return;
             if (selectType.value === 'single') {
-                setInitialFocus(variableValue.value);
+                const singleValue = getSingleSelectionValue(variableValue.value);
+                if (singleValue !== null && singleValue !== undefined) {
+                    setInitialFocus(singleValue);
+                }
             } else if (Array.isArray(variableValue.value) && variableValue.value.length) {
                 setInitialFocus(variableValue.value[0]);
             }
@@ -849,7 +877,7 @@ export default {
 
             // Handle single select
             if (selectType.value === 'single') {
-                const option = findOptionByValue(variableValue.value);
+                const option = findOptionByValue(getSingleSelectionValue(variableValue.value));
                 return option ? formatOption(option) : null;
             }
             // Handle multiple select
@@ -955,7 +983,7 @@ export default {
             initialBodyStyle = null;
         };
 
-        const normalizeSingleValue = value => (value === undefined ? null : value);
+        const normalizeSingleValue = value => getSingleSelectionValue(value);
         const normalizeMultipleValue = value => {
             if (Array.isArray(value)) {
                 return value;
@@ -1052,7 +1080,7 @@ export default {
                         : normalizeMultipleValue(initValue.value);
 
                 if (hasDifferentInitValue(variableValue.value, normalizedNextValue)) {
-                    setValue(normalizedNextValue);
+                    setComponentValue(normalizedNextValue);
 
                     const hasValue =
                         (selectType.value === 'single' && normalizedNextValue !== null && normalizedNextValue !== undefined) ||
