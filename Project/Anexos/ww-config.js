@@ -70,6 +70,22 @@ export default {
             },
             /* wwEditor:end */
         },
+        readonly: {
+            label: {
+                en: 'Read only',
+                pt: 'Somente leitura',
+            },
+            type: 'OnOff',
+            bindable: true,
+            defaultValue: false,
+            hidden: (content, sidePanelContent, boundProps, wwProps) => !!(wwProps && wwProps.readonly !== undefined),
+            /* wwEditor:start */
+            bindingValidation: {
+                validations: [{ type: 'boolean' }],
+                tooltip: 'A boolean that defines if attachments can only be viewed: `true | false`',
+            },
+            /* wwEditor:end */
+        },
         autoSaveToPostticketattachment: {
             label: {
                 en: 'Auto save using postticketattachment',
