@@ -34,6 +34,7 @@
       :api-key="content.apiKey"
       :auth-token="content.authToken"
       :filter-query="content.filterQuery"
+      :read-only="isReadOnly"
       @user-selected="onUserSelected"
       @trigger-event="onTriggerEvent"
     />
@@ -127,6 +128,11 @@ export default {
     popupDurationMs() {
       const n = Number(this.content?.requiredPopupDuration);
       return Number.isFinite(n) && n > 0 ? n : 2400;
+    },
+    isReadOnly() {
+      const value = this.content?.readOnly;
+      if (typeof value === 'string') return value.toLowerCase() === 'true';
+      return !!value;
     },
   },
   created() {
@@ -300,6 +306,7 @@ export default {
 
     // === Component actions ===
     resetSelection() {
+      if (this.isReadOnly) return;
       const selector = this.$refs.userSelectorRef;
       if (selector && typeof selector.clearSelection === 'function') {
         selector.clearSelection();

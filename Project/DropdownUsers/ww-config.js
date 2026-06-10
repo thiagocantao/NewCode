@@ -288,6 +288,14 @@ export default {
             bindable: true,
             section: 'settings',
         },
+        readOnly: {
+            label: { en: 'Read only' },
+            type: 'OnOff',
+            defaultValue: false,
+            bindable: true,
+            section: 'settings',
+            description: 'When enabled, users cannot change the current selection and the selector shows a not-allowed cursor.',
+        },
         TableToSave: {
             label: { en: 'Table to Save' },
             type: 'text',
