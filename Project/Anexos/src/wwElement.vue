@@ -1,7 +1,12 @@
 <template>
   <div class="attachments" :style="thumbnailStyles">
-    <div class="add-section">
-      <button type="button" class="upload-button" @click="triggerFileInput">
+    <div v-if="!isReadonly" class="add-section">
+      <button
+        type="button"
+        class="upload-button"
+        :disabled="isReadonly"
+        @click="triggerFileInput"
+      >
         <span class="upload-icon">+</span>
       </button>
       <input 
@@ -9,6 +14,7 @@
         type="file"
         multiple
         class="hidden-input"
+        :disabled="isReadonly"
         @change="onFilesSelected"
       />
     </div>
@@ -35,8 +41,10 @@
           <i class="material-symbols-outlined">download</i>
         </button>
         <button
+          v-if="!isReadonly"
           type="button"
           class="action-button"
+          :disabled="isReadonly"
           @click="requestDelete(index)"
         >
           <i class="material-symbols-outlined">delete</i>
@@ -204,6 +212,26 @@ export default {
     const zoom = ref(1);
     const popup = ref({ visible: false, type: "", details: "", title: "" });
     const detailsOpen = ref(false);
+
+    function toBoolean(value) {
+      if (typeof value === "boolean") return value;
+      if (typeof value === "string") {
+        const normalized = value.trim().toLowerCase();
+        if (["true", "1", "yes", "sim"].includes(normalized)) return true;
+        if (["false", "0", "no", "não", "nao", ""].includes(normalized)) return false;
+      }
+      return !!value;
+    }
+
+    const isReadonly = computed(() => {
+      if (Array.isArray(props.wwElementState?.states) && props.wwElementState.states.includes("readonly")) {
+        return true;
+      }
+      const stateProps = props.wwElementState?.props || {};
+      if (stateProps.readonly !== undefined) return toBoolean(stateProps.readonly);
+      if (stateProps.readOnly !== undefined) return toBoolean(stateProps.readOnly);
+      return toBoolean(props.content?.readonly ?? props.content?.readOnly ?? false);
+    });
 
     function translate(text) {
       if (text == null) return "";
@@ -382,6 +410,7 @@ export default {
     // --- Confirm dialog state ---
     const confirm = ref({ visible: false, index: null, loading: false });
     function requestDelete(index) {
+      if (isReadonly.value) return;
       confirm.value = { visible: true, index, loading: false };
     }
     function cancelDelete() {
@@ -390,6 +419,10 @@ export default {
       confirm.value.loading = false;
     }
     async function confirmDelete() {
+      if (isReadonly.value) {
+        cancelDelete();
+        return;
+      }
       if (confirm.value.index == null) return;
       confirm.value.loading = true;
       try {
@@ -723,6 +756,12 @@ export default {
 
     watch(() => props.content?.dataSource, (ds) => handleDataSource(ds), { immediate: true });
 
+    watch(isReadonly, (readonly) => {
+      if (!readonly) return;
+      if (confirm.value.visible) cancelDelete();
+      if (fileInput.value) fileInput.value.value = "";
+    });
+
     // --- Clear on context change even when dataSource stays null ---
     const contextKey = ref("");
     const buildContextKey = () => {
@@ -761,10 +800,15 @@ export default {
     }
 
     function triggerFileInput() {
+      if (isReadonly.value) return;
       if (fileInput.value) fileInput.value.click();
     }
 
     async function onFilesSelected(event) {
+      if (isReadonly.value) {
+        if (event?.target) event.target.value = "";
+        return;
+      }
       const picked = Array.from(event.target.files || []);
       if (!picked.length) return;
 
@@ -891,6 +935,7 @@ export default {
 
     // real delete (after confirmation)
     async function performDelete(index) {
+      if (isReadonly.value) return;
       const removed = files.value.splice(index, 1)[0];
       if (removed && removed.url && removed.url.startsWith("blob:")) {
         URL.revokeObjectURL(removed.url);
@@ -1031,6 +1076,7 @@ export default {
     return {
       files,
       fileInput,
+      isReadonly,
       triggerFileInput,
       onFilesSelected,
       // delete flow
