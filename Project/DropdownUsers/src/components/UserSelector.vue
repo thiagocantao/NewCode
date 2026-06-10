@@ -1,10 +1,18 @@
 <template>
-  <div ref="dropdownRoot" class="user-selector-dropdown" :style="avatarThemeStyle">
+  <div
+    ref="dropdownRoot"
+    class="user-selector-dropdown"
+    :class="{ 'user-selector-dropdown--readonly': effectiveReadOnly }"
+    :style="avatarThemeStyle"
+  >
     <div
       class="user-selector__selected"
       @click="toggleDropdown"
       :style="containerStyle"
-      :class="{ 'user-selector__selected--group-user': selectedGroup && selectedUser }"
+      :class="{
+        'user-selector__selected--group-user': selectedGroup && selectedUser,
+        'user-selector__selected--readonly': effectiveReadOnly
+      }"
     >
       <!-- Sem seleção -->
       <template v-if="!selectedGroup && !selectedUser">
@@ -122,7 +130,7 @@
           <span class="material-symbols-outlined user-selector__icon">search</span>
         </div>
         <div
-          v-if="showClearButton"
+          v-if="showClearButton && !effectiveReadOnly"
           class="user-selector__clear"
           title="Clear selection"
           @click.stop="clearSelection"
@@ -301,7 +309,8 @@ export default {
       validator: function(value) {
         return ['top', 'center', 'bottom'].indexOf(value) !== -1;
       }
-    }
+    },
+    readOnly: { type: Boolean, default: false }
   },
   data: function() {
     return {
@@ -370,8 +379,14 @@ export default {
       return { fontFamily: this.inputFontFamily, fontSize: this.inputFontSize, fontWeight: this.inputFontWeight };
     },
     containerStyle: function() {
-      if (!this.maxWidth) return {};
-      return { maxWidth: (typeof this.maxWidth === 'number' ? this.maxWidth + 'px' : this.maxWidth) };
+      var style = {};
+      if (this.maxWidth) style.maxWidth = (typeof this.maxWidth === 'number' ? this.maxWidth + 'px' : this.maxWidth);
+      if (this.effectiveReadOnly) style.cursor = 'not-allowed';
+      return style;
+    },
+    effectiveReadOnly: function() {
+      if (typeof this.readOnly === 'string') return this.readOnly.toLowerCase() === 'true';
+      return !!this.readOnly;
     },
     effectiveGroupClickBehavior: function() {
       return this.normalizeOptionValue(this.groupClickBehavior, 'select', ['open', 'select']);
@@ -498,11 +513,21 @@ export default {
       if (newVal === oldVal) return;
       // ao chegar/alterar a fonte, tente aplicar o que está pendente
       this.tryResolveSelection(true);
+    },
+    effectiveReadOnly: function(value) {
+      if (!value) return;
+      this.isOpen = false;
+      this.resetDropdownState();
     }
   },
   methods: {
     /* ------- UI ------- */
     toggleDropdown: function() {
+      if (this.effectiveReadOnly) {
+        this.isOpen = false;
+        this.resetDropdownState();
+        return;
+      }
       this.isOpen = !this.isOpen;
       if (!this.isOpen) this.resetDropdownState();
     },
@@ -583,6 +608,7 @@ export default {
 
     /* ------- Clique ------- */
     clearSelection: function() {
+      if (this.effectiveReadOnly) return;
       this.selectedGroup = null;
       this.selectedUser = null;
       this.currentGroup = null;
@@ -597,6 +623,7 @@ export default {
       return [{ id: null, name: 'Assign to team', isAssignToTeam: true }].concat(users);
     },
     selectUser: function(user) {
+      if (this.effectiveReadOnly) return;
       var value;
       if (this.currentGroup) {
         if (user.isAssignToTeam) {
@@ -619,6 +646,7 @@ export default {
       this.updateComponentVariable();
     },
     openGroup: function(group) {
+      if (this.effectiveReadOnly) return;
       if (this.effectiveGroupClickBehavior === 'select') return;
       if (this.isGroupItem(group)) {
         this.groupStack.push(this.currentGroup);
@@ -628,6 +656,7 @@ export default {
       }
     },
     handleGroupClick: function(group) {
+      if (this.effectiveReadOnly) return;
       if (this.effectiveGroupClickBehavior === 'select') {
         this.selectGroup(group);
       } else {
@@ -635,6 +664,7 @@ export default {
       }
     },
     selectGroup: function(group) {
+      if (this.effectiveReadOnly) return;
       this.selectedGroup = group;
       this.selectedUser = null;
       this.isOpen = false;
@@ -643,6 +673,7 @@ export default {
       this.updateComponentVariable();
     },
     backToRoot: function() {
+      if (this.effectiveReadOnly) return;
       this.currentGroup = this.groupStack.length ? this.groupStack.pop() : null;
       this.currentGroupUsers = this.currentGroup
         ? this.buildCurrentGroupUsers(this.currentGroup)
@@ -787,6 +818,7 @@ export default {
 .user-selector-dropdown{position:relative;width:auto;display:inline-block;font-family:inherit}
 .user-selector__selected{display:flex;align-items:center;cursor:pointer;border-radius:24px;padding:6px 16px 6px 8px;background:transparent;min-height:44px;transition:box-shadow .2s;gap:10px;border:none;width:auto;min-width:0}
 .user-selector__selected:hover,.user-selector__selected:focus{box-shadow:none}
+.user-selector-dropdown--readonly .user-selector__selected,.user-selector__selected--readonly{cursor:not-allowed}
 .avatar-outer{width:32px;height:32px;border-radius:50%;border:1px solid #3A4663;display:flex;align-items:center;justify-content:center;background:#fff;box-shadow:0 0 0 0.5px var(--grid-view-dinamica-avatar-shadow, #3A4663)}
 .group-avatar-wrapper{position:relative}
 .user-selector__selected--group-user{gap:0}
