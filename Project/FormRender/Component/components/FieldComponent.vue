@@ -1375,7 +1375,6 @@ export default {
     background-color: #f0f0f0 !important;
     color: #888 !important;
     cursor: not-allowed !important;
-    border-style: dashed !important;
     opacity: 1 !important;
   }
 
@@ -1600,7 +1599,6 @@ export default {
     background: #f0f0f0;
     color: #888;
     cursor: not-allowed;
-    border-style: dashed;
   }
 
   .custom-dropdown-list {
