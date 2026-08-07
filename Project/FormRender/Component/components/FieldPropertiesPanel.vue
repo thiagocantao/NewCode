@@ -54,30 +54,6 @@
 
       <div class="form-group toggle">
         <div class="toggle-container">
-          <label>{{ tipLabel }}</label>
-          <div class="toggle-switch">
-            <input
-              type="checkbox"
-              :id="`tip-${uniqueId}`"
-              v-model="hasTip"
-              @change="toggleTip"
-            />
-            <label :for="`tip-${uniqueId}`" class="toggle-label"></label>
-          </div>
-        </div>
-      </div>
-
-      <div class="form-group" v-if="hasTip">
-        <textarea
-          v-model="tipText"
-          class="tip-textarea"
-          @change="updateTip"
-          :placeholder="tipPlaceholder"
-        ></textarea>
-      </div>
-
-      <div class="form-group toggle">
-        <div class="toggle-container">
           <label>{{ showOnlyLabel }}</label>
           <div class="toggle-switch">
             <input
