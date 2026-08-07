@@ -1191,9 +1191,9 @@ export default {
   .tooltip-text {
     display: block;
     color: rgb(120, 120, 120);
-    padding: 8px;
+    padding: 2px 8px 0;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 11px;
     white-space: normal;
     overflow-wrap: anywhere;
     z-index: 1;
