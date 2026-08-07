@@ -4,7 +4,7 @@
     :class="[`field-type-${field.fieldType.toLowerCase()}`, { 'is-mandatory': field.is_mandatory }]"
     :style="componentStyleVars">
     <!-- Label do campo -->
-    <label v-if="!field.is_hide_legend" class="field-label">
+    <div v-if="!field.is_hide_legend" class="field-label">
       <span class="field-label-text">{{ field.name }}</span>
       <button
         v-if="showFieldUserMenuButton && !field.is_mandatory"
@@ -12,7 +12,7 @@
         class="field-user-menu-button material-symbols-outlined"
         :aria-label="t('Field options')"
         :title="t('User details')"
-        @click="onFieldUserMenuClick"
+        @click.stop="onFieldUserMenuClick"
       >
         more_horiz
       </button>
@@ -23,11 +23,11 @@
         class="field-user-menu-button material-symbols-outlined"
         :aria-label="t('Field options')"
         :title="t('User details')"
-        @click="onFieldUserMenuClick"
+        @click.stop="onFieldUserMenuClick"
       >
         more_horiz
       </button>
-    </label>
+    </div>
 
     <!-- Campos de entrada baseados no tipo -->
     <div class="field-input-container">
