@@ -287,6 +287,66 @@
               </div>
             </div>
             <div class="header-tags-rigth">
+              <div class="assignee-wrapper" v-if="headerFieldPresence.assignedGroup">
+                <span class="user-icon">
+                  <i class="material-symbols-outlined">group</i>
+                </span>
+                <div
+                  class="select-wrapper assignee-select-wrapper"
+                  :style="computeSelectWidthStyle(headerAssignedGroup, translateText('Unassigned group'))"
+                >
+                  <div
+                    class="custom-dropdown-wrapper header-dropdown-wrapper"
+                    :ref="el => setHeaderDropdownRef('assignedGroup', el)"
+                  >
+                    <div
+                      class="custom-dropdown-selected-assign"
+                      :class="{ open: headerDropdownState.assignedGroup.open }"
+                      @click.stop="toggleHeaderDropdown('assignedGroup')"
+                    >
+                      <span v-if="getHeaderSelectedLabel('assignedGroup')">
+                        {{ getHeaderSelectedLabel('assignedGroup') }}
+                      </span>
+                      <span v-else class="placeholder">
+                        {{ translateText('Unassigned group') }}
+                      </span>
+                      <span class="material-symbols-outlined dropdown-arrow">expand_more</span>
+                    </div>
+                    <div v-if="headerDropdownState.assignedGroup.open" class="custom-dropdown-list">
+                      <div class="dropdown-search-wrapper">
+                        <span class="material-symbols-outlined search-icon">search</span>
+                        <input
+                          type="text"
+                          v-model="headerDropdownState.assignedGroup.search"
+                          :placeholder="translateText('Search...')"
+                          class="list-search-input"
+                          @click.stop
+                          @mousedown.stop
+                          @touchstart.stop
+                        />
+                      </div>
+                      <button type="button" class="dropdown-clear-link" @click.stop="clearHeaderSelection('assignedGroup')">Clear</button>
+                      <div
+                        v-if="getFilteredHeaderOptions('assignedGroup').length === 0"
+                        class="custom-dropdown-no-options"
+                      >
+                        {{ translateText('No options found') }}
+                      </div>
+                      <div
+                        v-for="option in getFilteredHeaderOptions('assignedGroup')"
+                        :key="option.value ?? option.label ?? option"
+                        class="custom-dropdown-option"
+                        :class="{ selected: isHeaderOptionSelected('assignedGroup', option) }"
+                        @click.stop="selectHeaderOption('assignedGroup', option)"
+                        @mousedown.stop
+                        @touchstart.stop
+                      >
+                        {{ option.label ?? option.value ?? option }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <div class="assignee-wrapper" v-if="headerFieldPresence.assignee">
                 <span class="user-icon">
                   <i class="material-symbols-outlined">person</i>
@@ -811,6 +871,7 @@ export default {
     const headerCategory = ref('');
     const headerSubcategory = ref('');
     const headerThirdLevelCategory = ref('');
+    const headerAssignedGroup = ref('');
     const headerAssignee = ref('');
     const headerStatus = ref('');
     const headerListOptions = reactive({
@@ -818,6 +879,7 @@ export default {
       category: [],
       subcategory: [], 
       thirdLevelCategory: [],
+      assignedGroup: [],
       assignee: [],
       status: []
     });
@@ -826,6 +888,7 @@ export default {
       category: false,
       subcategory: false,
       thirdLevelCategory: false,
+      assignedGroup: false,
       assignee: false,
       status: false
     });
@@ -909,6 +972,7 @@ return;
       applyDefault('category', 'CategoryID', headerCategory);
       applyDefault('subcategory', 'SubCategoryID', headerSubcategory);
       applyDefault('thirdLevelCategory', 'CategoryLevel3ID', headerThirdLevelCategory);
+      applyDefault('assignedGroup', 'AssignedGroupID', headerAssignedGroup);
       applyDefault('assignee', 'ResponsibleUserID', headerAssignee);
       applyDefault('status', 'StatusID', headerStatus);
     };
@@ -1015,6 +1079,7 @@ return;
       { key: 'category', name: 'CategoryID', model: headerCategory },
       { key: 'subcategory', name: 'SubCategoryID', model: headerSubcategory },
       { key: 'thirdLevelCategory', name: 'CategoryLevel3ID', model: headerThirdLevelCategory },
+      { key: 'assignedGroup', name: 'AssignedGroupID', model: headerAssignedGroup },
       { key: 'assignee', name: 'ResponsibleUserID', model: headerAssignee },
       { key: 'status', name: 'StatusID', model: headerStatus }
     ];
@@ -1023,6 +1088,7 @@ return;
       category: headerCategory,
       subcategory: headerSubcategory,
       thirdLevelCategory: headerThirdLevelCategory,
+      assignedGroup: headerAssignedGroup,
       assignee: headerAssignee,
       status: headerStatus
     };
@@ -1197,6 +1263,7 @@ return;
         category: !!findControlledFieldByName(fields, 'CategoryID'),
         subcategory: !!findControlledFieldByName(fields, 'SubCategoryID'),
         thirdLevelCategory: !!findControlledFieldByName(fields, 'CategoryLevel3ID'),
+        assignedGroup: !!findControlledFieldByName(fields, 'AssignedGroupID'),
         assignee: !!findControlledFieldByName(fields, 'ResponsibleUserID'),
         status: !!findControlledFieldByName(fields, 'StatusID')
       };
@@ -1211,6 +1278,7 @@ return;
       headerFieldPresence.value.category ||
       headerFieldPresence.value.subcategory ||
       headerFieldPresence.value.thirdLevelCategory ||
+      headerFieldPresence.value.assignedGroup ||
       headerFieldPresence.value.assignee ||
       headerFieldPresence.value.status
     );
@@ -2739,6 +2807,7 @@ return;
       headerCategory,
       headerSubcategory,
       headerThirdLevelCategory,
+      headerAssignedGroup,
       headerAssignee,
       headerStatus,
       headerFieldPresence,
