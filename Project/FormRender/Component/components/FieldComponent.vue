@@ -428,11 +428,22 @@ export default {
       return Boolean(this.field.is_field_user && this.showFieldUserMenu && this.hasSelectedValue);
     },
     fieldTip() {
-      const lang = window?.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342') || 'en-US';
-      if (!this.field?.tip_translations || typeof this.field.tip_translations !== 'object') {
-        return this.field?.tip || '';
+      const tipTranslations = this.field?.tip_translations;
+
+      // Some form endpoints return the already translated help text as a string,
+      // while older forms keep translations in an object keyed by locale.
+      if (typeof tipTranslations === 'string') {
+        return tipTranslations.trim();
       }
-      return this.field.tip_translations[lang] || this.field.tip || '';
+
+      if (tipTranslations && typeof tipTranslations === 'object') {
+        const lang = typeof window !== 'undefined'
+          ? window.wwLib?.wwVariable?.getValue('aa44dc4c-476b-45e9-a094-16687e063342') || 'en-US'
+          : 'en-US';
+        return (tipTranslations[lang] || this.field?.tip || '').toString().trim();
+      }
+
+      return (this.field?.tip || '').toString().trim();
     },
     deadlineColorClass() {
       if (this.field.fieldType !== 'DEADLINE') return '';
@@ -1178,11 +1189,13 @@ export default {
   }
 
   .tooltip-text {
+    display: block;
     color: rgb(120, 120, 120);
-    padding: 8px;
+    padding: 2px 8px 0;
     border-radius: 4px;
-    font-size: 12px;
-    white-space: nowrap;
+    font-size: 11px;
+    white-space: normal;
+    overflow-wrap: anywhere;
     z-index: 1;
   }
 
