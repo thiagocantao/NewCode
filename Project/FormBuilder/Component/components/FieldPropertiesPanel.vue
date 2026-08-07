@@ -71,16 +71,6 @@
           :placeholder="tipPlaceholder"
         ></textarea>
       </div>
-      <div class="form-group">
-        <label>{{ labelHelpLabel }}</label>
-        <textarea
-          v-model="labelHelpText"
-          class="tip-textarea"
-          @change="updateLabelHelp"
-          :placeholder="labelHelpPlaceholder"
-        ></textarea>
-      </div>
-
       <div class="form-group end-users-group">
         <label class="group-title">End Users</label>
       </div>
